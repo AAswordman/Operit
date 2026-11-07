@@ -7946,6 +7946,10 @@
     <string name="tool_permission_overlay_required_for_confirmation">需要悬浮窗权限才能确认工具执行。</string>
     <string name="tool_permission_confirmation_timeout">工具执行确认超时。</string>
 
+    <!-- 工作区防护（文件工具区外确认） -->
+    <string name="tool_workspace_outside_forbidden">工具 %1$s 已被设置为禁止，且目标路径位于当前会话工作区之外（或会话未绑定工作区），本次调用直接拒绝。</string>
+    <string name="tool_workspace_outside_confirmation">⚠ 工作区外操作确认：以下目标路径位于当前会话工作区之外（或会话未绑定工作区），请仔细核对路径后决定是否允许：\n%1$s</string>
+
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">图片捕获失败: %1$s</string>
 

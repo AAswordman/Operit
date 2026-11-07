@@ -11,6 +11,7 @@ import com.ai.assistance.operit.core.tools.FileApplyResultData
 import com.ai.assistance.operit.core.tools.BinaryFileContentData
 import com.ai.assistance.operit.core.tools.FileExistsData
 import com.ai.assistance.operit.core.tools.FileInfoData
+import com.ai.assistance.operit.core.tools.WorkspacePathChecker
 import com.ai.assistance.operit.core.tools.FileOperationData
 import com.ai.assistance.operit.core.tools.FilePartContentData
 import com.ai.assistance.operit.core.tools.FindFilesResultData
@@ -2192,6 +2193,26 @@ open class StandardFileSystemTools(protected val context: Context) {
             return safTools.deleteFile(tool)
         }
         PathValidator.validateAndroidPath(path, tool.name)?.let { return it }
+
+        // 修改意图：递归删除危险根目录的硬底线。此前 recursive=true 对任意绝对路径
+        // （包括 / 与 /storage/emulated/0）直接 deleteRecursively，配合存储权限会造成
+        // 大规模数据破坏；此处与环境无关地拦截（linux 环境由 LinuxFileSystemTools 同规则拦截）
+        if (recursive && WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result =
+                FileOperationData(
+                    operation = "delete",
+                    path = path,
+                    successful = false,
+                    details =
+                    "Refused to recursively delete a protected root directory: $path"
+                ),
+                error =
+                "Refused to recursively delete a protected root directory: $path"
+            )
+        }
 
         if (path.isBlank()) {
             return ToolResult(

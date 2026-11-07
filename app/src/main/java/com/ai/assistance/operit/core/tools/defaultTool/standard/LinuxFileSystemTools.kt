@@ -14,6 +14,7 @@ import com.ai.assistance.operit.core.tools.GrepResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.core.tools.ToolExecutionLimits
+import com.ai.assistance.operit.core.tools.WorkspacePathChecker
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
@@ -676,6 +677,23 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
         val path = tool.parameters.find { it.name == "path" }?.value ?: ""
         val recursive = tool.parameters.find { it.name == "recursive" }?.value?.toBoolean() ?: false
         PathValidator.validateLinuxPath(path, tool.name)?.let { return it }
+
+        // 修改意图：与 Android 环境一致，递归删除危险根目录（proot 根文件系统的 / 等）
+        // 由硬底线拦截，防止整棵 rootfs 被清空
+        if (recursive && WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = FileOperationData(
+                    operation = "delete",
+                    env = "linux",
+                    path = path,
+                    successful = false,
+                    details = "Refused to recursively delete a protected root directory: $path"
+                ),
+                error = "Refused to recursively delete a protected root directory: $path"
+            )
+        }
 
         if (path.isBlank()) {
             return ToolResult(

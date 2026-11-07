@@ -8,6 +8,7 @@ import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.AIToolHookDecision
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutor
+import com.ai.assistance.operit.core.tools.WorkspacePathChecker
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
@@ -15,6 +16,8 @@ import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.asContextElement
@@ -48,12 +51,28 @@ object ToolExecutionManager {
     private const val TOOL_SESSION_ID_PARAM = "__operit_tool_session_id"
     private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
 
-    data class ToolRuntimeContext(
+    // 修改意图：嵌套调用（JS 扩展包 toolCall → 内置文件工具）绕过权限弹窗链路，
+    // 由该 Hook 兜底做工作区判定；注册一次即可，ThreadLocal 判空保证主链路不受影响
+    @Volatile
+    private var workspaceHookRegistered = false
+
+    /**
+     * 修改意图：改为普通类并携带工作区绑定信息。字段说明：
+     * - chatWorkspaceRoot/chatWorkspaceEnv：会话绑定的工作区（以 ChatHistory 为准），
+     *   供嵌套调用的 AIToolHook 兜底判定使用（ThreadLocal 上下文随执行作用域传递）
+     * - approvedOutsidePaths：本轮调用中已由用户在"区外强制弹窗"确认过的路径（规范化后），
+     *   嵌套重入（扩展包 toolCall → 内置文件工具）不重复弹窗也不误拦截
+     */
+    class ToolRuntimeContext(
         val callerCardId: String? = null,
         val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         val callerChatId: String? = null,
         val toolSessionScopeId: String? = null,
         val subtaskExecution: SubtaskExecutionState? = null,
+        val chatWorkspaceRoot: String? = null,
+        val chatWorkspaceEnv: String? = null,
+        val approvedOutsidePaths: MutableSet<String> =
+            java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap()),
     )
 
     internal sealed class PackageContextInjection {
@@ -602,7 +621,10 @@ object ToolExecutionManager {
         androidContext: Context,
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
-        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        chatWorkspaceRoot: String? = null,
+        chatWorkspaceEnv: String? = null,
+        runtimeContext: ToolRuntimeContext? = null
     ): Pair<Boolean, ToolResult?> {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
@@ -624,6 +646,84 @@ object ToolExecutionManager {
                 reason = "CLI public tool"
             )
             return Pair(true, null)
+        }
+
+        // 修改意图：文件工具工作区防护。区内按既有权限模式（ALLOW 直行/ASK 弹窗/FORBID 拒绝）；
+        // 区外（含会话未绑定工作区）的 ALLOW/ASK 一律强制弹窗确认，FORBID 直接拒绝。
+        // 该判定先于 deny_tool 标记执行——安全边界不因模型侧文本标记而绕过。
+        // 扩展包文件工具（如 extended_file_tools:copy_file）与内置文件工具同族，同样纳入防护
+        if (WorkspacePathChecker.isWorkspaceProtectedTool(permissionTool.name)) {
+            val zone =
+                WorkspacePathChecker.resolveZone(
+                    chatWorkspaceRoot = chatWorkspaceRoot,
+                    chatWorkspaceEnv = chatWorkspaceEnv,
+                    tool = permissionTool,
+                )
+            if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
+                val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+                val level = toolPermissionSystem.getToolPermission(permissionTool.name)
+
+                if (level == PermissionLevel.FORBID) {
+                    val errorMessage =
+                        androidContext.getString(
+                            R.string.tool_workspace_outside_forbidden,
+                            resolvedTarget.displayName
+                        )
+                    val errorResult =
+                        ToolResult(
+                            toolName = resolvedTarget.displayName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = errorMessage
+                        )
+                    toolHandler.notifyToolPermissionChecked(
+                        permissionTool,
+                        granted = false,
+                        reason = errorMessage
+                    )
+                    return Pair(false, errorResult)
+                }
+
+                // 区外强制弹窗：原因中列出目标路径，供用户判断
+                val confirmationReason =
+                    androidContext.getString(
+                        R.string.tool_workspace_outside_confirmation,
+                        WorkspacePathChecker.extractPaths(permissionTool).joinToString(", ")
+                    )
+                val permissionResult =
+                    toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
+
+                if (!permissionResult.isGranted) {
+                    val errorMessage =
+                        androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+                    val errorResult =
+                        ToolResult(
+                            toolName = resolvedTarget.displayName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = errorMessage
+                        )
+                    toolHandler.notifyToolPermissionChecked(
+                        permissionTool,
+                        granted = false,
+                        reason = errorMessage
+                    )
+                    return Pair(false, errorResult)
+                }
+
+                // 修改意图：记录本次用户已确认的区外路径（规范化后），嵌套重入
+                // （扩展包 toolCall → 内置文件工具）经 WorkspaceFileToolHook 放行，不误拦截
+                runtimeContext?.let { runtimeContext ->
+                    WorkspacePathChecker.extractPaths(permissionTool).forEach { path ->
+                        val canonical =
+                            runCatching { java.io.File(path).canonicalPath }.getOrDefault(path)
+                        runtimeContext.approvedOutsidePaths.add(canonical)
+                    }
+                }
+
+                toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+                return Pair(true, null)
+            }
         }
 
         // 检查是否强制拒绝权限（deny_tool标记）
@@ -709,6 +809,17 @@ object ToolExecutionManager {
             toolHandler.registerDefaultTools()
         }
 
+        // 修改意图：嵌套调用的工作区兜底 Hook 幂等注册（主链路的弹窗防护在
+        // checkToolPermission 的工作区阶段，二者互不重叠）
+        if (!workspaceHookRegistered) {
+            synchronized(this) {
+                if (!workspaceHookRegistered) {
+                    toolHandler.addToolHook(WorkspaceFileToolHook())
+                    workspaceHookRegistered = true
+                }
+            }
+        }
+
         val roleCardToolAccess = if (callerCardId.isNullOrBlank()) {
             null
         } else {
@@ -721,6 +832,17 @@ object ToolExecutionManager {
                 if (subtaskExecution != null) throw error
             }.getOrNull()
         }
+        // 修改意图：工作区防护以会话绑定（ChatHistory）为准；未绑定工作区 → root 为 null，
+        // 所有文件工具路径按区外处理（需求确认项）。绑定解析失败同样按未绑定处理
+        val chatWorkspaceBinding = callerChatId?.let { chatId ->
+            runCatching {
+                ChatHistoryManager.getInstance(context).getChatWorkspaceBinding(chatId)
+            }.onFailure { error ->
+                AppLogger.e(TAG, "工作区绑定解析失败: chatId=$callerChatId", error)
+            }.getOrNull()
+        }
+        val chatWorkspaceRoot = chatWorkspaceBinding?.first
+        val chatWorkspaceEnv = chatWorkspaceBinding?.second
         val toolRuntimeContext =
             ToolRuntimeContext(
                 callerCardId = callerCardId,
@@ -728,6 +850,8 @@ object ToolExecutionManager {
                 callerChatId = callerChatId,
                 toolSessionScopeId = subtaskExecution?.toolSessionScopeId ?: callerChatId,
                 subtaskExecution = subtaskExecution,
+                chatWorkspaceRoot = chatWorkspaceRoot,
+                chatWorkspaceEnv = chatWorkspaceEnv
             )
 
         // 1. 顶层工具暴露模式拦截
@@ -819,7 +943,15 @@ object ToolExecutionManager {
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
                     val (hasPermission, errorResult) =
-                        checkToolPermission(context, toolHandler, invocation, toolExposureMode)
+                        checkToolPermission(
+                            context,
+                            toolHandler,
+                            invocation,
+                            toolExposureMode,
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            chatWorkspaceEnv = chatWorkspaceEnv,
+                            runtimeContext = toolRuntimeContext
+                        )
                     if (hasPermission) {
                         permittedInvocations.add(IndexedValue(index, invocation))
                     } else {
