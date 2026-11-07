@@ -94,6 +94,82 @@ function(operit_populate_git_source out_source_dir out_binary_dir dependency_nam
 endfunction()
 
 function(operit_prepare_git_source out_source_dir out_binary_dir dependency_name repository git_ref)
+    # =======================================================================
+    # [PATCH 0016] 离线复用本地已存在的源码目录，跳过 FetchContent 下载。
+    #
+    # 背景：operit_declare_git_source() 用的是 URL 方式。CMake 的
+    #       FetchContent_Populate 只要 subbuild 的 stamp 不完整就会重新
+    #       走 download/extract 流程 —— 哪怕 SOURCE_DIR 里已经有完整源码。
+    #       在无外网（或 GitHub 极慢）的构建机上，这会卡在
+    #       Downloading .../archive/<sha>.tar.gz 上十几分钟不返回。
+    #
+    # 语义：只要 .cxx/operit_deps/<dep>-<sha>-src 目录存在且非空，
+    #       就认定源码已就位，直接使用，不做任何网络访问。
+    #       删除该目录即可强制重新下载。
+    #
+    # 两个必须绕开的联网点：
+    #   1. FetchContent_Populate 的 download/extract
+    #   2. git_ref 不是 40 位 SHA 时，operit_resolve_git_ref() 会跑
+    #      `git ls-remote` 去查 SHA —— ufbx 用的是 "main" 分支，
+    #      每次都必然联网。离线时改为从已有目录名里反推 SHA。
+    #
+    # 判据不用 CMakeLists.txt：ufbx 这类纯头文件库没有 CMakeLists.txt，
+    # 用它会误判为缺失而重新联网。
+    # =======================================================================
+    operit_normalize_source_token(_off_token "${dependency_name}-${git_ref}")
+    set(_off_deps_root "${CMAKE_SOURCE_DIR}/.cxx/operit_deps")
+    set(_off_src "${_off_deps_root}/${_off_token}-src")
+    set(_off_bin "${_off_deps_root}/${_off_token}-build")
+
+    file(GLOB _off_probe "${_off_src}/*")
+    if(IS_DIRECTORY "${_off_src}" AND _off_probe)
+        message(WARNING "[operit] Reusing local source for ${dependency_name}: ${_off_src}")
+        set(${out_source_dir} "${_off_src}" PARENT_SCOPE)
+        set(${out_binary_dir} "${_off_bin}" PARENT_SCOPE)
+        return()
+    endif()
+
+    # 精确目录不存在时，按 "<dep>-<40位hex>-src" 模式回退匹配。
+    # 这样即使调用方传的是分支名（git_ref 无法离线解析），
+    # 只要之前下载过任意版本，就能直接复用。
+    #
+    # [REVIEW P2] 但如果调用方钉的是完整 SHA，就绝不允许回退到别的版本——
+    # 那会让构建静默用上另一个 llama.cpp，而且没有任何提示。
+    string(LENGTH "${git_ref}" _off_ref_len)
+    if(_off_ref_len EQUAL 40 AND "${git_ref}" MATCHES "^[0-9a-fA-F]+$")
+        message(STATUS "[operit] ${dependency_name}: pinned to ${git_ref}, no fuzzy fallback")
+        operit_declare_git_source("${dependency_name}" "${repository}" "${git_ref}" ${ARGN})
+        operit_populate_git_source(${out_source_dir} ${out_binary_dir} "${dependency_name}")
+        set(${out_source_dir} "${${out_source_dir}}" PARENT_SCOPE)
+        set(${out_binary_dir} "${${out_binary_dir}}" PARENT_SCOPE)
+        return()
+    endif()
+
+    operit_normalize_source_token(_off_prefix "${dependency_name}")
+    file(GLOB _off_candidates "${_off_deps_root}/${_off_prefix}-*-src")
+    list(LENGTH _off_candidates _off_candidate_count)
+    if(_off_candidate_count GREATER 1)
+        # 多个版本共存时无法判断该用哪个，宁可失败也不猜。
+        string(REPLACE ";" "\n    " _off_candidate_list "${_off_candidates}")
+        message(FATAL_ERROR
+            "[operit] ${dependency_name}: ${_off_candidate_count} local checkouts found while "
+            "resolving ref '${git_ref}' offline, refusing to pick one:\n    ${_off_candidate_list}\n"
+            "  Pin an exact 40-char SHA, or remove the ones you do not need.")
+    endif()
+    if(_off_candidates)
+        list(GET _off_candidates 0 _off_src2)
+        file(GLOB _off_probe2 "${_off_src2}/*")
+        if(_off_probe2)
+            get_filename_component(_off_token2 "${_off_src2}" NAME)
+            string(REPLACE "-src" "" _off_token2 "${_off_token2}")
+            set(_off_bin "${_off_deps_root}/${_off_token2}-build")
+            message(WARNING "[operit] Reusing local source for ${dependency_name} (ref '${git_ref}' unresolved offline): ${_off_src2}")
+            set(${out_source_dir} "${_off_src2}" PARENT_SCOPE)
+            set(${out_binary_dir} "${_off_bin}" PARENT_SCOPE)
+            return()
+        endif()
+    endif()
+
     operit_declare_git_source("${dependency_name}" "${repository}" "${git_ref}" ${ARGN})
     operit_populate_git_source(${out_source_dir} ${out_binary_dir} "${dependency_name}")
     set(${out_source_dir} "${${out_source_dir}}" PARENT_SCOPE)
