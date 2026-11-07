@@ -4992,9 +4992,8 @@
     <string name="unsupported_artifact_version_title">当前软件版本可能不兼容</string>
     <string name="unsupported_artifact_version_message">「%1$s」声明支持的软件版本为 %3$s，当前软件版本是 %2$s。继续下载仍可能失败或不可用。</string>
     <string name="continue_download_anyway">仍然继续下载</string>
-    <string name="market_version_incompatible_title">无法下载：客户端版本不受支持</string>
-    <string name="market_version_too_low_message">当前客户端版本 %1$s 低于该资源要求的最低版本 %2$s。请更新客户端后再下载。</string>
-    <string name="market_version_too_high_message">当前客户端版本 %1$s 高于该资源最高支持的版本 %2$s。请使用受支持的客户端版本。</string>
+    <string name="market_toolpkg_api_incompatible_title">无法安装：ToolPkg API 不受支持</string>
+    <string name="market_toolpkg_api_incompatible_message">该插件声明的 ToolPkg API 版本为 %1$s，本机支持的版本为 %2$s，无法安装此插件。</string>
     <string name="publisher_colon">发布者: %1$s</string>
     <string name="market_registrar_colon">登记者 %1$s</string>
     <string name="downloaded_already">已下载</string>
