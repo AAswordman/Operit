@@ -20,7 +20,7 @@ related_pr: 154
 - 本地扩展图标随有效启用状态显示彩色或灰色，市场详情不使用本地禁用态
 - 脚本及插件子包的工具运行按钮接入有效启用状态；运行弹窗的运行按钮同样受控
 - 原生同步和流式脚本执行入口在读取执行数据前检查启用状态，在取得执行引擎后再次确认；流式调用在收集时检查实际状态
-- 使用 `PackageManager.isPackageEnabled` 的既有父子关联判断，拒绝禁用包时返回 `Package disabled: <package>`，不执行脚本、不记录为插件使用
+- 使用 `PackageManager.isPackageEnabled` 的既有父子关联判断，拒绝禁用包时返回 `package is disabled: <package_id>`，不执行脚本、不记录为插件使用
 
 ## 回归与验收
 

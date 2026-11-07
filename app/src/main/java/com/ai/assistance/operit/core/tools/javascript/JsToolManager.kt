@@ -328,7 +328,7 @@ class JsToolManager private constructor(
     }
 
     private fun disabledPackageMessage(packageName: String): String =
-        "Package disabled: $packageName"
+        "package is disabled: $packageName"
 
     fun executeScript(toolName: String, params: Map<String, String>): String {
         val parsed = parseDotCall(toolName)

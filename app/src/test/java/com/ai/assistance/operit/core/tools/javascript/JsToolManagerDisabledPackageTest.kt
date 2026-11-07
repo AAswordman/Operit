@@ -29,7 +29,7 @@ class JsToolManagerDisabledPackageTest {
     fun disabledSynchronousCallDoesNotReadOrExecuteThePackageScript() {
         val result = manager.executeScript("daily_life.get_current_date", emptyMap())
 
-        assertEquals("Package disabled: daily_life", result)
+        assertEquals("package is disabled: daily_life", result)
         verify(packages).isPackageEnabled("daily_life")
         verifyNoMoreInteractions(packages)
     }
@@ -42,7 +42,7 @@ class JsToolManagerDisabledPackageTest {
         assertEquals(1, results.size)
         assertFalse(results.single().success)
         assertEquals(tool.name, results.single().toolName)
-        assertEquals("Package disabled: com.example.plugin.child", results.single().error)
+        assertEquals("package is disabled: com.example.plugin.child", results.single().error)
         verify(packages).isPackageEnabled("com.example.plugin.child")
         verifyNoMoreInteractions(packages)
     }
@@ -59,7 +59,7 @@ class JsToolManagerDisabledPackageTest {
 
         assertEquals(1, results.size)
         assertFalse(results.single().success)
-        assertEquals("Package disabled: daily_life", results.single().error)
+        assertEquals("package is disabled: daily_life", results.single().error)
         verify(packages).isPackageEnabled("daily_life")
         verifyNoMoreInteractions(packages)
     }
