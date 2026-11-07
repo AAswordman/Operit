@@ -79,36 +79,7 @@ object ModelListFetcher {
                     ApiProviderType.ANTHROPIC,
                     ApiProviderType.ANTHROPIC_GENERIC -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.GOOGLE,
-                    ApiProviderType.GEMINI_GENERIC -> {
-                        // 对于Gemini API，直接使用提供的端点或默认端点
-                        if (apiEndpoint.contains("generativelanguage.googleapis.com")) {
-                            // 如果端点已经是模型列表URL，直接使用
-                            if (apiEndpoint.endsWith("/models")) {
-                                apiEndpoint
-                            } else {
-                                // 否则构造标准模型列表URL
-                                val version = if (apiEndpoint.contains("/v1/")) "v1" else "v1beta"
-                                "https://generativelanguage.googleapis.com/$version/models"
-                            }
-                        } else if (apiEndpoint.contains("aiplatform.googleapis.com") ||
-                                        apiEndpoint.contains("vertex")
-                        ) {
-                            // Vertex AI格式
-                            val projectMatch = Regex("projects/([^/]+)").find(apiEndpoint)
-                            val locationMatch = Regex("locations/([^/]+)").find(apiEndpoint)
-
-                            if (projectMatch != null && locationMatch != null) {
-                                val project = projectMatch.groupValues[1]
-                                val location = locationMatch.groupValues[1]
-                                "https://$location-aiplatform.googleapis.com/v1/projects/$project/locations/$location/publishers/google/models"
-                            } else {
-                                "https://generativelanguage.googleapis.com/v1beta/models"
-                            }
-                        } else {
-                            // 默认使用直接API
-                            "https://generativelanguage.googleapis.com/v1beta/models"
-                        }
-                    }
+                    ApiProviderType.GEMINI_GENERIC -> getGeminiModelsListUrl(apiEndpoint)
                     ApiProviderType.ZHIPU -> "${extractBaseUrl(apiEndpoint)}/v4/models"
                     ApiProviderType.DEEPSEEK -> "${extractBaseUrl(apiEndpoint)}/v1/models"
                     ApiProviderType.OPENROUTER -> "${extractBaseUrl(apiEndpoint)}/v1/models"
@@ -132,6 +103,47 @@ object ModelListFetcher {
 
         AppLogger.d(TAG, "生成的模型列表URL: ${sanitizeUrlForLog(modelsUrl)}")
         return modelsUrl
+    }
+
+    private fun getGeminiModelsListUrl(apiEndpoint: String): String {
+        // 模型目录必须使用配置的服务，不能把中转域名和网关前缀改写为 Google 官方地址。
+        val url = apiEndpoint.trim().toHttpUrl()
+        val segments = url.encodedPathSegments.dropLastWhile { it.isEmpty() }
+        val modelsIndex = segments.indexOfLast { it == "models" }
+        val versionPattern = Regex("v[0-9]+(?:(?:beta|alpha)[0-9]*)?")
+        val versionIndex = segments.indexOfLast { versionPattern.matches(it) }
+        val hasModelsPath = modelsIndex >= 0 && (
+                modelsIndex == segments.lastIndex ||
+                        (versionIndex >= 0 && modelsIndex > versionIndex) ||
+                        segments.last().endsWith(":generateContent") ||
+                        segments.last().endsWith(":streamGenerateContent"))
+        val projectIndex = segments.indexOfLast { it == "projects" }
+        val locationIndex = segments.indexOfLast { it == "locations" }
+        val publisherIndex = segments.indexOfLast { it == "publishers" }
+        val hasVertexLocation =
+                projectIndex >= 0 && locationIndex == projectIndex + 2 &&
+                        locationIndex + 1 < segments.size
+
+        val catalogSegments = when {
+            hasModelsPath -> segments.take(modelsIndex + 1)
+            hasVertexLocation -> {
+                if (publisherIndex >= locationIndex + 2 && publisherIndex + 1 < segments.size) {
+                    segments.take(publisherIndex + 2) + "models"
+                } else {
+                    segments.take(locationIndex + 2) + listOf("publishers", "google", "models")
+                }
+            }
+            versionIndex >= 0 -> segments.take(versionIndex + 1) + "models"
+            else -> segments + listOf("v1beta", "models")
+        }
+        val builder = url.newBuilder()
+                .encodedPath(catalogSegments.joinToString(separator = "/", prefix = "/"))
+                .fragment(null)
+        // 流式对话 URL 的传输参数不属于模型列表请求，其余网关查询参数继续保留。
+        if (url.queryParameter("alt") == "sse") {
+            builder.removeAllQueryParameters("alt")
+        }
+        return builder.build().toString()
     }
 
     private fun sanitizeUrlForLog(rawUrl: String, apiKey: String = ""): String {
