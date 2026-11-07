@@ -728,6 +728,28 @@ fun FunctionConfigCard(
                                                         .collect { chunk -> buffer.append(chunk) }
                                                     buffer.toString()
                                                 }
+                                                // 修改意图：新增 TOOL_REVIEW 枚举值的连接测试分支，
+                                                // 与 CHAT 同款简单问答即可验证连通性（when 表达式非穷尽会编译失败）
+                                                FunctionType.TOOL_REVIEW -> {
+                                                    val parameters =
+                                                        modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
+                                                    val buffer = StringBuilder()
+                                                    service.sendMessage(
+                                                        context,
+                                                        listOf(
+                                                            PromptTurn(
+                                                                kind = PromptTurnKind.USER,
+                                                                content = "Connection test: reply with {\"compliant\": true, \"reason\": \"ok\"} only."
+                                                            )
+                                                        ),
+                                                        parameters,
+                                                        stream = false,
+                                                        enableRetry = false,
+                                                        recordTokenUsage = false,
+                                                    )
+                                                        .collect { chunk -> buffer.append(chunk) }
+                                                    buffer.toString()
+                                                }
                                             }
                                             testResult =
                                                 FunctionTestDisplay.fromResponse(
