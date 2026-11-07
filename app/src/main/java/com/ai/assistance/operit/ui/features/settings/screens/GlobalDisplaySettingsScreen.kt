@@ -67,6 +67,7 @@ fun GlobalDisplaySettingsScreen(
     val enableBackgroundKeepAlive by displayPreferencesManager.enableBackgroundKeepAlive.collectAsState(initial = false)
     val enableExperimentalVirtualDisplay by displayPreferencesManager.enableExperimentalVirtualDisplay.collectAsState(initial = true)
     val hideRuntimeTaskView by displayPreferencesManager.hideRuntimeTaskView.collectAsState(initial = false)
+    val floatingFollowsTargetedSend by displayPreferencesManager.floatingFollowsTargetedSend.collectAsState(initial = false)
     val globalUserName by displayPreferencesManager.globalUserName.collectAsState(initial = null)
     val screenshotFormat by displayPreferencesManager.screenshotFormat.collectAsState(initial = "JPG")
     val screenshotQuality by displayPreferencesManager.screenshotQuality.collectAsState(initial = 75)
@@ -603,6 +604,20 @@ fun GlobalDisplaySettingsScreen(
                     scope.launch {
                         displayPreferencesManager.saveDisplaySettings(
                             hideRuntimeTaskView = it
+                        )
+                    }
+                },
+                backgroundColor = componentBackgroundColor
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.floating_follows_targeted_send),
+                subtitle = stringResource(R.string.floating_follows_targeted_send_description),
+                checked = floatingFollowsTargetedSend,
+                onCheckedChange = {
+                    scope.launch {
+                        displayPreferencesManager.saveDisplaySettings(
+                            floatingFollowsTargetedSend = it
                         )
                     }
                 },

@@ -128,7 +128,7 @@ deleteChat(chatId: string): Promise<ChatDeleteResultData>
 运行时行为：
 
 - `runtime` 默认是 `floating`；未知值会失败。
-- `message` 不能为空白。提供 `chatId` 时，宿主在该会话后台发送且不切换 UI；省略时发送到当前会话。
+- `message` 不能为空白。提供 `chatId` 时，宿主在该会话后台发送且不切换 UI；省略时发送到当前会话。悬浮窗跟随目标对话显示是可选行为，默认关闭；用户在设置中开启「悬浮窗跟随定向发送」后，`runtime` 为 `floating` 的定向发送会把悬浮窗切到目标对话（仅悬浮窗本地状态，`main` 与主界面均不受影响）。
 - `roleCardId` 若非空会作为本次发送的角色卡覆盖值；`senderName` 的空白值会被忽略。
 - `persist_turn` 默认 `true`，`hide_user_message` 和 `disable_warning` 默认 `false`；四个布尔选项必须是 `true` 或 `false`。`notify_reply` 未提供时保持宿主默认值 `null`。
 - `timeout_ms` 必须是正整数，且覆盖从发起请求到获得回复的剩余等待时间；未提供时获取回复的默认上限为 180 秒。已有同一会话消息处理时，等待前一条处理结束也受该期限约束。
