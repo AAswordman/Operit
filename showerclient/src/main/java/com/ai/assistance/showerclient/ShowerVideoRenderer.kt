@@ -1,20 +1,11 @@
 package com.ai.assistance.showerclient
 
-import android.graphics.Bitmap
 import android.media.MediaCodec
 import android.media.MediaCodec.BufferInfo
 import android.media.MediaFormat
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.view.PixelCopy
 import android.view.Surface
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
 
 /**
  * H.264 decoder that renders the Shower video stream onto a Surface.
@@ -200,44 +191,6 @@ class ShowerVideoRenderer {
         }
         val result = out.toByteArray()
         return if (result.isNotEmpty()) result else packet
-    }
-
-    suspend fun captureCurrentFramePng(): ByteArray? {
-        val s: Surface
-        val w: Int
-        val h: Int
-        synchronized(lock) {
-            val localSurface = surface
-            if (localSurface == null || width <= 0 || height <= 0) return null
-            s = localSurface
-            w = width
-            h = height
-        }
-
-        if (Build.VERSION.SDK_INT < 26) return null
-
-        return withContext(Dispatchers.Main) {
-            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            suspendCancellableCoroutine { cont ->
-                val handler = Handler(Looper.getMainLooper())
-                PixelCopy.request(s, bitmap, { result ->
-                    if (result == PixelCopy.SUCCESS) {
-                        try {
-                            val baos = ByteArrayOutputStream()
-                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
-                            cont.resume(baos.toByteArray())
-                        } catch (e: Exception) {
-                            cont.resume(null)
-                        } finally {
-                            bitmap.recycle()
-                        }
-                    } else {
-                        bitmap.recycle()
-                        cont.resume(null)
-                    }
-                }, handler)
-            }
-        }
     }
 
     private fun initDecoderLocked() {
