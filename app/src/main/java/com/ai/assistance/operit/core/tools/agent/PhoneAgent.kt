@@ -352,6 +352,7 @@ class PhoneAgent(
         isPausedFlow: StateFlow<Boolean>? = null,
         targetApp: String? = null
     ): String {
+        val runStarted = System.nanoTime()
         val progress = if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context) else null
         val runJob = currentCoroutineContext()[Job]
         var feedbackSessionStarted = false
@@ -388,6 +389,8 @@ class PhoneAgent(
                 progress.hide()
                 progress.setBorderEnabled(false)
             }
+            performance.totalMs = (System.nanoTime() - runStarted) / 1_000_000
+            AppLogger.d("PhoneAgent", "[$agentId] performance: ${performance.summary()}")
         }
     }
 
@@ -485,6 +488,7 @@ class PhoneAgent(
                 localSession = PhoneAgentLocalSession(
                     context,
                     task = task,
+                    performance = performance,
                     inputScope = { block -> actionHandler.withLocalInputFeedback(block) },
                     tapAt = { x, y -> actionHandler.tapNode(x, y) },
                     onStep = { index, total, action ->
@@ -639,7 +643,6 @@ class PhoneAgent(
 
             return "Max steps reached"
         } finally {
-            AppLogger.d("PhoneAgent", "[$agentId] performance: ${performance.summary()}")
             AppLogger.d("PhoneAgent", "[$agentId] run: finishing, restoring UI")
             pauseFlow = null
             floatingService?.setFloatingWindowVisible(true)
@@ -720,7 +723,13 @@ class PhoneAgent(
                 }
             }
             if (includeImage) {
-                val screenshotLink = actionHandler.captureScreenshotForAgent()
+                val screenshotStarted = System.nanoTime()
+                performance.screenshotAttempts++
+                val screenshotLink = try {
+                    actionHandler.captureScreenshotForAgent()
+                } finally {
+                    performance.screenshotNs += System.nanoTime() - screenshotStarted
+                }
                 if (screenshotLink != null) {
                     performance.screenshots++
                     screenshotAvailable = true
@@ -760,7 +769,15 @@ class PhoneAgent(
                 preserveThinkInHistory = true
             ).collectRevisionAppliedText().trim()
         } finally {
-            performance.modelMs += (System.nanoTime() - modelStarted) / 1_000_000
+            val elapsed = (System.nanoTime() - modelStarted) / 1_000_000
+            performance.modelMs += elapsed
+            if (includeImage) {
+                performance.imageModelCalls++
+                performance.imageModelMs += elapsed
+            } else {
+                performance.nodeModelCalls++
+                performance.nodeModelMs += elapsed
+            }
         }
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: AI response collected, length=${fullResponse.length}")
 
@@ -780,6 +797,10 @@ class PhoneAgent(
         }
 
         if (parsedAction.metadata == "do") {
+            if (!isLocalCommand && parsedAction.actionName !in PhoneLocalProtocol.executableActions) {
+                lastActionFeedback = "Unsupported action ${parsedAction.actionName}; use only ${PhoneLocalProtocol.executableActions.joinToString()}. No input was dispatched."
+                return StepResult(false, false, parsedAction, thinking, lastActionFeedback)
+            }
             awaitIfPaused()
             if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
                 _stepCount, config.maxSteps,
@@ -821,7 +842,7 @@ class PhoneAgent(
                 }
                 return StepResult(localResult.success, false, reportedAction, thinking, lastActionFeedback)
             }
-            if (!screenshotAvailable && parsedAction.actionName in setOf("Tap", "Double Tap", "Long Press", "Swipe")) {
+            if (!screenshotAvailable && parsedAction.actionName in setOf("Tap", "Swipe")) {
                 imageOnlyRequested = imageOnly
                 localSession?.invalidate()
                 lastActionFeedback = "No coordinate action was sent: this observation has no screenshot. Use an observed node ref or request Inspect before selecting coordinates."

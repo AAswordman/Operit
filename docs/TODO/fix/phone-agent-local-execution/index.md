@@ -32,3 +32,6 @@ status: startup-input-feedback-fix-ci-pending
 
 
 通用节点整合的源码实现与静态审阅已完成，详见第 07 项。当前主屏无障碍会话默认发送紧凑节点摘要，Inspect 与 Observe 显式切换观察方式；纯启动任务确认前台后直接结束。第 07 项的新增 JVM 用例尚未运行，尚无对应构建及真机验证结果。
+
+
+- [09 能力对齐与观察成本](09-contract-and-observation-cost.md)：第一阶段与第三阶段实现、计时口径和显式设备基准。

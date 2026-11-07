@@ -2,6 +2,9 @@ package com.ai.assistance.operit.core.tools.agent
 
 /** Internal protocol for the explicitly selected main-display accessibility session. */
 internal object PhoneLocalProtocol {
+    // This is the executable do() contract, not the optional node JSON protocol.
+    val executableActions: Set<String> = setOf("Launch", "Tap", "Type", "Swipe", "Back", "Home", "Wait", "Take_over")
+
     fun prompt(useEnglish: Boolean): String = if (useEnglish) EN else CN
 
     fun launchPrompt(useEnglish: Boolean): String = if (useEnglish) {

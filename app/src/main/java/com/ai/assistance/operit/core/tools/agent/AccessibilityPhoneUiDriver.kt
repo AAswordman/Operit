@@ -18,56 +18,82 @@ internal class AccessibilityPhoneUiDriver(
     private val context: Context,
     private val inputScope: suspend (suspend () -> Boolean) -> Boolean,
     private val tapAt: suspend (Int, Int) -> Boolean,
+    private val performance: PhoneAgentPerformance? = null,
 ) : PhoneUiDriver {
     private val revision = AtomicLong()
+    // Discover the XML implementation once per session; each read still gets its own parser.
+    private val parserFactory by lazy { XmlPullParserFactory.newInstance() }
 
     override suspend fun read(): PhoneUiSnapshot = withContext(Dispatchers.IO) {
-        val xml = UIHierarchyManager.getUIHierarchy(context)
-        if (xml.isBlank()) throw PhoneUiUnavailableException("Accessibility returned no main-screen hierarchy")
-        if (xml.length > 2_000_000) throw PhoneUiException("Accessibility hierarchy exceeds the local read limit")
-        val parser = XmlPullParserFactory.newInstance().newPullParser()
-        parser.setInput(StringReader(xml))
-        val nodes = mutableListOf<PhoneUiNode>()
-        val parents = mutableListOf<Int>()
+        val started = System.nanoTime()
+        performance?.let { it.nodeReads++ }
         try {
-            while (parser.eventType != XmlPullParser.END_DOCUMENT) {
-                if (parser.eventType == XmlPullParser.START_TAG && parser.name == "node") {
-                    if (nodes.size >= 5000) throw PhoneUiException("Accessibility hierarchy exceeds 5000 nodes")
-                    fun attr(name: String): String = parser.getAttributeValue(null, name).orEmpty()
-                    val password = attr("password") == "true"
-                    val className = attr("class")
-                    val bounds = PhoneBounds.parse(attr("bounds"))
-                    nodes += PhoneUiNode(
-                        packageName = attr("package"), resourceId = attr("resource-id"), className = className,
-                        text = if (password) "" else attr("text"), description = if (password) "" else attr("content-desc"),
-                        bounds = bounds, clickable = attr("clickable") == "true",
-                        editable = attr("editable") == "true" || className.endsWith("EditText"),
-                        focused = attr("focused") == "true", enabled = attr("enabled") != "false", password = password,
-                        selected = attr("selected") == "true", checked = attr("checked") == "true",
-                        ref = nodes.size + 1, parentRef = parents.lastOrNull(),
-                        visibleToUser = listOf("visible-to-user", "visible", "visibleToUser")
-                            .map { attr(it) }.firstOrNull { it == "true" || it == "false" }?.toBoolean(),
-                        hint = attr("hint"), scrollable = attr("scrollable") == "true",
-                    )
-                    parents += nodes.size
-                } else if (parser.eventType == XmlPullParser.END_TAG && parser.name == "node" && parents.isNotEmpty()) {
-                    parents.removeAt(parents.lastIndex)
-                }
-                parser.next()
-            }
-        } catch (e: PhoneUiException) {
-            throw e
+            readSnapshot()
         } catch (e: Exception) {
-            throw PhoneUiException("Could not parse accessibility hierarchy: ${e.javaClass.simpleName}")
+            performance?.let { it.nodeReadFailures++ }
+            throw e
+        } finally {
+            performance?.let { it.nodeReadNs += System.nanoTime() - started }
         }
-        val packageName = nodes.firstOrNull { it.packageName.isNotBlank() }?.packageName
-            ?: throw PhoneUiUnavailableException("Main-screen hierarchy has no app identity")
-        val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
-            ?: throw PhoneUiException("Main display is unavailable")
-        val size = Point()
-        @Suppress("DEPRECATION")
-        display.getRealSize(size)
-        PhoneUiSnapshot(revision.incrementAndGet(), packageName, nodes, PhoneBounds(0, 0, size.x, size.y))
+    }
+
+    private suspend fun readSnapshot(): PhoneUiSnapshot {
+        val hierarchyStarted = System.nanoTime()
+        val xml = try {
+            UIHierarchyManager.getUIHierarchy(context)
+        } finally {
+            performance?.let { it.hierarchyNs += System.nanoTime() - hierarchyStarted }
+        }
+        val parseStarted = System.nanoTime()
+        try {
+            if (xml.isBlank()) throw PhoneUiUnavailableException("Accessibility returned no main-screen hierarchy")
+            if (xml.length > 2_000_000) throw PhoneUiException("Accessibility hierarchy exceeds the local read limit")
+            val parser = parserFactory.newPullParser()
+            parser.setInput(StringReader(xml))
+            val nodes = mutableListOf<PhoneUiNode>()
+            val parents = mutableListOf<Int>()
+            try {
+                while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                    if (parser.eventType == XmlPullParser.START_TAG && parser.name == "node") {
+                        if (nodes.size >= 5000) throw PhoneUiException("Accessibility hierarchy exceeds 5000 nodes")
+                        fun attr(name: String): String = parser.getAttributeValue(null, name).orEmpty()
+                        val password = attr("password") == "true"
+                        val className = attr("class")
+                        val bounds = PhoneBounds.parse(attr("bounds"))
+                        nodes += PhoneUiNode(
+                            packageName = attr("package"), resourceId = attr("resource-id"), className = className,
+                            text = if (password) "" else attr("text"), description = if (password) "" else attr("content-desc"),
+                            bounds = bounds, clickable = attr("clickable") == "true",
+                            editable = attr("editable") == "true" || className.endsWith("EditText"),
+                            focused = attr("focused") == "true", enabled = attr("enabled") != "false", password = password,
+                            selected = attr("selected") == "true", checked = attr("checked") == "true",
+                            ref = nodes.size + 1, parentRef = parents.lastOrNull(),
+                            visibleToUser = listOf("visible-to-user", "visible", "visibleToUser")
+                                .map { attr(it) }.firstOrNull { it == "true" || it == "false" }?.toBoolean(),
+                            hint = attr("hint"), scrollable = attr("scrollable") == "true",
+                        )
+                        parents += nodes.size
+                    } else if (parser.eventType == XmlPullParser.END_TAG && parser.name == "node" && parents.isNotEmpty()) {
+                        parents.removeAt(parents.lastIndex)
+                    }
+                    parser.next()
+                }
+            } catch (e: PhoneUiException) {
+                throw e
+            } catch (e: Exception) {
+                throw PhoneUiException("Could not parse accessibility hierarchy: ${e.javaClass.simpleName}")
+            }
+            val packageName = nodes.firstOrNull { it.packageName.isNotBlank() }?.packageName
+                ?: throw PhoneUiUnavailableException("Main-screen hierarchy has no app identity")
+            val display = context.getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
+                ?: throw PhoneUiException("Main display is unavailable")
+            val size = Point()
+            @Suppress("DEPRECATION")
+            display.getRealSize(size)
+            return PhoneUiSnapshot(revision.incrementAndGet(), packageName, nodes, PhoneBounds(0, 0, size.x, size.y))
+        } finally {
+            performance?.let { it.parseNs += System.nanoTime() - parseStarted }
+        }
     }
 
     override suspend fun tap(node: PhoneUiNode): Boolean = withContext(Dispatchers.IO) {

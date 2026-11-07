@@ -19,6 +19,7 @@ class PhonePlanExecutorTest {
     private fun plan(vararg steps: PhoneLocalStep) = PhoneLocalSequence(pkg, steps.toList())
 
     private class Driver(var state: PhoneUiSnapshot) : PhoneUiDriver {
+        var reads = 0
         var taps = 0
         var lastTapped: PhoneUiNode? = null
         var types = 0
@@ -26,7 +27,7 @@ class PhonePlanExecutorTest {
         var onTap: () -> Unit = {}
         var onType: (String) -> Unit = {}
         var onRead: () -> Unit = {}
-        override suspend fun read(): PhoneUiSnapshot { onRead(); return state }
+        override suspend fun read(): PhoneUiSnapshot { reads++; onRead(); return state }
         override suspend fun tap(node: PhoneUiNode): Boolean { taps++; lastTapped = node; onTap(); return accept }
         override suspend fun type(node: PhoneUiNode, text: String): Boolean { types++; onType(text); return accept }
     }
@@ -270,6 +271,38 @@ class PhonePlanExecutorTest {
         assertFalse(result.success)
         assertFalse(result.lastActionMayHaveRun)
         assertEquals(0, driver.taps)
+    }
+
+    @Test fun waitReadsTheConditionOnceWithoutAnUnusedPreRead() = runTest {
+        val observed = snapshot(input)
+        val driver = Driver(observed)
+        val wait = PhoneLocalStep(PhoneLocalAction.Wait, null, PhoneTarget(id = "query"), null, 200)
+        val result = PhonePlanExecutor(driver).execute(plan(wait), emptyMap(), observed, 1)
+        assertTrue(result.success)
+        assertEquals(1, driver.reads)
+        assertEquals(0, driver.taps + driver.types)
+    }
+
+    @Test fun waitStillRejectsAnotherForegroundApp() = runTest {
+        val observed = snapshot(input)
+        val driver = Driver(PhoneUiSnapshot(2, "com.other.app", emptyList()))
+        val wait = PhoneLocalStep(PhoneLocalAction.Wait, null, PhoneTarget(id = "query"), null, 200)
+        val result = PhonePlanExecutor(driver).execute(plan(wait), emptyMap(), observed, 1)
+        assertFalse(result.success)
+        assertEquals(1, driver.reads)
+        assertEquals(0, driver.taps + driver.types)
+    }
+
+    @Test fun tapAndTypeKeepTheirFreshPreDispatchAndPostconditionReads() = runTest {
+        val observed = snapshot(button)
+        val driver = Driver(observed)
+        driver.onTap = { driver.state = snapshot(input) }
+        driver.onType = { driver.state = snapshot(input.copy(text = it)) }
+        val result = PhonePlanExecutor(driver).execute(plan(tap(), type("coffee")), emptyMap(), observed, 2)
+        assertTrue(result.success)
+        assertEquals(4, driver.reads)
+        assertEquals(1, driver.taps)
+        assertEquals(1, driver.types)
     }
 
 }

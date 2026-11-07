@@ -52,8 +52,10 @@ internal class PhonePlanExecutor(
                 checkpoint()
                 onStep(index + 1, plan.steps.size, step.action)
                 lastSnapshot = null
-                state = read(plan.packageName)
-                if (index == 0) {
+                // Wait sends no input; awaitTarget itself performs the fresh package/condition read.
+                // Keep pre-dispatch reads for Tap/Type, including after model planning or takeover.
+                if (step.action != PhoneLocalAction.Wait) state = read(plan.packageName)
+                if (index == 0 && step.action != PhoneLocalAction.Wait) {
                     if (state.packageName != observed.packageName) throw PhoneUiException("Active app changed during planning")
                     step.target?.let { target ->
                         if (!unique(observed, target).sameTargetAs(unique(state, target))) {

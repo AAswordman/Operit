@@ -15,8 +15,9 @@ internal class PhoneAgentLocalSession(
     tapAt: suspend (Int, Int) -> Boolean,
     private val onStep: (Int, Int, PhoneLocalAction) -> Unit = { _, _, _ -> },
     private val task: String = "",
+    private val performance: PhoneAgentPerformance? = null,
 ) {
-    private val driver = AccessibilityPhoneUiDriver(context, inputScope, tapAt)
+    private val driver = AccessibilityPhoneUiDriver(context, inputScope, tapAt, performance)
     private val store = PhoneSequenceStore(File(context.filesDir, "phone_sequences")) { packageName ->
         val info = context.packageManager.getPackageInfo(packageName, 0)
         "${PackageInfoCompat.getLongVersionCode(info)}:${info.lastUpdateTime}"
@@ -54,8 +55,14 @@ internal class PhoneAgentLocalSession(
         val pending = pendingObservation
         pendingObservation = null
         val age = pending?.let { System.nanoTime() / 1_000_000 - it.capturedAtMs }
-        val state = if (pending != null && age != null && age in 0L..1000L) pending else driver.read()
-        val summary = state.summary(task)
+        val reuse = pending != null && age != null && age in 0L..1000L
+        val state = if (reuse) requireNotNull(pending).also { performance?.let { it.reusedObservations++ } } else driver.read()
+        val summaryStarted = System.nanoTime()
+        val summary = try {
+            state.summary(task)
+        } finally {
+            performance?.let { it.summaryNs += System.nanoTime() - summaryStarted }
+        }
         if (expectedPackage != null && (state.packageName != expectedPackage || summary.shown.isEmpty())) {
             throw PhoneUiUnavailableException("Launched app window is not ready for node observation: $expectedPackage")
         }
