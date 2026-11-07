@@ -19,6 +19,7 @@ import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.FileUtils
+import com.ai.assistance.operit.util.PathMapper
 import com.ai.assistance.operit.core.tools.defaultTool.PathValidator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -1216,15 +1217,35 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             )
         }
 
-        return grepCodeWithNativeRipgrep(
-            toolName = tool.name,
-            path = path,
-            pattern = pattern,
-            filePattern = filePattern,
-            caseInsensitive = caseInsensitive,
-            contextLines = contextLines,
-            maxResults = maxResults,
-            envLabel = "linux"
+        // 修改意图：native ripgrep 运行在宿主文件系统上，直接传 linux/proot 逻辑路径
+        // （/home/... 等）会扫不到目标；先映射到宿主 rootfs 真实路径再扫描，
+        // 结果路径再反向映射回 linux 逻辑路径回传给模型
+        val mappedPath = PathMapper.resolvePath(context, path, "linux")
+        val grepResult =
+            grepCodeWithNativeRipgrep(
+                toolName = tool.name,
+                path = mappedPath,
+                pattern = pattern,
+                filePattern = filePattern,
+                caseInsensitive = caseInsensitive,
+                contextLines = contextLines,
+                maxResults = maxResults,
+                envLabel = "linux"
+            )
+
+        val resultData = grepResult.result as? GrepResultData
+        if (!grepResult.success || resultData == null) {
+            return grepResult
+        }
+
+        val remappedMatches =
+            resultData.matches.map { fileMatch ->
+                val linuxFilePath = PathMapper.mapAndroidPathToLinux(context, fileMatch.filePath)
+                if (linuxFilePath != null) fileMatch.copy(filePath = linuxFilePath) else fileMatch
+            }
+        return grepResult.copy(
+            result =
+                resultData.copy(searchPath = path, matches = remappedMatches)
         )
     }
 

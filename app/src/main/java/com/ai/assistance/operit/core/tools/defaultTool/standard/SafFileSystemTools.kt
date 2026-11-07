@@ -144,6 +144,16 @@ class SafFileSystemTools(
         return null
     }
 
+    // 修改意图：SAF 创建文件的白名单。此前白名单外的扩展名抛出的错误不列出任何支持项，
+    // 模型无从自纠；抽成常量供错误信息直接引用
+    private val SAF_SUPPORTED_CREATE_EXTENSIONS: List<String> =
+        listOf(
+            "md", "markdown", "txt", "log", "json", "xml", "html", "htm", "css", "csv",
+            "js", "mjs", "cjs", "ts", "tsx", "kt", "kts", "java", "py", "sh", "bash",
+            "yaml", "yml", "toml", "ini", "conf", "properties", "svg", "png", "jpg",
+            "jpeg", "webp", "gif", "pdf", "zip", "gz", "apk",
+        )
+
     private fun requireSafCreateMimeType(fileName: String): String {
         val normalizedName = fileName.lowercase(Locale.ROOT)
         val extension = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
@@ -176,7 +186,13 @@ class SafFileSystemTools(
             extension == "zip" -> "application/zip"
             extension == "gz" -> "application/gzip"
             extension == "apk" -> "application/vnd.android.package-archive"
-            else -> throw IllegalArgumentException("Unsupported file extension for SAF create: $fileName")
+            else ->
+                throw IllegalArgumentException(
+                    "Unsupported file extension for SAF create: $fileName. " +
+                        "Supported extensions: ${SAF_SUPPORTED_CREATE_EXTENSIONS.joinToString(", ")}, " +
+                        "plus well-known files (README, LICENSE, .gitignore, ...). " +
+                        "For other file types, operate outside the SAF environment."
+                )
         }
     }
 

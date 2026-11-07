@@ -3668,6 +3668,16 @@ open class StandardFileSystemTools(protected val context: Context) {
                         error = "include_root_directory must be true or false"
                     )
             }
+        // 修改意图：repo: 环境不支持 zip（旧实现静默落到 Android FS 报"不存在"），
+        // 按 environment 矩阵给明确拒绝，模型可据此改用 android/linux 环境
+        if (isSafEnvironment(environment)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "zip_files is not supported for SAF/repo environment. Use android or linux environment."
+            )
+        }
         PathValidator.validateAndroidPath(sourcePath, tool.name, "source")?.let { return it }
         PathValidator.validateAndroidPath(zipPath, tool.name, "destination")?.let { return it }
 
@@ -3825,6 +3835,15 @@ open class StandardFileSystemTools(protected val context: Context) {
         val zipPath = tool.parameters.find { it.name == "source" }?.value ?: ""
         val destPath = tool.parameters.find { it.name == "destination" }?.value ?: ""
         val environment = tool.parameters.find { it.name == "environment" }?.value
+        // 修改意图：repo: 环境不支持 unzip，按 environment 矩阵给明确拒绝
+        if (isSafEnvironment(environment)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "unzip_files is not supported for SAF/repo environment. Use android or linux environment."
+            )
+        }
         PathValidator.validateAndroidPath(zipPath, tool.name, "source")?.let { return it }
         PathValidator.validateAndroidPath(destPath, tool.name, "destination")?.let { return it }
 
@@ -3988,6 +4007,8 @@ open class StandardFileSystemTools(protected val context: Context) {
         val environment = tool.parameters.find { it.name == "environment" }?.value
         val oldContent = tool.parameters.find { it.name == "old" }?.value ?: ""
         val newContent = tool.parameters.find { it.name == "new" }?.value ?: ""
+        // 修改意图：edit_file 同样支持 occurrence（多候选定位），透传给 apply_file
+        val occurrenceParam = tool.parameters.find { it.name == "occurrence" }?.value
 
         val applyResult = applyFile(
             AITool(
@@ -3997,6 +4018,7 @@ open class StandardFileSystemTools(protected val context: Context) {
                     ToolParameter("type", "replace"),
                     ToolParameter("old", oldContent),
                     ToolParameter("new", newContent),
+                    ToolParameter("occurrence", occurrenceParam ?: ""),
                     environment?.takeIf { it.isNotBlank() }?.let { ToolParameter("environment", it) }
                 )
             )
@@ -4024,9 +4046,37 @@ open class StandardFileSystemTools(protected val context: Context) {
             tool.parameters.find { it.name == "occurrence" }?.value?.trim()?.toIntOrNull()
         ToolProgressBus.update(tool.name, 0f, "Preparing...")
         try {
-            PathValidator.validateAndroidPath(path, tool.name)?.let {
-                emit(it)
+            // 修改意图：路径校验按环境路由——linux 支持 ~ 前缀（旧实现统一走
+            // validateAndroidPath，linux 的 ~/x 路径在 apply 上必失败而 write_file 成功）；
+            // repo: 环境不支持结构化编辑，按 environment 矩阵给明确拒绝
+            if (isLinuxEnvironment(environment)) {
+                PathValidator.validateLinuxPath(path, tool.name)?.let {
+                    emit(it)
+                    return@flow
+                }
+            } else if (isSafEnvironment(environment)) {
+                emit(
+                    ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result =
+                        FileOperationData(
+                            operation = "apply",
+                            path = path,
+                            successful = false,
+                            details =
+                            "apply_file is not supported for SAF/repo environment. Use android or linux environment."
+                        ),
+                        error =
+                        "apply_file is not supported for SAF/repo environment. Use android or linux environment."
+                    )
+                )
                 return@flow
+            } else {
+                PathValidator.validateAndroidPath(path, tool.name)?.let {
+                    emit(it)
+                    return@flow
+                }
             }
 
             if (path.isBlank()) {
@@ -4662,6 +4712,21 @@ open class StandardFileSystemTools(protected val context: Context) {
         if (isLinuxEnvironment(environment)) {
             return linuxTools.openFile(tool)
         }
+        // 修改意图：repo: 环境不支持 open（旧实现静默落 Android FS 报"不存在"），给明确拒绝
+        if (isSafEnvironment(environment)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result =
+                FileOperationData(
+                    operation = "open",
+                    path = path,
+                    successful = false,
+                    details = "open_file is not supported for SAF/repo environment."
+                ),
+                error = "open_file is not supported for SAF/repo environment."
+            )
+        }
         PathValidator.validateAndroidPath(path, tool.name)?.let { return it }
 
         if (path.isBlank()) {
@@ -4925,6 +4990,21 @@ open class StandardFileSystemTools(protected val context: Context) {
         // 如果是Linux环境，委托给LinuxFileSystemTools
         if (isLinuxEnvironment(environment)) {
             return linuxTools.shareFile(tool)
+        }
+        // 修改意图：repo: 环境不支持 share（旧实现静默落 Android FS 报"不存在"），给明确拒绝
+        if (isSafEnvironment(environment)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result =
+                FileOperationData(
+                    operation = "share",
+                    path = path,
+                    successful = false,
+                    details = "share_file is not supported for SAF/repo environment."
+                ),
+                error = "share_file is not supported for SAF/repo environment."
+            )
         }
         PathValidator.validateAndroidPath(path, tool.name)?.let { return it }
 

@@ -22,16 +22,38 @@ object PathMapper {
             context.filesDir,
             "usr/var/lib/proot-distro/installed-rootfs/ubuntu"
         )
-        
+
         // 移除路径开头的/，然后拼接到Ubuntu根目录
         val relativePath = linuxPath.trimStart('/')
-        
+
         // 如果输入路径为空或只有/，返回Ubuntu根目录
         if (relativePath.isEmpty()) {
             return ubuntuRoot.absolutePath
         }
-        
+
         return File(ubuntuRoot, relativePath).absolutePath
+    }
+
+    /**
+     * 修改意图：反向映射——把宿主文件系统上的 proot rootfs 路径还原为 Linux 逻辑路径。
+     * 用于 grep 等在宿主路径上执行、但结果需要以 linux 路径回传给模型的场景。
+     * 不在 rootfs 内的路径返回 null（调用方保留原路径）。
+     */
+    fun mapAndroidPathToLinux(context: Context, androidPath: String): String? {
+        val ubuntuRoot =
+            File(context.filesDir, "usr/var/lib/proot-distro/installed-rootfs/ubuntu")
+                .canonicalFile
+        val target =
+            runCatching { File(androidPath).canonicalFile }.getOrNull() ?: return null
+        val rootPath = ubuntuRoot.absolutePath.trimEnd('/')
+        val targetPath = target.absolutePath
+        if (targetPath == rootPath) {
+            return "/"
+        }
+        if (targetPath.startsWith("$rootPath/")) {
+            return "/" + targetPath.removePrefix("$rootPath/")
+        }
+        return null
     }
     
     /**

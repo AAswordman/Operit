@@ -188,7 +188,8 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
                     ToolParameterSchema(name = "old", type = "string", description = "the snippet to be replaced - must be UNIQUE in the file; include enough surrounding context to disambiguate; do not include read_file line-number prefixes", required = true),
                     ToolParameterSchema(name = "new", type = "string", description = "the new content to insert (empty string with delete semantics is allowed via apply_file, not here)", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false)
+                    ToolParameterSchema(name = "occurrence", type = "integer", description = "optional, 1-based index of the match to replace when old matches multiple locations (the error lists the candidates)", required = false, default = "1"),
+                    ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) | \"linux\" - repo:<name> is not supported", required = false)
                 ),
                 details = """
                     |Environment: "android" | "linux". "repo:<name>" is not supported.
@@ -398,7 +399,8 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
                     ToolParameterSchema(name = "old", type = "string", description = "被替换的片段——必须在文件中唯一；带上足够的上下文以消歧；不要带 read_file 的行号前缀", required = true),
                     ToolParameterSchema(name = "new", type = "string", description = "要插入的新内容", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false)
+                    ToolParameterSchema(name = "occurrence", type = "integer", description = "可选，old 命中多处时定位第 N 处（报错会列出候选位置）", required = false, default = "1"),
+                    ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）| \"linux\"——不支持 repo:<名称>", required = false)
                 ),
                 details = """
                     |Environment："android" | "linux"。不支持 "repo:<名称>"。

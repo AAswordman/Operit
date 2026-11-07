@@ -1299,8 +1299,13 @@ object ToolExecutionManager {
                         // 包已激活但工具不存在
                         "Tool '$toolNamePart' does not exist in tool package '$packName'. Please use the 'use_package' tool and specify package name '$packName' to list all available tools in this package."
                     } else {
-                        // 包未激活
-                        "Tool package '$packName' is not activated. Auto-activation was attempted but failed, or tool '$toolNamePart' does not exist. Please use 'use_package' with package name '$packName' to check available tools."
+                        // 修改意图：包未激活时回传 usePackage 的真实原因（如"包被禁用"），
+                        // 不再笼统地报 "Auto-activation failed"
+                        val activationReason = toolHandler.getLastPackageActivationMessage()
+                        "Tool package '$packName' is not activated: " +
+                            (activationReason?.takeIf { it.isNotBlank() }
+                                ?: "auto-activation failed, or tool '$toolNamePart' does not exist") +
+                            ". Please use 'use_package' with package name '$packName' to check available tools."
                     }
                 }
             }
