@@ -66,7 +66,6 @@ import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketReviewState
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketLocalInstallState
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketLocalInstallStateKind
-import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketAppVersionCompatibilityKind
 import com.ai.assistance.operit.ui.features.extensions.packages.market.PublishArtifactType
 import com.ai.assistance.operit.ui.features.extensions.packages.market.UnifiedMarketDetailAction
 import com.ai.assistance.operit.ui.features.extensions.packages.market.UnifiedMarketDetailBanner
@@ -88,7 +87,7 @@ import com.ai.assistance.operit.ui.features.extensions.packages.market.effective
 import com.ai.assistance.operit.ui.features.extensions.packages.market.labelResId
 import com.ai.assistance.operit.ui.features.extensions.packages.market.transfer.marketInstallLabel
 import com.ai.assistance.operit.ui.features.extensions.packages.market.marketDetailInitial
-import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveCurrentAppVersionCompatibility
+import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveToolPkgApiCompatibility
 import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveMarketReviewSnapshot
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.market.viewmodel.UnifiedMarketDetailViewModel
 
@@ -128,8 +127,8 @@ fun UnifiedMarketDetailEntryScreen(
     val currentReactions = reactionsMap[entryId].orEmpty()
     val installProgress = installStates[entryId]
     val localInstallState = localInstallStates[entryId]
-    val currentAppVersionCompatibility = entry.resolveCurrentAppVersionCompatibility()
-    val isCurrentAppVersionUnsupported = currentAppVersionCompatibility != null
+    val toolPkgApiCompatibility = entry.resolveToolPkgApiCompatibility()
+    val isToolPkgApiUnsupported = toolPkgApiCompatibility != null
     val likes =
         if (currentReactions.isNotEmpty()) {
             currentReactions.sumOf { if (it.reaction.ifBlank { it.content } == "+1") it.total.coerceAtLeast(1) else 0 }
@@ -236,20 +235,20 @@ fun UnifiedMarketDetailEntryScreen(
                 onClick = { viewModel.installEntry(entry) },
                 enabled =
                     entry.canInstallFromUnifiedMarket() &&
-                        !isCurrentAppVersionUnsupported &&
+                        !isToolPkgApiUnsupported &&
                         installProgress == null &&
                         localInstallState?.kind != MarketLocalInstallStateKind.INSTALLED,
                 isLoading = installProgress != null,
                 loadingLabel = installProgress?.marketInstallLabel(),
                 icon =
-                    if (isCurrentAppVersionUnsupported) {
+                    if (isToolPkgApiUnsupported) {
                         Icons.Default.Warning
                     } else if (localInstallState.shouldShowSwitchAction()) {
                         Icons.Default.Update
                     } else {
                         Icons.Default.Check
                     },
-                isWarning = isCurrentAppVersionUnsupported
+                isWarning = isToolPkgApiUnsupported
             ),
         secondaryAction =
             sourceUrl.takeIf { it.isNotBlank() }?.let { repositoryUrl ->
@@ -260,24 +259,15 @@ fun UnifiedMarketDetailEntryScreen(
                 )
             },
         banner =
-            if (currentAppVersionCompatibility != null) {
+            if (toolPkgApiCompatibility != null) {
                 UnifiedMarketDetailBanner(
-                    title = stringResource(R.string.market_version_incompatible_title),
+                    title = stringResource(R.string.market_toolpkg_api_incompatible_title),
                     message =
-                        when (currentAppVersionCompatibility.kind) {
-                            MarketAppVersionCompatibilityKind.BELOW_MINIMUM ->
-                                stringResource(
-                                    R.string.market_version_too_low_message,
-                                    currentAppVersionCompatibility.currentVersion,
-                                    currentAppVersionCompatibility.requiredVersion
-                                )
-                            MarketAppVersionCompatibilityKind.ABOVE_MAXIMUM ->
-                                stringResource(
-                                    R.string.market_version_too_high_message,
-                                    currentAppVersionCompatibility.currentVersion,
-                                    currentAppVersionCompatibility.requiredVersion
-                                )
-                        },
+                        stringResource(
+                            R.string.market_toolpkg_api_incompatible_message,
+                            toolPkgApiCompatibility.requiredApiVersion,
+                            toolPkgApiCompatibility.supportedApiVersions
+                        ),
                     icon = Icons.Default.Warning,
                     containerColor = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
                     contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer
@@ -596,18 +586,6 @@ private fun MarketVersionHistoryRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text =
-                    stringResource(
-                        R.string.supported_app_versions_colon,
-                        version.minAppVer.orEmpty(),
-                        version.maxAppVer.orEmpty()
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
             if (showToolPkgApiVersion) {
                 Text(
                     text =

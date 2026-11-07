@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.market
 
 import android.content.Context
+import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.api.ArtifactProjectVersionResponse
 import com.ai.assistance.operit.data.api.MarketV2Entry
@@ -140,6 +141,16 @@ suspend fun installArtifactProjectVersion(
     version: ArtifactProjectVersionResponse,
     onProgress: MarketInstallProgressReporter = { _, _ -> }
 ) {
+    // Validate the selected version before downloading or removing an installed package.
+    resolveToolPkgApiCompatibility(version.type, version.apiVersion)?.let { incompatibility ->
+        throw IllegalArgumentException(
+            context.getString(
+                R.string.market_toolpkg_api_incompatible_message,
+                incompatibility.requiredApiVersion,
+                incompatibility.supportedApiVersions
+            )
+        )
+    }
     onProgress(MarketInstallStage.CHECKING_LOCAL, null)
     val installedSnapshots =
         withContext(Dispatchers.IO) {

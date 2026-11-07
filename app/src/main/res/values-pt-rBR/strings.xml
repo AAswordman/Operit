@@ -6868,9 +6868,8 @@
     <string name="github_login_method_external">Entrar com navegador externo</string>
     <string name="github_login_starting">Preparando autorização do GitHub...</string>
     <string name="artifact_publish_toolpkg_version_readonly">A versão de publicação do ToolPkg vem do manifesto do pacote e não pode ser alterada manualmente antes da publicação</string>
-    <string name="market_version_incompatible_title">Não foi possível baixar: versão do cliente não suportada</string>
-    <string name="market_version_too_low_message">A versão atual do cliente %1$s é inferior à versão mínima exigida %2$s para este recurso. Atualize o cliente antes de baixar.</string>
-    <string name="market_version_too_high_message">A versão atual do cliente %1$s é superior à versão máxima suportada %2$s para este recurso. Use uma versão de cliente suportada.</string>
+    <string name="market_toolpkg_api_incompatible_title">Não é possível instalar: API do ToolPkg não suportada</string>
+    <string name="market_toolpkg_api_incompatible_message">Este plugin declara a API do ToolPkg %1$s. Este dispositivo suporta %2$s, portanto o plugin não pode ser instalado.</string>
     <string name="search_group_title">Pesquisa</string>
     <string name="thinking_search_group_title">Pensar e pesquisar</string>
     <string name="thinking_search_tools_group_title_with_count">Pensar, pesquisar e usar ferramentas (%1$d)</string>

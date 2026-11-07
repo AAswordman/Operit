@@ -7620,9 +7620,8 @@
     <string name="github_login_method_external">Autentificați-vă cu browserul extern</string>
     <string name="github_login_starting">Se pregătește autorizarea GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versiunea de publicare ToolPkg provine din manifestul pachetului și nu poate fi modificată manual înainte de publicare</string>
-    <string name="market_version_incompatible_title">Nu se poate descărca: versiunea clientului nu este acceptată</string>
-    <string name="market_version_too_low_message">Versiunea curentă a clientului %1$s este mai mică decât versiunea minimă cerută de resursă, %2$s. Vă rugăm să actualizați clientul înainte de descărcare.</string>
-    <string name="market_version_too_high_message">Versiunea curentă a clientului %1$s este mai mare decât versiunea maximă acceptată de resursă, %2$s. Vă rugăm să utilizați o versiune de client acceptată.</string>
+    <string name="market_toolpkg_api_incompatible_title">Nu se poate instala: API ToolPkg nu este acceptată</string>
+    <string name="market_toolpkg_api_incompatible_message">Acest plugin declară API ToolPkg %1$s. Acest dispozitiv acceptă %2$s, deci pluginul nu poate fi instalat.</string>
     <string name="search_group_title">Căutare</string>
     <string name="thinking_search_group_title">Gândiți și căutați</string>
     <string name="thinking_search_tools_group_title_with_count">Gândiți, căutați și apelați instrumente (%1$d)</string>
