@@ -144,8 +144,20 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
                 )
             }
 
+            // 修改意图：与 Android 环境一致，read_file_full 整文件读取受 32MB 硬上限约束
+            val sizeBytes = fs.getFileSize(path)
+            if (sizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                val sizeMb = sizeBytes / (1024.0 * 1024.0)
+                return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Use read_file_part with start_line/end_line to read it in segments.".format(sizeMb, path)
+                )
+            }
+
             val fileExt = path.substringAfterLast('.', "").lowercase()
-            
+
             // 特殊文件类型处理（图片、PDF等）暂时不支持在Linux环境
             // 因为这些需要Android本地文件访问
             if (fileExt in listOf("doc", "docx", "pdf", "jpg", "jpeg", "png", "gif", "bmp")) {
@@ -233,6 +245,19 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
                     success = false,
                     result = StringResultData(""),
                     error = "Path is not a file: $path"
+                )
+            }
+
+            // 修改意图：与 Android 环境一致，read_file_binary 整文件读取受 32MB 硬上限约束；
+            // Linux 环境无单条消息预算校验的必要（结果经同一 aggregate 汇聚），仅防 OOM
+            val binarySizeBytes = fs.getFileSize(path)
+            if (binarySizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                val sizeMb = binarySizeBytes / (1024.0 * 1024.0)
+                return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Operate on it by path instead.".format(sizeMb, path)
                 )
             }
 

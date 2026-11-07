@@ -793,8 +793,11 @@ open class StandardFileSystemTools(protected val context: Context) {
     protected fun addLineNumbers(content: String, startLine: Int, totalLines: Int): String {
         val lines = content.lines()
         if (lines.isEmpty()) return ""
-        val maxDigits =
-            if (totalLines > 0) totalLines.toString().length else lines.size.toString().length
+        // 修改意图：行号列宽按"实际展示的最大行号"计算。readFilePart 流式化后 totalLines
+        // 可能为 -1（未读到文件尾、总数未知），此时以本段展示的最大行号定宽，保证分段间对齐
+        val maxDisplayedNumber =
+            maxOf(startLine + lines.size, if (totalLines > 0) totalLines else 0)
+        val maxDigits = maxDisplayedNumber.toString().length
         return lines.mapIndexed { index, line ->
             "${(startLine + index + 1).toString().padStart(maxDigits, ' ')}| $line"
         }.joinToString("\n")
@@ -805,35 +808,98 @@ open class StandardFileSystemTools(protected val context: Context) {
         return fileExtension.lowercase() in SPECIAL_FILE_EXTENSIONS
     }
 
-    /** 统计文件总行数 */
-    protected fun countFileLines(file: File): Int {
-        var totalLines = 0
-        file.bufferedReader().use { reader ->
-            while (reader.readLine() != null) {
-                totalLines++
-            }
+    /**
+     * 修改意图：整文件读取类工具（read_file / read_file_full / read_file_binary 及特殊文件
+     * 抽取路径）的 32MB 硬上限。此前 read_file_full/read_file_binary 对文件大小无任何限制，
+     * 大文件 readText/readBytes 直接 OOM 且报错为 "error: null"；统一在此拦截并引导模型
+     * 改用 read_file_part 按行分段读取。
+     */
+    protected fun checkFileSizeLimit(file: File, toolName: String): ToolResult? {
+        val sizeBytes = file.length()
+        if (sizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+            val sizeMb = sizeBytes / (1024.0 * 1024.0)
+            return ToolResult(
+                toolName = toolName,
+                success = false,
+                result = StringResultData(""),
+                error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Use read_file_part with start_line/end_line to read it in segments.".format(sizeMb, file.path)
+            )
         }
-        return totalLines
+        return null
     }
 
-    /** 从文件中读取指定范围的行 */
-    private fun readLinesFromFile(file: File, startLine: Int, endLine: Int): String {
-        val partContent = StringBuilder()
-        var currentLine = 0
-        file.bufferedReader().useLines { lines ->
-            lines.forEach { line ->
-                if (currentLine >= endLine) return@useLines
-                if (currentLine >= startLine) {
-                    partContent.append(line).append('\n')
-                }
-                currentLine++
+    /** readLinesStreaming 的结果载体 */
+    private class StreamedLines(
+        val content: String,
+        /** 实际读到的最后一行（1-based）；一行都没读到时为 0 */
+        val lastLineRead: Int,
+        /** start_line 超出文件末尾 */
+        val startBeyondEof: Boolean,
+        /** 命中文件尾时的实际总行数；因行数/字符预算提前停止时为 -1（总数未知） */
+        val totalLinesIfKnown: Int,
+    )
+
+    /**
+     * 修改意图：readFilePart 的分段读取改为单次流式扫描——跳过 startIndex 之前的行后顺序
+     * 收集到 requestedCount/字符预算/文件尾为止。旧实现先 countFileLines 全量扫描再
+     * readLinesFromFile 二次扫描，大文件双倍 IO；流式版本在 end_line 缺省时无需预知总行数，
+     * 真正的超大文件也能低开销分段读取。
+     */
+    private fun readLinesStreaming(
+        file: File,
+        startIndex: Int,
+        requestedCount: Int,
+        charBudget: Int,
+    ): StreamedLines {
+        val sb = StringBuilder()
+        var collected = 0
+        var index = 0
+        var result: StreamedLines? = null
+        file.bufferedReader().useLines { sequence ->
+            val iterator = sequence.iterator()
+            while (index < startIndex && iterator.hasNext()) {
+                iterator.next()
+                index++
             }
+            if (index < startIndex && !iterator.hasNext()) {
+                // 起始行超出文件末尾：index 即文件实际总行数（0-based 计数等于行数）
+                result = StreamedLines(
+                    content = "",
+                    lastLineRead = 0,
+                    startBeyondEof = true,
+                    totalLinesIfKnown = index,
+                )
+                return@useLines
+            }
+            while (iterator.hasNext() &&
+                    collected < requestedCount &&
+                    sb.length <= charBudget) {
+                val line = iterator.next()
+                if (collected > 0) sb.append('\n')
+                sb.append(line)
+                collected++
+            }
+            val lastLineRead = startIndex + collected
+            result =
+                if (iterator.hasNext()) {
+                    // 因 requestedCount 或字符预算提前停止，文件还有后续内容，总行数未知
+                    StreamedLines(
+                        content = sb.toString(),
+                        lastLineRead = lastLineRead,
+                        startBeyondEof = false,
+                        totalLinesIfKnown = -1,
+                    )
+                } else {
+                    // 已到文件尾：lastLineRead 即实际总行数
+                    StreamedLines(
+                        content = sb.toString(),
+                        lastLineRead = lastLineRead,
+                        startBeyondEof = false,
+                        totalLinesIfKnown = lastLineRead,
+                    )
+                }
         }
-        // Remove last newline if content is not empty
-        if (partContent.isNotEmpty()) {
-            partContent.setLength(partContent.length - 1)
-        }
-        return partContent.toString()
+        return result ?: StreamedLines("", 0, true, 0)
     }
 
     /** List files in a directory */
@@ -1170,37 +1236,23 @@ open class StandardFileSystemTools(protected val context: Context) {
                             TAG,
                             "Failed to decode image file, returning error message"
                         )
+                        // 修改意图：解码失败从"错误文本当内容 + success=true"改为显式失败，
+                        // 让模型能从结果判断提取确实失败而非"图片没有文字"
                         ToolResult(
                             toolName = tool.name,
-                            success = true,
-                            result =
-                            FileContentData(
-                                path = path,
-                                content =
-                                "Failed to decode image file.",
-                                size =
-                                "Failed to decode image file."
-                                    .length
-                                    .toLong()
-                            ),
-                            error = ""
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Failed to decode image file. The file may be corrupted or not a real image."
                         )
                     }
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "Error during OCR text extraction", e)
+                    // 修改意图：OCR 异常从"错误文本当内容 + success=true"改为显式失败
                     ToolResult(
                         toolName = tool.name,
-                        success = true,
-                        result =
-                        FileContentData(
-                            path = path,
-                            content =
-                            "Error extracting text from image: ${e.message}",
-                            size =
-                            "Error extracting text from image: ${e.message}"
-                                .length.toLong()
-                        ),
-                        error = ""
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Error extracting text from image: ${e.message}"
                     )
                 }
             }
@@ -1432,8 +1484,12 @@ open class StandardFileSystemTools(protected val context: Context) {
                 )
             }
 
+            // 修改意图：read_file_full 此前对文件大小无限制，大文件 readText 会 OOM；
+            // 统一加 32MB 硬上限并引导改用 read_file_part 分段读取
+            checkFileSizeLimit(file, tool.name)?.let { return it }
+
             val fileExt = file.extension.lowercase()
-            
+
             // 如果启用了 text_only 模式，检查文件是否为文本
             if (textOnly) {
                 // 读取文件前 512 字节进行判断
@@ -1474,7 +1530,7 @@ open class StandardFileSystemTools(protected val context: Context) {
                     toolName = tool.name,
                     success = false,
                     result = StringResultData(""),
-                    error = "File does not appear to be a text file. Use specialized tools for binary files."
+                    error = "File does not appear to be a text file. Use read_file_binary for binary files (returns base64)."
                 )
             }
         } catch (e: Exception) {
@@ -1524,8 +1580,25 @@ open class StandardFileSystemTools(protected val context: Context) {
                     )
                 }
 
+                // 修改意图：read_file_binary 此前无大小限制，readBytes 无界会 OOM；
+                // 加 32MB 硬上限并引导改用 read_file_part 或按路径操作
+                checkFileSizeLimit(file, tool.name)?.let { return@withContext it }
+
                 val bytes = file.readBytes()
                 val base64 = android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+
+                // 修改意图：base64 只有进入模型可见的最终消息才有意义（此前 toString 只回摘要，
+                // 内容永远到不了模型）。单条工具结果消息上限约 64k 字符，超出预算的 base64
+                // 即便放进结果也会被静默截断成无效数据，因此显式拒绝并给出替代路径
+                val base64Budget = ToolExecutionLimits.MAX_SINGLE_TOOL_RESULT_MESSAGE_CHARS - 2_000
+                if (base64.length > base64Budget) {
+                    return@withContext ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Binary file is too large to inline as base64 (%d bytes, base64 length %d > budget %d). Operate on it by path instead (copy_file / write_file_binary with base64 you already have), or process it inside a terminal session.".format(bytes.size, base64.length, base64Budget)
+                    )
+                }
 
                 ToolResult(
                     toolName = tool.name,
@@ -1587,6 +1660,10 @@ open class StandardFileSystemTools(protected val context: Context) {
                 )
             }
 
+            // 修改意图：read_file 的特殊文件抽取路径（OCR/PDF 等）会整文件加载，
+            // 与其它整文件读取工具一样受 32MB 硬上限约束并引导分段读取
+            checkFileSizeLimit(file, tool.name)?.let { return it }
+
             val fileExt = file.extension.lowercase()
 
             // For special types, full read then truncate text is the only way.
@@ -1632,15 +1709,19 @@ open class StandardFileSystemTools(protected val context: Context) {
                 )
             }
 
-            val content =
+            val readOutcome =
                 file.bufferedReader().use {
                     val buffer = CharArray(maxFileSizeBytes)
                     val charsRead = it.read(buffer, 0, maxFileSizeBytes)
-                    if (charsRead > 0) String(buffer, 0, charsRead) else ""
+                    // 修改意图：截断判定改为"缓冲区读满且还读得到下一个字符"。旧判定
+                    // file.length() > maxFileSizeBytes 拿字节数与字符预算比较，
+                    // 多字节编码（中文等）下完整读出的文件会被误标为已截断
+                    val truncated = charsRead == maxFileSizeBytes && it.read() != -1
+                    Pair(if (charsRead > 0) String(buffer, 0, charsRead) else "", truncated)
                 }
 
-            val truncated = file.length() > maxFileSizeBytes
-            var finalContent = addLineNumbers(content)
+            val (rawContent, truncated) = readOutcome
+            var finalContent = addLineNumbers(rawContent)
             if (truncated) {
                 finalContent += "\n\n... (file content truncated) ..."
             }
@@ -1707,59 +1788,111 @@ open class StandardFileSystemTools(protected val context: Context) {
                     )
                 }
 
-                // 1. 准备数据源 & 获取总行数
-                // 如果是特殊文件，先提取所有文本到内存；如果是普通文件，只统计行数
-                val inMemoryLines: List<String>?
-                val totalLines: Int
-
+                // 1. 准备数据源
                 if (isSpecialFileType(file.extension)) {
+                    // 特殊文件：整文件提取到内存后按行切片（抽取路径已受 32MB 上限约束）
                     val specialResult = handleSpecialFileRead(tool, path, file.extension.lowercase())
                     if (specialResult != null && !specialResult.success) return@withContext specialResult
 
-                    if (specialResult != null) {
-                        val content = (specialResult.result as FileContentData).content
-                        inMemoryLines = content.lines()
-                        totalLines = inMemoryLines.size
-                    } else {
-                        // Fallback if handleSpecialFileRead returns null (shouldn't happen given check)
-                        inMemoryLines = null
-                        totalLines = 0
+                    if (specialResult == null) {
+                        // 修改意图：特殊类型但抽取器未处理时明确失败，
+                        // 不允许静默落穿到纯文本流式路径读出乱码
+                        return@withContext ToolResult(
+                            toolName = tool.name,
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Special file type '.${file.extension}' could not be extracted. Try read_file or read_file_full."
+                        )
                     }
-                } else {
-                    inMemoryLines = null
-                    totalLines = countFileLines(file)
+
+                    val inMemoryLines = (specialResult.result as FileContentData).content.lines()
+                    val totalLines = inMemoryLines.size
+                    val startLine = maxOf(1, startLineParam).coerceIn(1, maxOf(1, totalLines))
+                    val endLine =
+                        (endLineParam
+                                ?: (startLine + ToolExecutionLimits.DEFAULT_FILE_READ_PART_LINES - 1))
+                            .coerceIn(startLine, maxOf(1, totalLines))
+                    val startIndex = startLine - 1
+
+                    val partContent =
+                        if (totalLines > 0 && startIndex < totalLines) {
+                            inMemoryLines.subList(startIndex, minOf(endLine, totalLines)).joinToString("\n")
+                        } else ""
+
+                    var truncatedPartContent = partContent
+                    val isTruncated = truncatedPartContent.length > maxFileSizeBytes
+                    if (isTruncated) {
+                        truncatedPartContent = truncatedPartContent.substring(0, maxFileSizeBytes)
+                    }
+
+                    var contentWithLineNumbers =
+                        addLineNumbers(truncatedPartContent, startIndex, totalLines)
+                    if (isTruncated) {
+                        contentWithLineNumbers += "\n\n... (file content truncated) ..."
+                    }
+
+                    return@withContext ToolResult(
+                        toolName = tool.name,
+                        success = true,
+                        result = FilePartContentData(
+                            path = path,
+                            content = contentWithLineNumbers,
+                            partIndex = 0, // 保留兼容性，但不再使用
+                            totalParts = 1, // 保留兼容性，但不再使用
+                            startLine = startIndex,
+                            endLine = minOf(endLine, totalLines),
+                            totalLines = totalLines
+                        ),
+                        error = ""
+                    )
                 }
 
-                // 2. 计算实际的行号范围（行号从1开始，转换为0-based索引）
-                val startLine = maxOf(1, startLineParam).coerceIn(1, maxOf(1, totalLines))
-                val endLine =
-                    (endLineParam
-                            ?: (startLine + ToolExecutionLimits.DEFAULT_FILE_READ_PART_LINES - 1))
-                        .coerceIn(startLine, maxOf(1, totalLines))
-                
-                // 转换为0-based索引
+                // 修改意图：普通文件补上 isTextLike 门禁。旧实现不做文本判断，
+                // 读 .so/图片等二进制会返回 U+FFFD 乱码却报 success=true
+                if (!FileUtils.isTextLike(file)) {
+                    return@withContext ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "File does not appear to be a text file. Use read_file_binary for binary files (returns base64)."
+                    )
+                }
+
+                // 2. 普通文件：单次流式扫描，不再预统计总行数（旧实现 countFileLines 全量
+                // 扫描 + readLinesFromFile 二次扫描，大文件双倍 IO）；end_line 缺省时
+                // 读到"起始行 + 200 行"或字符预算为止，不需要知道文件总长
+                val startLine = maxOf(1, startLineParam)
                 val startIndex = startLine - 1
-                val endIndex = endLine // endLine 本身就是最后一行的1-based行号，转成exclusive的end需要不减1
+                val requestedCount =
+                    (endLineParam ?: (startLine + ToolExecutionLimits.DEFAULT_FILE_READ_PART_LINES - 1)) -
+                        startLine + 1
+                    // end_line 缺省窗口为 200 行；显式传入时按传入行数收集
+                    .coerceAtLeast(0)
 
-                // 3. 获取分段内容
-                val partContent = if (inMemoryLines != null) {
-                    // 内存模式：直接切片
-                    if (totalLines > 0 && startIndex < totalLines) {
-                        inMemoryLines.subList(startIndex, minOf(endIndex, totalLines)).joinToString("\n")
-                    } else ""
-                } else {
-                    // 磁盘流模式：读取指定行
-                    if (totalLines > 0) readLinesFromFile(file, startIndex, endIndex) else ""
+                val streamed =
+                    readLinesStreaming(file, startIndex, requestedCount, maxFileSizeBytes)
+
+                if (streamed.startBeyondEof) {
+                    // 修改意图：start_line 超界从"静默返回空内容"改为明确报错并告知总行数，
+                    // 模型可以据此把 start_line 拉回有效范围
+                    return@withContext ToolResult(
+                        toolName = tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "start_line %d is beyond the end of the file (total %d lines). Use a smaller start_line.".format(startLine, streamed.totalLinesIfKnown)
+                    )
                 }
 
-                // 4. 封装返回结果
-                var truncatedPartContent = partContent
+                var truncatedPartContent = streamed.content
                 val isTruncated = truncatedPartContent.length > maxFileSizeBytes
                 if (isTruncated) {
                     truncatedPartContent = truncatedPartContent.substring(0, maxFileSizeBytes)
                 }
 
-                var contentWithLineNumbers = addLineNumbers(truncatedPartContent, startIndex, totalLines)
+                // totalLinesIfKnown 为 -1 表示因行数/字符预算提前停止、总行数未知；
+                // addLineNumbers 会按本段展示的最大行号定宽
+                var contentWithLineNumbers =
+                    addLineNumbers(truncatedPartContent, startIndex, streamed.totalLinesIfKnown)
                 if (isTruncated) {
                     contentWithLineNumbers += "\n\n... (file content truncated) ..."
                 }
@@ -1773,8 +1906,8 @@ open class StandardFileSystemTools(protected val context: Context) {
                         partIndex = 0, // 保留兼容性，但不再使用
                         totalParts = 1, // 保留兼容性，但不再使用
                         startLine = startIndex,
-                        endLine = minOf(endIndex, totalLines),
-                        totalLines = totalLines
+                        endLine = streamed.lastLineRead,
+                        totalLines = streamed.totalLinesIfKnown
                     ),
                     error = ""
                 )

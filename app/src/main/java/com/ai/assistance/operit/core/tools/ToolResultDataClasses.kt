@@ -238,8 +238,14 @@ data class FilePartContentData(
         val env: String = "android"
 ) : ToolResultData() {
     override fun toString(): String {
+        // 修改意图：readFilePart 流式化后 totalLines 可能为 -1（未读到文件尾、总数未知），
+        // 此时明确告诉模型文件还有后续内容、可从 endLine+1 继续分段读取
         val partInfo =
-                "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine of $totalLines)"
+                if (totalLines >= 0) {
+                    "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine of $totalLines)"
+                } else {
+                    "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine; total lines unknown - file continues, chain the next segment with start_line=${endLine + 1})"
+                }
         return "[$env] $partInfo\n\n$content"
     }
 }
@@ -469,7 +475,9 @@ data class BinaryFileContentData(
         val env: String = "android"
 ) : ToolResultData() {
     override fun toString(): String {
-        return "[$env] Binary content of $path (${size} bytes, base64 length=${contentBase64.length})"
+        // 修改意图：base64 此前只回摘要，内容永远到不了模型，read_file_binary 实际不可用；
+        // 现在把 base64 放进模型可见文本（调用方已通过预算检查确保不超单条消息上限）
+        return "[$env] Binary content of $path (${size} bytes, base64 length=${contentBase64.length}):\n$contentBase64"
     }
 }
 
@@ -578,7 +586,9 @@ data class FileApplyResultData(
 
         // If diffContent is available, embed it in a custom XML-like tag for the renderer.
         if (diffContent != null) {
-            val encodedDiff = diffContent.replace("&", "&").replace("<", "<").replace(">", ">")
+            // 修改意图：原"转义"链是恒等替换（&→&、<→<、>→>），实际什么都没做；
+            // diff 内容进入 CDATA 段，CDATA 内无需转义，直接使用原文并删除误导性代码
+            val encodedDiff = diffContent
             sb.append("<file-diff path=\"${operation.path}\" details=\"${operation.details}\">")
             sb.append("<![CDATA[$encodedDiff]]>")
             sb.append("</file-diff>")
