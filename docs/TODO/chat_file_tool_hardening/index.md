@@ -2,7 +2,7 @@
 title: 文件工具强化（描述规范化/32MB 上限/编辑引擎重构/工作区防护/大模型审查）
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
-status: in-progress
+status: impl-complete-pending-compile
 ---
 
 # 文件工具强化
