@@ -1215,10 +1215,10 @@ fun ChatHistorySelectorPanel(
         onCollapsedHistoryCharactersChange: (Set<String>) -> Unit,
 ) {
     // 历史选择器面板（不再包含遮罩层，遮罩层已在外部处理）
-    // Wider on normal phones so titles and folder names fit; a strip stays visible to tap and close.
-    // Sized from the real container so embedded chat screens keep that strip too.
+    // Keep the history tree compact while reserving a visible strip to dismiss it.
+    // Use the actual container width so embedded chat screens follow the same proportions.
     BoxWithConstraints {
-    val panelWidth = (maxWidth * 0.86f).coerceAtMost(340.dp)
+    val panelWidth = (maxWidth * 0.80f).coerceAtMost(304.dp)
     Box(
             modifier =
                     Modifier.width(panelWidth)
@@ -1235,7 +1235,7 @@ fun ChatHistorySelectorPanel(
         val chatFolders by actualViewModel.chatFolders.collectAsState()
         // 直接使用ChatHistorySelector
         ChatHistorySelector(
-                modifier = Modifier.fillMaxSize().padding(top = 8.dp),
+                modifier = Modifier.fillMaxSize().padding(top = 4.dp),
                 onNewChat = {
                     characterCardName,
                     characterGroupId,
