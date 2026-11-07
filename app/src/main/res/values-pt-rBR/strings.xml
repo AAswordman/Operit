@@ -63,10 +63,8 @@
     <string name="floating_processing">Processamento...</string>
     <string name="floating_hold_microphone_to_speak">Pressione longamente o microfone abaixo para começar a falar</string>
     <string name="floating_thinking">Pensamento...</string>
-    <string name="floating_cannot_get_input_service">Não foi possível obter o serviço do método de entrada</string>
     <string name="floating_close_floating_window">Fechar janela flutuante</string>
     <string name="floating_add_attachment">Adicionar anexo</string>
-    <string name="floating_cannot_get_focus">Incapaz de obter foco</string>
     <string name="floating_listening">Audição...</string>
     <string name="floating_hold_microphone">Pressione longamente o microfone</string>
     <string name="floating_start_recording_failed">Falha ao iniciar a gravação</string>

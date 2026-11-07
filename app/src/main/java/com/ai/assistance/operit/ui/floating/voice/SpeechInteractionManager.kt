@@ -2,11 +2,8 @@ package com.ai.assistance.operit.ui.floating.voice
 
 import android.content.Intent
 import android.content.Context
-import android.content.Context.INPUT_METHOD_SERVICE
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
-import android.view.View
-import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,7 +23,7 @@ private const val TAG = "SpeechInteractionManager"
 
 /**
  * 通用语音交互管理器
- * 封装了：语音识别、TTS、焦点获取、文本累积、静默检测等逻辑
+ * 封装了：语音识别、TTS、文本累积、静默检测等逻辑
  */
 class SpeechInteractionManager(
     private val context: Context,
@@ -38,8 +35,6 @@ class SpeechInteractionManager(
     var isRecording by mutableStateOf(false)
         private set
     var isProcessingSpeech by mutableStateOf(false)
-        private set
-    var hasFocus by mutableStateOf(false)
         private set
 
     // 文本累积
@@ -58,7 +53,6 @@ class SpeechInteractionManager(
     val speechService = SpeechServiceFactory.getInstance(context)
     val voiceService
         get() = VoiceServiceFactory.getInstance(context)
-    private val inputMethodManager = context.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
 
     // 暴露 Flow 给外部使用
     val volumeLevelFlow get() = speechService.volumeLevelFlow
@@ -96,37 +90,15 @@ class SpeechInteractionManager(
         silenceTimeoutJob?.cancel()
     }
 
-    // ===== 焦点管理 =====
-    fun requestFocus(view: View?): Boolean {
-        if (view == null) {
-            hasFocus = false
-            return false
-        }
-        view.requestFocus()
-        inputMethodManager.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT)
-        inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
-        hasFocus = true
-        return true
-    }
-
-    fun releaseFocus(view: View?) {
-        view?.let {
-            inputMethodManager.hideSoftInputFromWindow(it.windowToken, 0)
-        }
-        hasFocus = false // 逻辑上释放，虽然物理上可能还在
-    }
-
     // ===== 语音识别流程 =====
 
+    // 麦克风的 while-in-use 资格由 FloatingChatService 提供：它声明了 microphone
+    // 前台服务类型并贯穿整个浮窗会话。AIForegroundService 在每轮 AI 回复结束时自毁，
+    // 无法跨轮持有该类型，所以这里不再走它的 promote 路径，只负责唤醒交接和启动识别。
     fun startListening(onStartFailure: ((String) -> Unit)? = null) {
-        if (!hasFocus) {
-            onStartFailure?.invoke(context.getString(R.string.floating_cannot_get_focus))
-            return
-        }
-
         // 重置超时
         timeoutJob?.cancel()
-        
+
         // 重置文本状态
         isRecording = true
         userMessage = ""
@@ -138,12 +110,6 @@ class SpeechInteractionManager(
         // 启动监听
         coroutineScope.launch {
             try {
-                try {
-                    AIForegroundService.ensureMicrophoneForeground(context, forceStart = true)
-                } catch (e: Exception) {
-                    AppLogger.w(TAG, "Failed to request microphone foreground", e)
-                }
-
                 try {
                     context.startService(Intent(context, AIForegroundService::class.java).apply {
                         action = AIForegroundService.ACTION_PREPARE_WAKE_HANDOFF

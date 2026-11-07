@@ -319,11 +319,15 @@
             android:exported="false" />
         
         <!-- Floating Chat Service -->
+        <!-- microphone 类型必须由本服务自己声明：浮窗语音会话在整个服务生命周期内采集麦克风，
+             而 Android 11 起进程若没有 microphone 类型的前台服务，AudioRecord 会静默返回
+             无声数据且不报错。此前该类型只能由 AIForegroundService 临时 promote，
+             它在每轮 AI 回复结束后自毁，采集资格随之丢失。 -->
         <service
             android:name=".services.FloatingChatService"
             android:enabled="true"
             android:exported="false"
-            android:foregroundServiceType="dataSync" />
+            android:foregroundServiceType="dataSync|microphone" />
 
         <service
             android:name=".core.tools.system.ScreenCaptureService"

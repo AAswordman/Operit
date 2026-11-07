@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.services
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -97,6 +98,8 @@ class FloatingChatService : Service(), FloatingWindowCallback {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var hasHandledStartCommand = false
     private var isServiceReady = false
+    private var foregroundNotification: Notification? = null
+    private var voiceSessionForegroundActive = false
 
     companion object {
         @Volatile
@@ -302,6 +305,12 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                     )
             createNotificationChannel()
             val notification = createNotification()
+            foregroundNotification = notification
+            // 这里只申请 dataSync。microphone 是 while-in-use 类型，targetSdk 34+ 在应用
+            // 处于后台时创建带该类型的前台服务会抛 SecurityException，而浮窗会被外部
+            // HTTP、广播、intent 工作流等没有可见 Activity 的入口拉起；在 onCreate 里
+            // 带上 microphone 会让这些入口连浮窗都起不来。类型改由语音会话期间追加，
+            // 见 setVoiceSessionForeground()。
             ForegroundServiceCompat.startForeground(
                 service = this,
                 notificationId = NOTIFICATION_ID,
@@ -333,6 +342,44 @@ class FloatingChatService : Service(), FloatingWindowCallback {
             }
         } catch (e: Exception) {
             AppLogger.e(TAG, "Error acquiring WakeLock", e)
+        }
+    }
+
+    private fun hasRecordAudioPermission(): Boolean {
+        return checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
+    /**
+     * 语音会话期间在 dataSync 之上追加 microphone 前台服务类型，会话结束时收回。
+     *
+     * 浮窗是 TYPE_APPLICATION_OVERLAY 窗口而不是 Activity，拿不到 Activity 那种
+     * while-in-use 授权；进程里必须有带 microphone 类型的前台服务，AudioRecord 才能
+     * 拿到真实音频（Android 11 起缺少该类型时采集静默返回无声数据且不报错）。而
+     * microphone 又是 while-in-use 类型，应用在后台创建带该类型的前台服务会抛
+     * SecurityException，所以类型只跟随用户实际进入的语音会话，不在服务创建时固定。
+     *
+     * 带类型调用要求 RECORD_AUDIO 已授予，类型按授权状态组装。
+     */
+    fun setVoiceSessionForeground(active: Boolean) {
+        if (!isServiceReady) return
+        val notification = foregroundNotification ?: return
+        val microphone = active && hasRecordAudioPermission()
+        if (microphone == voiceSessionForegroundActive) return
+
+        try {
+            ForegroundServiceCompat.startForeground(
+                service = this,
+                notificationId = NOTIFICATION_ID,
+                notification = notification,
+                types = ForegroundServiceCompat.buildTypes(dataSync = true, microphone = microphone)
+            )
+            voiceSessionForegroundActive = microphone
+        } catch (e: SecurityException) {
+            // 浮窗只可见、没有 resumed Activity 时，系统可能拒绝把 while-in-use 类型
+            // 追加到前台服务上。这里只记录现场原因，不改写调用方请求的类型，也不做
+            // 任何降级重试；采集失败会由 SpeechInteractionManager 的启动失败回调呈现。
+            AppLogger.e(TAG, "Failed to update voice session foreground types", e)
         }
     }
 
