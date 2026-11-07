@@ -94,7 +94,12 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "e.g. \"/sdcard/Download\"", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported (values defined at read_file).
+                    |On success: "[$env] Directory listing for <path>:" followed by one line per entry with type, size, date and name.
+                    |On failure: error states the cause (directory does not exist / invalid repository path) - fix the path and retry.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "read_file",
@@ -136,36 +141,61 @@ object SystemToolPrompts {
                         description = "optional, when true: return an <link type=\"video\"> tag for models that support video",
                         required = false
                     )
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                    |Output: content with line-number prefixes "N| " for display only - NEVER copy the prefixes into edit_file/apply_file old.
+                    |Limits: output truncated at 32000 characters with a "... (file content truncated) ..." marker; files over 32 MB are rejected. Use read_file_part (start_line/end_line) to read large files in segments.
+                    |Special types (pdf/docx/images via OCR/audio/video) are extracted to text automatically; extraction failures return success=false.
+                    |On failure: error names the cause with the fix - absolute path required / file not found / not a text file (use read_file_binary for binary files) / exceeds 32 MB read limit (use read_file_part).
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "read_file_part",
-                description = "Read file content by line range.",
+                description = "Read file content by line range. Use this to read large files in segments.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
                     ToolParameterSchema(name = "start_line", type = "integer", description = "starting line number, 1-indexed", required = false, default = "1"),
-                    ToolParameterSchema(name = "end_line", type = "integer", description = "ending line number, 1-indexed, inclusive, optional", required = false, default = "start_line + 99")
-                )
+                    ToolParameterSchema(name = "end_line", type = "integer", description = "ending line number, 1-indexed, inclusive, optional; omitted = read to end of file", required = false, default = "start_line + 199 (200 lines)")
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                    |Output: requested lines with line-number prefixes "N| " (the N is the real file line number, display only - do NOT copy prefixes into edit_file/apply_file old). Output capped at 32000 characters.
+                    |On success: shows the start line it returned from, so you can chain the next segment (start_line = last returned line + 1).
+                    |On failure: error names the cause (path invalid / start_line beyond end of file / not a text file).
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "create_file",
-                description = "Create a new file by delegating to apply_file with type=create.",
+                description = "Create a new file with the given content. Fails if the file already exists.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
                     ToolParameterSchema(name = "new", type = "string", description = "full file content for the new file", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux". "repo:<name>" is not supported.
+                    |Parent directories are created automatically.
+                    |On success: "[$env] Successfully created new file: <path>".
+                    |On failure: "file already exists" - to replace an existing file entirely, call delete_file first, then write_file (create_file never overwrites).
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "edit_file",
-                description = "Edit an existing file by delegating to apply_file with type=replace.",
+                description = "Edit an existing file: replace a unique snippet (old) with new content. Matching is exact-first, whitespace-tolerant fuzzy second.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
-                    ToolParameterSchema(name = "old", type = "string", description = "the exact content to be matched and replaced", required = true),
-                    ToolParameterSchema(name = "new", type = "string", description = "the new content to insert", required = true),
+                    ToolParameterSchema(name = "old", type = "string", description = "the snippet to be replaced - must be UNIQUE in the file; include enough surrounding context to disambiguate; do not include read_file line-number prefixes", required = true),
+                    ToolParameterSchema(name = "new", type = "string", description = "the new content to insert (empty string with delete semantics is allowed via apply_file, not here)", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux". "repo:<name>" is not supported.
+                    |Matching: 1) exact whitespace-tolerant match; 2) fuzzy similarity > 0.9. If the snippet matches MULTIPLE locations, the edit is REJECTED with the candidate line numbers - add more context to old, or retry with the occurrence parameter to target the Nth match.
+                    |On success: "[$env] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range.
+                    |On failure: "Could not find a match" (re-read the target lines with read_file_part, then retry) or "multiple perfect matches" (make old unique). NEVER fall back to shell commands to edit files - keep using this tool.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "delete_file",
@@ -173,8 +203,14 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "target path", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
-                    ToolParameterSchema(name = "recursive", type = "boolean", description = "boolean", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "recursive", type = "boolean", description = "true = delete non-empty directories recursively; false (default) = only empty directories and single files", required = false, default = "false")
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported (repo: ignores recursive and deletes via the provider).
+                    |Hard rule: recursive deletion of system roots (/ , /storage/emulated/0 , /sdcard , /data ...) is always rejected.
+                    |On success: "[$env] Successfully deleted: <path>".
+                    |On failure: "Directory is not empty and recursive flag is not set" - pass recursive=true, or delete children first.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "make_directory",
@@ -182,8 +218,13 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "directory path", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
-                    ToolParameterSchema(name = "create_parents", type = "boolean", description = "boolean", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "create_parents", type = "boolean", description = "true = create missing parent directories too (mkdirs); false (default) = parent must already exist", required = false, default = "false")
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                    |On success: "[$env] Directory created: <path>"; creating an existing directory succeeds with "Directory already exists".
+                    |On failure: "parent directory does not exist" - pass create_parents=true, or create parents first.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "find_files",
@@ -193,33 +234,50 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
                     ToolParameterSchema(name = "pattern", type = "string", description = "search pattern, e.g. \"*.jpg\"", required = true),
                     ToolParameterSchema(name = "max_depth", type = "integer", description = "optional, controls depth of subdirectory search, -1=unlimited", required = false),
-                    ToolParameterSchema(name = "use_path_pattern", type = "boolean", description = "boolean", required = false, default = "false"),
-                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "boolean", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "use_path_pattern", type = "boolean", description = "true = match the pattern against the full path instead of the file name only", required = false, default = "false"),
+                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "true = case-insensitive pattern matching", required = false, default = "false")
+                ),
+                details = """
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                    |On success: "Found N files:" with up to 10 paths listed - if more were found the tail is abbreviated ("... and N other files"); narrow the search (deeper path, tighter pattern) to see all.
+                    |On failure: "search path does not exist" - fix the path.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "grep_code",
                 description = "Search code content matching a regex pattern in files. Returns matches with surrounding context lines.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "search path", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
+                    ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" - repo:<name> is not supported for content search", required = false),
                     ToolParameterSchema(name = "pattern", type = "string", description = "regex pattern", required = true),
                     ToolParameterSchema(name = "file_pattern", type = "string", description = "file filter", required = false, default = "\"*\""),
-                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "boolean", required = false, default = "false"),
+                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "true = case-insensitive matching", required = false, default = "false"),
                     ToolParameterSchema(name = "context_lines", type = "integer", description = "lines of context before/after match", required = false, default = "3"),
                     ToolParameterSchema(name = "max_results", type = "integer", description = "max matches", required = false, default = "100")
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
+                    |Respects .gitignore rules; binary files are skipped automatically.
+                    |On success: matches grouped per file (first 20 files listed; total match count is reported so you can narrow the pattern if needed).
+                    |On failure: "Error performing native grep search" - check the path exists and the regex is valid.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "grep_context",
                 description = "Search for relevant content based on intent/context understanding. Supports two modes: 1) Directory mode: when path is a directory, finds most relevant files. 2) File mode: when path is a file, finds most relevant code segments within that file. Uses semantic relevance scoring.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "directory or file path", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
+                    ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" - repo:<name> is not supported", required = false),
                     ToolParameterSchema(name = "intent", type = "string", description = "intent or context description string", required = true),
                     ToolParameterSchema(name = "file_pattern", type = "string", description = "file filter for directory mode", required = false, default = "\"*\""),
                     ToolParameterSchema(name = "max_results", type = "integer", description = "maximum items to return", required = false, default = "10")
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
+                    |Runs several model-assisted refine rounds; takes longer than grep_code - prefer grep_code when you already know the pattern.
+                    |On success: ranked file paths or code segments matching the intent.
+                    |On failure: "Error performing context search" - rephrase the intent more specifically, or fall back to grep_code with a concrete regex.
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "download_file",
@@ -229,10 +287,15 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "visit_key", type = "string", description = "optional, visitKey from a previous visit_web result", required = false),
                     ToolParameterSchema(name = "link_number", type = "integer", description = "optional, 1-based link index from Results (use with visit_key)", required = false),
                     ToolParameterSchema(name = "image_number", type = "integer", description = "optional, 1-based image index from Images (use with visit_key)", required = false),
-                    ToolParameterSchema(name = "destination", type = "string", description = "save path", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
+                    ToolParameterSchema(name = "destination", type = "string", description = "absolute save path on the target file system", required = true),
+                    ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" - repo:<name> is not supported", required = false),
                     ToolParameterSchema(name = "headers", type = "string", description = "optional HTTP headers as JSON object string, e.g. {\"Referer\":\"...\"}", required = false)
-                )
+                ),
+                details = """
+                    |Environment: "android" | "linux". "repo:<name>" is not supported.
+                    |On success: "[$env] File downloaded successfully to: <destination>" with file size.
+                    |On failure: HTTP status errors (403/404 - check URL or add headers), write permission errors, timeout. Malformed headers JSON is rejected up front.
+                """.trimMargin()
             )
         )
     )
@@ -246,7 +309,12 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "例如\"/sdcard/Download\"", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持（取值见 read_file）。
+                    |成功时返回："[$env] Directory listing for <路径>:" 后每行一条，含类型、大小、日期、文件名。
+                    |失败时返回：错误注明原因（目录不存在 / 无效的仓库路径），修正路径后重试。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "read_file",
@@ -283,36 +351,61 @@ object SystemToolPrompts {
                         description = "可选，为true时：返回<link type=\"video\">标签供支持视频的模型直接处理",
                         required = false
                     )
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                    |输出：内容带 "N| " 行号前缀，仅供定位——严禁把前缀复制进 edit_file/apply_file 的 old。
+                    |限制：输出超 32000 字符会被截断并附 "... (file content truncated) ..." 标记；文件超过 32MB 直接拒绝。大文件请用 read_file_part（start_line/end_line）分段读取。
+                    |特殊类型（pdf/docx/图片OCR/音视频）自动提取文本；提取失败返回 success=false。
+                    |失败时返回：错误注明原因与修法——必须绝对路径 / 文件不存在 / 非文本文件（改用 read_file_binary）/ 超过 32MB 读取上限（改用 read_file_part）。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "read_file_part",
-                description = "按行号范围读取文件内容。",
+                description = "按行号范围读取文件内容。大文件请用本工具分段读取。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
                     ToolParameterSchema(name = "start_line", type = "integer", description = "起始行号，从1开始", required = false, default = "1"),
-                    ToolParameterSchema(name = "end_line", type = "integer", description = "结束行号，从1开始，包括该行，可选", required = false, default = "start_line + 99")
-                )
+                    ToolParameterSchema(name = "end_line", type = "integer", description = "结束行号，从1开始，包括该行，可选；不传则读到文件末尾", required = false, default = "start_line + 199（200 行）")
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                    |输出：所请求的行，带 "N| " 行号前缀（N 是文件中的真实行号，仅供展示——严禁复制进 edit_file/apply_file 的 old）。输出上限 32000 字符。
+                    |成功时返回：会标明本次从第几行开始返回，据此衔接下一段（start_line = 上次末行 + 1）。
+                    |失败时返回：错误注明原因（路径无效 / start_line 超出文件末尾 / 非文本文件）。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "create_file",
-                description = "通过委托给 apply_file 且 type=create 来创建新文件。",
+                description = "用给定内容创建新文件。文件已存在时会失败。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
                     ToolParameterSchema(name = "new", type = "string", description = "新文件的完整内容", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux"。不支持 "repo:<名称>"。
+                    |父目录会自动创建。
+                    |成功时返回："[$env] Successfully created new file: <路径>"。
+                    |失败时返回："file already exists"——要整体替换已有文件，先 delete_file 再 write_file（create_file 绝不覆盖）。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "edit_file",
-                description = "通过委托给 apply_file 且 type=replace 来编辑已存在文件。",
+                description = "编辑已有文件：将唯一的代码片段（old）替换为 new 内容。匹配先精确、后模糊（空白容忍）。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
-                    ToolParameterSchema(name = "old", type = "string", description = "用于匹配并替换的原始内容", required = true),
+                    ToolParameterSchema(name = "old", type = "string", description = "被替换的片段——必须在文件中唯一；带上足够的上下文以消歧；不要带 read_file 的行号前缀", required = true),
                     ToolParameterSchema(name = "new", type = "string", description = "要插入的新内容", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false)
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux"。不支持 "repo:<名称>"。
+                    |匹配规则：1) 空白容忍的精确匹配；2) 相似度 > 0.9 的模糊匹配。片段命中多处时编辑会被拒绝并列出候选行号——给 old 补充上下文，或用 occurrence 参数定位第 N 处。
+                    |成功时返回："[$env] Successfully applied AI code to file: <路径>"，附统一 diff 与被替换的行号范围。
+                    |失败时返回："Could not find a match"（用 read_file_part 精读目标行后重试）或 "multiple perfect matches"（让 old 更唯一）。严禁改用 shell 命令编辑文件——继续使用本工具。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "delete_file",
@@ -320,8 +413,14 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "目标路径", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
-                    ToolParameterSchema(name = "recursive", type = "boolean", description = "布尔值", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "recursive", type = "boolean", description = "true=递归删除非空目录；false（默认）=仅空目录和单个文件", required = false, default = "false")
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持（repo: 忽略 recursive，由提供端整树删除）。
+                    |硬性规则：对系统根目录（/ 、/storage/emulated/0 、/sdcard 、/data 等）的递归删除一律拒绝。
+                    |成功时返回："[$env] Successfully deleted: <路径>"。
+                    |失败时返回："Directory is not empty and recursive flag is not set"——传 recursive=true，或先删子项。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "make_directory",
@@ -329,8 +428,13 @@ object SystemToolPrompts {
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "目录路径", required = true),
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
-                    ToolParameterSchema(name = "create_parents", type = "boolean", description = "布尔值", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "create_parents", type = "boolean", description = "true=一并创建缺失的父目录（mkdirs）；false（默认）=父目录必须已存在", required = false, default = "false")
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                    |成功时返回："[$env] Directory created: <路径>"；目录已存在时返回成功 "Directory already exists"。
+                    |失败时返回："parent directory does not exist"——传 create_parents=true，或先创建父目录。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "find_files",
@@ -340,33 +444,50 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
                     ToolParameterSchema(name = "pattern", type = "string", description = "搜索模式，例如\"*.jpg\"", required = true),
                     ToolParameterSchema(name = "max_depth", type = "integer", description = "可选，控制子目录搜索深度，-1=无限", required = false),
-                    ToolParameterSchema(name = "use_path_pattern", type = "boolean", description = "布尔值", required = false, default = "false"),
-                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "布尔值", required = false, default = "false")
-                )
+                    ToolParameterSchema(name = "use_path_pattern", type = "boolean", description = "true=对完整路径匹配模式，而非仅文件名", required = false, default = "false"),
+                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "true=大小写不敏感匹配", required = false, default = "false")
+                ),
+                details = """
+                    |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                    |成功时返回："Found N files:"，最多列出 10 条路径——命中更多时尾部缩略（"... and N other files"），需要看全请缩小搜索范围（更深的路径、更紧的模式）。
+                    |失败时返回："search path does not exist"——修正路径。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "grep_code",
                 description = "在文件中搜索匹配正则表达式的代码内容，返回带上下文的匹配结果。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "搜索路径", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
+                    ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"——内容搜索不支持 repo:<名称>", required = false),
                     ToolParameterSchema(name = "pattern", type = "string", description = "正则表达式模式", required = true),
                     ToolParameterSchema(name = "file_pattern", type = "string", description = "文件过滤", required = false, default = "\"*\""),
-                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "布尔值", required = false, default = "false"),
+                    ToolParameterSchema(name = "case_insensitive", type = "boolean", description = "true=大小写不敏感", required = false, default = "false"),
                     ToolParameterSchema(name = "context_lines", type = "integer", description = "匹配行前后的上下文行数", required = false, default = "3"),
                     ToolParameterSchema(name = "max_results", type = "integer", description = "最大匹配数", required = false, default = "100")
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
+                    |遵循 .gitignore 规则；二进制文件自动跳过。
+                    |成功时返回：按文件分组的匹配（最多列 20 个文件；同时报告总匹配数，必要时收窄 pattern）。
+                    |失败时返回："Error performing native grep search"——检查路径是否存在、正则是否合法。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "grep_context",
                 description = "基于意图/上下文理解搜索相关内容。支持两种模式：1) 目录模式：当path是目录时，找出最相关的文件。2) 文件模式：当path是文件时，找出该文件内最相关的代码段。使用语义相关性评分。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "目录或文件路径", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
+                    ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"——不支持 repo:<名称>", required = false),
                     ToolParameterSchema(name = "intent", type = "string", description = "意图或上下文描述字符串", required = true),
                     ToolParameterSchema(name = "file_pattern", type = "string", description = "目录模式下的文件过滤", required = false, default = "\"*\""),
                     ToolParameterSchema(name = "max_results", type = "integer", description = "返回的最大项数", required = false, default = "10")
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
+                    |内部需要多轮模型辅助，耗时高于 grep_code——已知具体模式时优先用 grep_code。
+                    |成功时返回：与意图最相关的文件路径或代码段（按相关度排序）。
+                    |失败时返回："Error performing context search"——把 intent 写得更具体，或退回 grep_code 用具体正则。
+                """.trimMargin()
             ),
             ToolPrompt(
                 name = "download_file",
@@ -376,10 +497,15 @@ object SystemToolPrompts {
                     ToolParameterSchema(name = "visit_key", type = "string", description = "可选, 上一次 visit_web 返回的 visitKey", required = false),
                     ToolParameterSchema(name = "link_number", type = "integer", description = "可选, 整数, Results 中的链接编号（从1开始，需要配合 visit_key）", required = false),
                     ToolParameterSchema(name = "image_number", type = "integer", description = "可选, 整数, Images 中的图片编号（从1开始，需要配合 visit_key）", required = false),
-                    ToolParameterSchema(name = "destination", type = "string", description = "保存路径", required = true),
-                    ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment", required = false),
+                    ToolParameterSchema(name = "destination", type = "string", description = "目标文件系统上的绝对保存路径", required = true),
+                    ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"——不支持 repo:<名称>", required = false),
                     ToolParameterSchema(name = "headers", type = "string", description = "可选：HTTP请求头，JSON对象字符串，例如{\"Referer\":\"...\"}", required = false)
-                )
+                ),
+                details = """
+                    |Environment："android" | "linux"。不支持 "repo:<名称>"。
+                    |成功时返回："[$env] File downloaded successfully to: <destination>"，附文件大小。
+                    |失败时返回：HTTP 状态错误（403/404——检查 URL 或补 headers）、写权限错误、超时。headers JSON 格式非法会在执行前被拒绝。
+                """.trimMargin()
             )
         )
     )

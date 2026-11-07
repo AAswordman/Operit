@@ -47,7 +47,7 @@ export namespace Files {
      * Read file content by line range
      * @param path - Path to file
      * @param startLine - Starting line number (1-indexed, default 1)
-     * @param endLine - Ending line number (1-indexed, inclusive, optional, default startLine + 99)
+     * @param endLine - Ending line number (1-indexed, inclusive, optional, default startLine + 199 (200 lines))
      * @param environment - Execution environment ("android" or "linux"), default "android"
      */
     function readPart(path: string, startLine?: number, endLine?: number, environment?: FileEnvironment): Promise<FilePartContentData>;

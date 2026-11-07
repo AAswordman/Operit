@@ -1621,12 +1621,14 @@ open class StandardFileSystemTools(protected val context: Context) {
             // For text-based files, read only the beginning.
             // Check if file is text-like by analyzing content
             if (!FileUtils.isTextLike(file)) {
+                // 修改意图：原报错指向不存在的 "readFileFull" 工具名，且对二进制文件给出错误补救；
+                // 指向真实存在的 read_file_binary（二进制）与 read_file（文档/图片自动提取文本）
                 return ToolResult(
                     toolName = tool.name,
                     success = false,
                     result = StringResultData(""),
                     error =
-                    "File does not appear to be a text file. Use readFileFull tool for special file types."
+                    "File does not appear to be a text file. Use read_file_binary for binary files (returns base64), or read_file for documents/images (auto-extracts text)."
                 )
             }
 
@@ -2737,8 +2739,10 @@ open class StandardFileSystemTools(protected val context: Context) {
         val sourceEnvironment = tool.parameters.find { it.name == "source_environment" }?.value
         val destEnvironment = tool.parameters.find { it.name == "dest_environment" }?.value
         val environment = tool.parameters.find { it.name == "environment" }?.value
+        // 修改意图：recursive 缺省从 true 改为 false，与文档（默认 false）和扩展包 JS 对齐；
+        // 目录复制漏传参数时明确失败并提示，避免"以为只复制一个文件却复制了整棵树"
         val recursive =
-            tool.parameters.find { it.name == "recursive" }?.value?.toBoolean() ?: true
+            tool.parameters.find { it.name == "recursive" }?.value?.toBoolean() ?: false
 
         if (sourcePath.isBlank() || destPath.isBlank()) {
             return ToolResult(
@@ -2880,10 +2884,10 @@ open class StandardFileSystemTools(protected val context: Context) {
                             path = sourcePath,
                             successful = false,
                             details =
-                            "Cannot copy directory without recursive flag"
+                            "Cannot copy a directory without recursive=true. Pass recursive=true to copy the whole directory tree."
                         ),
                         error =
-                        "Cannot copy directory without recursive flag"
+                        "Cannot copy a directory without recursive=true. Pass recursive=true to copy the whole directory tree."
                     )
                 }
             } else {
