@@ -29,8 +29,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddComment
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,7 +56,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +78,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.features.extensions.packages.components.*
 import com.ai.assistance.operit.ui.features.extensions.packages.market.transfer.MarketInstallProgressCard
 import com.ai.assistance.operit.data.api.MarketV2Comment
 import com.ai.assistance.operit.ui.common.icons.rememberRemoteLogoPainter
@@ -100,7 +98,8 @@ data class UnifiedMarketDetailHeader(
     val participants: List<UnifiedMarketDetailParticipant> = emptyList(),
     val badges: List<String> = emptyList(),
     val metrics: List<UnifiedMarketDetailMetric> = emptyList(),
-    val statusLabel: String? = null
+    val statusLabel: String? = null,
+    val subtitle: String? = null
 )
 
 data class UnifiedMarketDetailParticipant(
@@ -114,7 +113,8 @@ data class UnifiedMarketDetailParticipant(
 
 data class UnifiedMarketDetailMetric(
     val value: String,
-    val label: String
+    val label: String,
+    val icon: ImageVector? = null
 )
 
 data class UnifiedMarketDetailAction(
@@ -148,7 +148,8 @@ data class UnifiedMarketDetailSection(
     val icon: ImageVector? = null,
     val isCodeBlock: Boolean = false,
     val showTitle: Boolean = true,
-    val collapsible: Boolean = false
+    val collapsible: Boolean = false,
+    val previewLines: Int = 4
 )
 
 data class UnifiedMarketDetailInfoRow(
@@ -248,7 +249,8 @@ fun UnifiedMarketDetailScreen(
     reactions: UnifiedMarketDetailReactionsState?,
     comments: UnifiedMarketDetailCommentsState,
     installProgress: MarketInstallProgress? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    headerActions: List<UnifiedMarketDetailAction> = emptyList()
 ) {
     var selectedTabIndex by rememberSaveable(header.title) { mutableIntStateOf(0) }
     var commentSortOption by remember { mutableStateOf(MarketCommentSortOption.NEWEST) }
@@ -261,15 +263,13 @@ fun UnifiedMarketDetailScreen(
     val commentsListState = rememberLazyListState()
     val listState = if (selectedTabIndex == 0) overviewListState else commentsListState
     val pullToRefreshState = rememberPullToRefreshState()
-    // Header is item 0 and sticky tabs are item 1.
-    val tabHeaderIndex = 1
-    val shouldPinTitle by remember(listState) {
-        derivedStateOf { listState.firstVisibleItemIndex >= tabHeaderIndex }
-    }
     val detailListContent: LazyListScope.() -> Unit = {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                UnifiedMarketDetailHeaderCard(header = header)
+                UnifiedMarketDetailHeaderCard(
+                    header = header, primaryAction = primaryAction, secondaryAction = secondaryAction,
+                    trailingAction = trailingAction, extraActions = headerActions,
+                )
                 installProgress?.let { MarketInstallProgressCard(it) }
             }
         }
@@ -293,6 +293,23 @@ fun UnifiedMarketDetailScreen(
                 UnifiedMarketDetailSectionCard(section = section)
             }
 
+            if (header.participants.isNotEmpty()) {
+                item {
+                    ExtensionDetailSection(stringResource(R.string.extension_detail_developers)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            header.participants.take(2).forEach { participant ->
+                                UnifiedMarketDetailParticipantChip(participant, Modifier.weight(1f), participant.onClick)
+                            }
+                        }
+                    }
+                }
+            }
+            if (overviewExtraContent != null) {
+                item {
+                    overviewExtraContent()
+                }
+            }
+
             if (metadataRows.isNotEmpty()) {
                 item {
                     UnifiedMarketDetailMetadataCard(
@@ -302,11 +319,6 @@ fun UnifiedMarketDetailScreen(
                 }
             }
 
-            if (overviewExtraContent != null) {
-                item {
-                    overviewExtraContent()
-                }
-            }
         } else {
             item {
                 UnifiedMarketDetailCommentsSectionHeader(
@@ -341,11 +353,11 @@ fun UnifiedMarketDetailScreen(
 
     BindUnifiedMarketDetailTopBarTitle(
         title = header.title,
-        visible = shouldPinTitle
+        visible = true
     )
 
     Column(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
     ) {
         if (selectedTabIndex == 1) {
             PullToRefreshBox(
@@ -378,23 +390,6 @@ fun UnifiedMarketDetailScreen(
                 content = detailListContent
             )
         }
-
-        Surface(shadowElevation = 6.dp) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-                UnifiedMarketDetailActionRow(
-                    primaryAction = primaryAction,
-                    secondaryAction = secondaryAction,
-                    trailingAction = trailingAction
-                )
-            }
-        }
     }
 }
 
@@ -402,84 +397,26 @@ fun UnifiedMarketDetailScreen(
 @Composable
 internal fun UnifiedMarketDetailHeaderCard(
     header: UnifiedMarketDetailHeader,
-    logoPainter: Painter? = null
+    logoPainter: Painter? = null,
+    primaryAction: UnifiedMarketDetailAction? = null,
+    secondaryAction: UnifiedMarketDetailAction? = null,
+    trailingAction: UnifiedMarketDetailIconAction? = null,
+    extraActions: List<UnifiedMarketDetailAction> = emptyList(),
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceContainer,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Top
-            ) {
-                UnifiedMarketDetailLeadingIcon(
-                    title = header.title,
-                    fallbackAvatarText = header.fallbackAvatarText,
-                    logoUrl = header.logoUrl,
-                    logoPainter = logoPainter
-                )
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = header.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        softWrap = true
-                    )
-
-                    if (header.badges.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            header.badges.forEach { badge ->
-                                Surface(
-                                    shape = RoundedCornerShape(999.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
-                                ) {
-                                    Text(
-                                        text = badge,
-                                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
+    val remoteLogo = rememberRemoteLogoPainter(logoUrl = header.logoUrl.takeIf { logoPainter == null }, size = 80.dp)
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        ExtensionDetailHeader(header.title, header.subtitle, header.badges + listOfNotNull(header.statusLabel), logoPainter ?: remoteLogo) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                primaryAction?.let { UnifiedMarketDetailPrimaryButton(it, compact = true) }
+                trailingAction?.let { action ->
+                    UnifiedMarketDetailSecondaryButton(UnifiedMarketDetailAction(
+                        action.contentDescription, action.onClick, action.enabled, icon = action.icon), compact = true)
                 }
-            }
-
-            if (header.participants.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    header.participants.take(2).forEach { participant ->
-                        UnifiedMarketDetailParticipantChip(
-                            participant = participant,
-                            modifier = Modifier.weight(1f),
-                            onClick = participant.onClick
-                        )
-                    }
-                }
-            }
-
-            if (header.metrics.isNotEmpty()) {
-                UnifiedMarketDetailMetricsRow(metrics = header.metrics)
+                extraActions.forEach { UnifiedMarketDetailSecondaryButton(it, compact = true) }
+                secondaryAction?.let { UnifiedMarketDetailSecondaryButton(it, compact = true) }
             }
         }
+        ExtensionDetailStats(header.metrics.map { ExtensionDetailStat(it.label, it.value, it.icon) })
     }
 }
 
@@ -550,46 +487,6 @@ private fun UnifiedMarketDetailStickyTabs(
 }
 
 @Composable
-private fun UnifiedMarketDetailLeadingIcon(
-    title: String,
-    fallbackAvatarText: String,
-    logoUrl: String?,
-    logoPainter: Painter?
-) {
-    val remoteLogoPainter =
-        rememberRemoteLogoPainter(
-            logoUrl = logoUrl.takeIf { logoPainter == null },
-            size = 76.dp
-        )
-    val resolvedLogoPainter = logoPainter ?: remoteLogoPainter
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f)
-    ) {
-        Box(
-            modifier = Modifier.size(76.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (resolvedLogoPainter != null) {
-                Image(
-                    painter = resolvedLogoPainter,
-                    contentDescription = title,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(64.dp)
-                )
-            } else {
-                Text(
-                    text = fallbackAvatarText.ifBlank { marketDetailInitial(title) },
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun UnifiedMarketDetailParticipantChip(
     participant: UnifiedMarketDetailParticipant,
     modifier: Modifier = Modifier,
@@ -604,33 +501,16 @@ private fun UnifiedMarketDetailParticipantChip(
         } else {
             Modifier
         }
-    Row(
-        modifier = modifier.then(clickModifier),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        UnifiedMarketDetailSmallAvatar(
-            avatarUrl = participant.avatarUrl,
-            fallbackText = participant.fallbackAvatarText
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            Text(
-                text = participant.roleLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = participant.name,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+    Surface(modifier = modifier.then(clickModifier), shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(9.dp), verticalAlignment = Alignment.CenterVertically) {
+            UnifiedMarketDetailSmallAvatar(participant.avatarUrl, participant.fallbackAvatarText)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(participant.name, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface)
+                Text(participant.roleLabel, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }
@@ -667,95 +547,6 @@ private fun UnifiedMarketDetailSmallAvatar(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
-        }
-    }
-}
-
-@Composable
-private fun UnifiedMarketDetailMetricsRow(
-    metrics: List<UnifiedMarketDetailMetric>
-) {
-    val displayedMetrics = metrics.take(4)
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        displayedMetrics.forEachIndexed { index, metric ->
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                Text(
-                    text = metric.value,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Clip
-                )
-                Text(
-                    text = metric.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    softWrap = true
-                )
-            }
-
-            if (index != displayedMetrics.lastIndex) {
-                Box(
-                    modifier =
-                        Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(width = 1.dp, height = 26.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun UnifiedMarketDetailActionRow(
-    primaryAction: UnifiedMarketDetailAction,
-    secondaryAction: UnifiedMarketDetailAction?,
-    trailingAction: UnifiedMarketDetailIconAction?,
-    compact: Boolean = false
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        UnifiedMarketDetailPrimaryButton(
-            action = primaryAction,
-            modifier = Modifier.weight(1f),
-            compact = compact
-        )
-
-        if (secondaryAction != null) {
-            UnifiedMarketDetailSecondaryButton(
-                action = secondaryAction,
-                modifier = Modifier.weight(1f),
-                compact = compact
-            )
-        }
-
-        if (trailingAction != null) {
-            IconButton(
-                onClick = trailingAction.onClick,
-                enabled = trailingAction.enabled,
-                modifier = Modifier.size(if (compact) 36.dp else 42.dp)
-            ) {
-                Icon(
-                    imageVector = trailingAction.icon,
-                    contentDescription = trailingAction.contentDescription,
-                    modifier = Modifier.size(if (compact) 18.dp else 20.dp)
-                )
-            }
         }
     }
 }
@@ -900,102 +691,26 @@ private fun UnifiedMarketDetailBannerCard(
 
 @Composable
 internal fun UnifiedMarketDetailSectionCard(section: UnifiedMarketDetailSection) {
-    var expanded by rememberSaveable(section.title, section.body) { mutableStateOf(false) }
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        if (section.collapsible) {
-            // Do not compose the full Markdown tree until requested; Comments stays a sibling tab.
-            TextButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {
-                section.icon?.let { Icon(it, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                Spacer(Modifier.width(8.dp))
-                Text(section.title, modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Start)
-                Text(stringResource(if (expanded) R.string.extension_description_collapse else R.string.extension_description_expand))
-                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
-            }
-        } else if (section.showTitle && section.title.isNotBlank()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                section.icon?.let { Icon(it, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp)) }
-                Text(section.title, style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold)
-            }
-        }
-        if (!section.collapsible || expanded) {
+    if (section.collapsible) {
+        ExtensionDetailDescription(section.title, section.body, stateKey = "market:${section.title}",
+            previewLines = section.previewLines, markdown = !section.isCodeBlock, codeBlock = section.isCodeBlock)
+    } else {
+        ExtensionDetailSection(section.title) {
             if (section.isCodeBlock) {
-                Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
-                    Text(section.body, modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall,
-                        fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.onSurface)
+                Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Text(section.body, Modifier.padding(12.dp), fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodySmall)
                 }
             } else {
-                MarkdownTextComposable(text = section.body, textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth())
+                MarkdownTextComposable(section.body, textColor = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
     }
 }
 
 @Composable
-private fun UnifiedMarketDetailMetadataCard(
-    title: String,
-    rows: List<UnifiedMarketDetailInfoRow>
-) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        rows.forEach { row ->
-            UnifiedMarketDetailMetadataRow(row = row)
-        }
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
-    }
-}
-
-@Composable
-private fun UnifiedMarketDetailMetadataRow(
-    row: UnifiedMarketDetailInfoRow
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        if (row.icon != null) {
-            Icon(
-                imageVector = row.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp).padding(top = 2.dp)
-            )
-        }
-
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(1.dp)
-        ) {
-            Text(
-                text = row.label,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = row.value,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
+private fun UnifiedMarketDetailMetadataCard(title: String, rows: List<UnifiedMarketDetailInfoRow>) {
+    ExtensionDetailFacts(title, rows.map { ExtensionDetailFact(it.label, it.value) })
 }
 
 @Composable

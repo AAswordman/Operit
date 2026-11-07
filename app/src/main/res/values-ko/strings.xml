@@ -8290,9 +8290,48 @@
 
     <string name="extension_interfaces">인터페이스</string>
     <string name="extension_description_title">설명</string>
-    <string name="extension_description_expand">설명 펼치기</string>
-    <string name="extension_description_collapse">설명 접기</string>
+    <string name="extension_description_expand">전체 보기</string>
+    <string name="extension_description_collapse">접기</string>
     <string name="extension_detail_load_failed">확장 기능 정보를 불러올 수 없습니다. 설치 상태를 확인하거나 다시 시도하세요.</string>
     <string name="extension_toggle_failed">활성화 상태를 변경할 수 없습니다. 종속성과 환경 설정을 확인한 후 다시 시도하세요.</string>
     <string name="extension_detail_retry">다시 시도</string>
+
+    <string name="extension_detail_brief">소개</string>
+    <string name="extension_detail_description">상세 설명</string>
+    <string name="extension_detail_information">정보</string>
+    <string name="extension_detail_manage">관리</string>
+    <string name="extension_detail_contents">포함 내용</string>
+    <string name="extension_detail_dependencies">종속성</string>
+    <string name="extension_detail_subpackages">하위 패키지</string>
+    <string name="extension_detail_type">유형</string>
+    <string name="extension_detail_status">상태</string>
+    <string name="extension_detail_version">버전</string>
+    <string name="extension_detail_source">출처</string>
+    <string name="extension_detail_imported">수동 가져오기</string>
+    <string name="extension_detail_market_source">마켓 설치</string>
+    <string name="extension_detail_remove">확장 기능 삭제</string>
+    <string name="extension_detail_remove_hint">이 확장 기능과 파일을 삭제합니다</string>
+    <string name="extension_detail_resources">리소스</string>
+    <string name="extension_detail_wasm">WASM 모듈</string>
+    <string name="extension_detail_workflows">워크플로 템플릿</string>
+    <string name="extension_detail_workspaces">작업 공간 템플릿</string>
+    <string name="extension_detail_developers">개발자</string>
+    <string name="extension_detail_updated">업데이트</string>
+    <string name="extension_detail_entry">진입점</string>
+    <string name="extension_detail_path">경로</string>
+    <string name="extension_detail_market_entry">마켓 항목</string>
+    <string name="extension_detail_enabled">활성화됨</string>
+    <string name="extension_detail_disabled">비활성화됨</string>
+    <string name="extension_detail_other_versions">다른 버전</string>
+    <string name="extension_detail_empty_subpackages">이 플러그인에는 하위 패키지가 없습니다.</string>
+    <string name="extension_detail_tools">도구</string>
+    <string name="extension_detail_navigation">탐색 항목</string>
+    <string name="extension_detail_widgets">바탕 화면 위젯</string>
+    <string name="extension_detail_default_state">기본 상태</string>
+    <string name="extension_detail_source_unavailable">출처를 읽을 수 없음</string>
+    <string name="extension_detail_install_config">설치 구성</string>
+
+    <string name="extension_detail_downloads">다운로드</string>
+    <string name="extension_detail_likes">좋아요</string>
+    <string name="extension_detail_format">형식</string>
 </resources>

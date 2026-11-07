@@ -367,6 +367,8 @@ sealed class Screen(
                 }
             )
         }
+        @Composable
+        override fun getTitle(): String = entry.title
     }
 
     data class MarketAuthor(

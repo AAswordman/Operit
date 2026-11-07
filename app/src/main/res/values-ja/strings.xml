@@ -8280,9 +8280,48 @@
 
     <string name="extension_interfaces">インターフェース</string>
     <string name="extension_description_title">説明</string>
-    <string name="extension_description_expand">説明を展開</string>
-    <string name="extension_description_collapse">説明を折りたたむ</string>
+    <string name="extension_description_expand">全文を表示</string>
+    <string name="extension_description_collapse">折りたたむ</string>
     <string name="extension_detail_load_failed">拡張機能の詳細を読み込めません。インストール状態を確認するか、再試行してください。</string>
     <string name="extension_toggle_failed">有効状態を変更できません。依存関係と環境設定を確認して再試行してください。</string>
     <string name="extension_detail_retry">再試行</string>
+
+    <string name="extension_detail_brief">概要</string>
+    <string name="extension_detail_description">詳細説明</string>
+    <string name="extension_detail_information">情報</string>
+    <string name="extension_detail_manage">管理</string>
+    <string name="extension_detail_contents">内容</string>
+    <string name="extension_detail_dependencies">依存関係</string>
+    <string name="extension_detail_subpackages">サブパッケージ</string>
+    <string name="extension_detail_type">種類</string>
+    <string name="extension_detail_status">状態</string>
+    <string name="extension_detail_version">バージョン</string>
+    <string name="extension_detail_source">入手元</string>
+    <string name="extension_detail_imported">手動インポート</string>
+    <string name="extension_detail_market_source">マーケットからインストール</string>
+    <string name="extension_detail_remove">拡張機能を削除</string>
+    <string name="extension_detail_remove_hint">この拡張機能とファイルを削除します</string>
+    <string name="extension_detail_resources">リソース</string>
+    <string name="extension_detail_wasm">WASM モジュール</string>
+    <string name="extension_detail_workflows">ワークフローテンプレート</string>
+    <string name="extension_detail_workspaces">ワークスペーステンプレート</string>
+    <string name="extension_detail_developers">開発者</string>
+    <string name="extension_detail_updated">更新日</string>
+    <string name="extension_detail_entry">エントリーポイント</string>
+    <string name="extension_detail_path">パス</string>
+    <string name="extension_detail_market_entry">マーケット項目</string>
+    <string name="extension_detail_enabled">有効</string>
+    <string name="extension_detail_disabled">無効</string>
+    <string name="extension_detail_other_versions">他のバージョン</string>
+    <string name="extension_detail_empty_subpackages">このプラグインにはサブパッケージがありません。</string>
+    <string name="extension_detail_tools">ツール</string>
+    <string name="extension_detail_navigation">ナビゲーション項目</string>
+    <string name="extension_detail_widgets">デスクトップウィジェット</string>
+    <string name="extension_detail_default_state">既定の状態</string>
+    <string name="extension_detail_source_unavailable">入手元を取得できません</string>
+    <string name="extension_detail_install_config">インストール設定</string>
+
+    <string name="extension_detail_downloads">ダウンロード</string>
+    <string name="extension_detail_likes">お気に入り</string>
+    <string name="extension_detail_format">形式</string>
 </resources>

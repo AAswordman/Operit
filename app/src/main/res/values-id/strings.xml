@@ -8443,9 +8443,48 @@
 
     <string name="extension_interfaces">Antarmuka</string>
     <string name="extension_description_title">Deskripsi</string>
-    <string name="extension_description_expand">Perluas deskripsi</string>
-    <string name="extension_description_collapse">Ciutkan deskripsi</string>
+    <string name="extension_description_expand">Baca selengkapnya</string>
+    <string name="extension_description_collapse">Tutup</string>
     <string name="extension_detail_load_failed">Detail ekstensi tidak dapat dimuat. Periksa pemasangannya atau coba lagi.</string>
     <string name="extension_toggle_failed">Aktivasi tidak dapat diubah. Periksa dependensi dan pengaturan lingkungan.</string>
     <string name="extension_detail_retry">Coba lagi</string>
+
+    <string name="extension_detail_brief">Ringkasan</string>
+    <string name="extension_detail_description">Deskripsi lengkap</string>
+    <string name="extension_detail_information">Informasi</string>
+    <string name="extension_detail_manage">Kelola</string>
+    <string name="extension_detail_contents">Isi</string>
+    <string name="extension_detail_dependencies">Dependensi</string>
+    <string name="extension_detail_subpackages">Subpaket</string>
+    <string name="extension_detail_type">Jenis</string>
+    <string name="extension_detail_status">Status</string>
+    <string name="extension_detail_version">Versi</string>
+    <string name="extension_detail_source">Sumber</string>
+    <string name="extension_detail_imported">Diimpor manual</string>
+    <string name="extension_detail_market_source">Dipasang dari pasar</string>
+    <string name="extension_detail_remove">Hapus ekstensi</string>
+    <string name="extension_detail_remove_hint">Hapus ekstensi ini beserta berkasnya</string>
+    <string name="extension_detail_resources">Sumber daya</string>
+    <string name="extension_detail_wasm">Modul WASM</string>
+    <string name="extension_detail_workflows">Templat alur kerja</string>
+    <string name="extension_detail_workspaces">Templat ruang kerja</string>
+    <string name="extension_detail_developers">Pengembang</string>
+    <string name="extension_detail_updated">Diperbarui</string>
+    <string name="extension_detail_entry">Titik masuk</string>
+    <string name="extension_detail_path">Jalur</string>
+    <string name="extension_detail_market_entry">Entri pasar</string>
+    <string name="extension_detail_enabled">Diaktifkan</string>
+    <string name="extension_detail_disabled">Dinonaktifkan</string>
+    <string name="extension_detail_other_versions">Versi lain</string>
+    <string name="extension_detail_empty_subpackages">Plugin ini tidak memiliki subpaket.</string>
+    <string name="extension_detail_tools">Alat</string>
+    <string name="extension_detail_navigation">Entri navigasi</string>
+    <string name="extension_detail_widgets">Widget desktop</string>
+    <string name="extension_detail_default_state">Status bawaan</string>
+    <string name="extension_detail_source_unavailable">Sumber tidak tersedia</string>
+    <string name="extension_detail_install_config">Konfigurasi pemasangan</string>
+
+    <string name="extension_detail_downloads">Unduhan</string>
+    <string name="extension_detail_likes">Suka</string>
+    <string name="extension_detail_format">Format</string>
 </resources>

@@ -9191,9 +9191,48 @@
 
     <string name="extension_interfaces">Interfaces</string>
     <string name="extension_description_title">Description</string>
-    <string name="extension_description_expand">Expand description</string>
-    <string name="extension_description_collapse">Collapse description</string>
+    <string name="extension_description_expand">Read more</string>
+    <string name="extension_description_collapse">Show less</string>
     <string name="extension_detail_load_failed">Unable to load extension details. Check that it is still installed or retry.</string>
     <string name="extension_toggle_failed">Unable to change activation. Check dependencies and environment settings, then retry.</string>
     <string name="extension_detail_retry">Retry</string>
+
+    <string name="extension_detail_brief">Overview</string>
+    <string name="extension_detail_description">Detailed description</string>
+    <string name="extension_detail_information">Information</string>
+    <string name="extension_detail_manage">Manage</string>
+    <string name="extension_detail_contents">Contents</string>
+    <string name="extension_detail_dependencies">Dependencies</string>
+    <string name="extension_detail_subpackages">Subpackages</string>
+    <string name="extension_detail_type">Type</string>
+    <string name="extension_detail_status">Status</string>
+    <string name="extension_detail_version">Version</string>
+    <string name="extension_detail_source">Source</string>
+    <string name="extension_detail_imported">Manually imported</string>
+    <string name="extension_detail_market_source">Market installation</string>
+    <string name="extension_detail_remove">Remove extension</string>
+    <string name="extension_detail_remove_hint">Delete this extension and its files</string>
+    <string name="extension_detail_resources">Resources</string>
+    <string name="extension_detail_wasm">WASM modules</string>
+    <string name="extension_detail_workflows">Workflow templates</string>
+    <string name="extension_detail_workspaces">Workspace templates</string>
+    <string name="extension_detail_developers">Developers</string>
+    <string name="extension_detail_updated">Updated</string>
+    <string name="extension_detail_entry">Entry point</string>
+    <string name="extension_detail_path">Path</string>
+    <string name="extension_detail_market_entry">Market entry</string>
+    <string name="extension_detail_enabled">Enabled</string>
+    <string name="extension_detail_disabled">Disabled</string>
+    <string name="extension_detail_other_versions">Other versions</string>
+    <string name="extension_detail_empty_subpackages">This plugin has no subpackages.</string>
+    <string name="extension_detail_tools">Tools</string>
+    <string name="extension_detail_navigation">Navigation entries</string>
+    <string name="extension_detail_widgets">Desktop widgets</string>
+    <string name="extension_detail_default_state">Default state</string>
+    <string name="extension_detail_source_unavailable">Source unavailable</string>
+    <string name="extension_detail_install_config">Install configuration</string>
+
+    <string name="extension_detail_downloads">Downloads</string>
+    <string name="extension_detail_likes">Likes</string>
+    <string name="extension_detail_format">Format</string>
 </resources>

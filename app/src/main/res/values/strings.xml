@@ -9167,9 +9167,48 @@
 
     <string name="extension_interfaces">界面</string>
     <string name="extension_description_title">介绍</string>
-    <string name="extension_description_expand">展开介绍</string>
-    <string name="extension_description_collapse">收起介绍</string>
+    <string name="extension_description_expand">展开全文</string>
+    <string name="extension_description_collapse">收起</string>
     <string name="extension_detail_load_failed">无法加载扩展详情。请返回列表确认它仍已安装，或重试。</string>
     <string name="extension_toggle_failed">无法更改启用状态，请检查依赖或环境配置后重试。</string>
     <string name="extension_detail_retry">重试</string>
+
+    <string name="extension_detail_brief">简介</string>
+    <string name="extension_detail_description">详细介绍</string>
+    <string name="extension_detail_information">信息</string>
+    <string name="extension_detail_manage">管理</string>
+    <string name="extension_detail_contents">包含内容</string>
+    <string name="extension_detail_dependencies">依赖</string>
+    <string name="extension_detail_subpackages">子包</string>
+    <string name="extension_detail_type">类型</string>
+    <string name="extension_detail_status">状态</string>
+    <string name="extension_detail_version">版本</string>
+    <string name="extension_detail_source">来源</string>
+    <string name="extension_detail_imported">手动导入</string>
+    <string name="extension_detail_market_source">市场安装</string>
+    <string name="extension_detail_remove">移除扩展</string>
+    <string name="extension_detail_remove_hint">删除这个扩展和它的文件</string>
+    <string name="extension_detail_resources">资源</string>
+    <string name="extension_detail_wasm">WASM 模块</string>
+    <string name="extension_detail_workflows">工作流模板</string>
+    <string name="extension_detail_workspaces">工作区模板</string>
+    <string name="extension_detail_developers">开发者</string>
+    <string name="extension_detail_updated">更新于</string>
+    <string name="extension_detail_entry">入口</string>
+    <string name="extension_detail_path">路径</string>
+    <string name="extension_detail_market_entry">市场条目</string>
+    <string name="extension_detail_enabled">已启用</string>
+    <string name="extension_detail_disabled">已停用</string>
+    <string name="extension_detail_other_versions">其他版本</string>
+    <string name="extension_detail_empty_subpackages">这个插件没有子包。</string>
+    <string name="extension_detail_tools">工具</string>
+    <string name="extension_detail_navigation">导航入口</string>
+    <string name="extension_detail_widgets">桌面小组件</string>
+    <string name="extension_detail_default_state">默认状态</string>
+    <string name="extension_detail_source_unavailable">来源读取失败</string>
+    <string name="extension_detail_install_config">安装配置</string>
+
+    <string name="extension_detail_downloads">下载</string>
+    <string name="extension_detail_likes">喜欢</string>
+    <string name="extension_detail_format">格式</string>
 </resources>

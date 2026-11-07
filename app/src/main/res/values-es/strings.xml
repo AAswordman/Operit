@@ -8511,9 +8511,48 @@
 
     <string name="extension_interfaces">Interfaces</string>
     <string name="extension_description_title">Descripción</string>
-    <string name="extension_description_expand">Ampliar descripción</string>
-    <string name="extension_description_collapse">Contraer descripción</string>
+    <string name="extension_description_expand">Leer más</string>
+    <string name="extension_description_collapse">Mostrar menos</string>
     <string name="extension_detail_load_failed">No se pueden cargar los detalles. Comprueba que la extensión siga instalada o reinténtalo.</string>
     <string name="extension_toggle_failed">No se puede cambiar la activación. Revisa las dependencias y la configuración del entorno.</string>
     <string name="extension_detail_retry">Reintentar</string>
+
+    <string name="extension_detail_brief">Resumen</string>
+    <string name="extension_detail_description">Descripción detallada</string>
+    <string name="extension_detail_information">Información</string>
+    <string name="extension_detail_manage">Administrar</string>
+    <string name="extension_detail_contents">Contenido</string>
+    <string name="extension_detail_dependencies">Dependencias</string>
+    <string name="extension_detail_subpackages">Subpaquetes</string>
+    <string name="extension_detail_type">Tipo</string>
+    <string name="extension_detail_status">Estado</string>
+    <string name="extension_detail_version">Versión</string>
+    <string name="extension_detail_source">Origen</string>
+    <string name="extension_detail_imported">Importado manualmente</string>
+    <string name="extension_detail_market_source">Instalado desde el mercado</string>
+    <string name="extension_detail_remove">Eliminar extensión</string>
+    <string name="extension_detail_remove_hint">Eliminar esta extensión y sus archivos</string>
+    <string name="extension_detail_resources">Recursos</string>
+    <string name="extension_detail_wasm">Módulos WASM</string>
+    <string name="extension_detail_workflows">Plantillas de flujos</string>
+    <string name="extension_detail_workspaces">Plantillas de espacios de trabajo</string>
+    <string name="extension_detail_developers">Desarrolladores</string>
+    <string name="extension_detail_updated">Actualizado</string>
+    <string name="extension_detail_entry">Punto de entrada</string>
+    <string name="extension_detail_path">Ruta</string>
+    <string name="extension_detail_market_entry">Entrada del mercado</string>
+    <string name="extension_detail_enabled">Activado</string>
+    <string name="extension_detail_disabled">Desactivado</string>
+    <string name="extension_detail_other_versions">Otras versiones</string>
+    <string name="extension_detail_empty_subpackages">Este complemento no tiene subpaquetes.</string>
+    <string name="extension_detail_tools">Herramientas</string>
+    <string name="extension_detail_navigation">Entradas de navegación</string>
+    <string name="extension_detail_widgets">Widgets de escritorio</string>
+    <string name="extension_detail_default_state">Estado predeterminado</string>
+    <string name="extension_detail_source_unavailable">Origen no disponible</string>
+    <string name="extension_detail_install_config">Configuración de instalación</string>
+
+    <string name="extension_detail_downloads">Descargas</string>
+    <string name="extension_detail_likes">Me gusta</string>
+    <string name="extension_detail_format">Formato</string>
 </resources>

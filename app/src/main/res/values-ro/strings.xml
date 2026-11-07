@@ -9036,9 +9036,48 @@
 
     <string name="extension_interfaces">Interfețe</string>
     <string name="extension_description_title">Descriere</string>
-    <string name="extension_description_expand">Extinde descrierea</string>
-    <string name="extension_description_collapse">Restrânge descrierea</string>
+    <string name="extension_description_expand">Citește tot</string>
+    <string name="extension_description_collapse">Restrânge</string>
     <string name="extension_detail_load_failed">Detaliile extensiei nu pot fi încărcate. Verifică dacă este instalată sau reîncearcă.</string>
     <string name="extension_toggle_failed">Activarea nu poate fi schimbată. Verifică dependențele și setările mediului.</string>
     <string name="extension_detail_retry">Reîncearcă</string>
+
+    <string name="extension_detail_brief">Prezentare</string>
+    <string name="extension_detail_description">Descriere detaliată</string>
+    <string name="extension_detail_information">Informații</string>
+    <string name="extension_detail_manage">Gestionare</string>
+    <string name="extension_detail_contents">Conținut</string>
+    <string name="extension_detail_dependencies">Dependențe</string>
+    <string name="extension_detail_subpackages">Subpachete</string>
+    <string name="extension_detail_type">Tip</string>
+    <string name="extension_detail_status">Stare</string>
+    <string name="extension_detail_version">Versiune</string>
+    <string name="extension_detail_source">Sursă</string>
+    <string name="extension_detail_imported">Importat manual</string>
+    <string name="extension_detail_market_source">Instalat din piață</string>
+    <string name="extension_detail_remove">Elimină extensia</string>
+    <string name="extension_detail_remove_hint">Șterge această extensie și fișierele sale</string>
+    <string name="extension_detail_resources">Resurse</string>
+    <string name="extension_detail_wasm">Module WASM</string>
+    <string name="extension_detail_workflows">Șabloane de flux</string>
+    <string name="extension_detail_workspaces">Șabloane de spațiu de lucru</string>
+    <string name="extension_detail_developers">Dezvoltatori</string>
+    <string name="extension_detail_updated">Actualizat</string>
+    <string name="extension_detail_entry">Punct de intrare</string>
+    <string name="extension_detail_path">Cale</string>
+    <string name="extension_detail_market_entry">Element din piață</string>
+    <string name="extension_detail_enabled">Activat</string>
+    <string name="extension_detail_disabled">Dezactivat</string>
+    <string name="extension_detail_other_versions">Alte versiuni</string>
+    <string name="extension_detail_empty_subpackages">Acest plugin nu are subpachete.</string>
+    <string name="extension_detail_tools">Instrumente</string>
+    <string name="extension_detail_navigation">Intrări de navigare</string>
+    <string name="extension_detail_widgets">Widgeturi desktop</string>
+    <string name="extension_detail_default_state">Stare implicită</string>
+    <string name="extension_detail_source_unavailable">Sursă indisponibilă</string>
+    <string name="extension_detail_install_config">Configurare instalare</string>
+
+    <string name="extension_detail_downloads">Descărcări</string>
+    <string name="extension_detail_likes">Aprecieri</string>
+    <string name="extension_detail_format">Format</string>
 </resources>

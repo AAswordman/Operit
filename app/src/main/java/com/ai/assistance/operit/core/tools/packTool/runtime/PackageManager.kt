@@ -193,6 +193,10 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val requires: List<ToolPkgManifestRequirement> = emptyList(),
         val fileSizeBytes: Long = 0L,
         val isBuiltIn: Boolean = false,
+        val mainEntry: String = "",
+        val sourcePath: String = "",
+        val navigationEntryCount: Int = 0,
+        val desktopWidgetCount: Int = 0,
     )
 
     data class ToolPkgLogoBytes(

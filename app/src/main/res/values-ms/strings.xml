@@ -8442,9 +8442,48 @@
 
     <string name="extension_interfaces">Antara muka</string>
     <string name="extension_description_title">Perihalan</string>
-    <string name="extension_description_expand">Kembangkan perihalan</string>
-    <string name="extension_description_collapse">Runtuhkan perihalan</string>
+    <string name="extension_description_expand">Baca lagi</string>
+    <string name="extension_description_collapse">Ringkaskan</string>
     <string name="extension_detail_load_failed">Butiran sambungan tidak dapat dimuatkan. Semak pemasangannya atau cuba lagi.</string>
     <string name="extension_toggle_failed">Pengaktifan tidak dapat diubah. Semak kebergantungan dan tetapan persekitaran.</string>
     <string name="extension_detail_retry">Cuba lagi</string>
+
+    <string name="extension_detail_brief">Ringkasan</string>
+    <string name="extension_detail_description">Penerangan terperinci</string>
+    <string name="extension_detail_information">Maklumat</string>
+    <string name="extension_detail_manage">Urus</string>
+    <string name="extension_detail_contents">Kandungan</string>
+    <string name="extension_detail_dependencies">Kebergantungan</string>
+    <string name="extension_detail_subpackages">Subpakej</string>
+    <string name="extension_detail_type">Jenis</string>
+    <string name="extension_detail_status">Status</string>
+    <string name="extension_detail_version">Versi</string>
+    <string name="extension_detail_source">Sumber</string>
+    <string name="extension_detail_imported">Diimport secara manual</string>
+    <string name="extension_detail_market_source">Dipasang daripada pasaran</string>
+    <string name="extension_detail_remove">Alih keluar sambungan</string>
+    <string name="extension_detail_remove_hint">Padam sambungan ini dan failnya</string>
+    <string name="extension_detail_resources">Sumber</string>
+    <string name="extension_detail_wasm">Modul WASM</string>
+    <string name="extension_detail_workflows">Templat aliran kerja</string>
+    <string name="extension_detail_workspaces">Templat ruang kerja</string>
+    <string name="extension_detail_developers">Pembangun</string>
+    <string name="extension_detail_updated">Dikemas kini</string>
+    <string name="extension_detail_entry">Titik masuk</string>
+    <string name="extension_detail_path">Laluan</string>
+    <string name="extension_detail_market_entry">Entri pasaran</string>
+    <string name="extension_detail_enabled">Didayakan</string>
+    <string name="extension_detail_disabled">Dilumpuhkan</string>
+    <string name="extension_detail_other_versions">Versi lain</string>
+    <string name="extension_detail_empty_subpackages">Pemalam ini tiada subpakej.</string>
+    <string name="extension_detail_tools">Alat</string>
+    <string name="extension_detail_navigation">Entri navigasi</string>
+    <string name="extension_detail_widgets">Widget desktop</string>
+    <string name="extension_detail_default_state">Keadaan lalai</string>
+    <string name="extension_detail_source_unavailable">Sumber tidak tersedia</string>
+    <string name="extension_detail_install_config">Konfigurasi pemasangan</string>
+
+    <string name="extension_detail_downloads">Muat turun</string>
+    <string name="extension_detail_likes">Suka</string>
+    <string name="extension_detail_format">Format</string>
 </resources>

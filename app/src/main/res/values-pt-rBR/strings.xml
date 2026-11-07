@@ -8283,9 +8283,48 @@
 
     <string name="extension_interfaces">Interfaces</string>
     <string name="extension_description_title">Descrição</string>
-    <string name="extension_description_expand">Expandir descrição</string>
-    <string name="extension_description_collapse">Recolher descrição</string>
+    <string name="extension_description_expand">Ler mais</string>
+    <string name="extension_description_collapse">Mostrar menos</string>
     <string name="extension_detail_load_failed">Não foi possível carregar os detalhes. Verifique se a extensão está instalada ou tente novamente.</string>
     <string name="extension_toggle_failed">Não foi possível alterar a ativação. Verifique as dependências e as configurações do ambiente.</string>
     <string name="extension_detail_retry">Tentar novamente</string>
+
+    <string name="extension_detail_brief">Resumo</string>
+    <string name="extension_detail_description">Descrição detalhada</string>
+    <string name="extension_detail_information">Informações</string>
+    <string name="extension_detail_manage">Gerenciar</string>
+    <string name="extension_detail_contents">Conteúdo</string>
+    <string name="extension_detail_dependencies">Dependências</string>
+    <string name="extension_detail_subpackages">Subpacotes</string>
+    <string name="extension_detail_type">Tipo</string>
+    <string name="extension_detail_status">Estado</string>
+    <string name="extension_detail_version">Versão</string>
+    <string name="extension_detail_source">Origem</string>
+    <string name="extension_detail_imported">Importado manualmente</string>
+    <string name="extension_detail_market_source">Instalado pelo mercado</string>
+    <string name="extension_detail_remove">Remover extensão</string>
+    <string name="extension_detail_remove_hint">Excluir esta extensão e seus arquivos</string>
+    <string name="extension_detail_resources">Recursos</string>
+    <string name="extension_detail_wasm">Módulos WASM</string>
+    <string name="extension_detail_workflows">Modelos de fluxo</string>
+    <string name="extension_detail_workspaces">Modelos de espaço de trabalho</string>
+    <string name="extension_detail_developers">Desenvolvedores</string>
+    <string name="extension_detail_updated">Atualizado</string>
+    <string name="extension_detail_entry">Ponto de entrada</string>
+    <string name="extension_detail_path">Caminho</string>
+    <string name="extension_detail_market_entry">Item do mercado</string>
+    <string name="extension_detail_enabled">Ativado</string>
+    <string name="extension_detail_disabled">Desativado</string>
+    <string name="extension_detail_other_versions">Outras versões</string>
+    <string name="extension_detail_empty_subpackages">Este plugin não possui subpacotes.</string>
+    <string name="extension_detail_tools">Ferramentas</string>
+    <string name="extension_detail_navigation">Entradas de navegação</string>
+    <string name="extension_detail_widgets">Widgets da área de trabalho</string>
+    <string name="extension_detail_default_state">Estado padrão</string>
+    <string name="extension_detail_source_unavailable">Origem indisponível</string>
+    <string name="extension_detail_install_config">Configuração de instalação</string>
+
+    <string name="extension_detail_downloads">Downloads</string>
+    <string name="extension_detail_likes">Curtidas</string>
+    <string name="extension_detail_format">Formato</string>
 </resources>
