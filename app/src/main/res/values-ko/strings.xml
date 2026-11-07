@@ -3547,6 +3547,7 @@
     <string name="provider_ppinfra">PPInfra 클라우드</string>
     <string name="provider_novita">노비타 AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_openai_generic">OpenAI(일반)</string>
     <string name="provider_other">기타 제공자</string>
     <string name="select_api_provider_title">API 제공업체 선택</string>

@@ -3405,6 +3405,7 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="provider_ppinfra">Pai Ouyun</string>
     <string name="provider_novita">Novita AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_openai_generic">OpenAI Geral</string>
     <string name="provider_other">Outros fornecedores</string>
     <string name="select_api_provider_title">Escolha o provedor de API</string>

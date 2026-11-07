@@ -517,6 +517,7 @@ object AIServiceFactory {
             ApiProviderType.PPINFRA,
             ApiProviderType.NOVITA,
             ApiProviderType.MINIMAX,
+            ApiProviderType.TOKENRHYTHM,
             ApiProviderType.OTHER ->
                 OpenAIProvider(
                     apiEndpoint = config.apiEndpoint,
