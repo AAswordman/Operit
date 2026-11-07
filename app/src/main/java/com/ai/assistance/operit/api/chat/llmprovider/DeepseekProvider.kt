@@ -985,14 +985,28 @@ object DeepseekResponsesPayloadAdapter {
                             }
                         }
 
-                        "image_url", "input_image" -> {
+                        "input_image" -> {
+                            // 已规范化的图片块可能使用 file_id，保留引用及 detail，避免按 URL 重建时丢图。
+                            convertedParts.put(JSONObject(part.toString()))
+                        }
+
+                        "file" -> {
+                            // Files API 上传后的图片是文件引用，Responses 必须转换为 input_image。
+                            val fileId = part.optString("file_id", "")
+                            if (fileId.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_image")
+                                        put("file_id", fileId)
+                                    }
+                                )
+                            }
+                        }
+
+                        "image_url" -> {
                             val imageUrl =
-                                if (part.optString("type", "") == "input_image") {
-                                    part.optString("image_url", "")
-                                } else {
-                                    part.optJSONObject("image_url")?.optString("url", "")
-                                        ?: part.optString("image_url", "")
-                                }
+                                part.optJSONObject("image_url")?.optString("url", "")
+                                    ?: part.optString("image_url", "")
                             if (imageUrl.isNotEmpty()) {
                                 convertedParts.put(
                                     JSONObject().apply {
@@ -1326,9 +1340,8 @@ private class DeepseekResponsesProvider(
     }
 
     /**
-     * Responses 线同样先输出 DeepSeek 文件块，随后由
-     * OpenAIResponsesPayloadAdapter.convertMessageContentForResponses 转换为
-     * Responses 协议的 input_image + file_id 引用；未上传成功则回退 base64。
+     * 上传图片使用 DeepSeek 文件块，由 DeepseekResponsesPayloadAdapter 转换为
+     * Responses 协议的 input_image + file_id 引用。
      */
     override fun buildImageContentPart(link: ImageLink): JSONObject {
         val fileId = fileUploader.fileIdFor(link.id)
