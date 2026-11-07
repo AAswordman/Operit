@@ -3031,7 +3031,6 @@
     <string name="config_renamed">構成の名前が変更されました</string>
     <string name="api_settings">API設定</string>
     <string name="api_endpoint">APIエンドポイント</string>
-    <string name="api_endpoint_placeholder">例: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">実際のリクエストアドレス: %s</string>
     <string name="endpoint_completion_hint">ヒント: ベース URL を入力すると、システムが自動的にパスを完成させます。無効にするには、URL の末尾に # 記号を追加します。</string>
     <string name="api_key">APIキー</string>

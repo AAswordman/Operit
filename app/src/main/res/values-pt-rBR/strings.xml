@@ -2869,7 +2869,6 @@
     <string name="config_renamed">A configuração foi renomeada</string>
     <string name="api_settings">Configurações de API</string>
     <string name="api_endpoint">Ponto de extremidade da API</string>
-    <string name="api_endpoint_placeholder">Por exemplo: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Endereço de solicitação real: %s</string>
     <string name="endpoint_completion_hint">Dica: Se você inserir uma URL base, o sistema completará automaticamente o caminho. Para desativá-lo, adicione um sinal # no final do URL.</string>
     <string name="api_key">Chave de API</string>

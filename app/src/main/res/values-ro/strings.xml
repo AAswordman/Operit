@@ -3418,7 +3418,6 @@
     <!-- ModelApiSettingsSection strings -->
     <string name="api_settings">APISetări</string>
     <string name="api_endpoint">APIPunct final</string>
-    <string name="api_endpoint_placeholder">De exemplu: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Adresa efectivă a cererii: %s</string>
     <string name="endpoint_completion_hint">Sfat: Dacă introduceți elementul de bazăURL, sistemul va completa automat calea. Dacă doriți să dezactivați această funcție, vă rugăm săURLAdăugare la sfârșit#Nr.</string>
     <string name="api_key">APICheie</string>

@@ -3106,7 +3106,6 @@
 
     <string name="api_settings">Pengaturan API</string>
     <string name="api_endpoint">Endpoint API</string>
-    <string name="api_endpoint_placeholder">Contoh: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">URL permintaan aktual: %s</string>
     <string name="endpoint_completion_hint">Petunjuk: Jika Anda memasukkan URL dasar, sistem akan melengkapi jalurnya secara otomatis. Untuk menonaktifkan, tambahkan tanda # di akhir URL.</string>
     <string name="api_key">Kunci API</string>

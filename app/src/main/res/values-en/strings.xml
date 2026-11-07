@@ -3734,7 +3734,6 @@
     <string name="config_renamed">Configuration Renamed</string>
 
     <!-- ModelApiSettingsSection strings -->
-    <string name="api_endpoint_placeholder">e.g.: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Actual request URL: %s</string>
     <string name="endpoint_completion_hint">Hint: If you enter a base URL, the system will automatically complete the path. To disable, add # at the end of the URL.</string>
     <string name="api_key_placeholder_default">No key set. Type one here or use the API key pool</string>

@@ -2982,7 +2982,6 @@
     <string name="config_renamed">Konfigurasi telah dinamakan semula</string>
     <string name="api_settings">Tetapan API</string>
     <string name="api_endpoint">Titik akhir API</string>
-    <string name="api_endpoint_placeholder">Contoh: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Alamat permintaan sebenar: %s</string>
     <string name="endpoint_completion_hint">Petunjuk: Jika anda memasukkan URL asas, sistem akan melengkapkan laluan secara automatik. Untuk melumpuhkan, tambahkan tanda # di hujung URL.</string>
     <string name="api_key">Kunci API</string>
