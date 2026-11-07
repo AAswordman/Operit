@@ -2,7 +2,6 @@ package com.ai.assistance.operit.ui.features.extensions.packages.screens
 
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.util.logging.AppLogger
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -385,7 +384,9 @@ internal fun PackageDetailsScreen(
         else -> stringResource(R.string.extension_detail_imported)
     }
     val modules = details?.uiModules.orEmpty()
+    val canRunTools = isContainerEnabled && !isToggling && !isDeleting
     fun openModule(module: PackageManager.ToolPkgUiModule) {
+        if (!canRunTools || !packageManager.isPackageEnabled(packageName)) return
         onOpenToolPkgPluginConfig(module.containerPackageName, module.uiModuleId, module.title, module.keepAlive)
     }
     if (showInterfacePicker) {
@@ -395,7 +396,7 @@ internal fun PackageDetailsScreen(
             text = {
                 Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
                     modules.forEach { module ->
-                        TextButton(onClick = { showInterfacePicker = false; openModule(module) }) { Text(module.title) }
+                        TextButton(enabled = canRunTools, onClick = { showInterfacePicker = false; openModule(module) }) { Text(module.title) }
                     }
                 }
             },
@@ -413,30 +414,19 @@ internal fun PackageDetailsScreen(
                 subtitle = sourceLabel,
                 badges = buildList { add(typeLabel); if (version.isNotBlank()) add("v$version") },
                 logo = logoPainter,
+                logoEnabled = isContainerEnabled,
                 actions = {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (modules.isNotEmpty()) {
-                            Button(onClick = {
-                                if (modules.size == 1) openModule(modules.single()) else showInterfacePicker = true
-                            }, enabled = !isDeleting, shape = RoundedCornerShape(999.dp)) {
-                                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(6.dp))
-                                Text(stringResource(R.string.open))
-                            }
-                        }
-                        Surface(shape = RoundedCornerShape(999.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            color = MaterialTheme.colorScheme.surfaceContainerLow) {
-                            Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Text(enabledLabel, style = MaterialTheme.typography.labelLarge,
-                                    color = MaterialTheme.colorScheme.onSurface)
-                                Spacer(Modifier.width(5.dp))
-                                ExtensionSwitch(checked = isContainerEnabled, onCheckedChange = onToggleEnabled,
-                                    modifier = Modifier.semantics { contentDescription = packageDisplayName },
-                                    enabled = !isToggling && !isDeleting)
-                            }
-                        }
-                    }
+                    ExtensionDetailActions(
+                        displayName = packageDisplayName,
+                        checked = isContainerEnabled,
+                        showOpen = details?.hasConfigurableUi == true,
+                        openEnabled = canRunTools && modules.isNotEmpty(),
+                        toggleEnabled = !isToggling && !isDeleting,
+                        onOpen = {
+                            if (modules.size == 1) openModule(modules.single()) else showInterfacePicker = true
+                        },
+                        onToggle = onToggleEnabled,
+                    )
                 },
             )
             if (toggleError != null) Text(toggleError, color = MaterialTheme.colorScheme.error)
@@ -643,6 +633,7 @@ internal fun PackageDetailsScreen(
                                     PackageToolCard(
                                         tool = tool,
                                         toolIdPrefix = packageName,
+                                        enabled = canRunTools,
                                         onExecute = { onRunScript(packageName, tool) }
                                     )
                                 }
@@ -731,6 +722,7 @@ internal fun PackageDetailsScreen(
                                         PackageToolCard(
                                             tool = tool,
                                             toolIdPrefix = packageName,
+                                            enabled = canRunTools,
                                             onExecute = { onRunScript(packageName, tool) }
                                         )
                                     }
@@ -798,6 +790,9 @@ internal fun PackageDetailsScreen(
     }
 
     if (showSubpackageToolsDialog) {
+        val subpackageCanRun = canRunTools && (details?.subpackages?.any {
+            it.packageName == subpackageDialogPackageName && it.enabled
+        } == true)
         val dismissSubpackage = {
             showSubpackageToolsDialog = false
             subpackageDialogPackageName = null
@@ -846,6 +841,7 @@ internal fun PackageDetailsScreen(
                         PackageToolCard(
                             tool = tool,
                             toolIdPrefix = subpackageDialogPackageName.orEmpty(),
+                            enabled = subpackageCanRun,
                             onExecute = {
                                 val targetPackage = subpackageDialogPackageName
                                 if (!targetPackage.isNullOrBlank()) onRunScript(targetPackage, tool)

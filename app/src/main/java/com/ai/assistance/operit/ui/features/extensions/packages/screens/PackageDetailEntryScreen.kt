@@ -116,7 +116,11 @@ fun PackageDetailEntryScreen(
                     }
                 }
             },
-            onRunScript = { name, tool -> execution = name to tool },
+            onRunScript = { name, tool ->
+                if (enabled && !toggling && packageManager.isPackageEnabled(name)) {
+                    execution = name to tool
+                }
+            },
             onOpenToolPkgPluginConfig = onOpenToolPkgPluginConfig,
             onPackageDeleted = onNavigateBack,
             onOpenMarketDetail = onOpenMarketDetail,
@@ -129,6 +133,7 @@ fun PackageDetailEntryScreen(
             tool = tool,
             environmentVariables = packages?.get(name)?.env.orEmpty(),
             packageManager = packageManager,
+            packageEnabled = enabled && !toggling,
             initialResult = executionResult,
             onExecuted = { executionResult = it },
             onDismiss = { execution = null; executionResult = null },

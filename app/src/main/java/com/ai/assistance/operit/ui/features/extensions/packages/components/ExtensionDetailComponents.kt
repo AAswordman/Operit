@@ -1,21 +1,30 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.OpenInNew
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -36,21 +45,28 @@ internal fun ExtensionDetailHeader(
     subtitle: String?,
     badges: List<String>,
     logo: Painter?,
+    logoEnabled: Boolean = true,
     actions: @Composable () -> Unit,
 ) {
+    val disabledLogoFilter = remember { ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0f) }) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
         Surface(
             shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer,
+            color = if (logoEnabled) MaterialTheme.colorScheme.secondaryContainer
+                else MaterialTheme.colorScheme.surfaceContainerHighest,
             modifier = Modifier.size(80.dp),
         ) {
             if (logo != null) {
                 Image(logo, contentDescription = null, contentScale = ContentScale.Fit,
+                    colorFilter = if (logoEnabled) null else disabledLogoFilter,
+                    alpha = if (logoEnabled) 1f else 0.38f,
                     modifier = Modifier.fillMaxSize().padding(6.dp))
             } else {
                 Box(contentAlignment = Alignment.Center) {
                     Text(title.take(1), style = MaterialTheme.typography.headlineLarge,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer, fontWeight = FontWeight.Bold)
+                        color = if (logoEnabled) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+                        fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -72,6 +88,53 @@ internal fun ExtensionDetailHeader(
                 }
             }
             actions()
+        }
+    }
+}
+
+/** A declared UI keeps its Open slot while disabled, so activation controls do not move. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ExtensionDetailActions(
+    displayName: String,
+    checked: Boolean,
+    showOpen: Boolean,
+    openEnabled: Boolean,
+    toggleEnabled: Boolean,
+    onOpen: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+) {
+    val enabledLabel = stringResource(R.string.extension_detail_enabled)
+    val disabledLabel = stringResource(R.string.extension_detail_disabled)
+    val labelStyle = MaterialTheme.typography.labelLarge
+    val measurer = rememberTextMeasurer()
+    // Reserve both labels' width so the switch also stays put in languages with different label lengths.
+    val labelWidth = with(LocalDensity.current) {
+        maxOf(measurer.measure(enabledLabel, labelStyle).size.width,
+            measurer.measure(disabledLabel, labelStyle).size.width).toDp()
+    }
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (showOpen) {
+            Button(onClick = onOpen, enabled = openEnabled, shape = RoundedCornerShape(999.dp)) {
+                Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text(stringResource(R.string.open))
+            }
+        }
+        Surface(
+            modifier = Modifier.testTag("extension-detail-activation"),
+            shape = RoundedCornerShape(999.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+        ) {
+            Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text(if (checked) enabledLabel else disabledLabel, modifier = Modifier.width(labelWidth),
+                    style = labelStyle, color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.width(5.dp))
+                ExtensionSwitch(checked = checked, onCheckedChange = onToggle,
+                    modifier = Modifier.semantics { contentDescription = displayName }, enabled = toggleEnabled)
+            }
         }
     }
 }

@@ -286,16 +286,13 @@ internal class PackageManagerToolPkgFacade(
         val enabledSet = packageManager.getEnabledPackageNameSetInternal()
         val localizationContext = resolveContext ?: packageManager.contextInternal
         val containerEnabled = enabledSet.contains(container.packageName)
-        val uiModules =
-            if (containerEnabled) {
-                buildToolPkgUiModules(
-                    container = container,
-                    localizationContext = localizationContext,
-                    runtime = TOOLPKG_RUNTIME_COMPOSE_DSL
-                )
-            } else {
-                emptyList()
-            }
+        // Declared UI metadata stays readable when disabled; executable UI remains activation-gated.
+        val declaredUiModules = buildToolPkgUiModules(
+            container = container,
+            localizationContext = localizationContext,
+            runtime = TOOLPKG_RUNTIME_COMPOSE_DSL
+        )
+        val uiModules = if (containerEnabled) declaredUiModules else emptyList()
 
         val subpackages =
             container.subpackages.map { subpackage ->
@@ -336,6 +333,7 @@ internal class PackageManagerToolPkgFacade(
             uiModuleCount = container.uiModules.size,
             wasmModules = wasmModules,
             uiModules = uiModules,
+            hasConfigurableUi = declaredUiModules.isNotEmpty(),
             subpackages = subpackages,
             workflowTemplates = workflowTemplates,
             workspaceTemplates = workspaceTemplates

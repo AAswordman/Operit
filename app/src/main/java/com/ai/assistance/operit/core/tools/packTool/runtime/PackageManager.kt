@@ -197,6 +197,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val sourcePath: String = "",
         val navigationEntryCount: Int = 0,
         val desktopWidgetCount: Int = 0,
+        val hasConfigurableUi: Boolean = false,
     )
 
     data class ToolPkgLogoBytes(

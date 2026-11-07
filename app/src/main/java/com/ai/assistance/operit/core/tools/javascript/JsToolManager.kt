@@ -327,10 +327,14 @@ class JsToolManager private constructor(
         )
     }
 
+    private fun unavailablePackageMessage(packageName: String): String =
+        "Package not available (disabled): $packageName"
+
     fun executeScript(toolName: String, params: Map<String, String>): String {
         val parsed = parseDotCall(toolName)
             ?: return "Invalid tool name format: $toolName. Expected format: packageName.functionName"
         val (packageName, functionName) = parsed
+        if (!packageManager.isPackageEnabled(packageName)) return unavailablePackageMessage(packageName)
         val script = packageManager.getPackageScript(packageName)
             ?: return "Package not found: $packageName"
         val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
@@ -340,6 +344,10 @@ class JsToolManager private constructor(
             params = params.mapValues { it.value as Any? }
         )
         return withExecutionEngineForPackageBlocking(packageName) { engine ->
+            // Activation may change while this invocation waits for an execution engine.
+            if (!packageManager.isPackageEnabled(packageName)) {
+                return@withExecutionEngineForPackageBlocking unavailablePackageMessage(packageName)
+            }
             packageManager.recordPluginUse(packageName)
             try {
                 engine.executeScriptFunction(
@@ -368,6 +376,11 @@ class JsToolManager private constructor(
         }
 
         val (packageName, functionName) = parsed
+        // Check at collection time, including retained dialogs and previously registered executors.
+        if (!packageManager.isPackageEnabled(packageName)) {
+            send(failure(tool.name, unavailablePackageMessage(packageName)))
+            return@channelFlow
+        }
         val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
         val runtimeParams = try {
             convertToolParameters(tool, packageName, functionName)
@@ -376,6 +389,10 @@ class JsToolManager private constructor(
             return@channelFlow
         }
         withExecutionEngineForPackage(packageName) { engine ->
+            if (!packageManager.isPackageEnabled(packageName)) {
+                send(failure(tool.name, unavailablePackageMessage(packageName)))
+                return@withExecutionEngineForPackage
+            }
             val traceListener =
                 object : JsExecutionListener {
                     override fun onCallLog(callId: String, level: String, message: String) {

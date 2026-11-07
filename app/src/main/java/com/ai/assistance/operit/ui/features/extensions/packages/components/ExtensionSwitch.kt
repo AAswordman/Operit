@@ -3,6 +3,7 @@ package com.ai.assistance.operit.ui.features.extensions.packages.components
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
@@ -10,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -42,7 +44,10 @@ internal fun ExtensionSwitch(
     val alpha = if (enabled) 1f else 0.38f
     Box(
         modifier = modifier
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange)
+            // The larger touch target must not paint a rectangular press indication around the track.
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch,
+                interactionSource = remember { MutableInteractionSource() }, indication = null,
+                onValueChange = onCheckedChange)
             .minimumInteractiveComponentSize(),
         contentAlignment = Alignment.Center,
     ) {

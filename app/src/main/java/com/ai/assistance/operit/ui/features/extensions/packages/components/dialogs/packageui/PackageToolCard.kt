@@ -26,6 +26,7 @@ import com.ai.assistance.operit.core.tools.PackageTool
 internal fun PackageToolCard(
     tool: PackageTool,
     toolIdPrefix: String,
+    enabled: Boolean,
     onExecute: (PackageTool) -> Unit,
 ) {
     val context = LocalContext.current
@@ -57,6 +58,7 @@ internal fun PackageToolCard(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Button(
+                    enabled = enabled,
                     onClick = { onExecute(tool) },
                     contentPadding = PaddingValues(horizontal = 14.dp, vertical = 8.dp),
                 ) {
