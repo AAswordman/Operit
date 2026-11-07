@@ -1,6 +1,6 @@
 ---
 title: 收紧对话历史侧栏布局
-status: implemented_pending_device_validation
+status: verified_ready_for_merge
 fork: https://github.com/luojiaping/Operit
 date: 2026-11-07
 ---
@@ -24,8 +24,10 @@ date: 2026-11-07
 
 ## 验证
 
-本轮为布局迭代，检查 Git 差异、调用点及拖动视口/缩进一致性。未运行编译、构建、测试或新包真机验收。
+已核对 Git 差异、调用点及拖动视口/缩进一致性。对应本地集成源 `70b6ee2ea` 的 Android Release 构建成功，Gradle 用时 14m 12s；APK 下载大小与哈希一致，V2/V3 签名复验通过，并确认紧凑布局代码已入包。
 
 已完成上述布局调整。文件夹和聊天行均为最小 44dp，加上下外间距后为 48dp；控件使用最小高度，文字仍按系统字体比例缩放。32dp 拖动手柄及列表 fillMaxSize 保留，搜索、折叠、移动和数据库实现无改动。
 
-[DONE] 本地布局实现与静态差异检查完成，最终视觉效果待新包真机确认。
+2026-11-07 维护者确认本轮改动验收通过，授权追加到原 PR，随后手动合并。按维护者反馈记录人工验收通过；本轮未额外执行 JVM 或仪器测试。
+
+[DONE] 布局实现、Release 构建、APK 核验和维护者人工验收完成。
