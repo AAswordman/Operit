@@ -1,17 +1,18 @@
 package com.ai.assistance.operit.services.core
 
+
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.data.model.ChatHistory
+import com.ai.assistance.operit.data.model.ChatFolderEntity
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.WorkspaceRenameResult
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -55,8 +56,6 @@ class ChatHistoryDelegate(
     private val allowAddMessage = AtomicBoolean(true) // 控制是否允许添加消息，切换对话时设为false
     private var beforeDestructiveHistoryMutation: (suspend (String) -> Unit)? = null
     private var afterDestructiveHistoryMutation: (suspend (String) -> Unit)? = null
-
-    private var pendingPersistChatOrderJob: Job? = null
 
     // This is no longer needed here as summary logic is moved.
     // private val apiPreferences = ApiPreferences(context)
@@ -523,6 +522,10 @@ class ChatHistoryDelegate(
 
     private val _chatHistories = MutableStateFlow<List<ChatHistory>>(emptyList())
     val chatHistories: StateFlow<List<ChatHistory>> = _chatHistories.asStateFlow()
+    private val _chatHistoriesLoaded = MutableStateFlow(false)
+    val chatHistoriesLoaded: StateFlow<Boolean> = _chatHistoriesLoaded.asStateFlow()
+    private val _chatFolders = MutableStateFlow<List<ChatFolderEntity>>(emptyList())
+    val chatFolders: StateFlow<List<ChatFolderEntity>> = _chatFolders.asStateFlow()
 
     private val _currentChatId = MutableStateFlow<String?>(null)
     val currentChatId: StateFlow<String?> = _currentChatId.asStateFlow()
@@ -540,8 +543,9 @@ class ChatHistoryDelegate(
         }
 
         coroutineScope.launch {
-            chatHistoryManager.chatHistoriesFlow.collect { histories ->
+            chatHistoryManager.allChatHistoriesUpdatesFlow.collect { histories ->
                 _chatHistories.value = histories
+                _chatHistoriesLoaded.value = true
 
                 val currentId = _currentChatId.value
                 if (currentId != null && histories.none { it.id == currentId }) {
@@ -555,6 +559,11 @@ class ChatHistoryDelegate(
                         clearCurrentChatHistoryInMemory()
                     }
                 }
+            }
+        }
+        coroutineScope.launch {
+            chatHistoryManager.chatFoldersFlow.collect { folders ->
+                _chatFolders.value = folders
             }
         }
 
@@ -771,14 +780,78 @@ class ChatHistoryDelegate(
         return true
     }
 
+    private data class ResolvedNewChatTarget(
+        val characterCardName: String?,
+        val characterGroupId: String?,
+        val openingMessage: ChatMessage?,
+    )
+
+    private suspend fun resolveNewChatTarget(
+        characterCardName: String? = null,
+        characterGroupId: String? = null,
+        characterCardId: String? = null,
+    ): ResolvedNewChatTarget {
+        val activePrompt = activePromptManager.getActivePrompt()
+        val effectiveCharacterGroupId =
+            characterGroupId?.takeIf { it.isNotBlank() }
+                ?: (
+                    activePrompt as? ActivePrompt.CharacterGroup
+                )?.id?.takeIf {
+                    characterCardName == null && characterCardId.isNullOrBlank()
+                }
+        val activeCard =
+            (activePrompt as? ActivePrompt.CharacterCard)
+                ?.let { characterCardManager.getCharacterCard(it.id) }
+        val resolvedCard =
+            if (effectiveCharacterGroupId == null) {
+                characterCardId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { characterCardManager.getCharacterCard(it) }
+                    ?: activeCard
+            } else {
+                null
+            }
+
+        val effectiveCharacterCardName =
+            if (effectiveCharacterGroupId == null) {
+                characterCardName ?: resolvedCard?.name
+            } else {
+                null
+            }
+        val openingMessage =
+            if (
+                effectiveCharacterGroupId == null &&
+                    characterCardName == null &&
+                    resolvedCard != null &&
+                    resolvedCard.openingStatement.isNotBlank()
+            ) {
+                ChatMessage(
+                    sender = "ai",
+                    content = resolvedCard.openingStatement,
+                    timestamp = ChatMessageTimestampAllocator.next(),
+                    roleName = resolvedCard.name,
+                    provider = "",
+                    modelName = "",
+                )
+            } else {
+                null
+            }
+        return ResolvedNewChatTarget(
+            characterCardName = effectiveCharacterCardName,
+            characterGroupId = effectiveCharacterGroupId,
+            openingMessage = openingMessage,
+        )
+    }
+
     /** 创建新的聊天 */
     fun createNewChat(
         characterCardName: String? = null,
         characterGroupId: String? = null,
-        group: String? = null,
+        folderId: String? = null,
         inheritGroupFromCurrent: Boolean = true,
         setAsCurrentChat: Boolean = true,
-        characterCardId: String? = null
+        characterCardId: String? = null,
+        onCreated: ((String) -> Unit)? = null,
     ) {
         coroutineScope.launch {
             val (inputTokens, outputTokens, windowSize) = getChatStatistics()
@@ -787,57 +860,26 @@ class ChatHistoryDelegate(
             // 获取当前对话ID，以便继承分组
             val currentChatId = _currentChatId.value
             val inheritGroupFromChatId = if (inheritGroupFromCurrent) currentChatId else null
-            
-            // 获取当前活跃的角色卡
-            val activePrompt = activePromptManager.getActivePrompt()
-            val activeCard = when (activePrompt) {
-                is ActivePrompt.CharacterCard -> characterCardManager.getCharacterCard(activePrompt.id)
-                is ActivePrompt.CharacterGroup -> null
-            }
-            val resolvedCard =
-                if (characterGroupId.isNullOrBlank()) {
-                    characterCardId
-                        ?.takeIf { it.isNotBlank() }
-                        ?.let { characterCardManager.getCharacterCard(it) }
-                        ?: activeCard
-                } else {
-                    null  // 群组模式下不使用角色卡
-                }
-
-            // 确定角色卡名称：如果参数指定了则使用参数，否则使用目标角色卡
-            val effectiveCharacterCardName =
-                if (characterGroupId.isNullOrBlank()) {
-                    characterCardName ?: resolvedCard?.name
-                } else {
-                    null  // 群组模式下不使用角色卡名称
-                }
+            val target =
+                resolveNewChatTarget(
+                    characterCardName = characterCardName,
+                    characterGroupId = characterGroupId,
+                    characterCardId = characterCardId,
+                )
 
             val shouldSyncCurrentChatToGlobal =
                 selectionMode == ChatSelectionMode.FOLLOW_GLOBAL && setAsCurrentChat
 
             // 创建新对话，如果有当前对话则继承其分组，并绑定角色卡
             val newChat = chatHistoryManager.createNewChat(
-                group = group,
+                folderId = folderId,
                 inheritGroupFromChatId = inheritGroupFromChatId,
-                characterCardName = effectiveCharacterCardName,
-                characterGroupId = characterGroupId,
+                characterCardName = target.characterCardName,
+                characterGroupId = target.characterGroupId,
                 setAsCurrentChat = shouldSyncCurrentChatToGlobal
             )
 
-            // --- 新增：检查并添加开场白（群组模式跳过） ---
-            if (characterGroupId.isNullOrBlank() && characterCardName == null && resolvedCard != null && resolvedCard.openingStatement.isNotBlank()) {
-                val openingMessage = ChatMessage(
-                    sender = "ai",
-                    content = resolvedCard.openingStatement,
-                    timestamp = ChatMessageTimestampAllocator.next(),
-                    roleName = resolvedCard.name, // 使用角色卡的名称
-                    provider = "", // 开场白不是AI生成，使用空值
-                    modelName = "" // 开场白不是AI生成，使用空值
-                )
-                // 保存带开场白的消息到数据库
-                chatHistoryManager.addMessage(newChat.id, openingMessage)
-            }
-            // --- 结束 ---
+            target.openingMessage?.let { chatHistoryManager.addMessage(newChat.id, it) }
             
             // 等待数据库Flow更新，确保新对话在列表中（最多等待500ms）
             withTimeoutOrNull(500) {
@@ -857,11 +899,74 @@ class ChatHistoryDelegate(
                 }
                 onTokenStatisticsLoaded(newChat.id, 0, 0, 0)
             }
+            onCreated?.invoke(newChat.id)
+        }
+    }
+
+    fun createFolderWithInitialChat(
+        parentFolderId: String?,
+        folderName: String,
+        characterCardName: String? = null,
+        characterGroupId: String? = null,
+        characterCardId: String? = null,
+        onResult: (Result<String>) -> Unit,
+    ) {
+        coroutineScope.launch {
+            // 只把「创建」纳入失败判定：Room 事务一旦提交，文件夹和初始对话就已持久化。
+            val creationResult =
+                runCatching {
+                    val (inputTokens, outputTokens, windowSize) = getChatStatistics()
+                    saveCurrentChat(inputTokens, outputTokens, windowSize)
+                    val target =
+                        resolveNewChatTarget(
+                            characterCardName = characterCardName,
+                            characterGroupId = characterGroupId,
+                            characterCardId = characterCardId,
+                        )
+                    chatHistoryManager.createFolderWithInitialChat(
+                        parentFolderId = parentFolderId,
+                        folderName = folderName,
+                        characterCardName = target.characterCardName,
+                        characterGroupId = target.characterGroupId,
+                        openingMessage = target.openingMessage,
+                    ).id
+                }
+
+            // 创建已提交成功后，后续的选中/切换失败（如 DataStore 写入失败）不应把
+            // 整个创建报告为失败，否则对话框保持打开并邀请重试，导致重复创建。
+            creationResult.onSuccess { newChatId ->
+                runCatching {
+                    withTimeoutOrNull(500) {
+                        _chatHistories.first { histories ->
+                            histories.any { it.id == newChatId }
+                        }
+                    }
+
+                    if (selectionMode == ChatSelectionMode.FOLLOW_GLOBAL) {
+                        chatHistoryManager.setCurrentChatId(newChatId)
+                    } else {
+                        _currentChatId.value = newChatId
+                        loadChatMessages(newChatId)
+                    }
+                    onTokenStatisticsLoaded(newChatId, 0, 0, 0)
+                }.onFailure { selectionError ->
+                    AppLogger.e(TAG, "Failed to select newly created chat $newChatId", selectionError)
+                }
+            }
+
+            creationResult.exceptionOrNull()?.let { error ->
+                AppLogger.e(TAG, "Failed to create folder with initial chat", error)
+            }
+            onResult(creationResult)
         }
     }
 
     /** 切换聊天 */
-    fun switchChat(chatId: String, syncToGlobal: Boolean = true) {
+    fun switchChat(
+        chatId: String,
+        syncToGlobal: Boolean = true,
+        scrollToBottom: Boolean = true,
+    ) {
         coroutineScope.launch {
             // 切换对话时，禁止添加消息
             allowAddMessage.set(false)
@@ -888,7 +993,9 @@ class ChatHistoryDelegate(
                     loadChatMessages(chatId)
                 }
 
-                onScrollToBottom()
+                if (scrollToBottom) {
+                    onScrollToBottom()
+                }
             } finally {
                 if (!allowAddMessage.get()) {
                     allowAddMessage.set(true)
@@ -1510,79 +1617,6 @@ class ChatHistoryDelegate(
                 reloadCurrentChatDisplayHistory(chatIdSnapshot)
             }
             true
-        }
-    }
-
-    /**
-     * 更新聊天记录的顺序和分组
-     * @param reorderedHistories 重新排序后的完整聊天历史列表
-     * @param movedItem 移动的聊天项
-     * @param targetGroup 目标分组的名称，如果拖拽到分组上
-     */
-    fun updateChatOrderAndGroup(
-        reorderedHistories: List<ChatHistory>,
-        movedItem: ChatHistory,
-        targetGroup: String?
-    ) {
-        coroutineScope.launch {
-            try {
-                // The list is already reordered. We just need to update displayOrder and group.
-                val updatedList = reorderedHistories.mapIndexed { index, history ->
-                    var newGroup = history.group
-                    if (history.id == movedItem.id && targetGroup != null) {
-                        newGroup = targetGroup
-                    }
-                    history.copy(displayOrder = index.toLong(), group = newGroup)
-                }
-
-                // Update UI immediately
-                _chatHistories.value = updatedList
-
-                // Persist changes (debounced) to avoid emitting intermediate ordering states.
-                // Drag-and-drop reordering can trigger many moves; persisting each move causes
-                // Room Flow to emit multiple intermediate lists, leading to visible jumping.
-                pendingPersistChatOrderJob?.cancel()
-                pendingPersistChatOrderJob = coroutineScope.launch {
-                    delay(350)
-                    chatHistoryManager.updateChatOrderAndGroup(updatedList)
-                }
-
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "Failed to update chat order and group", e)
-                // Optionally revert UI changes or show an error
-            }
-        }
-    }
-
-    /** 重命名分组 */
-    fun updateGroupName(oldName: String, newName: String, characterCardName: String?) {
-        coroutineScope.launch {
-            chatHistoryManager.updateGroupName(oldName, newName, characterCardName)
-        }
-    }
-
-    /** 删除分组 */
-    fun deleteGroup(groupName: String, deleteChats: Boolean, characterCardName: String?) {
-        coroutineScope.launch {
-            chatHistoryManager.deleteGroup(groupName, deleteChats, characterCardName)
-        }
-    }
-
-    /** 创建新分组（通过创建新聊天实现） */
-    fun createGroup(groupName: String, characterCardName: String?, characterGroupId: String? = null) {
-        coroutineScope.launch {
-            val (inputTokens, outputTokens, windowSize) = getChatStatistics()
-            saveCurrentChat(inputTokens, outputTokens, windowSize)
-
-            val newChat = chatHistoryManager.createNewChat(
-                group = groupName,
-                characterCardName = characterCardName,
-                characterGroupId = characterGroupId
-            )
-            _currentChatId.value = newChat.id
-            loadChatMessages(newChat.id)
-
-            onTokenStatisticsLoaded(newChat.id, 0, 0, 0)
         }
     }
 

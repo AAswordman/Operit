@@ -7,7 +7,6 @@ import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
-import kotlinx.coroutines.flow.first
 
 private const val ACTIVE_PROMPT_TYPE_CHARACTER_CARD = "character_card"
 private const val ACTIVE_PROMPT_TYPE_CHARACTER_GROUP = "character_group"
@@ -27,7 +26,7 @@ private suspend fun resolveHookActivePrompt(
     chatId: String?,
     roleCardId: String?
 ): ActivePrompt {
-    val boundChat = resolveBoundChat(context, chatId)
+    val boundChat = resolveBoundChatForHookMetadata(context, chatId)
     val boundGroupId = boundChat?.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
     if (boundGroupId != null) {
         return ActivePrompt.CharacterGroup(boundGroupId)
@@ -54,15 +53,15 @@ private suspend fun resolveHookActivePrompt(
     return ActivePromptManager.getInstance(context).getActivePrompt()
 }
 
-private suspend fun resolveBoundChat(
+internal suspend fun resolveBoundChatForHookMetadata(
     context: Context,
     chatId: String?
 ): ChatHistory? {
     val normalizedChatId = chatId?.trim()?.takeIf { it.isNotBlank() } ?: return null
+    // Background requests can arrive before any UI subscribes to the lazy history StateFlow.
+    // Read persisted metadata so the first hook uses this chat's actual role/group binding.
     return ChatHistoryManager.getInstance(context)
-        .chatHistoriesFlow
-        .first()
-        .firstOrNull { it.id == normalizedChatId }
+        .getChatHistorySnapshot(normalizedChatId)
 }
 
 private suspend fun activePromptToMetadata(

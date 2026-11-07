@@ -19,16 +19,20 @@ object TextExporter {
     /**
      * 导出单个对话为纯文本
      */
-    fun exportSingle(context: Context, chatHistory: ChatHistory): String {
+    fun exportSingle(context: Context, chatHistory: ChatHistory, folderPath: String? = null): String {
         val writer = StringWriter()
-        writeSingleToWriter(context, chatHistory, writer)
+        writeSingleToWriter(context, chatHistory, writer, folderPath = folderPath)
         return writer.toString()
     }
 
     /**
      * 导出多个对话为纯文本
      */
-    fun exportMultiple(context: Context, chatHistories: List<ChatHistory>): String {
+    fun exportMultiple(
+        context: Context,
+        chatHistories: List<ChatHistory>,
+        folderPathsByChatId: Map<String, String> = emptyMap(),
+    ): String {
         val writer = StringWriter()
         writeMultipleHeader(
             context = context,
@@ -38,7 +42,7 @@ object TextExporter {
         )
         chatHistories.forEachIndexed { index, chatHistory ->
             writeConversationSeparator(writer, index)
-            writeSingleToWriter(context, chatHistory, writer)
+            writeSingleToWriter(context, chatHistory, writer, folderPath = folderPathsByChatId[chatHistory.id])
         }
         writeMultipleFooter(context, writer)
         return writer.toString()
@@ -94,6 +98,7 @@ object TextExporter {
         chatHistory: ChatHistory,
         writer: Writer,
         onContentCharactersWritten: (Long) -> Unit = {},
+        folderPath: String? = null,
     ) {
         // 调试意图：直接拼接整份文本会在 StringBuilder 扩容时复制已有内容，超长导出会抬高峰值内存。
         writer.appendLine("=".repeat(60))
@@ -113,8 +118,8 @@ object TextExporter {
                 chatHistory.updatedAt.format(dateFormatter)
             )
         )
-        if (chatHistory.group != null) {
-            writer.appendLine(context.getString(R.string.export_group, chatHistory.group))
+        if (folderPath != null) {
+            writer.appendLine(context.getString(R.string.export_group, folderPath))
         }
         writer.appendLine(context.getString(R.string.export_message_count, chatHistory.messages.size))
         writer.appendLine()

@@ -28,7 +28,7 @@ fun <T> MarketBrowseSection(
     sortOption: MarketSortOption,
     onSearchQueryChanged: (String) -> Unit,
     onSortOptionChanged: (MarketSortOption) -> Unit,
-    featuredOnly: Boolean = true,
+    featuredOnly: Boolean = false,
     onFeaturedOnlyChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,

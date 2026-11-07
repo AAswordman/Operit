@@ -7,8 +7,8 @@
       "en": "OpenAI Draw"
   },
   "description": {
-    "zh": "使用 OpenAI 格式图像接口画图：无参考图走 /v1/images/generations，有参考图走 /v1/images/edits。支持公网 URL 和本地图片路径（本地图直接 multipart 上传，不必先上床）。结果保存到 /sdcard/Download/Operit/plugins/draw/openai_draw/draws/，并返回 Markdown 图片提示。",
-    "en": "Generate images with an OpenAI-compatible API. Text-to-image uses /v1/images/generations; image-to-image uses /v1/images/edits. Accepts public URLs and local file paths (local files are uploaded as multipart, no image host required). Saves to /sdcard/Download/Operit/plugins/draw/openai_draw/draws/ and returns a Markdown image reference."
+    "zh": "使用 OpenAI 格式图像接口生成或编辑图片，支持 GPT Image 2.6 GIF 动图。支持公网 URL 和本地参考图，保存原始图片或动图到 /sdcard/Download/Operit/plugins/draw/openai_draw/draws/，并返回 Markdown 图片提示。",
+    "en": "Generate or edit images with an OpenAI-compatible API, including animated GIFs with GPT Image 2.6. Accepts public URLs and local reference images. Saves original image or animation bytes to /sdcard/Download/Operit/plugins/draw/openai_draw/draws/ and returns a Markdown image reference."
   },
   "category": "Draw",
   "env": [
@@ -31,8 +31,8 @@
     {
       "name": "OPENAI_IMAGE_MODEL",
       "description": {
-        "zh": "默认绘图模型（可选；当 draw_image 未传 model 时使用）",
-        "en": "Default image model (optional; used when draw_image doesn't pass model)"
+        "zh": "默认绘图模型（可选；当 draw_image 未传 model 时使用）。GPT Image 2.6：gpt-image-2.6-sunburst / gpt-image-2.6-flare；GIF 需要对应模型的动图访问权限",
+        "en": "Default image model (optional; used when draw_image does not pass model). GPT Image 2.6: gpt-image-2.6-sunburst / gpt-image-2.6-flare. GIF output requires animation access for the selected model."
       },
       "required": false
     }
@@ -41,13 +41,19 @@
     {
       "name": "draw_image",
       "description": {
-        "zh": "根据提示词调用 OpenAI 格式图像接口生成或编辑图片。传入 image_urls 或 image_paths 时走图生图。本地图片直接上传，不必先上床。保存到本地并返回 Markdown 图片提示。",
-        "en": "Generate or edit an image via an OpenAI-compatible endpoint. Pass image_urls or image_paths for image-to-image. Local files are uploaded directly. Saves locally and returns a Markdown image reference."
+        "zh": "生成或编辑图片。使用 gpt-image-2.6-sunburst / gpt-image-2.6-flare 并设置 output_format=gif 可生成循环动图，提示词中描述动作和循环。image_urls / image_paths 提供参考图；结果保存到本地并返回 Markdown。",
+        "en": "Generate or edit images. Use gpt-image-2.6-sunburst / gpt-image-2.6-flare with output_format=gif for animated loops; describe the motion and loop in the prompt. Supply reference images with image_urls / image_paths. Saves locally and returns Markdown."
       },
       "parameters": [
         { "name": "prompt", "description": { "zh": "绘图或编辑提示词（英文或中文皆可）", "en": "Prompt for image generation or editing (Chinese or English)" }, "type": "string", "required": true },
         { "name": "model", "description": { "zh": "模型名称（可选；不传则使用环境变量 OPENAI_IMAGE_MODEL，再不行使用默认值）", "en": "Model name (optional; falls back to env OPENAI_IMAGE_MODEL, then default)" }, "type": "string", "required": false },
-        { "name": "size", "description": { "zh": "图片尺寸，例如 '1024x1024'，可选", "en": "Image size, e.g. '1024x1024' (optional)" }, "type": "string", "required": false },
+        { "name": "size", "description": { "zh": "图片或动图单帧尺寸，例如 1024x1024 或 auto。GIF 推荐 auto；自定义 GIF 宽高须为 16 的倍数，且符合模型总像素限制", "en": "Image or GIF frame size, e.g. 1024x1024 or auto. For GIF, auto is recommended; custom dimensions must be multiples of 16 and fit the model pixel budget." }, "type": "string", "required": false },
+        { "name": "quality", "description": { "zh": "图片质量（可选；不传则使用接口默认值）。GPT Image 支持 low / medium / high / auto，gpt-image-2.5 系列额外支持 xhigh / max", "en": "Image quality (optional; omitted means the API default). GPT Image supports low / medium / high / auto; the gpt-image-2.5 series also supports xhigh / max" }, "type": "string", "required": false },
+        { "name": "background", "description": { "zh": "背景（可选）：auto / opaque / transparent。transparent 仅用于支持透明背景的模型和 png / webp 输出", "en": "Background (optional): auto / opaque / transparent. transparent requires model support and png / webp output." }, "type": "string", "required": false },
+        { "name": "output_format", "description": { "zh": "输出格式：png / jpeg / webp / gif；默认 png。GPT Image 2.6 使用 gif 生成动图，保存文件扩展名与格式一致", "en": "Output format: png / jpeg / webp / gif; default png. Use gif with GPT Image 2.6 for animation. The saved extension matches the format." }, "type": "string", "required": false },
+        { "name": "frame_count", "description": { "zh": "仅用于 gif：2–16 帧的整数，不传则由接口使用默认 9 帧", "en": "GIF only: integer from 2 to 16; the API defaults to 9 frames when omitted." }, "type": "number", "required": false },
+        { "name": "frame_duration_ms", "description": { "zh": "仅用于 gif：每帧毫秒数，整数且至少 20；推荐 20–2000，接口默认 200，编码按 10 ms 取整", "en": "GIF only: integer milliseconds per frame, at least 20; recommended 20–2000. The API defaults to 200 and encodes delays rounded to 10 ms." }, "type": "number", "required": false },
+        { "name": "complexity", "description": { "zh": "GPT Image 2.6 规划复杂度：low / medium / high；与图片 quality 独立。不传使用模型默认值", "en": "GPT Image 2.6 planning complexity: low / medium / high, independent of rendering quality. Omit to use the model default." }, "type": "string", "required": false },
         { "name": "image_urls", "description": { "zh": "参考图公网 URL 数组（可选；图生图用）。支持字符串数组、JSON 字符串或逗号分隔字符串", "en": "Public reference image URLs for image-to-image (optional). Accepts a string array, JSON string, or comma-separated string." }, "type": "array", "required": false },
         { "name": "image_paths", "description": { "zh": "参考图本地路径数组（可选；图生图用，直接 multipart 上传，不必先上床）。支持字符串数组、JSON 字符串或逗号分隔字符串", "en": "Local reference image paths for image-to-image (optional; uploaded as multipart, no image host required). Accepts a string array, JSON string, or comma-separated string." }, "type": "array", "required": false },
         { "name": "file_name", "description": { "zh": "自定义保存到本地的文件名（不含路径和扩展名）", "en": "Custom output file name (without path or extension)" }, "type": "string", "required": false },
@@ -191,7 +197,7 @@ const openaiDraw = (function () {
     }
 
     function normalizeBase64(base64: string): string {
-        const raw = String(base64 || "").trim();
+        const raw = base64.trim();
         if (!raw) return raw;
 
         // Some providers may return: data:image/png;base64,xxxx
@@ -203,60 +209,123 @@ const openaiDraw = (function () {
         return raw;
     }
 
+    function putOptionalField(target: Record<string, string>, key: string, value?: string) {
+        const trimmed = (value ?? "").trim();
+        if (trimmed) {
+            target[key] = trimmed;
+        }
+    }
+
+    type ImageOutputFormat = "png" | "jpeg" | "webp" | "gif";
+
+    type ImageOutputOptions = {
+        output_format?: ImageOutputFormat;
+        frame_count?: number;
+        frame_duration_ms?: number;
+        complexity?: "low" | "medium" | "high";
+    };
+
+    function validateOutputOptions(params: ImageOutputOptions, size?: string, background?: string): ImageOutputFormat {
+        const format = params.output_format ?? "png";
+        if (!["png", "jpeg", "webp", "gif"].includes(format)) {
+            throw new Error("output_format 必须是 png、jpeg、webp 或 gif。");
+        }
+        if (params.complexity !== undefined && !["low", "medium", "high"].includes(params.complexity)) {
+            throw new Error("complexity 必须是 low、medium 或 high。");
+        }
+        if (format !== "gif" && (params.frame_count !== undefined || params.frame_duration_ms !== undefined)) {
+            throw new Error("frame_count 和 frame_duration_ms 只能用于 output_format=gif。");
+        }
+        if (params.frame_count !== undefined &&
+            (!Number.isInteger(params.frame_count) || params.frame_count < 2 || params.frame_count > 16)) {
+            throw new Error("frame_count 必须是 2–16 的整数。");
+        }
+        if (params.frame_duration_ms !== undefined &&
+            (!Number.isSafeInteger(params.frame_duration_ms) || params.frame_duration_ms < 20)) {
+            throw new Error("frame_duration_ms 必须是至少 20 的整数毫秒数。");
+        }
+        if (background?.trim() === "transparent" && format !== "png" && format !== "webp") {
+            throw new Error("transparent 背景需要 png 或 webp 输出。");
+        }
+        const requestedSize = size?.trim();
+        if (format === "gif" && requestedSize && requestedSize !== "auto") {
+            const dimensions = /^(\d+)x(\d+)$/.exec(requestedSize);
+            if (!dimensions || dimensions.slice(1).some(value => {
+                const edge = Number(value);
+                return !Number.isSafeInteger(edge) || edge <= 0 || edge % 16 !== 0;
+            })) {
+                throw new Error("GIF size 必须是 auto 或宽高均为正数且为 16 倍数的 WIDTHxHEIGHT。");
+            }
+        }
+        return format;
+    }
+
+    type OpenAIImageResponse = {
+        output_format?: ImageOutputFormat;
+        data?: Array<{ b64_json?: string; url?: string; revised_prompt?: string }>;
+    };
+
     type OpenAIImageApiResult = {
         b64_json: string;
         revised_prompt?: string;
         effective_model: string;
         reference_count: number;
+        output_format: ImageOutputFormat;
     };
 
-    async function parseOpenAIImageResponse(content: string, effectiveModel: string, referenceCount: number): Promise<OpenAIImageApiResult> {
-        let parsed: any;
+    async function parseOpenAIImageResponse(content: string, effectiveModel: string, referenceCount: number, outputFormat: ImageOutputFormat): Promise<OpenAIImageApiResult> {
+        let parsed: OpenAIImageResponse;
         try {
             parsed = JSON.parse(content);
-        } catch (e: any) {
-            throw new Error(`解析 OpenAI 响应失败: ${e?.message || e}`);
+        } catch (error) {
+            console.error("解析 OpenAI 图片响应失败:", error);
+            throw new Error("解析 OpenAI 响应失败，请检查接口返回格式。");
         }
 
         const item = parsed?.data?.[0];
         if (!item) {
             throw new Error("OpenAI 响应中未找到 data[0]，请检查接口返回格式。");
         }
+        if (parsed.output_format !== undefined && parsed.output_format !== outputFormat) {
+            throw new Error(`接口返回格式 ${parsed.output_format} 与请求的 ${outputFormat} 不一致。`);
+        }
 
-        if (item.b64_json && String(item.b64_json).trim().length > 0) {
+        if (typeof item.b64_json === "string" && item.b64_json.trim().length > 0) {
             return {
-                b64_json: String(item.b64_json),
-                revised_prompt: item.revised_prompt ? String(item.revised_prompt) : undefined,
+                b64_json: item.b64_json,
+                revised_prompt: item.revised_prompt,
                 effective_model: effectiveModel,
-                reference_count: referenceCount
+                reference_count: referenceCount,
+                output_format: outputFormat
             };
         }
 
-        if (item.url && String(item.url).trim().length > 0) {
+        if (typeof item.url === "string" && item.url.trim().length > 0) {
             const tmpName = `openai_tmp_${Date.now()}`;
-            const tmpPath = `${DRAWS_DIR}/${tmpName}.png`;
-            const downloadResult = await Tools.Files.download(String(item.url), tmpPath);
+            const tmpPath = `${DRAWS_DIR}/${tmpName}.${outputFormat}`;
+            const downloadResult = await Tools.Files.download(item.url, tmpPath);
             if (!downloadResult.successful) {
                 throw new Error(`下载图片失败: ${downloadResult.details}`);
             }
 
             const readBinary = await Tools.Files.readBinary(tmpPath);
-            const contentBase64 = (readBinary as any)?.contentBase64;
-            if (!contentBase64 || String(contentBase64).trim().length === 0) {
+            const contentBase64 = readBinary.contentBase64;
+            if (contentBase64.trim().length === 0) {
                 throw new Error("读取下载图片失败: contentBase64 为空");
             }
 
             try {
                 await Tools.Files.deleteFile(tmpPath);
-            } catch {
-                // ignore
+            } catch (error) {
+                console.error(`清理 OpenAI 下载图片临时文件失败: ${tmpPath}`, error);
             }
 
             return {
-                b64_json: String(contentBase64),
-                revised_prompt: item.revised_prompt ? String(item.revised_prompt) : undefined,
+                b64_json: contentBase64,
+                revised_prompt: item.revised_prompt,
                 effective_model: effectiveModel,
-                reference_count: referenceCount
+                reference_count: referenceCount,
+                output_format: outputFormat
             };
         }
 
@@ -267,10 +336,13 @@ const openaiDraw = (function () {
         prompt: string;
         model?: string;
         size?: string;
+        quality?: string;
+        background?: string;
         api_base_url?: string;
         image_urls?: string[] | string;
         image_paths?: string[] | string;
-    }): Promise<OpenAIImageApiResult> {
+    } & ImageOutputOptions): Promise<OpenAIImageApiResult> {
+        const outputFormat = validateOutputOptions(params, params.size, params.background);
         const apiKey = getApiKey();
         const apiBaseUrl = getApiBaseUrl(params.api_base_url);
         const imageUrls = parseStringList(params.image_urls, "image_urls");
@@ -279,6 +351,12 @@ const openaiDraw = (function () {
         const modelFromEnv = (getEnv("OPENAI_IMAGE_MODEL") || "").trim();
         const effectiveModel = modelFromParam || modelFromEnv || DEFAULT_MODEL;
         const referenceCount = imageUrls.length + imagePaths.length;
+        const imageFields: Record<string, string> = {};
+        putOptionalField(imageFields, "size", params.size);
+        putOptionalField(imageFields, "quality", params.quality);
+        putOptionalField(imageFields, "background", params.background);
+        putOptionalField(imageFields, "output_format", params.output_format);
+        putOptionalField(imageFields, "complexity", params.complexity);
 
         for (const url of imageUrls) {
             if (!isProbablyUrl(url)) {
@@ -328,11 +406,12 @@ const openaiDraw = (function () {
 
                 const formData: Record<string, string> = {
                     model: effectiveModel,
-                    prompt: params.prompt
+                    prompt: params.prompt,
+                    ...imageFields
                 };
-                if (params.size && params.size.trim().length > 0) {
-                    formData.size = params.size.trim();
-                }
+                // multipart 字段必须是文本；JSON 生成请求中的帧参数则保持数字类型。
+                if (params.frame_count !== undefined) formData.frame_count = params.frame_count.toString();
+                if (params.frame_duration_ms !== undefined) formData.frame_duration_ms = params.frame_duration_ms.toString();
                 const response = await Tools.Net.uploadFile({
                     url: endpoint,
                     method: "POST",
@@ -343,7 +422,7 @@ const openaiDraw = (function () {
                 if (response.statusCode < 200 || response.statusCode >= 300) {
                     throw new Error(`OpenAI 图片编辑 API 调用失败: ${response.statusCode} - ${response.content}`);
                 }
-                return parseOpenAIImageResponse(response.content, effectiveModel, referenceCount);
+                return parseOpenAIImageResponse(response.content, effectiveModel, referenceCount, outputFormat);
             } finally {
                 for (const tempPath of tempFiles) {
                     try {
@@ -356,15 +435,15 @@ const openaiDraw = (function () {
         }
 
         const endpoint = getImageEndpoint(apiBaseUrl, "generations");
-        const body: any = {
+        // 不发送 response_format：GPT Image 系列会以 400 Unknown parameter 拒绝该参数，
+        // 且固定返回 b64_json；返回 url 的模型由 parseOpenAIImageResponse 下载保存。
+        const body = {
             model: effectiveModel,
             prompt: params.prompt,
-            response_format: "b64_json"
+            ...imageFields,
+            frame_count: params.frame_count,
+            frame_duration_ms: params.frame_duration_ms
         };
-
-        if (params.size && params.size.trim().length > 0) {
-            body.size = params.size.trim();
-        }
 
         const request = client
             .newRequest()
@@ -383,18 +462,20 @@ const openaiDraw = (function () {
             throw new Error(`OpenAI 图片 API 调用失败: ${response.statusCode} - ${response.content}`);
         }
 
-        return parseOpenAIImageResponse(response.content, effectiveModel, 0);
+        return parseOpenAIImageResponse(response.content, effectiveModel, 0, outputFormat);
     }
 
     async function draw_image(params: {
         prompt: string;
         model?: string;
         size?: string;
+        quality?: string;
+        background?: string;
         image_urls?: string[] | string;
         image_paths?: string[] | string;
         file_name?: string;
         api_base_url?: string;
-    }) {
+    } & ImageOutputOptions) {
         if (!params || !params.prompt || params.prompt.trim().length === 0) {
             throw new Error("参数 prompt 不能为空。");
         }
@@ -407,30 +488,43 @@ const openaiDraw = (function () {
             prompt,
             model: params.model,
             size: params.size,
+            quality: params.quality,
+            background: params.background,
+            output_format: params.output_format,
+            frame_count: params.frame_count,
+            frame_duration_ms: params.frame_duration_ms,
+            complexity: params.complexity,
             api_base_url: params.api_base_url,
             image_urls: params.image_urls,
             image_paths: params.image_paths
         });
 
         const baseName = buildFileName(prompt, params.file_name);
-        const filePath = `${DRAWS_DIR}/${baseName}.png`;
+        const filePath = `${DRAWS_DIR}/${baseName}.${apiResult.output_format}`;
+        const imageBase64 = normalizeBase64(apiResult.b64_json);
+        // 保留 GIF 原始帧；拒绝把代理返回的静态图片以 .gif 命名并宣称动图成功。
+        if (apiResult.output_format === "gif" &&
+            !imageBase64.startsWith("R0lGODdh") && !imageBase64.startsWith("R0lGODlh")) {
+            throw new Error("请求了 GIF 动图，但接口返回的数据不是 GIF 文件。");
+        }
 
-        const writeResult = await Tools.Files.writeBinary(filePath, normalizeBase64(apiResult.b64_json));
+        const writeResult = await Tools.Files.writeBinary(filePath, imageBase64);
         if (!writeResult.successful) {
             throw new Error(`保存图片失败: ${writeResult.details}`);
         }
 
         const fileUri = `file://${filePath}`;
-        const markdown = `![AI生成的图片](${fileUri})`;
+        const mediaLabel = apiResult.output_format === "gif" ? "动图" : "图片";
+        const markdown = `![AI生成的${mediaLabel}](${fileUri})`;
 
         const hintLines: string[] = [];
-        hintLines.push(`图片已生成并保存在本地 ${DRAWS_DIR}。`);
+        hintLines.push(`${mediaLabel}已生成并保存在本地 ${DRAWS_DIR}。`);
         if (apiResult.reference_count > 0) {
             hintLines.push(`本次使用了 ${apiResult.reference_count} 张参考图。`);
         }
         hintLines.push(`本地路径: ${filePath}`);
         hintLines.push("");
-        hintLines.push("在后续回答中，请直接输出下面这一行 Markdown 来展示这张图片：");
+        hintLines.push(`在后续回答中，请直接输出下面这一行 Markdown 来展示这张${mediaLabel}：`);
         hintLines.push("");
         hintLines.push(markdown);
 
@@ -442,6 +536,7 @@ const openaiDraw = (function () {
             revised_prompt: apiResult.revised_prompt || null,
             model: apiResult.effective_model,
             reference_count: apiResult.reference_count,
+            output_format: apiResult.output_format,
             hint: hintLines.join("\n")
         };
     }
@@ -450,11 +545,13 @@ const openaiDraw = (function () {
         prompt: string;
         model?: string;
         size?: string;
+        quality?: string;
+        background?: string;
         image_urls?: string[] | string;
         image_paths?: string[] | string;
         file_name?: string;
         api_base_url?: string;
-    }) {
+    } & ImageOutputOptions) {
         try {
             const result = await draw_image(params);
             complete({

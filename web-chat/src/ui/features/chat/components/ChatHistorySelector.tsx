@@ -22,6 +22,7 @@ import {
 import type {
   HistoryDisplayMode,
   WebCharacterSelectorResponse,
+  WebChatFolderSummary,
   WebChatReorderItem,
   WebChatSummary
 } from '../util/chatTypes';
@@ -34,8 +35,10 @@ const SWIPE_ACTION_MAX_PX = 116;
 const UNGROUPED_KEY = '__ungrouped__';
 
 type GroupActionTarget = {
+  folderId?: string | null;
   groupName: string;
   characterCardName?: string | null;
+  characterGroupId?: string | null;
 };
 
 function readStoredSwipeHint(): boolean {
@@ -70,7 +73,8 @@ function buildBindingLabel(chat: WebChatSummary) {
       label: `群组: ${chat.character_group_name ?? chat.character_group_id}`,
       kind: 'group' as const,
       avatarUrl: chat.binding_avatar_url ?? null,
-      characterCardName: null
+      characterCardName: null,
+      characterGroupId: chat.character_group_id
     };
   }
   if (chat.character_card_name) {
@@ -79,7 +83,8 @@ function buildBindingLabel(chat: WebChatSummary) {
       label: chat.character_card_name,
       kind: 'card' as const,
       avatarUrl: chat.binding_avatar_url ?? null,
-      characterCardName: chat.character_card_name
+      characterCardName: chat.character_card_name,
+      characterGroupId: null
     };
   }
   return {
@@ -87,7 +92,8 @@ function buildBindingLabel(chat: WebChatSummary) {
     label: '未绑定',
     kind: 'unbound' as const,
     avatarUrl: null,
-    characterCardName: null
+    characterCardName: null,
+    characterGroupId: null
   };
 }
 
@@ -371,18 +377,58 @@ function matchesCurrentBinding(chat: WebChatSummary, selectedChat: WebChatSummar
   return !chat.character_group_id && !chat.character_card_name;
 }
 
-function buildGroupBuckets(chats: WebChatSummary[]) {
+function groupBucketKey(chat: WebChatSummary) {
+  return chat.folder_id ? `folder:${chat.folder_id}` : normalizeGroupName(chat.group) ?? UNGROUPED_KEY;
+}
+
+function buildFolderRanks(folders: WebChatFolderSummary[]) {
+  const childrenByParent = new Map<string | null, WebChatFolderSummary[]>();
+  folders.forEach((folder) => {
+    const parentId = folder.parent_folder_id ?? null;
+    const children = childrenByParent.get(parentId) ?? [];
+    children.push(folder);
+    childrenByParent.set(parentId, children);
+  });
+  childrenByParent.forEach((children) => {
+    children.sort(
+      (left, right) =>
+        left.display_order - right.display_order || left.id.localeCompare(right.id)
+    );
+  });
+
+  const ranks = new Map<string, number>();
+  const visiting = new Set<string>();
+  const visit = (folder: WebChatFolderSummary) => {
+    if (ranks.has(folder.id) || visiting.has(folder.id)) {
+      return;
+    }
+    visiting.add(folder.id);
+    ranks.set(folder.id, ranks.size);
+    (childrenByParent.get(folder.id) ?? []).forEach(visit);
+    visiting.delete(folder.id);
+  };
+  (childrenByParent.get(null) ?? []).forEach(visit);
+  folders.forEach(visit);
+  return ranks;
+}
+
+function buildGroupBuckets(
+  chats: WebChatSummary[],
+  folderRanks: Map<string, number>,
+  folderPaths: Map<string, string>
+) {
   const buckets = new Map<
     string,
     {
       key: string;
       label: string;
+      folderId?: string | null;
       chats: WebChatSummary[];
     }
   >();
 
   chats.forEach((chat) => {
-    const key = normalizeGroupName(chat.group) ?? UNGROUPED_KEY;
+    const key = groupBucketKey(chat);
     const existing = buckets.get(key);
     if (existing) {
       existing.chats.push(chat);
@@ -391,12 +437,28 @@ function buildGroupBuckets(chats: WebChatSummary[]) {
 
     buckets.set(key, {
       key,
-      label: chat.group ?? '未分组',
+      label: (chat.folder_id ? folderPaths.get(chat.folder_id) : undefined) ?? chat.group ?? '未分组',
+      folderId: chat.folder_id ?? null,
       chats: [chat]
     });
   });
 
-  return [...buckets.values()];
+  return [...buckets.values()].sort((left, right) => {
+    if (!left.folderId && !right.folderId) {
+      return 0;
+    }
+    if (!left.folderId) {
+      return -1;
+    }
+    if (!right.folderId) {
+      return 1;
+    }
+    return (
+      (folderRanks.get(left.folderId) ?? Number.MAX_SAFE_INTEGER) -
+        (folderRanks.get(right.folderId) ?? Number.MAX_SAFE_INTEGER) ||
+      left.folderId.localeCompare(right.folderId)
+    );
+  });
 }
 
 function clampSwipeOffset(offset: number) {
@@ -420,9 +482,10 @@ function buildBindingDraftValue(
 }
 
 function buildReorderItems(chats: WebChatSummary[]): WebChatReorderItem[] {
-  return chats.map((chat, index) => ({
+  return chats.map((chat) => ({
     chat_id: chat.id,
-    display_order: index,
+    display_order: chat.display_order,
+    folder_id: chat.folder_id ?? null,
     group: chat.group ?? null
   }));
 }
@@ -441,6 +504,7 @@ function HistorySettingsSwitch({
 
 function HistoryGroupHeader({
   canManageGroup,
+  canToggle,
   collapsed,
   label,
   nested = false,
@@ -449,6 +513,7 @@ function HistoryGroupHeader({
   showManageHint
 }: {
   canManageGroup: boolean;
+  canToggle: boolean;
   collapsed: boolean;
   label: string;
   nested?: boolean;
@@ -480,6 +545,7 @@ function HistoryGroupHeader({
 
   return (
     <button
+      disabled={!canToggle}
       className={`chat-history-selector-group-surface ${nested ? 'is-nested' : ''}`}
       onClick={() => {
         if (ignoreClickRef.current) {
@@ -799,6 +865,7 @@ function SwipeableHistoryChatRow({
 export function ChatHistorySelector({
   open,
   chats,
+  chatFolders,
   search,
   selectedChatId,
   busy,
@@ -823,6 +890,7 @@ export function ChatHistorySelector({
 }: {
   open: boolean;
   chats: WebChatSummary[];
+  chatFolders: WebChatFolderSummary[];
   search: string;
   selectedChatId: string | null;
   busy: boolean;
@@ -845,6 +913,8 @@ export function ChatHistorySelector({
     payload: {
       title?: string;
       group?: string | null;
+      folder_id?: string | null;
+      update_folder?: boolean;
       update_group?: boolean;
       locked?: boolean;
       update_locked?: boolean;
@@ -853,12 +923,23 @@ export function ChatHistorySelector({
       update_binding?: boolean;
     }
   ) => Promise<WebChatSummary | null>;
-  onReorderChats: (items: WebChatReorderItem[]) => Promise<void>;
-  onRenameGroup: (oldName: string, newName: string, characterCardName?: string | null) => Promise<void>;
+  onReorderChats: (
+    expectedItems: WebChatReorderItem[],
+    items: WebChatReorderItem[]
+  ) => Promise<void>;
+  onRenameGroup: (
+    oldName: string,
+    newName: string,
+    characterCardName?: string | null,
+    folderId?: string | null,
+    characterGroupId?: string | null
+  ) => Promise<void>;
   onDeleteGroup: (
     groupName: string,
     deleteChats: boolean,
-    characterCardName?: string | null
+    characterCardName?: string | null,
+    folderId?: string | null,
+    characterGroupId?: string | null
   ) => Promise<void>;
 }) {
   const [editingChat, setEditingChat] = useState<WebChatSummary | null>(null);
@@ -871,7 +952,7 @@ export function ChatHistorySelector({
   const [draftTitle, setDraftTitle] = useState('');
   const [newGroupName, setNewGroupName] = useState('');
   const [groupRenameDraft, setGroupRenameDraft] = useState('');
-  const [moveGroupDraft, setMoveGroupDraft] = useState('');
+  const [moveFolderDraft, setMoveFolderDraft] = useState('');
   const [showSearchBox, setShowSearchBox] = useState(Boolean(search));
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
@@ -907,6 +988,37 @@ export function ChatHistorySelector({
     [chats, selectedChatId]
   );
 
+  const folderRanks = useMemo(() => buildFolderRanks(chatFolders), [chatFolders]);
+
+  const folderLabels = useMemo(() => {
+    const foldersById = new Map(chatFolders.map((folder) => [folder.id, folder] as const));
+    const pathFor = (folder: WebChatFolderSummary) => {
+      const names: string[] = [];
+      const visited = new Set<string>();
+      let current: WebChatFolderSummary | undefined = folder;
+      while (current && !visited.has(current.id)) {
+        visited.add(current.id);
+        names.unshift(current.name);
+        current = current.parent_folder_id ? foldersById.get(current.parent_folder_id) : undefined;
+      }
+      return names.join(' / ');
+    };
+    const labels = chatFolders.map((folder) => ({ folder, label: pathFor(folder) }));
+    const counts = new Map<string, number>();
+    labels.forEach(({ label }) => counts.set(label, (counts.get(label) ?? 0) + 1));
+    return labels
+      .map(({ folder, label }) => ({
+        id: folder.id,
+        label: (counts.get(label) ?? 0) > 1 ? `${label} (${folder.id.slice(0, 8)})` : label
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label));
+  }, [chatFolders]);
+
+  const folderPaths = useMemo(
+    () => new Map(folderLabels.map((folder) => [folder.id, folder.label])),
+    [folderLabels]
+  );
+
   const filteredChats = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     if (!keyword) {
@@ -916,12 +1028,13 @@ export function ChatHistorySelector({
       [
         chat.title,
         chat.group ?? '',
+        chat.folder_id ? folderPaths.get(chat.folder_id) ?? '' : '',
         chat.character_card_name ?? '',
         chat.character_group_name ?? '',
         chat.character_group_id ?? ''
       ].some((value) => value.toLowerCase().includes(keyword))
     );
-  }, [chats, search]);
+  }, [chats, search, folderPaths]);
 
   const visibleChats = useMemo(() => {
     if (historyDisplayMode === 'CURRENT_CHARACTER_ONLY') {
@@ -945,6 +1058,7 @@ export function ChatHistorySelector({
         kind: 'group' | 'card' | 'unbound';
         avatarUrl: string | null;
         characterCardName?: string | null;
+        characterGroupId?: string | null;
         groups: ReturnType<typeof buildGroupBuckets>;
       }
     >();
@@ -953,14 +1067,15 @@ export function ChatHistorySelector({
       const binding = buildBindingLabel(chat);
       const bucket = buckets.get(binding.key);
       if (bucket) {
-        const groupKey = normalizeGroupName(chat.group) ?? UNGROUPED_KEY;
+        const groupKey = groupBucketKey(chat);
         const groupBucket = bucket.groups.find((item) => item.key === groupKey);
         if (groupBucket) {
           groupBucket.chats.push(chat);
         } else {
           bucket.groups.push({
             key: groupKey,
-            label: chat.group ?? '未分组',
+            label: (chat.folder_id ? folderPaths.get(chat.folder_id) : undefined) ?? chat.group ?? '未分组',
+            folderId: chat.folder_id ?? null,
             chats: [chat]
           });
         }
@@ -973,19 +1088,23 @@ export function ChatHistorySelector({
         kind: binding.kind,
         avatarUrl: binding.avatarUrl,
         characterCardName: binding.characterCardName,
-        groups: buildGroupBuckets([chat])
+        characterGroupId: binding.characterGroupId,
+        groups: buildGroupBuckets([chat], folderRanks, folderPaths)
       });
     });
 
-    return [...buckets.values()];
-  }, [historyDisplayMode, visibleChats]);
+    return [...buckets.values()].map((bucket) => ({
+      ...bucket,
+      groups: buildGroupBuckets(bucket.groups.flatMap((group) => group.chats), folderRanks, folderPaths)
+    }));
+  }, [folderRanks, folderPaths, historyDisplayMode, visibleChats]);
 
   const groupBuckets = useMemo(() => {
     if (historyDisplayMode === 'BY_CHARACTER_CARD') {
       return [];
     }
-    return buildGroupBuckets(visibleChats);
-  }, [historyDisplayMode, visibleChats]);
+    return buildGroupBuckets(visibleChats, folderRanks, folderPaths);
+  }, [folderRanks, folderPaths, historyDisplayMode, visibleChats]);
 
   function toggleCollapsedGroup(key: string) {
     setCollapsedGroups((current) => {
@@ -1020,18 +1139,24 @@ export function ChatHistorySelector({
   }
 
   async function moveChat(chat: WebChatSummary, delta: number) {
-    const currentIndex = chats.findIndex((item) => item.id === chat.id);
-    if (currentIndex < 0) {
+    const bindingKey =
+      historyDisplayMode === 'BY_CHARACTER_CARD' ? buildBindingLabel(chat).key : null;
+    const siblings = visibleChats.filter(
+      (item) =>
+        groupBucketKey(item) === groupBucketKey(chat) &&
+        (bindingKey === null || buildBindingLabel(item).key === bindingKey)
+    );
+    const siblingIndex = siblings.findIndex((item) => item.id === chat.id);
+    const neighbor = siblings[siblingIndex + delta];
+    if (siblingIndex < 0 || !neighbor) {
       return;
     }
-    const nextIndex = currentIndex + delta;
-    if (nextIndex < 0 || nextIndex >= chats.length) {
-      return;
-    }
-    const reordered = [...chats];
-    const [movedChat] = reordered.splice(currentIndex, 1);
-    reordered.splice(nextIndex, 0, movedChat);
-    await onReorderChats(buildReorderItems(reordered));
+    const reordered = [...siblings];
+    [reordered[siblingIndex], reordered[siblingIndex + delta]] = [
+      reordered[siblingIndex + delta],
+      reordered[siblingIndex]
+    ];
+    await onReorderChats(buildReorderItems(siblings), buildReorderItems(reordered));
   }
 
   function renderChatItem(chat: WebChatSummary, nested = false) {
@@ -1056,13 +1181,19 @@ export function ChatHistorySelector({
   }
 
   function renderGroupBucket(
-    bucket: { key: string; label: string; chats: WebChatSummary[] },
+    bucket: {
+      key: string;
+      label: string;
+      folderId?: string | null;
+      chats: WebChatSummary[];
+    },
     nested = false,
     scopeKey = 'root',
-    characterCardName?: string | null
+    characterCardName?: string | null,
+    characterGroupId?: string | null
   ) {
     const collapseKey = `${scopeKey}:${bucket.key}`;
-    const collapsed = collapsedGroups.has(collapseKey);
+    const collapsed = !search.trim() && collapsedGroups.has(collapseKey);
     const canManageGroup = bucket.key !== UNGROUPED_KEY;
 
     return (
@@ -1074,15 +1205,20 @@ export function ChatHistorySelector({
           {nested ? <NestedHistoryGutter kind="group" /> : null}
           <HistoryGroupHeader
             canManageGroup={canManageGroup}
+            canToggle={!search.trim()}
             collapsed={collapsed}
             label={bucket.label}
             nested={nested}
             onManage={() => {
+              const folder = chatFolders.find((item) => item.id === bucket.folderId);
+              const groupName = folder?.name ?? bucket.label;
               setGroupActionTarget({
-                groupName: bucket.label,
-                characterCardName: characterCardName ?? null
+                folderId: bucket.folderId ?? null,
+                groupName,
+                characterCardName: characterCardName ?? null,
+                characterGroupId: characterGroupId ?? null
               });
-              setGroupRenameDraft(bucket.label);
+              setGroupRenameDraft(groupName);
               setHasLongPressedGroup(true);
             }}
             onToggle={() => toggleCollapsedGroup(collapseKey)}
@@ -1180,10 +1316,11 @@ export function ChatHistorySelector({
               {historyDisplayMode === 'BY_CHARACTER_CARD' ? (
                 characterBuckets.length ? (
                   characterBuckets.map((bucket) => {
-                    const collapsed = collapsedCharacters.has(bucket.key);
+                    const collapsed = !search.trim() && collapsedCharacters.has(bucket.key);
                     return (
                       <section className="chat-history-selector-character-block" key={bucket.key}>
                         <button
+                          disabled={Boolean(search.trim())}
                           className="chat-history-selector-character-header"
                           onClick={() => toggleCollapsedCharacter(bucket.key)}
                           type="button"
@@ -1205,7 +1342,13 @@ export function ChatHistorySelector({
                         {collapsed ? null : (
                           <div className="chat-history-selector-character-content">
                             {bucket.groups.map((group) =>
-                              renderGroupBucket(group, true, bucket.key, bucket.characterCardName)
+                              renderGroupBucket(
+                                group,
+                                true,
+                                bucket.key,
+                                bucket.characterCardName,
+                                bucket.characterGroupId
+                              )
                             )}
                           </div>
                         )}
@@ -1271,7 +1414,7 @@ export function ChatHistorySelector({
                 className="history-action-item"
                 onClick={() => {
                   setMoveTarget(actionTarget);
-                  setMoveGroupDraft(actionTarget.group ?? '');
+                  setMoveFolderDraft(actionTarget.folder_id ?? '');
                   setActionTarget(null);
                 }}
                 type="button"
@@ -1593,17 +1736,23 @@ export function ChatHistorySelector({
               <h3>移动分组</h3>
               <p>{moveTarget.title}</p>
             </header>
-            <input
+            <select
               autoFocus
-              onChange={(event) => setMoveGroupDraft(event.target.value)}
-              placeholder="留空表示未分组"
-              value={moveGroupDraft}
-            />
+              onChange={(event) => setMoveFolderDraft(event.target.value)}
+              value={moveFolderDraft}
+            >
+              <option value="">未分组</option>
+              {folderLabels.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.label}
+                </option>
+              ))}
+            </select>
             <footer>
               <button
                 onClick={() => {
                   setMoveTarget(null);
-                  setMoveGroupDraft('');
+                  setMoveFolderDraft('');
                 }}
                 type="button"
               >
@@ -1613,11 +1762,11 @@ export function ChatHistorySelector({
                 onClick={() => {
                   void (async () => {
                     await onUpdateChat(moveTarget, {
-                      group: normalizeGroupName(moveGroupDraft),
-                      update_group: true
+                      folder_id: moveFolderDraft || null,
+                      update_folder: true
                     });
                     setMoveTarget(null);
-                    setMoveGroupDraft('');
+                    setMoveFolderDraft('');
                   })();
                 }}
                 type="button"
@@ -1655,7 +1804,9 @@ export function ChatHistorySelector({
                     await onRenameGroup(
                       groupActionTarget.groupName,
                       groupRenameDraft,
-                      groupActionTarget.characterCardName
+                      groupActionTarget.characterCardName,
+                      groupActionTarget.folderId,
+                      groupActionTarget.characterGroupId
                     );
                     setGroupActionTarget(null);
                   })();
@@ -1670,7 +1821,9 @@ export function ChatHistorySelector({
                     await onDeleteGroup(
                       groupActionTarget.groupName,
                       false,
-                      groupActionTarget.characterCardName
+                      groupActionTarget.characterCardName,
+                      groupActionTarget.folderId,
+                      groupActionTarget.characterGroupId
                     );
                     setGroupActionTarget(null);
                   })();
@@ -1686,7 +1839,9 @@ export function ChatHistorySelector({
                     await onDeleteGroup(
                       groupActionTarget.groupName,
                       true,
-                      groupActionTarget.characterCardName
+                      groupActionTarget.characterCardName,
+                      groupActionTarget.folderId,
+                      groupActionTarget.characterGroupId
                     );
                     setGroupActionTarget(null);
                   })();

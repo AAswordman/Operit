@@ -9,6 +9,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.ai.assistance.operit.data.annualreport.AnnualReportDao
 import com.ai.assistance.operit.data.dao.ChatContentDao
+import com.ai.assistance.operit.data.dao.ChatFolderDao
+import com.ai.assistance.operit.data.model.ChatFolderEntity
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
@@ -22,12 +24,13 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 21
+private const val APP_DATABASE_VERSION = 22
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
     entities = [
         ChatEntity::class,
+        ChatFolderEntity::class,
         MessageEntity::class,
         MessageVariantEntity::class,
         TokenUsageRecordEntity::class,
@@ -39,6 +42,7 @@ private const val APP_DATABASE_VERSION = 21
 abstract class AppDatabase : RoomDatabase() {
     /** 获取聊天DAO */
     abstract fun chatDao(): ChatDao
+    abstract fun chatFolderDao(): ChatFolderDao
 
     /** 获取消息DAO */
     abstract fun messageDao(): MessageDao
@@ -537,7 +541,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    ChatFolderMigration,
                 )
                 .build()
 
