@@ -46,12 +46,21 @@ fun PackageDetailEntryScreen(
     var enabled by remember(packageName) { mutableStateOf(false) }
     var loadFailed by remember(packageName) { mutableStateOf(false) }
     var refresh by remember(packageName) { mutableIntStateOf(0) }
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    val updating by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.updating.collectAsState()
+
     var toggling by remember(packageName) { mutableStateOf(false) }
     var toggleError by remember(packageName) { mutableStateOf<String?>(null) }
     var execution by remember(packageName) { mutableStateOf<Pair<String, PackageTool>?>(null) }
     var executionResult by remember(packageName) { mutableStateOf<ToolResult?>(null) }
 
-    LaunchedEffect(packageName, isCurrent, refresh) {
+    LaunchedEffect(updateRevision) {
+        // A retained execution dialog must not dispatch a script captured from the previous version.
+        execution = null
+        executionResult = null
+    }
+
+    LaunchedEffect(packageName, isCurrent, refresh, updateRevision) {
         if (!isCurrent) return@LaunchedEffect
         loadFailed = false
         try {
@@ -86,10 +95,10 @@ fun PackageDetailEntryScreen(
             toolPackage = toolPackage,
             packageManager = packageManager,
             isContainerEnabled = enabled,
-            isToggling = toggling,
+            isToggling = toggling || packageName in updating,
             toggleError = toggleError,
             onToggleEnabled = { next ->
-                if (!toggling) {
+                if (!toggling && packageName !in updating) {
                     toggling = true
                     toggleError = null
                     scope.launch {
@@ -117,7 +126,7 @@ fun PackageDetailEntryScreen(
                 }
             },
             onRunScript = { name, tool ->
-                if (enabled && !toggling && packageManager.isPackageEnabled(name)) {
+                if (enabled && !toggling && packageManager.packageAvailabilityError(name) == null) {
                     execution = name to tool
                 }
             },
@@ -133,7 +142,7 @@ fun PackageDetailEntryScreen(
             tool = tool,
             environmentVariables = packages?.get(name)?.env.orEmpty(),
             packageManager = packageManager,
-            packageEnabled = enabled && !toggling,
+            packageEnabled = enabled && !toggling && packageName !in updating,
             initialResult = executionResult,
             onExecuted = { executionResult = it },
             onDismiss = { execution = null; executionResult = null },

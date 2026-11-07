@@ -9235,4 +9235,11 @@
     <string name="extension_detail_downloads">Downloads</string>
     <string name="extension_detail_likes">Likes</string>
     <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d extension updates available</string>
+    <string name="extension_updates_partial_failure">Some sources could not be checked. Please retry.</string>
+    <string name="extension_update_now">Update</string>
+    <string name="extension_updating">Updating</string>
+    <string name="extension_update_failed">Update failed. Please retry.</string>
+    <string name="extension_install">Download</string>
+    <string name="extension_installed">Installed</string>
 </resources>

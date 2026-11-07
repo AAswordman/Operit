@@ -8324,4 +8324,11 @@
     <string name="extension_detail_downloads">ダウンロード</string>
     <string name="extension_detail_likes">お気に入り</string>
     <string name="extension_detail_format">形式</string>
+    <string name="extension_updates_count">%1$d 件の拡張を更新できます</string>
+    <string name="extension_updates_partial_failure">一部の配信元を確認できませんでした。再試行してください。</string>
+    <string name="extension_update_now">更新</string>
+    <string name="extension_updating">更新中</string>
+    <string name="extension_update_failed">更新に失敗しました。再試行してください。</string>
+    <string name="extension_install">ダウンロード</string>
+    <string name="extension_installed">インストール済み</string>
 </resources>

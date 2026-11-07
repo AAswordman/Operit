@@ -212,7 +212,7 @@ fun PluginTabContent(
                                     )
                                 }
                             }
-                            ExtensionSwitch(checked = isEnabled, onCheckedChange = { onTogglePlugin(details, it) })
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(packageName, isEnabled, onToggle = { onTogglePlugin(details, it) })
                         }
                     }
                     if (index < orderedItems.lastIndex) {

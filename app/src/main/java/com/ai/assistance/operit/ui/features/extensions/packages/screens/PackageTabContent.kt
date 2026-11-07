@@ -329,9 +329,8 @@ private fun PackageListItemWithTag(
                     }
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                ExtensionSwitch(
-                    checked = isImported,
-                    onCheckedChange = onToggleImport,
+                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(
+                    packageName = packageName, checked = isImported, onToggle = onToggleImport,
                 )
             }
         }

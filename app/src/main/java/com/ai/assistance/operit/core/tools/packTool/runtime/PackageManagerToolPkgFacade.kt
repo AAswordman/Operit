@@ -422,6 +422,9 @@ internal class PackageManagerToolPkgFacade(
         packageManager.ensureInitialized()
         return runCatching {
             val normalizedContainerPackageName = packageManager.normalizePackageName(containerPackageName)
+            check(!PackageUpdateState.contains(normalizedContainerPackageName)) {
+                "package is unavailable: $normalizedContainerPackageName"
+            }
             val runtime =
                 packageManager.toolPkgContainersInternal[normalizedContainerPackageName]
                     ?: throw IllegalArgumentException("ToolPkg container not found: $containerPackageName")
@@ -922,6 +925,9 @@ internal class PackageManagerToolPkgFacade(
 
         return runCatching {
             val normalizedContainerPackageName = packageManager.normalizePackageName(containerPackageName)
+            check(!PackageUpdateState.contains(normalizedContainerPackageName)) {
+                "package is unavailable: $normalizedContainerPackageName"
+            }
             val runtime =
                 packageManager.toolPkgContainersInternal[normalizedContainerPackageName]
                     ?: throw IllegalArgumentException("ToolPkg container not found: $containerPackageName")
@@ -1004,6 +1010,7 @@ internal class PackageManagerToolPkgFacade(
             }
 
             val executeScriptFunctionStartTime = if (shouldLogTiming) messageTimingNow() else 0L
+            check(!PackageUpdateState.contains(runtime.packageName)) { "package is unavailable: ${runtime.packageName}" }
             packageManager.recordPluginUse(runtime.packageName)
             val executionResult = executionEngine.executeScriptFunction(
                 script = script,

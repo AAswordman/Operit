@@ -325,6 +325,7 @@ private fun UnifiedMarketListPane(
     }
 
     MarketBrowseSection(
+        builtInType = scope.type.takeIf { it in setOf("", "script", "package") },
         items = entries,
         isLoading = isLoading,
         isLoadingMore = isLoadingMore,

@@ -8327,4 +8327,11 @@
     <string name="extension_detail_downloads">Downloads</string>
     <string name="extension_detail_likes">Curtidas</string>
     <string name="extension_detail_format">Formato</string>
+    <string name="extension_updates_count">%1$d atualizações de extensões disponíveis</string>
+    <string name="extension_updates_partial_failure">Não foi possível verificar algumas fontes. Tente novamente.</string>
+    <string name="extension_update_now">Atualizar</string>
+    <string name="extension_updating">Atualizando</string>
+    <string name="extension_update_failed">Falha na atualização. Tente novamente.</string>
+    <string name="extension_install">Baixar</string>
+    <string name="extension_installed">Instalado</string>
 </resources>

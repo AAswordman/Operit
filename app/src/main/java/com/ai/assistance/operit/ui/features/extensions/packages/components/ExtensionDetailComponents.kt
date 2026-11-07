@@ -103,6 +103,7 @@ internal fun ExtensionDetailActions(
     toggleEnabled: Boolean,
     onOpen: () -> Unit,
     onToggle: (Boolean) -> Unit,
+    updateAction: (@Composable () -> Unit)? = null,
 ) {
     val enabledLabel = stringResource(R.string.extension_detail_enabled)
     val disabledLabel = stringResource(R.string.extension_detail_disabled)
@@ -121,19 +122,21 @@ internal fun ExtensionDetailActions(
                 Text(stringResource(R.string.open))
             }
         }
-        Surface(
-            modifier = Modifier.testTag("extension-detail-activation"),
-            shape = RoundedCornerShape(999.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-        ) {
-            Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Text(if (checked) enabledLabel else disabledLabel, modifier = Modifier.width(labelWidth),
-                    style = labelStyle, color = MaterialTheme.colorScheme.onSurface)
-                Spacer(Modifier.width(5.dp))
-                ExtensionSwitch(checked = checked, onCheckedChange = onToggle,
-                    modifier = Modifier.semantics { contentDescription = displayName }, enabled = toggleEnabled)
+        if (updateAction != null) updateAction() else {
+            Surface(
+                modifier = Modifier.testTag("extension-detail-activation"),
+                shape = RoundedCornerShape(999.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+            ) {
+                Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (checked) enabledLabel else disabledLabel, modifier = Modifier.width(labelWidth),
+                        style = labelStyle, color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.width(5.dp))
+                    ExtensionSwitch(checked = checked, onCheckedChange = onToggle,
+                        modifier = Modifier.semantics { contentDescription = displayName }, enabled = toggleEnabled)
+                }
             }
         }
     }

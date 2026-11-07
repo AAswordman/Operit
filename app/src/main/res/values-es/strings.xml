@@ -8555,4 +8555,11 @@
     <string name="extension_detail_downloads">Descargas</string>
     <string name="extension_detail_likes">Me gusta</string>
     <string name="extension_detail_format">Formato</string>
+    <string name="extension_updates_count">%1$d actualizaciones de extensiones disponibles</string>
+    <string name="extension_updates_partial_failure">No se pudieron comprobar algunas fuentes. Vuelve a intentarlo.</string>
+    <string name="extension_update_now">Actualizar</string>
+    <string name="extension_updating">Actualizando</string>
+    <string name="extension_update_failed">Error al actualizar. Vuelve a intentarlo.</string>
+    <string name="extension_install">Descargar</string>
+    <string name="extension_installed">Instalado</string>
 </resources>

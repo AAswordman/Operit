@@ -9211,4 +9211,11 @@
     <string name="extension_detail_downloads">下载</string>
     <string name="extension_detail_likes">喜欢</string>
     <string name="extension_detail_format">格式</string>
+    <string name="extension_updates_count">%1$d 个扩展可更新</string>
+    <string name="extension_updates_partial_failure">部分来源检查失败，请重试</string>
+    <string name="extension_update_now">更新</string>
+    <string name="extension_updating">更新中</string>
+    <string name="extension_update_failed">更新失败，请重试</string>
+    <string name="extension_install">下载</string>
+    <string name="extension_installed">已安装</string>
 </resources>

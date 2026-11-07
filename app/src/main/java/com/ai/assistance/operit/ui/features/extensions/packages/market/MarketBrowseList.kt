@@ -119,7 +119,8 @@ fun <T> MarketBrowseList(
     initialFirstVisibleItemIndex: Int = 0,
     initialFirstVisibleItemScrollOffset: Int = 0,
     onScrollPositionChanged: (Int, Int) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    builtInType: String? = null,
 ) {
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = initialFirstVisibleItemIndex,
@@ -127,13 +128,14 @@ fun <T> MarketBrowseList(
     )
     val pullToRefreshState = rememberPullToRefreshState()
     val showInitialLoading = isLoading && items.isEmpty()
+    val builtInSelected = remember { mutableStateOf(false) }
     val lastLoadMoreIndex = remember { mutableStateOf(-1) }
     val isRefreshing = isLoading && items.isNotEmpty() && searchQuery.isBlank()
 
     LaunchedEffect(listState, items.size, searchQuery, hasMore, isLoadingMore) {
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
             .collect { lastVisibleIndex ->
-                if (searchQuery.isNotBlank()) return@collect
+                if (builtInSelected.value || searchQuery.isNotBlank()) return@collect
                 val lastItemIndex = items.size - 1
                 if (hasMore && !isLoadingMore && items.isNotEmpty() && lastVisibleIndex >= (lastItemIndex - 2) && lastVisibleIndex != lastLoadMoreIndex.value) {
                     lastLoadMoreIndex.value = lastVisibleIndex
@@ -156,13 +158,18 @@ fun <T> MarketBrowseList(
             sortOption = sortOption,
             onSortOptionChanged = onSortOptionChanged,
             featuredOnly = featuredOnly,
-            onFeaturedOnlyChanged = onFeaturedOnlyChanged,
+            onFeaturedOnlyChanged = { builtInSelected.value = false; onFeaturedOnlyChanged(it) },
+            showBuiltIn = builtInType != null,
+            builtInSelected = builtInSelected.value,
+            onBuiltInChanged = { selected -> if (selected) onFeaturedOnlyChanged(false); builtInSelected.value = selected },
             searchPlaceholderRes = searchPlaceholderRes,
             sortOptions = sortOptions
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
-            if (showInitialLoading) {
+            if (builtInSelected.value && builtInType != null) {
+                BuiltInMarketPanel(searchQuery, builtInType)
+            } else if (showInitialLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
                 val listContent: @Composable () -> Unit = {

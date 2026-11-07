@@ -58,7 +58,8 @@ fun ScriptExecutionDialog(
     val scope = rememberCoroutineScope()
     val latestOnExecuted by rememberUpdatedState(onExecuted)
     val fullToolId = "$packageName:${tool.name}"
-    val canExecute = packageEnabled && packageManager.isPackageEnabled(packageName)
+    val updating by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.updating.collectAsState()
+    val canExecute = packageEnabled && packageName !in updating && packageManager.packageAvailabilityError(packageName) == null
     var paramValues by remember(packageName, tool) {
         mutableStateOf(tool.parameters.associate { it.name to "" })
     }

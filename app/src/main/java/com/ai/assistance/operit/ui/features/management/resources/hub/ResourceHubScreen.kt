@@ -45,8 +45,6 @@ internal fun categoryTitle(category: String): Int = when (category) {
     "ocr" -> R.string.hub_category_ocr
     "runtime" -> R.string.resource_catalog_environment
     "export" -> R.string.resource_catalog_export
-    "plugin" -> R.string.hub_category_plugin
-    "sandbox" -> R.string.hub_category_sandbox
     "template" -> R.string.hub_category_templates
     "engine" -> R.string.hub_category_engines
     "imported" -> R.string.hub_imported
@@ -156,7 +154,7 @@ internal fun ResourceHubScreen(model: ResourceHubViewModel, requested: String?, 
                 }
             }
             item {
-                val categories = if (tab == 0) listOf("all", "stt", "tts", "ocr", "imported") else listOf("all", "runtime", "export", "plugin", "sandbox", "template", "engine")
+                val categories = if (tab == 0) listOf("all", "stt", "tts", "ocr", "imported") else listOf("all", "runtime", "export", "template", "engine")
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     categories.forEach { category -> FilterChip(selected = filter == category, onClick = { if (tab == 0) modelFilter = category else resourceFilter = category }, label = { Text(stringResource(categoryTitle(category))) }) }
                 }

@@ -178,7 +178,7 @@ suspend fun installArtifactProjectVersion(
             val deleted =
                 withContext(Dispatchers.IO) {
                     // 更新只重置安装时间，保留插件之前的实际使用记录。
-                    packageManager.deletePackage(installedPackageName, preservePluginActivity = true)
+                    packageManager.deletePackage(installedPackageName, preservePluginActivity = true, forUpdate = true)
                 }
             if (!deleted) {
                 throw IllegalStateException("替换已安装插件 `${installedPackageName}` 失败。")

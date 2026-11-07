@@ -52,17 +52,6 @@ import kotlinx.coroutines.withContext
 
 private data class InstalledExtensionOrigin(val marketEntryId: String?, val scriptPath: String?)
 
-private sealed interface PackageUpdateCheckState {
-    data object UpToDate : PackageUpdateCheckState
-    data class UpdateAvailable(
-        val entry: MarketV2Entry,
-        val latestVersion: String
-    ) : PackageUpdateCheckState
-    data object NotFromMarket : PackageUpdateCheckState
-    data object EntryMissing : PackageUpdateCheckState
-    data object Failed : PackageUpdateCheckState
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PackageDetailsScreen(
@@ -86,56 +75,11 @@ internal fun PackageDetailsScreen(
     var showRuntimeMonitorDialog by remember(packageName) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    var updateCheckState by remember(packageName) { mutableStateOf<PackageUpdateCheckState?>(null) }
-    var isCheckingUpdate by remember { mutableStateOf(false) }
-
-    fun runUpdateCheck() {
-        if (isCheckingUpdate) return
-        isCheckingUpdate = true
-        updateCheckState = null
-        scope.launch {
-            try {
-                val marker =
-                    withContext(Dispatchers.IO) {
-                        readMarketInstallMarkerForPackage(packageManager, packageName)
-                    }
-                if (marker == null) {
-                    updateCheckState = PackageUpdateCheckState.NotFromMarket
-                    return@launch
-                }
-                val entryResult =
-                    withContext(Dispatchers.IO) {
-                        MarketStatsApiService().getEntry(marker.entryId)
-                    }
-                if (entryResult.isFailure) {
-                    updateCheckState = PackageUpdateCheckState.Failed
-                    return@launch
-                }
-                val entry = entryResult.getOrNull()
-                if (entry == null) {
-                    updateCheckState = PackageUpdateCheckState.EntryMissing
-                    return@launch
-                }
-                val latest = entry.latestVersion
-                if (latest == null || latest.id.isBlank() || latest.id == marker.versionId) {
-                    updateCheckState = PackageUpdateCheckState.UpToDate
-                } else {
-                    updateCheckState =
-                        PackageUpdateCheckState.UpdateAvailable(
-                            entry = entry,
-                            latestVersion = latest.version.ifBlank { latest.id }
-                        )
-                }
-            } catch (error: Exception) {
-                AppLogger.e("PackageDetailsScreen", "Update check failed", error)
-                updateCheckState = PackageUpdateCheckState.Failed
-            } finally {
-                isCheckingUpdate = false
-            }
-        }
-    }
-
-    val resolvedPackage by produceState<ToolPackage?>(initialValue = toolPackage, packageName, toolPackage) {
+    val updating by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.updating.collectAsState()
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    val updates by com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdates.available.collectAsState()
+    val isUpdating = packageName in updating
+    val resolvedPackage by produceState<ToolPackage?>(initialValue = toolPackage, packageName, toolPackage, updateRevision) {
         value = toolPackage
 
         val resolved =
@@ -164,7 +108,7 @@ internal fun PackageDetailsScreen(
     var isLoadingSubpackageTools by remember { mutableStateOf(false) }
 
     val isCurrentScreen = LocalIsCurrentScreen.current
-    LaunchedEffect(packageName, toolPackage, isContainerEnabled, isCurrentScreen) {
+    LaunchedEffect(packageName, toolPackage, isContainerEnabled, isCurrentScreen, updateRevision) {
         if (!isCurrentScreen) return@LaunchedEffect
         // A retained detail route must reread child states after its configuration UI closes.
         toolPkgDetails =
@@ -258,7 +202,7 @@ internal fun PackageDetailsScreen(
             },
             confirmButton = {
                 Button(
-                    enabled = !isDeleting,
+                    enabled = !isDeleting && !isUpdating,
                     onClick = {
                         isDeleting = true
                         deleteFailed = false
@@ -299,56 +243,6 @@ internal fun PackageDetailsScreen(
         )
     }
 
-    val currentUpdateCheckState = updateCheckState
-    if (currentUpdateCheckState != null) {
-        AlertDialog(
-            onDismissRequest = { updateCheckState = null },
-            title = { Text(stringResource(R.string.pkg_check_update)) },
-            text = {
-                Text(
-                    when (currentUpdateCheckState) {
-                        is PackageUpdateCheckState.UpToDate ->
-                            stringResource(R.string.pkg_check_update_up_to_date)
-                        is PackageUpdateCheckState.UpdateAvailable ->
-                            stringResource(
-                                R.string.pkg_check_update_available,
-                                currentUpdateCheckState.latestVersion
-                            )
-                        PackageUpdateCheckState.NotFromMarket ->
-                            stringResource(R.string.pkg_check_update_not_market)
-                        PackageUpdateCheckState.EntryMissing ->
-                            stringResource(R.string.pkg_check_update_entry_missing)
-                        PackageUpdateCheckState.Failed ->
-                            stringResource(R.string.pkg_check_update_failed)
-                    }
-                )
-            },
-            confirmButton = {
-                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
-                    Button(
-                        onClick = {
-                            updateCheckState = null
-                            onOpenMarketDetail(currentUpdateCheckState.entry)
-                        }
-                    ) {
-                        Text(stringResource(R.string.pkg_check_update_go))
-                    }
-                } else {
-                    Button(onClick = { updateCheckState = null }) {
-                        Text(stringResource(R.string.pkg_ok))
-                    }
-                }
-            },
-            dismissButton = {
-                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
-                    TextButton(onClick = { updateCheckState = null }) {
-                        Text(stringResource(R.string.pkg_cancel))
-                    }
-                }
-            }
-        )
-    }
-
     val details = toolPkgDetails
     val resolvedAuthors = (details?.author ?: metaPackage?.author.orEmpty()).map(String::trim).filter(String::isNotBlank)
     val resolvedDescription = if (isToolPkgContainer && details != null) details.description else packageDescription
@@ -358,7 +252,7 @@ internal fun PackageDetailsScreen(
     var origin by remember(packageName) { mutableStateOf<InstalledExtensionOrigin?>(null) }
     var originFailed by remember(packageName) { mutableStateOf(false) }
     var showInterfacePicker by remember(packageName) { mutableStateOf(false) }
-    LaunchedEffect(packageName, isCurrentScreen) {
+    LaunchedEffect(packageName, isCurrentScreen, updateRevision) {
         if (!isCurrentScreen) return@LaunchedEffect
         try {
             origin = withContext(Dispatchers.IO) {
@@ -384,9 +278,9 @@ internal fun PackageDetailsScreen(
         else -> stringResource(R.string.extension_detail_imported)
     }
     val modules = details?.uiModules.orEmpty()
-    val canRunTools = isContainerEnabled && !isToggling && !isDeleting
+    val canRunTools = isContainerEnabled && !isToggling && !isDeleting && !isUpdating
     fun openModule(module: PackageManager.ToolPkgUiModule) {
-        if (!canRunTools || !packageManager.isPackageEnabled(packageName)) return
+        if (!canRunTools || packageManager.packageAvailabilityError(packageName) != null) return
         onOpenToolPkgPluginConfig(module.containerPackageName, module.uiModuleId, module.title, module.keepAlive)
     }
     if (showInterfacePicker) {
@@ -414,21 +308,26 @@ internal fun PackageDetailsScreen(
                 subtitle = sourceLabel,
                 badges = buildList { add(typeLabel); if (version.isNotBlank()) add("v$version") },
                 logo = logoPainter,
-                logoEnabled = isContainerEnabled,
+                logoEnabled = isContainerEnabled && !isUpdating,
                 actions = {
                     ExtensionDetailActions(
                         displayName = packageDisplayName,
                         checked = isContainerEnabled,
                         showOpen = details?.hasConfigurableUi == true,
                         openEnabled = canRunTools && modules.isNotEmpty(),
-                        toggleEnabled = !isToggling && !isDeleting,
+                        toggleEnabled = !isToggling && !isDeleting && !isUpdating,
                         onOpen = {
                             if (modules.size == 1) openModule(modules.single()) else showInterfacePicker = true
                         },
                         onToggle = onToggleEnabled,
+                        updateAction = if (packageName in updates || isUpdating) ({
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(
+                                packageName, isContainerEnabled, !isToggling && !isDeleting, onToggleEnabled)
+                        }) else null,
                     )
                 },
             )
+            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateProgress(packageName)
             if (toggleError != null) Text(toggleError, color = MaterialTheme.colorScheme.error)
             ExtensionDetailStats(buildList {
                 add(ExtensionDetailStat(stringResource(R.string.extension_detail_type), typeLabel,
@@ -467,7 +366,7 @@ internal fun PackageDetailsScreen(
                                 details.subpackages.forEach { subpackage ->
                                     fun applySubpackageToggle(enabled: Boolean) {
                                         // 父插件未启用时禁止改动子包，避免开关先亮起又被有效状态刷新关闭。
-                                        if (!isContainerEnabled || isToggling) return
+                                        if (!isContainerEnabled || isToggling || isUpdating) return
                                         toolPkgToggleError = null
                                         val previousDetails = details
                                         toolPkgDetails =
@@ -560,7 +459,7 @@ internal fun PackageDetailsScreen(
                                             ExtensionSwitch(
                                                 checked = isContainerEnabled && subpackage.enabled,
                                                 onCheckedChange = { enabled -> applySubpackageToggle(enabled) },
-                                                enabled = isContainerEnabled && !isToggling,
+                                                enabled = isContainerEnabled && !isToggling && !isUpdating,
                                                 modifier = Modifier.semantics { contentDescription = subpackage.displayName }
                                             )
                                         }
@@ -761,17 +660,11 @@ internal fun PackageDetailsScreen(
                         Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.pkg_runtime_monitor_action))
                     }
-                    if (metaPackage != null && !metaPackage.isBuiltIn) {
-                        OutlinedButton(onClick = { runUpdateCheck() }, enabled = !isCheckingUpdate && !isDeleting) {
-                            if (isCheckingUpdate) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                            else Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.pkg_check_update))
-                        }
-                    }
+
                 }
                 if (metaPackage != null && !metaPackage.isBuiltIn) {
                     Surface(onClick = { deleteFailed = false; showDeleteConfirmDialog = true },
-                        enabled = !isDeleting && packageManager.isTopLevelPackage(packageName),
+                        enabled = !isDeleting && !isUpdating && packageManager.isTopLevelPackage(packageName),
                         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)) {

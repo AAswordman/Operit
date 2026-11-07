@@ -195,6 +195,9 @@ fun PackageManagerScreen(
     var pluginFilter by remember { mutableStateOf(pluginListPreferences.readFilter()) }
     val pluginActivities by packageManager.pluginActivityStore.activities.collectAsState()
     var refreshGeneration by remember { mutableStateOf(0) }
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    LaunchedEffect(updateRevision) { refreshGeneration++ }
+
     val filteredPluginContainers by remember(
         pluginContainers.value, pluginSearchQuery, pluginFilter, visibleImportedPackages.value
     ) {
@@ -795,10 +798,8 @@ fun PackageManagerScreen(
                 }
             }
             if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
-                TextButton(onClick = {
-                    context.startActivity(android.content.Intent(context, OfflineResourcesActivity::class.java)
-                        .putExtra(OfflineResourcesActivity.EXTRA_GROUP, "extensions"))
-                }, modifier = Modifier.padding(horizontal = 16.dp)) { Text(stringResource(R.string.hub_prepare_builtins)) }
+                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(
+                    packageManager, Modifier.padding(horizontal = 16.dp))
             }
             if ((selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) && packageLoadErrors.value.isNotEmpty()) {
                 TextButton(

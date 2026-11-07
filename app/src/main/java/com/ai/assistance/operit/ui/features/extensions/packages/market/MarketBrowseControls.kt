@@ -34,7 +34,10 @@ fun MarketBrowseControls(
     sortOptions: List<MarketSortOption> = MarketSortOption.entries,
     featuredOnly: Boolean = false,
     onFeaturedOnlyChanged: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showBuiltIn: Boolean = false,
+    builtInSelected: Boolean = false,
+    onBuiltInChanged: (Boolean) -> Unit = {},
 ) {
     Row(
         modifier =
@@ -51,13 +54,18 @@ fun MarketBrowseControls(
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        sortOptions.forEach { option ->
+        if (!builtInSelected) sortOptions.forEach { option ->
             FilterChip(
                 selected = sortOption == option,
                 onClick = { onSortOptionChanged(option) },
                 label = { Text(stringResource(option.labelRes)) }
             )
         }
+        if (showBuiltIn) FilterChip(
+            selected = builtInSelected,
+            onClick = { onBuiltInChanged(!builtInSelected) },
+            label = { Text(stringResource(R.string.builtin)) }
+        )
         FilterChip(
             selected = featuredOnly,
             onClick = { onFeaturedOnlyChanged(!featuredOnly) },

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from distribution_catalog import load_catalog
 import os
 from pathlib import Path
 import subprocess
@@ -59,10 +60,12 @@ def publish(assets: Path, repository: str, commit: str) -> None:
     pinned = ROOT / 'app/config/offline-packs.json'
     if (assets / pinned.name).read_bytes() != pinned.read_bytes():
         raise ValueError('准备的资源目录与本次源码清单不一致')
-    catalog = json.loads(pinned.read_text())
+    if (assets / 'builtin-extensions.json').read_bytes() != (pinned.parent / 'builtin-extensions.json').read_bytes():
+        raise ValueError('内置市场目录与打包输入不一致')
+    catalog = load_catalog(pinned.parent)
     expected = {p['archive']['path']: p['archive'] for p in catalog['packs']}
     files = sorted(p for p in assets.iterdir() if p.is_file())
-    if {p.name for p in files} != set(expected) | {'offline-packs.json', 'SHA256SUMS.txt'}:
+    if {p.name for p in files} != set(expected) | {'offline-packs.json', 'builtin-extensions.json', 'SHA256SUMS.txt'}:
         raise ValueError('发行文件列表与目录不一致')
     for path in files:
         spec = expected.get(path.name)
@@ -77,7 +80,7 @@ def publish(assets: Path, repository: str, commit: str) -> None:
     if release is None:
         release = request(f'repos/{repository}/releases', {
             'tag_name': tag, 'name': '离线资源 · ' + tag,
-            'body': f'九种工程模板、40 个按需下载的内置扩展、Sherpa ONNX 共用引擎和 ML Kit 多语言模型资产。APK 逆向插件与四个运行 JAR 统一准备，下载后仍标记为内置。各文件的大小及 SHA-256 固定在随附的 offline-packs.json 中。本资源版本发布后不改写。\n\n准备源码：https://github.com/{SOURCE_REPOSITORY}/tree/{commit}。资源及模型沿用各自随附许可证。',
+            'body': f'九种工程模板、40 个按需下载的内置扩展、Sherpa ONNX 共用引擎和 ML Kit 多语言模型资产。APK 逆向插件与四个运行 JAR 统一准备，下载后仍标记为内置。各文件的大小及 SHA-256 分别固定在随附的 offline-packs.json 与 builtin-extensions.json 中。本资源版本发布后不改写。\n\n准备源码：https://github.com/{SOURCE_REPOSITORY}/tree/{commit}。资源及模型沿用各自随附许可证。',
             'draft': True, 'prerelease': False, 'make_latest': 'false',
         })
     release_id = release['id']

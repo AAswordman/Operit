@@ -143,13 +143,16 @@ class ResourceArtifactTest(unittest.TestCase):
             root = Path(folder)
             config = root / "app/config"
             config.mkdir(parents=True)
-            catalog = {"packs": [{"archive": {"path": "resource.zip", "bytes": 3}}]}
+            catalog = {"schemaVersion": 1, "releaseTag": "resources-v3-test",
+                       "packs": [{"id": "template-test", "archive": {"path": "resource.zip", "bytes": 3}}]}
             (config / "offline-packs.json").write_text(json.dumps(catalog))
+            (config / "builtin-extensions.json").write_text(json.dumps({**catalog, "packs": []}))
             for invalid in [False, True]:
                 archive = root / ("invalid.zip" if invalid else "valid.zip")
                 with zipfile.ZipFile(archive, "w") as output:
                     output.writestr("../resource.zip" if invalid else "resource.zip", b"zip")
                     output.writestr("offline-packs.json", (config / "offline-packs.json").read_bytes())
+                    output.writestr("builtin-extensions.json", (config / "builtin-extensions.json").read_bytes())
                     output.writestr("SHA256SUMS.txt", b"checksums")
                 destination = root / ("invalid" if invalid else "valid")
                 destination.mkdir()

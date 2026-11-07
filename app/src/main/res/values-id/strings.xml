@@ -8487,4 +8487,11 @@
     <string name="extension_detail_downloads">Unduhan</string>
     <string name="extension_detail_likes">Suka</string>
     <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d pembaruan ekstensi tersedia</string>
+    <string name="extension_updates_partial_failure">Beberapa sumber tidak dapat diperiksa. Coba lagi.</string>
+    <string name="extension_update_now">Perbarui</string>
+    <string name="extension_updating">Memperbarui</string>
+    <string name="extension_update_failed">Pembaruan gagal. Coba lagi.</string>
+    <string name="extension_install">Unduh</string>
+    <string name="extension_installed">Terpasang</string>
 </resources>

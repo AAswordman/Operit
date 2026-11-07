@@ -10,8 +10,12 @@ import tempfile
 from publish_hub import find_resource_release, request
 
 
-def verify_remote_assets(catalog_bytes: bytes, assets: list[dict], sums: str) -> dict:
+def verify_remote_assets(catalog_bytes: bytes, assets: list[dict], sums: str, builtin_bytes: bytes) -> dict:
     catalog = json.loads(catalog_bytes)
+    builtins = json.loads(builtin_bytes)
+    if builtins['releaseTag'] != catalog['releaseTag']:
+        raise ValueError('内置市场与资源发行标签不一致')
+    catalog['packs'] += builtins['packs']
     expected = {
         pack['archive']['path']: {
             'size': pack['archive']['bytes'], 'digest': 'sha256:' + pack['archive']['sha256'],
@@ -23,6 +27,7 @@ def verify_remote_assets(catalog_bytes: bytes, assets: list[dict], sums: str) ->
     expected['offline-packs.json'] = {
         'size': len(catalog_bytes), 'digest': 'sha256:' + hashlib.sha256(catalog_bytes).hexdigest(),
     }
+    expected['builtin-extensions.json'] = {'size': len(builtin_bytes), 'digest': 'sha256:' + hashlib.sha256(builtin_bytes).hexdigest()}
     lines = sorted(f'{item["digest"].removeprefix("sha256:")}  {name}' for name, item in expected.items())
     if sorted(sums.splitlines()) != lines:
         raise ValueError('已公开资源的总校验清单与源码固定目录不符')
@@ -52,6 +57,6 @@ def existing_publication(pinned: Path, repository: str) -> dict | None:
             '--pattern', 'SHA256SUMS.txt', '--dir', directory,
         ], check=True, capture_output=True, text=True, timeout=60)
         sums = (Path(directory) / 'SHA256SUMS.txt').read_bytes().decode('utf-8')
-    report = verify_remote_assets(catalog_bytes, assets, sums)
+    report = verify_remote_assets(catalog_bytes, assets, sums, (pinned.parent / 'builtin-extensions.json').read_bytes())
     report['url'] = release['html_url']
     return report

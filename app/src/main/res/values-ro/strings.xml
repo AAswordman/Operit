@@ -9080,4 +9080,11 @@
     <string name="extension_detail_downloads">Descărcări</string>
     <string name="extension_detail_likes">Aprecieri</string>
     <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d actualizări de extensii disponibile</string>
+    <string name="extension_updates_partial_failure">Unele surse nu au putut fi verificate. Încearcă din nou.</string>
+    <string name="extension_update_now">Actualizează</string>
+    <string name="extension_updating">Se actualizează</string>
+    <string name="extension_update_failed">Actualizarea a eșuat. Încearcă din nou.</string>
+    <string name="extension_install">Descarcă</string>
+    <string name="extension_installed">Instalat</string>
 </resources>

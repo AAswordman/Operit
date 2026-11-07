@@ -54,8 +54,8 @@ internal class ResourceHubRepository(private val context: Context) {
                 catalog[model.key]?.bytes ?: model.bytes, complete && engineReady, models.hasData(model),
                 inUse = LocalModelRuntimeRegistry.isInUse(models.directory(model)), model = model, location = models.directory(model).absolutePath)
         }
-        for (pack in PackResources.catalog(context).packs) {
-            val category = when { pack.id == PackResources.OCR_MODELS -> "ocr"; pack.id.startsWith("template-") -> "template"; pack.extension != null -> pack.extension.kind; else -> "engine" }
+        for (pack in PackResources.catalog(context).packs.filter { it.extension == null }) {
+            val category = when { pack.id == PackResources.OCR_MODELS -> "ocr"; pack.id.startsWith("template-") -> "template"; else -> "engine" }
             val title = when {
                 pack.id == PackResources.OCR_MODELS -> context.getString(R.string.hub_ocr_name)
                 pack.id.startsWith("template-") -> context.getString(R.string.hub_template_name, pack.name)
