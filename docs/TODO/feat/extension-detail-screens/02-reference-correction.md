@@ -29,3 +29,10 @@ related_pr: 154
 - 已简化市场指标图标依赖并清理设备用例错误导入；提交后执行仓库静态检查，远程 JVM 和 Debug 构建另行记录
 
 源码修正 [DONE]。静态检查、远程构建和设备验收分别确认；当前尚未通过新包设备比照。
+
+
+## CI 编译修正
+
+PR Check #201 在编译设备回归源码时报告三处 `Unresolved reference: height`。`getUnclippedBoundsInRoot()` 返回 `DpRect`，高度通过 `androidx.compose.ui.unit.height` 扩展属性提供；新增测试缺少该导入。补齐导入，继续使用未裁剪高度验证展开后高度增加，以及收起后恢复原高度。
+
+本次仅修正设备测试导入并记录原因。本地未执行编译、构建或测试；由最新提交的 PR CI 编译设备测试源码并执行 JVM 回归，设备用例的实际执行仍需单独验收。导入修正 [DONE]。
