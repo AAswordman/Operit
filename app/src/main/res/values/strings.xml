@@ -3142,6 +3142,8 @@
     <string name="function_desc_ui_controller">用于UI界面的自动遍历与操作，对应的 UI 控制器模型仅在用户明确要求使用“智能体”控制时才会启用，例如可选择 autoglm 等专用模型。</string>
     <string name="function_desc_translation">提供多语言翻译功能，支持文本内容的语言转换。建议使用支持多语言的模型。</string>
     <string name="function_desc_grep">用于grep_context的检索规划与结果筛选（多轮grep_code）</string>
+    <string name="function_type_tool_review">工具调用审查</string>
+    <string name="function_desc_tool_review">允许模式下自动审查文件工具调用是否合规（工作区内/外可分别开关）</string>
     <string name="function_desc_role_response_planner">用于在群组中动态决定本轮发言顺序与跳过策略，支持多轮讨论</string>
     <string name="function_desc_image_recognition">用于图像内容识别和分析，调用read_file工具读取图片时支持intent参数进行深度理解。建议使用支持视觉的多模态模型。</string>
     <string name="function_desc_audio_recognition">用于音频内容识别和分析，调用read_file工具读取音频时可使用intent参数进行深度理解（如转写/总结/识别说话内容）。建议使用支持音频输入或高质量转写的模型。</string>
@@ -7949,6 +7951,12 @@
     <!-- 工作区防护（文件工具区外确认） -->
     <string name="tool_workspace_outside_forbidden">工具 %1$s 已被设置为禁止，且目标路径位于当前会话工作区之外（或会话未绑定工作区），本次调用直接拒绝。</string>
     <string name="tool_workspace_outside_confirmation">⚠ 工作区外操作确认：以下目标路径位于当前会话工作区之外（或会话未绑定工作区），请仔细核对路径后决定是否允许：\n%1$s</string>
+
+    <!-- 大模型工具审查（允许模式自动审查） -->
+    <string name="tool_review_noncompliant_confirmation">🤖 AI 审查认为本次调用不合规：%1$s\n请确认是否仍要允许执行。</string>
+    <string name="tool_review_failed_confirmation">⚠ AI 审查未能完成：%1$s\n请人工确认本次调用是否允许执行。</string>
+    <string name="agent_menu_tool_review_inside">自动审查文件工具（工作区内）</string>
+    <string name="agent_menu_tool_review_outside">自动审查文件工具（工作区外）</string>
 
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">图片捕获失败: %1$s</string>

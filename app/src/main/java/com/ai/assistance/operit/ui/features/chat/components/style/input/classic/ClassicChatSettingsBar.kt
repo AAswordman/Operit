@@ -96,6 +96,11 @@ fun ClassicChatSettingsBar(
     inputMenuRuntime: String = "main",
     permissionLevel: PermissionLevel,
     onSetPermissionLevel: (PermissionLevel) -> Unit,
+    // 修改意图：文件工具大模型自动审查开关（区内/区外），与 Agent 风格菜单一致，仅允许模式展示
+    toolReviewInsideWorkspace: Boolean = false,
+    toolReviewOutsideWorkspace: Boolean = false,
+    onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
@@ -661,6 +666,19 @@ fun ClassicChatSettingsBar(
                                     showMenu = false
                                 }
                             )
+                            // 修改意图：文件工具自动审查开关，仅允许模式展示，与 Agent 风格一致
+                            if (enableTools && permissionLevel == PermissionLevel.ALLOW) {
+                                ClassicReviewToggleRow(
+                                    label = stringResource(R.string.agent_menu_tool_review_inside),
+                                    checked = toolReviewInsideWorkspace,
+                                    onCheckedChange = onSaveToolReviewInsideWorkspace,
+                                )
+                                ClassicReviewToggleRow(
+                                    label = stringResource(R.string.agent_menu_tool_review_outside),
+                                    checked = toolReviewOutsideWorkspace,
+                                    onCheckedChange = onSaveToolReviewOutsideWorkspace,
+                                )
+                            }
                             inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty().forEach { toggle ->
                                 InputMenuToggleSettingItem(
                                     toggle = toggle,
@@ -1804,6 +1822,36 @@ private fun ActionSettingItem(
                 .weight(1f)
                 .padding(horizontal = 8.dp)
                 .clearAndSetSemantics {}
+        )
+    }
+}
+
+/** 修改意图：Classic 风格设置条的文件工具自动审查开关行，与 Agent 风格的 AgentReviewToggleRow 对齐 */
+@Composable
+private fun ClassicReviewToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 36.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
         )
     }
 }

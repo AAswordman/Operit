@@ -2233,6 +2233,12 @@ private fun AgentExtraSettingsPopup(
     onToggleAutoRead: () -> Unit,
     permissionLevel: PermissionLevel,
     onSetPermissionLevel: (PermissionLevel) -> Unit,
+    // 修改意图：文件工具大模型自动审查开关（区内/区外）。仅在工具模式为允许时展示，
+    // 开启后 ToolExecutionManager 在放行前调用 TOOL_REVIEW 功能模型审查
+    toolReviewInsideWorkspace: Boolean = false,
+    toolReviewOutsideWorkspace: Boolean = false,
+    onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     enableTools: Boolean,
     onToggleTools: () -> Unit,
     disableStreamOutput: Boolean,
@@ -2394,6 +2400,10 @@ private fun AgentExtraSettingsPopup(
                                 onSetPermissionLevel(level)
                             }
                         },
+                        toolReviewInsideWorkspace = toolReviewInsideWorkspace,
+                        toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
+                        onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
+                        onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
                         toolSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty(),
                         onToggleInfoClick = { title, description -> infoPopupContent = title to description },
                         onManageTools = { showToolPromptManagerDialog = true },
@@ -2678,6 +2688,10 @@ private fun AgentToolsPermissionGroupItem(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onSelectPermissionLevel: (PermissionLevel) -> Unit,
+    toolReviewInsideWorkspace: Boolean,
+    toolReviewOutsideWorkspace: Boolean,
+    onSaveToolReviewInsideWorkspace: (Boolean) -> Unit,
+    onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit,
     toolSlotToggles: List<InputMenuToggleDefinition>,
     onToggleInfoClick: (String, String) -> Unit,
     onManageTools: () -> Unit,
@@ -2712,6 +2726,20 @@ private fun AgentToolsPermissionGroupItem(
                 selectedLevel = effectiveLevel,
                 onSelectPermissionLevel = onSelectPermissionLevel,
             )
+            // 修改意图：文件工具大模型自动审查开关。仅在工具模式为允许时显示（需求确认项）；
+            // 展开时按区内/区外分别开关
+            if (effectiveLevel == PermissionLevel.ALLOW) {
+                AgentReviewToggleRow(
+                    label = stringResource(R.string.agent_menu_tool_review_inside),
+                    checked = toolReviewInsideWorkspace,
+                    onCheckedChange = onSaveToolReviewInsideWorkspace,
+                )
+                AgentReviewToggleRow(
+                    label = stringResource(R.string.agent_menu_tool_review_outside),
+                    checked = toolReviewOutsideWorkspace,
+                    onCheckedChange = onSaveToolReviewOutsideWorkspace,
+                )
+            }
             toolSlotToggles.forEach { toggle ->
                 AgentInputMenuToggleSettingItem(
                     toggle = toggle,
@@ -2733,6 +2761,36 @@ private fun AgentToolsPermissionGroupItem(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun AgentReviewToggleRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 36.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontSize = 12.sp,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = Modifier.height(28.dp).width(48.dp),
+        )
     }
 }
 

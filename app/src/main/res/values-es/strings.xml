@@ -3302,6 +3302,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="function_type_video_recognition">Reconocimiento de video</string>
     <string name="function_desc_translation">Proporciona funciones de traducción multilingüe, admite la conversión de idioma del contenido de texto. Se recomienda usar un modelo que admita varios idiomas.</string>
     <string name="function_desc_grep">Planificación de búsqueda y filtrado de resultados para grep_context (grep_code en múltiples rondas)</string>
+    <string name="function_type_tool_review">Revisión de llamadas de herramientas</string>
+    <string name="function_desc_tool_review">Revisa automáticamente el cumplimiento de las llamadas a herramientas de archivos cuando el modo es Permitir (interruptores por zona)</string>
 
     <string name="chat_preparing_resend">Preparando para reenviar el mensaje</string>
     <string name="chat_rolled_back_message_in_input">Reversión realizada, el contenido del mensaje se ha colocado en el campo de entrada</string>

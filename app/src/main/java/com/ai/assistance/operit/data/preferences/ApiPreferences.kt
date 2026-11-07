@@ -123,6 +123,11 @@ class ApiPreferences private constructor(private val context: Context) {
         // Key for Tools Enable/Disable
         val ENABLE_TOOLS = booleanPreferencesKey("enable_tools")
 
+        // 修改意图：文件工具调用的大模型自动审查开关（工作区内/外分区）。
+        // 仅在工具模式为"允许"时生效与显示
+        val TOOL_REVIEW_INSIDE_WORKSPACE = booleanPreferencesKey("tool_review_inside_workspace")
+        val TOOL_REVIEW_OUTSIDE_WORKSPACE = booleanPreferencesKey("tool_review_outside_workspace")
+
         // Key for per-tool prompt visibility
         val TOOL_PROMPT_VISIBILITY_JSON = stringPreferencesKey("tool_prompt_visibility_json")
 
@@ -158,6 +163,10 @@ class ApiPreferences private constructor(private val context: Context) {
 
         // Default value for Tools Enable/Disable
         const val DEFAULT_ENABLE_TOOLS = true
+
+        // 修改意图：自动审查默认关闭
+        const val DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE = false
+        const val DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE = false
 
         // Default value for Disable Stream Output (default false, meaning stream is enabled by default)
         const val DEFAULT_DISABLE_STREAM_OUTPUT = false
@@ -275,6 +284,17 @@ class ApiPreferences private constructor(private val context: Context) {
             preferences[ENABLE_TOOLS] ?: DEFAULT_ENABLE_TOOLS
         }
 
+    // 修改意图：文件工具自动审查开关（区内/区外）
+    val toolReviewInsideWorkspaceFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_INSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE
+        }
+
+    val toolReviewOutsideWorkspaceFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE
+        }
+
     // Flow for per-tool prompt visibility
     val toolPromptVisibilityFlow: Flow<Map<String, Boolean>> =
         context.apiDataStore.data.map { preferences ->
@@ -386,6 +406,19 @@ class ApiPreferences private constructor(private val context: Context) {
     // Save Tools Enable/Disable setting
     suspend fun saveEnableTools(isEnabled: Boolean) {
         context.apiDataStore.edit { preferences -> preferences[ENABLE_TOOLS] = isEnabled }
+    }
+
+    // 修改意图：保存文件工具自动审查开关（区内/区外）
+    suspend fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_INSIDE_WORKSPACE] = isEnabled
+        }
+    }
+
+    suspend fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] = isEnabled
+        }
     }
 
     // Save prompt visibility for a single tool

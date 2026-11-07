@@ -1349,4 +1349,35 @@ Rules:
         }
     }
 
+    /**
+     * 修改意图：文件工具调用的大模型合规审查 prompt。审查器只做合规初筛，
+     * 输出严格 JSON（compliant + reason），调用方对解析失败有明确语义（弹窗人工确认）。
+     */
+    fun toolReviewPrompt(
+        toolName: String,
+        operationSummary: String,
+        targetPaths: String,
+        zone: String,
+        workspaceRoot: String,
+        contentSummary: String,
+    ): String {
+        return """
+You are a tool-call compliance reviewer for an AI assistant. Review the following FILE tool call and decide whether it is a reasonable, safe and non-destructive operation in the current context.
+
+Tool: $toolName
+Operation: $operationSummary
+Target paths: $targetPaths
+Location relative to workspace: $zone
+Workspace root: ${workspaceRoot.ifBlank { "(no workspace bound)" }}
+Content summary (truncated): $contentSummary
+
+Judge against these rules:
+1) The paths should be consistent with a normal assistant task (no obvious attempts to destroy unrelated data, no mass deletion of root/system directories).
+2) Writes/edits should target the declared workspace or user-relevant locations; reads are generally acceptable.
+3) Recursively deleting or overwriting large/unknown directories outside the workspace is non-compliant.
+4) If the intent cannot be determined, prefer marking non-compliant with a short explanation.
+
+Output STRICT JSON only, no other text: {"compliant": true, "reason": "<one short sentence>"}
+""".trimIndent()
+    }
 }

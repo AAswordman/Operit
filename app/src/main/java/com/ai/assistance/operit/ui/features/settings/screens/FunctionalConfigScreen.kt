@@ -984,6 +984,7 @@ fun getFunctionDisplayName(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_type_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_type_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_type_video_recognition)
+        FunctionType.TOOL_REVIEW -> stringResource(id = R.string.function_type_tool_review)
     }
 }
 
@@ -1002,6 +1003,7 @@ fun getFunctionDescription(functionType: FunctionType): String {
         FunctionType.IMAGE_RECOGNITION -> stringResource(id = R.string.function_desc_image_recognition)
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_desc_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_desc_video_recognition)
+        FunctionType.TOOL_REVIEW -> stringResource(id = R.string.function_desc_tool_review)
     }
 }
 

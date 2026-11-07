@@ -126,6 +126,15 @@ class ApiConfigDelegate(
     private val _enableTools = MutableStateFlow(ApiPreferences.DEFAULT_ENABLE_TOOLS)
     val enableTools: StateFlow<Boolean> = _enableTools.asStateFlow()
 
+    // 修改意图：文件工具大模型自动审查开关（区内/区外），仅工具模式为允许时生效与显示
+    private val _toolReviewInsideWorkspace =
+        MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE)
+    val toolReviewInsideWorkspace: StateFlow<Boolean> = _toolReviewInsideWorkspace.asStateFlow()
+
+    private val _toolReviewOutsideWorkspace =
+        MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE)
+    val toolReviewOutsideWorkspace: StateFlow<Boolean> = _toolReviewOutsideWorkspace.asStateFlow()
+
     private val _toolPromptVisibility = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> = _toolPromptVisibility.asStateFlow()
 
@@ -460,6 +469,18 @@ class ApiConfigDelegate(
             }
         }
 
+        // 修改意图：收集文件工具自动审查开关
+        configScope.launch {
+            apiPreferences.toolReviewInsideWorkspaceFlow.collect { enabled ->
+                _toolReviewInsideWorkspace.value = enabled
+            }
+        }
+        configScope.launch {
+            apiPreferences.toolReviewOutsideWorkspaceFlow.collect { enabled ->
+                _toolReviewOutsideWorkspace.value = enabled
+            }
+        }
+
         // Collect tool prompt visibility setting
         configScope.launch {
             apiPreferences.toolPromptVisibilityFlow.collect { visibility ->
@@ -780,6 +801,21 @@ class ApiConfigDelegate(
             val newValue = !_enableTools.value
             apiPreferences.saveEnableTools(newValue)
             _enableTools.value = newValue
+        }
+    }
+
+    // 修改意图：设置文件工具自动审查开关（区内/区外）
+    fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
+        configScope.launch {
+            apiPreferences.saveToolReviewInsideWorkspace(isEnabled)
+            _toolReviewInsideWorkspace.value = isEnabled
+        }
+    }
+
+    fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
+        configScope.launch {
+            apiPreferences.saveToolReviewOutsideWorkspace(isEnabled)
+            _toolReviewOutsideWorkspace.value = isEnabled
         }
     }
 
