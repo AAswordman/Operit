@@ -7421,9 +7421,8 @@
     <string name="github_login_method_external">외부 브라우저로 로그인</string>
     <string name="github_login_starting">GitHub 인증 준비 중...</string>
     <string name="artifact_publish_toolpkg_version_readonly">ToolPkg 릴리스 버전은 패키지 내 매니페스트에서 가져오므로 게시 전에 수동으로 수정할 수 없습니다</string>
-    <string name="market_version_incompatible_title">다운로드 불가: 클라이언트 버전이 지원되지 않음</string>
-    <string name="market_version_too_low_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최소 요구 버전 %2$s보다 낮습니다. 클라이언트를 업데이트한 후 다시 다운로드하세요.</string>
-    <string name="market_version_too_high_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최대 지원 버전 %2$s보다 높습니다. 지원되는 클라이언트 버전을 사용하세요.</string>
+    <string name="market_toolpkg_api_incompatible_title">설치 불가: ToolPkg API가 지원되지 않음</string>
+    <string name="market_toolpkg_api_incompatible_message">이 플러그인은 ToolPkg API %1$s을(를) 선언합니다. 이 기기에서 지원하는 버전은 %2$s이므로 설치할 수 없습니다.</string>
     <string name="external_http_chat_a2a_title">A2A 에이전트 인터페이스</string>
     <string name="external_http_chat_a2a_desc">동일한 수신 포트와 Bearer 토큰을 사용하여 A2A 1.0 JSON-RPC 서비스를 제공합니다. 먼저 Agent Card 주소를 A2A 클라이언트에 제공하여 검색하세요.</string>
     <string name="external_http_chat_a2a_agent_card">Agent Card 주소</string>

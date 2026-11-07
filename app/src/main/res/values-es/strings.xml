@@ -7642,9 +7642,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="github_login_method_external">Iniciar sesión con navegador externo</string>
     <string name="github_login_starting">Preparando autorización de GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">La versión de publicación de ToolPkg proviene del manifiesto del paquete y no se puede modificar manualmente antes de publicar</string>
-    <string name="market_version_incompatible_title">No se puede descargar: versión del cliente no compatible</string>
-    <string name="market_version_too_low_message">La versión actual del cliente %1$s es inferior a la versión mínima requerida %2$s para este recurso. Actualice el cliente antes de descargar.</string>
-    <string name="market_version_too_high_message">La versión actual del cliente %1$s es superior a la versión máxima compatible %2$s para este recurso. Utilice una versión de cliente compatible.</string>
+    <string name="market_toolpkg_api_incompatible_title">No se puede instalar: API de ToolPkg no compatible</string>
+    <string name="market_toolpkg_api_incompatible_message">Este complemento declara la API de ToolPkg %1$s. Este dispositivo admite %2$s, por lo que no se puede instalar.</string>
     <string name="external_http_chat_a2a_title">Interfaz de agente A2A</string>
     <string name="external_http_chat_a2a_desc">Proporciona un servicio JSON-RPC A2A 1.0 en el mismo puerto de escucha y con el mismo Bearer Token. Primero entregue la dirección de la Agent Card a los clientes A2A para que la descubran.</string>
     <string name="external_http_chat_a2a_agent_card">Dirección de Agent Card</string>

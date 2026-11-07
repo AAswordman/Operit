@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.features.packages.market
 
-import com.ai.assistance.operit.BuildConfig
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgApiCompatibility
+import com.ai.assistance.operit.core.tools.packTool.ToolPkgApiVersion
 import com.ai.assistance.operit.data.api.GitHubRelease
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.data.api.MarketV2Version
@@ -77,15 +78,9 @@ enum class PublishArtifactType(
     }
 }
 
-enum class MarketAppVersionCompatibilityKind {
-    BELOW_MINIMUM,
-    ABOVE_MAXIMUM
-}
-
-data class MarketAppVersionCompatibility(
-    val kind: MarketAppVersionCompatibilityKind,
-    val currentVersion: String,
-    val requiredVersion: String
+data class MarketToolPkgApiCompatibility(
+    val requiredApiVersion: String,
+    val supportedApiVersions: String
 )
 
 fun PublishArtifactType.marketFormatVersion(): String {
@@ -549,56 +544,30 @@ fun compareAppVersions(left: String, right: String): Int {
     return leftBuild.compareTo(rightBuild)
 }
 
-fun isAppVersionSupported(
-    appVersion: String,
-    minSupportedAppVersion: String?,
-    maxSupportedAppVersion: String?
-): Boolean {
-    return resolveAppVersionCompatibility(
-        appVersion = appVersion,
-        minSupportedAppVersion = minSupportedAppVersion,
-        maxSupportedAppVersion = maxSupportedAppVersion
-    ) == null
-}
-
-fun resolveAppVersionCompatibility(
-    appVersion: String,
-    minSupportedAppVersion: String?,
-    maxSupportedAppVersion: String?
-): MarketAppVersionCompatibility? {
-    val current = requireNotNull(parseAppVersionOrNull(appVersion)) {
-        "Current app version must use x.y.z or x.y.z+n format"
+fun resolveToolPkgApiCompatibility(
+    artifactType: String,
+    apiVersion: String?,
+    supportedApiVersions: List<String> =
+        ToolPkgApiCompatibility.supportedApiVersions().map { it.toString() }
+): MarketToolPkgApiCompatibility? {
+    if (PublishArtifactType.fromWireValue(artifactType) != PublishArtifactType.PACKAGE) return null
+    val declaredVersion = apiVersion.effectiveToolPkgApiVersion()
+    // Match the loader's parsed API versions, including rejection of malformed declarations.
+    val parsedVersion = try {
+        ToolPkgApiVersion.parse(declaredVersion).toString()
+    } catch (_: IllegalArgumentException) {
+        null
     }
-    val minimum = parseAppVersionOrNull(minSupportedAppVersion)
-    if (minimum != null && compareAppVersions(current.toString(), minimum.toString()) < 0) {
-        return MarketAppVersionCompatibility(
-            kind = MarketAppVersionCompatibilityKind.BELOW_MINIMUM,
-            currentVersion = current.toString(),
-            requiredVersion = minimum.toString()
-        )
-    }
-    val maximum = parseAppVersionOrNull(maxSupportedAppVersion)
-    if (maximum != null && compareAppVersions(current.toString(), maximum.toString()) > 0) {
-        return MarketAppVersionCompatibility(
-            kind = MarketAppVersionCompatibilityKind.ABOVE_MAXIMUM,
-            currentVersion = current.toString(),
-            requiredVersion = maximum.toString()
-        )
-    }
-    return null
-}
-
-fun MarketV2Entry.resolveCurrentAppVersionCompatibility(): MarketAppVersionCompatibility? {
-    val version = latestVersion ?: return null
-    return resolveAppVersionCompatibility(
-        appVersion = BuildConfig.VERSION_NAME,
-        minSupportedAppVersion = version.minAppVer,
-        maxSupportedAppVersion = version.maxAppVer
+    if (parsedVersion != null && parsedVersion in supportedApiVersions) return null
+    return MarketToolPkgApiCompatibility(
+        requiredApiVersion = declaredVersion,
+        supportedApiVersions = supportedApiVersions.joinToString(", ")
     )
 }
 
-fun MarketV2Entry.isUnsupportedByCurrentAppVersion(): Boolean {
-    return resolveCurrentAppVersionCompatibility() != null
+fun MarketV2Entry.resolveToolPkgApiCompatibility(): MarketToolPkgApiCompatibility? {
+    val version = latestVersion ?: return null
+    return resolveToolPkgApiCompatibility(type, version.apiVersion)
 }
 
 fun isOperit2VersionAllowed(maxSupportedAppVersion: String?): Boolean {

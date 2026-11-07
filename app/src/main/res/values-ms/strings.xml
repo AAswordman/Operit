@@ -7571,9 +7571,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="github_login_method_external">Log masuk dengan penyemak imbas luaran</string>
     <string name="github_login_starting">Menyediakan kebenaran GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versi keluaran ToolPkg berasal daripada manifest dalam pakej, tidak boleh diubah suai secara manual sebelum penerbitan</string>
-    <string name="market_version_incompatible_title">Tidak dapat memuat turun: versi klien tidak disokong</string>
-    <string name="market_version_too_low_message">Versi klien semasa %1$s lebih rendah daripada versi minimum %2$s yang diperlukan oleh sumber ini. Sila kemas kini klien sebelum memuat turun.</string>
-    <string name="market_version_too_high_message">Versi klien semasa %1$s lebih tinggi daripada versi maksimum %2$s yang disokong oleh sumber ini. Sila gunakan versi klien yang disokong.</string>
+    <string name="market_toolpkg_api_incompatible_title">Tidak dapat memasang: API ToolPkg tidak disokong</string>
+    <string name="market_toolpkg_api_incompatible_message">Pemalam ini mengisytiharkan API ToolPkg %1$s. Peranti ini menyokong %2$s, jadi pemalam ini tidak dapat dipasang.</string>
     <string name="external_http_chat_a2a_title">Antara muka A2A Agent</string>
     <string name="external_http_chat_a2a_desc">Menyediakan perkhidmatan A2A 1.0 JSON-RPC menggunakan port pendengar dan Token Bearer yang sama. Berikan alamat Agent Card kepada klien A2A untuk penemuan terlebih dahulu.</string>
     <string name="external_http_chat_a2a_agent_card">Alamat Agent Card</string>

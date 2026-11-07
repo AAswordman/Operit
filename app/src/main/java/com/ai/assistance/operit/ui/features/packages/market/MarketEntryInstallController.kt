@@ -31,6 +31,15 @@ class MarketEntryInstallController(
         entry: MarketV2Entry,
         onProgress: MarketInstallProgressReporter = { _, _ -> }
     ) {
+        entry.resolveToolPkgApiCompatibility()?.let { incompatibility ->
+            throw IllegalArgumentException(
+                context.getString(
+                    R.string.market_toolpkg_api_incompatible_message,
+                    incompatibility.requiredApiVersion,
+                    incompatibility.supportedApiVersions
+                )
+            )
+        }
         onProgress(MarketInstallStage.CONNECTING, null)
         when (entry.type.lowercase()) {
             "skill" -> installSkillEntry(entry, onProgress)
