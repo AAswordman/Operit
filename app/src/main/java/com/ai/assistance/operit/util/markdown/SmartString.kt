@@ -96,6 +96,14 @@ class SmartString(initialContent: String = "") {
         return this
     }
 
+    /** Remove a discarded producer range without copying the retained message prefix. */
+    internal fun removeRange(start: Int, end: Int) {
+        if (start == end) return
+        builder.delete(start, end)
+        cachedString = null
+        lastLength = builder.length
+    }
+
     /** Replaces accumulated content while preserving this buffer instance. */
     fun replace(content: String): SmartString {
         builder.clear()
@@ -110,6 +118,7 @@ class SmartString(initialContent: String = "") {
      */
     /** 只复制新追加的可见尾部，避免流式解码反复复制完整正文。 */
     fun substring(startIndex: Int): String = builder.substring(startIndex)
+    internal fun substring(startIndex: Int, endIndex: Int): String = builder.substring(startIndex, endIndex)
 
     fun take(n: Int): String {
         return if (n >= builder.length) {
@@ -133,4 +142,3 @@ class SmartString(initialContent: String = "") {
         return this + char
     }
 }
-

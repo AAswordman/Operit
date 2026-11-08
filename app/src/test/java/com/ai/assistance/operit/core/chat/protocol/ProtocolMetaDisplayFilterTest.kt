@@ -134,20 +134,23 @@ class ProtocolMetaDisplayFilterTest {
         tracker.append(rawPrefix)
         assertEquals("前", filter.append(rawPrefix))
         tracker.savepoint("retry", rawPrefix.length)
+        val checkpoint = filter.checkpoint()
         tracker.append("discarded</meta>错误")
         filter.append("discarded</meta>错误")
 
         val restored = tracker.rollback("retry", rawPrefix.length, "discarded</meta>错误".length)!!.toString()
         assertEquals(rawPrefix, restored)
-        assertEquals("前", filter.reset(restored))
+        filter.restore(checkpoint)
         assertEquals("正确", filter.append("continued-secret</meta>正确"))
         assertEquals("", filter.finish())
     }
 
     @Test fun rollbackToAPartialOpeningContinuesWithoutLeaking() {
         val filter = ProtocolMetaDisplayFilter()
-        filter.append("其他" + tag())
-        assertEquals("前", filter.reset("前<me"))
+        assertEquals("前", filter.append("前<me"))
+        val checkpoint = filter.checkpoint()
+        filter.append("x>错误")
+        filter.restore(checkpoint)
         assertEquals("后", filter.append("ta provider=\"$provider\">secret</meta>后"))
         assertEquals("", filter.finish())
     }
