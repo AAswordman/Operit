@@ -79,6 +79,7 @@ data class MarketBrowseCardModel(
     val actionState: MarketBrowseActionState = MarketBrowseActionState.Available,
     val installProgress: MarketInstallProgress? = null,
     val showStats: Boolean = true,
+    val versionLabel: String? = null,
 )
 
 sealed interface MarketBrowseActionState {
@@ -401,6 +402,11 @@ fun MarketBrowseCard(
                     )
                 }
 
+                model.versionLabel?.let { version ->
+                    Spacer(Modifier.height(4.dp))
+                    Text(version, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 if (model.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(

@@ -27,13 +27,19 @@ sealed interface MarketUpdateCheckResult {
  * 依据安装标记执行一次市场更新检查。
  * @param marker 安装标记；为 null 时直接返回 NotFromMarket
  */
-suspend fun checkMarketUpdate(marker: MarketInstallMarker?): MarketUpdateCheckResult {
+suspend fun checkMarketUpdate(
+    marker: MarketInstallMarker?,
+    onFailure: (Throwable) -> Unit = {},
+): MarketUpdateCheckResult {
     if (marker == null) return MarketUpdateCheckResult.NotFromMarket
     val entryResult =
         withContext(Dispatchers.IO) {
             MarketStatsApiService().getEntry(marker.entryId)
         }
-    if (entryResult.isFailure) return MarketUpdateCheckResult.Failed
+    if (entryResult.isFailure) {
+        onFailure(requireNotNull(entryResult.exceptionOrNull()))
+        return MarketUpdateCheckResult.Failed
+    }
     val entry = entryResult.getOrNull() ?: return MarketUpdateCheckResult.EntryMissing
     val latest = entry.latestVersion
     return if (latest == null || latest.id.isBlank() || latest.id == marker.versionId) {

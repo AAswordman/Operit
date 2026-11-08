@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
@@ -40,7 +41,6 @@ internal fun BuiltInMarketPanel(query: String, type: String, onOpenDetail: (Stri
     var ready by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var current by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
     var error by remember { mutableStateOf<String?>(null) }
-    var installError by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(revision, checking, currentScreen) {
         if (!currentScreen) return@LaunchedEffect
         try {
@@ -56,8 +56,7 @@ internal fun BuiltInMarketPanel(query: String, type: String, onOpenDetail: (Stri
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.End) {
             ExtensionUpdateToolbar(manager, checkScope)
         }
-        ExtensionUpdateFailureNotice(checkScope, Modifier.padding(horizontal = 12.dp))
-        listOfNotNull(error, installError).forEach { Text(it, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
+        listOfNotNull(error).forEach { Text(it, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.error) }
         LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(specs.filter {
                 checkScope.accepts(ExtensionUpdate.BuiltIn(it)) &&
@@ -78,13 +77,14 @@ internal fun BuiltInMarketPanel(query: String, type: String, onOpenDetail: (Stri
                     model = MarketBrowseCardModel(title = spec.name,
                         description = stringResource(R.string.builtin) + " · " + stringResource(
                             if (spec.extension!!.kind == "plugin") R.string.extension_detail_plugin else R.string.extension_detail_script),
+                        versionLabel = stringResource(R.string.builtin_market_version, spec.version),
                         actionState = state, installProgress = progress, showStats = false),
                     onViewDetails = { onOpenDetail(spec.id) },
                     onInstall = {
                         coroutineScope.launch {
-                            try { installError = null; ExtensionUpdates.installBuiltIn(context, manager, spec) }
+                            try { ExtensionUpdates.installBuiltIn(context, manager, spec) }
                             catch (cancelled: CancellationException) { throw cancelled }
-                            catch (failure: Exception) { AppLogger.e("BuiltInMarket", "Install failed: ${spec.id}", failure); installError = failure.message ?: failure.javaClass.simpleName }
+                            catch (failure: Exception) { AppLogger.e("BuiltInMarket", "Install failed: ${spec.id}", failure); OKToast.error(context, extensionErrorDetails(failure), OKToast.LENGTH_LONG).show() }
                         }
                     },
                 )

@@ -9236,10 +9236,8 @@
     <string name="extension_detail_likes">Likes</string>
     <string name="extension_detail_format">Format</string>
     <string name="extension_updates_count">%1$d updates</string>
-    <string name="extension_updates_partial_failure">Some sources failed; tap for details</string>
     <string name="extension_update_now">Update</string>
     <string name="extension_updating">Updating</string>
-    <string name="extension_update_failed">Update failed. Please retry.</string>
     <string name="extension_install">Download</string>
     <string name="extension_installed">Installed</string>
 
@@ -9261,4 +9259,9 @@
     <string name="builtin_market_information">Information</string>
     <string name="builtin_market_source">Source</string>
     <string name="builtin_market_resource_version">Resource version</string>
+    <string name="builtin_resource_import">Import built-in resources</string>
+    <string name="builtin_resource_import_hint">Select the matching plugin or script, then import a resource ZIP exported from offline resources or built-in extensions.</string>
+    <string name="builtin_resource_no_targets">No built-in resources are available for import.</string>
+    <string name="builtin_market_version">Resource version %1$s</string>
+    <string name="extension_updates_no_sources">No plugins or scripts have an update source to check. Manually imported items without a market source cannot be checked.</string>
 </resources>

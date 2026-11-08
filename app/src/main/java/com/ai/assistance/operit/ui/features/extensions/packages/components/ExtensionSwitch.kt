@@ -31,6 +31,7 @@ internal fun ExtensionSwitch(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     val progress by animateFloatAsState(
         targetValue = if (checked) 1f else 0f,
@@ -48,7 +49,7 @@ internal fun ExtensionSwitch(
             .toggleable(value = checked, enabled = enabled, role = Role.Switch,
                 interactionSource = remember { MutableInteractionSource() }, indication = null,
                 onValueChange = onCheckedChange)
-            .minimumInteractiveComponentSize(),
+            .then(if (compact) Modifier else Modifier.minimumInteractiveComponentSize()),
         contentAlignment = Alignment.Center,
     ) {
         Canvas(Modifier.size(width = 52.dp, height = 32.dp)) {

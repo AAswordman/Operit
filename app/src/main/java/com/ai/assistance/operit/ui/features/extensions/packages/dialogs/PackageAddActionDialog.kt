@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -43,6 +44,7 @@ import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
 fun PackageAddActionDialog(
     isPluginTab: Boolean,
     onImport: () -> Unit,
+    onImportBuiltIn: () -> Unit,
     onCreateTemplate: (PackageTemplateKind) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -106,6 +108,12 @@ fun PackageAddActionDialog(
                             }
                         ),
                         onClick = onImport
+                    )
+                    AddActionCard(
+                        icon = Icons.Default.Archive,
+                        title = stringResource(R.string.builtin_resource_import),
+                        subtitle = stringResource(R.string.builtin_resource_import_hint),
+                        onClick = onImportBuiltIn,
                     )
                     AddActionCard(
                         icon = Icons.Default.Code,

@@ -123,19 +123,22 @@ internal fun ExtensionDetailActions(
             }
         }
         if (updateAction != null) updateAction() else {
-            Surface(
-                modifier = Modifier.testTag("extension-detail-activation"),
-                shape = RoundedCornerShape(999.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-            ) {
-                Row(Modifier.padding(start = 14.dp, end = 4.dp, top = 2.dp, bottom = 2.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (checked) enabledLabel else disabledLabel, modifier = Modifier.width(labelWidth),
-                        style = labelStyle, color = MaterialTheme.colorScheme.onSurface)
-                    Spacer(Modifier.width(5.dp))
-                    ExtensionSwitch(checked = checked, onCheckedChange = onToggle,
-                        modifier = Modifier.semantics { contentDescription = displayName }, enabled = toggleEnabled)
+            // Keep the touch target outside the painted capsule; otherwise it adds empty space inside its border.
+            Box(Modifier.minimumInteractiveComponentSize()) {
+                Surface(
+                    modifier = Modifier.align(Alignment.Center).testTag("extension-detail-activation"),
+                    shape = RoundedCornerShape(999.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    color = MaterialTheme.colorScheme.surfaceContainerLow,
+                ) {
+                    Row(Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        Text(if (checked) enabledLabel else disabledLabel, modifier = Modifier.width(labelWidth),
+                            style = labelStyle, color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.width(5.dp))
+                        ExtensionSwitch(checked = checked, onCheckedChange = onToggle,
+                            modifier = Modifier.semantics { contentDescription = displayName }, enabled = toggleEnabled, compact = true)
+                    }
                 }
             }
         }

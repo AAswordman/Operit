@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState
 import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
@@ -46,7 +47,6 @@ internal fun BuiltInMarketDetailScreen(resourceId: String, onOpenInstalled: (Str
     var upToDate by remember(resourceId) { mutableStateOf(false) }
     var canOpenInstalled by remember(resourceId) { mutableStateOf(false) }
     var loadError by remember(resourceId) { mutableStateOf<String?>(null) }
-    var installError by remember(resourceId) { mutableStateOf<String?>(null) }
     LaunchedEffect(resourceId, revision, checking, currentScreen) {
         if (!currentScreen) return@LaunchedEffect
         try {
@@ -105,12 +105,11 @@ internal fun BuiltInMarketDetailScreen(resourceId: String, onOpenInstalled: (Str
                     icon = Icons.Default.Download,
                     onClick = {
                         coroutineScope.launch {
-                            installError = null
                             try { ExtensionUpdates.installBuiltIn(context, manager, current) }
                             catch (cancelled: CancellationException) { throw cancelled }
                             catch (failure: Exception) {
                                 AppLogger.e("BuiltInMarket", "Install failed: $resourceId", failure)
-                                installError = failure.message ?: failure.javaClass.simpleName
+                                OKToast.error(context, extensionErrorDetails(failure), OKToast.LENGTH_LONG).show()
                             }
                         }
                     }),
@@ -121,7 +120,7 @@ internal fun BuiltInMarketDetailScreen(resourceId: String, onOpenInstalled: (Str
             )
         }
         progress?.let { item { MarketInstallProgressCard(it) } }
-        listOfNotNull(loadError, installError).forEach { error -> item { Text(error, color = MaterialTheme.colorScheme.error) } }
+        listOfNotNull(loadError).forEach { error -> item { Text(error, color = MaterialTheme.colorScheme.error) } }
         item { UnifiedMarketDetailSectionCard(UnifiedMarketDetailSection(
             title = stringResource(R.string.builtin_market_about), body = stringResource(R.string.builtin_market_description))) }
         item { UnifiedMarketDetailSectionCard(UnifiedMarketDetailSection(

@@ -31,6 +31,11 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.MarketStatsApiService
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.ui.features.extensions.packages.market.readMarketInstallMarkerForPackage
+import com.ai.assistance.operit.ui.features.extensions.packages.market.BuiltInResourceDetailActions
+import com.ai.assistance.operit.ui.features.extensions.packages.market.builtInResourceForPackage
+import com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdates
+import com.ai.assistance.operit.ui.features.extensions.packages.market.extensionErrorDetails
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.EnvVar
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageDialogHeader
@@ -193,7 +198,7 @@ internal fun PackageDetailsScreen(
             title = { Text(stringResource(R.string.pkg_confirm_delete)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.pkg_delete_warning, packageName))
+                    Text(stringResource(if (resolvedPackage?.isBuiltIn == true) R.string.resource_delete_confirm else R.string.pkg_delete_warning, packageName))
                     if (deleteFailed) Text(
                         stringResource(R.string.pkg_delete_failed),
                         color = MaterialTheme.colorScheme.error,
@@ -208,7 +213,13 @@ internal fun PackageDetailsScreen(
                         deleteFailed = false
                         scope.launch {
                             try {
-                                val deleted = withContext(Dispatchers.IO) { packageManager.deletePackage(packageName) }
+                                val deleted = withContext(Dispatchers.IO) {
+                                    if (resolvedPackage?.isBuiltIn == true) {
+                                        ExtensionUpdates.deleteBuiltIn(context, packageManager,
+                                            builtInResourceForPackage(context, packageManager, packageName))
+                                        true
+                                    } else packageManager.deletePackage(packageName)
+                                }
                                 if (deleted) {
                                     showDeleteConfirmDialog = false
                                     onPackageDeleted()
@@ -217,6 +228,7 @@ internal fun PackageDetailsScreen(
                                 throw error
                             } catch (error: Exception) {
                                 AppLogger.e("PackageDetailsScreen", "Package deletion failed: $packageName", error)
+                                OKToast.error(context, extensionErrorDetails(error), OKToast.LENGTH_LONG).show()
                                 deleteFailed = true
                             } finally {
                                 isDeleting = false
@@ -660,7 +672,10 @@ internal fun PackageDetailsScreen(
                         Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.pkg_runtime_monitor_action))
                     }
-
+                    BuiltInResourceDetailActions(packageName, metaPackage, packageManager, isDeleting || isUpdating) {
+                        deleteFailed = false
+                        showDeleteConfirmDialog = true
+                    }
                 }
                 if (metaPackage != null && !metaPackage.isBuiltIn) {
                     Surface(onClick = { deleteFailed = false; showDeleteConfirmDialog = true },

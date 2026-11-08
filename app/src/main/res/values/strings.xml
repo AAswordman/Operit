@@ -9212,10 +9212,8 @@
     <string name="extension_detail_likes">喜欢</string>
     <string name="extension_detail_format">格式</string>
     <string name="extension_updates_count">发现 %1$d 个更新</string>
-    <string name="extension_updates_partial_failure">部分来源检查失败，点击查看</string>
     <string name="extension_update_now">更新</string>
     <string name="extension_updating">更新中</string>
-    <string name="extension_update_failed">更新失败，请重试</string>
     <string name="extension_install">下载</string>
     <string name="extension_installed">已安装</string>
 
@@ -9237,4 +9235,9 @@
     <string name="builtin_market_information">信息</string>
     <string name="builtin_market_source">来源</string>
     <string name="builtin_market_resource_version">资源版本</string>
+    <string name="builtin_resource_import">导入内置资源包</string>
+    <string name="builtin_resource_import_hint">选择对应的插件或脚本，再导入从离线资源或内置扩展导出的 ZIP 资源包。</string>
+    <string name="builtin_resource_no_targets">没有可导入的内置资源。</string>
+    <string name="builtin_market_version">资源版本 %1$s</string>
+    <string name="extension_updates_no_sources">没有可检查更新的插件或脚本。手动导入且没有市场来源的项目无法检查更新。</string>
 </resources>

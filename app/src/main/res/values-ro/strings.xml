@@ -9081,10 +9081,8 @@
     <string name="extension_detail_likes">Aprecieri</string>
     <string name="extension_detail_format">Format</string>
     <string name="extension_updates_count">%1$d actualizări</string>
-    <string name="extension_updates_partial_failure">Unele surse au eșuat; apasă pentru detalii</string>
     <string name="extension_update_now">Actualizează</string>
     <string name="extension_updating">Se actualizează</string>
-    <string name="extension_update_failed">Actualizarea a eșuat. Încearcă din nou.</string>
     <string name="extension_install">Descarcă</string>
     <string name="extension_installed">Instalat</string>
 
@@ -9106,4 +9104,9 @@
     <string name="builtin_market_information">Informații</string>
     <string name="builtin_market_source">Sursă</string>
     <string name="builtin_market_resource_version">Versiunea resursei</string>
+    <string name="builtin_resource_import">Importă resurse integrate</string>
+    <string name="builtin_resource_import_hint">Selectează extensia sau scriptul corespunzător, apoi importă un ZIP exportat din resursele offline sau extensiile integrate.</string>
+    <string name="builtin_resource_no_targets">Nu există resurse integrate disponibile pentru import.</string>
+    <string name="builtin_market_version">Versiunea resursei %1$s</string>
+    <string name="extension_updates_no_sources">Nu există extensii sau scripturi cu o sursă de actualizări. Elementele importate manual fără o sursă din magazin nu pot fi verificate.</string>
 </resources>

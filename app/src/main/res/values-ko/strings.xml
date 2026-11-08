@@ -8335,10 +8335,8 @@
     <string name="extension_detail_likes">좋아요</string>
     <string name="extension_detail_format">형식</string>
     <string name="extension_updates_count">업데이트 %1$d개</string>
-    <string name="extension_updates_partial_failure">일부 출처를 확인하지 못했습니다. 눌러서 자세히 보기</string>
     <string name="extension_update_now">업데이트</string>
     <string name="extension_updating">업데이트 중</string>
-    <string name="extension_update_failed">업데이트에 실패했습니다. 다시 시도하세요.</string>
     <string name="extension_install">다운로드</string>
     <string name="extension_installed">설치됨</string>
 
@@ -8360,4 +8358,9 @@
     <string name="builtin_market_information">정보</string>
     <string name="builtin_market_source">출처</string>
     <string name="builtin_market_resource_version">리소스 버전</string>
+    <string name="builtin_resource_import">내장 리소스 가져오기</string>
+    <string name="builtin_resource_import_hint">해당 플러그인 또는 스크립트를 선택한 후 오프라인 리소스나 내장 확장에서 내보낸 ZIP을 가져오세요.</string>
+    <string name="builtin_resource_no_targets">가져올 수 있는 내장 리소스가 없습니다.</string>
+    <string name="builtin_market_version">리소스 버전 %1$s</string>
+    <string name="extension_updates_no_sources">업데이트 출처를 확인할 플러그인이나 스크립트가 없습니다. 마켓 출처 없이 직접 가져온 항목은 확인할 수 없습니다.</string>
 </resources>

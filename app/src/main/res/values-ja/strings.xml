@@ -8325,10 +8325,8 @@
     <string name="extension_detail_likes">お気に入り</string>
     <string name="extension_detail_format">形式</string>
     <string name="extension_updates_count">%1$d 件の更新</string>
-    <string name="extension_updates_partial_failure">一部の配布元の確認に失敗しました。タップして詳細を表示</string>
     <string name="extension_update_now">更新</string>
     <string name="extension_updating">更新中</string>
-    <string name="extension_update_failed">更新に失敗しました。再試行してください。</string>
     <string name="extension_install">ダウンロード</string>
     <string name="extension_installed">インストール済み</string>
 
@@ -8350,4 +8348,9 @@
     <string name="builtin_market_information">情報</string>
     <string name="builtin_market_source">配布元</string>
     <string name="builtin_market_resource_version">リソースバージョン</string>
+    <string name="builtin_resource_import">内蔵リソースをインポート</string>
+    <string name="builtin_resource_import_hint">対応するプラグインまたはスクリプトを選び、オフラインリソースや内蔵拡張から書き出した ZIP をインポートします。</string>
+    <string name="builtin_resource_no_targets">インポートできる内蔵リソースがありません。</string>
+    <string name="builtin_market_version">リソースバージョン %1$s</string>
+    <string name="extension_updates_no_sources">更新元を確認できるプラグインやスクリプトがありません。マーケットの情報がない手動インポート項目は確認できません。</string>
 </resources>

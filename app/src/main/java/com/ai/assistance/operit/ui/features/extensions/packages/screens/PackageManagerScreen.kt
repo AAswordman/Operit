@@ -72,6 +72,7 @@ import com.ai.assistance.operit.ui.components.ErrorDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.components.EmptyState
 import com.ai.assistance.operit.ui.features.extensions.packages.components.PackageTab
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageAddActionDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.BuiltInResourceImportDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageTemplateIdentityDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.QuickPluginCreatorDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.lists.PackagesList
@@ -243,6 +244,7 @@ fun PackageManagerScreen(
     var quickPluginSetupRunning by remember { mutableStateOf(false) }
     var quickPluginSetupResult by remember { mutableStateOf<ToolResult?>(null) }
     var showPackageAddActionDialog by remember { mutableStateOf(false) }
+    var builtInImportIsPlugin by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var pendingTemplateKind by remember { mutableStateOf<PackageTemplateKind?>(null) }
 
     val environmentPackages by remember {
@@ -805,11 +807,6 @@ fun PackageManagerScreen(
                     )
                 }
             }
-            if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
-                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateFailureNotice(
-                    com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope(
-                        if (selectedTab == PackageTab.PLUGINS) "package" else "script"), Modifier.padding(horizontal = 16.dp))
-            }
             if ((selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) && packageLoadErrors.value.isNotEmpty()) {
                 TextButton(
                     onClick = { showPackageLoadErrorsDialog = true },
@@ -1096,6 +1093,10 @@ fun PackageManagerScreen(
                         showPackageAddActionDialog = false
                         packageFilePicker.launch("*/*")
                     },
+                    onImportBuiltIn = {
+                        showPackageAddActionDialog = false
+                        builtInImportIsPlugin = selectedTab == PackageTab.PLUGINS
+                    },
                     onCreateTemplate = { kind ->
                         showPackageAddActionDialog = false
                         pendingTemplateKind = kind
@@ -1104,6 +1105,9 @@ fun PackageManagerScreen(
                 )
             }
 
+            builtInImportIsPlugin?.let { isPlugin ->
+                BuiltInResourceImportDialog(isPlugin, packageManager, onDismiss = { builtInImportIsPlugin = null })
+            }
             pendingTemplateKind?.let { kind ->
                 PackageTemplateIdentityDialog(
                     kind = kind,

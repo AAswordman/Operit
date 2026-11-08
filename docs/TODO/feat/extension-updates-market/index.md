@@ -34,6 +34,7 @@ branch: feat/extension-updates-market
 - [03：消息信息与验收状态](03-message-info-and-verification.md)
 - [04：列表与内置来源体验修正](04-list-and-builtins-followup.md)
 - [05：主题工作室资源多选](05-studio-resource-multiselect.md)
+- [06：内置资源管理与检查反馈](06-resource-management-and-feedback.md)
 
 源码实施与静态审查完成，改动通过本任务分支和 PR 交付，远程构建及回归结果以对应提交的 Actions 记录为准。基线继承扩展详情页 PR #154 的六个提交，不包含市场兼容性 PR #156。
 

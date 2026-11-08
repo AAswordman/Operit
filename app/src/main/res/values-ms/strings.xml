@@ -8487,10 +8487,8 @@
     <string name="extension_detail_likes">Suka</string>
     <string name="extension_detail_format">Format</string>
     <string name="extension_updates_count">%1$d kemas kini</string>
-    <string name="extension_updates_partial_failure">Sesetengah sumber gagal; ketik untuk butiran</string>
     <string name="extension_update_now">Kemas kini</string>
     <string name="extension_updating">Mengemas kini</string>
-    <string name="extension_update_failed">Kemas kini gagal. Cuba lagi.</string>
     <string name="extension_install">Muat turun</string>
     <string name="extension_installed">Dipasang</string>
 
@@ -8512,4 +8510,9 @@
     <string name="builtin_market_information">Maklumat</string>
     <string name="builtin_market_source">Sumber</string>
     <string name="builtin_market_resource_version">Versi sumber</string>
+    <string name="builtin_resource_import">Import sumber terbina dalam</string>
+    <string name="builtin_resource_import_hint">Pilih pemalam atau skrip yang sepadan, kemudian import ZIP yang dieksport daripada sumber luar talian atau sambungan terbina dalam.</string>
+    <string name="builtin_resource_no_targets">Tiada sumber terbina dalam tersedia untuk diimport.</string>
+    <string name="builtin_market_version">Versi sumber %1$s</string>
+    <string name="extension_updates_no_sources">Tiada pemalam atau skrip dengan sumber kemas kini untuk disemak. Item yang diimport secara manual tanpa sumber pasaran tidak boleh disemak.</string>
 </resources>
