@@ -650,6 +650,26 @@ class EnhancedAIService private constructor(context: Context) {
         return Pair("$provider/${config.name}", modelName)
     }
 
+    /** Snapshot only for persisted message information; API routing always uses the raw model name. */
+    suspend fun getMessageInfoProviderAndModelForFunction(
+        functionType: FunctionType,
+        chatModelConfigIdOverride: String?,
+        chatModelIndexOverride: Int?,
+        enableThinking: Boolean,
+    ): Pair<String, String> {
+        val (provider, model) = getDisplayProviderAndModelForFunction(
+            functionType, chatModelConfigIdOverride, chatModelIndexOverride)
+        val config = getModelConfigForFunction(functionType, chatModelConfigIdOverride, chatModelIndexOverride)
+        val mapping = com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry.resolve(
+            providerTypeId = config.apiProviderTypeId, modelName = model,
+            apiEndpoint = config.apiEndpoint, thinkingConfigurations = config.thinkingConfigurations)
+        val option = if ((enableThinking || mapping.reasoningRequired) &&
+            mapping.control == com.ai.assistance.operit.api.chat.model.ThinkingQualityControl.LEVELS) {
+            mapping.optionFor(config.thinkingOptionId)?.id
+        } else null
+        return provider to com.ai.assistance.operit.core.chat.message.modelInfoWithThinking(model, option)
+    }
+
     suspend fun getModelConfigForFunction(
         functionType: FunctionType,
         chatModelConfigIdOverride: String? = null,

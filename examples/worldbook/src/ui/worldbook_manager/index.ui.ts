@@ -20,7 +20,7 @@ import {
   type WorldBookEntry,
   type WorldBookListEntry,
   type WorldBookMutationParams
-} from "../../shared/worldbook_service.js";
+} from "../../shared/worldbook_client.js";
 import type { ComposeColor, ComposeDslContext, ComposeNode } from "../../../../types/compose-dsl";
 
 type FormInjectTarget = "system" | "user" | "assistant";

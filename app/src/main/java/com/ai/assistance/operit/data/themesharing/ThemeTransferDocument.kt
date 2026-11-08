@@ -3,6 +3,7 @@ package com.ai.assistance.operit.data.themesharing
 import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import java.io.File
+import kotlinx.serialization.json.JsonObject
 import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 
 internal enum class ThemeTransferError {
@@ -29,6 +30,7 @@ internal data class ThemeTransferDocument(
     val layout: ChatLayoutSettings,
     val full: Boolean,
     val script: ThemeScriptManifest? = null,
+    val appearance: JsonObject? = null,
 )
 
 internal class PreparedTheme(
@@ -37,6 +39,13 @@ internal class PreparedTheme(
     val assets: Map<String, File> = emptyMap(),
     val scriptPreviewFile: File? = null,
 ) : AutoCloseable {
+    private var appearancePreview: File? = null
+
+    fun replaceAppearancePreview(file: File) {
+        appearancePreview?.delete()
+        appearancePreview = file
+    }
+
     override fun close() {
         directory?.deleteRecursively()
     }

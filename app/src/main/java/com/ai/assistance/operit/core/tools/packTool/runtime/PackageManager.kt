@@ -193,6 +193,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val requires: List<ToolPkgManifestRequirement> = emptyList(),
         val fileSizeBytes: Long = 0L,
         val isBuiltIn: Boolean = false,
+        val mainEntry: String = "",
+        val sourcePath: String = "",
+        val navigationEntryCount: Int = 0,
+        val desktopWidgetCount: Int = 0,
+        val hasConfigurableUi: Boolean = false,
     )
 
     data class ToolPkgLogoBytes(
@@ -504,8 +509,9 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 normalizeEnabledPackageNames(enabledPackageNamesOverride ?: decodeEnabledPackageNamesFromPrefs())
             val cleanedEnabledPackageNames =
                 normalizedEnabledPackageNames.filter { packageName -> availablePackages.containsKey(packageName) }
+            // Replacement temporarily removes source/dependency nodes; keep saved choices until reload completes.
             if (persistIfChanged && cleanedEnabledPackageNames != normalizedEnabledPackageNames) {
-                val pending = normalizedEnabledPackageNames.filter { it in BuiltInExtensionResources.packageNames(context) }
+                val pending = normalizedEnabledPackageNames.filter { it in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty() }
                 persistEnabledPackageNamesToPrefs((cleanedEnabledPackageNames + pending).distinct())
             }
 
@@ -513,7 +519,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 normalizeToolPkgSubpackageStates(subpackageStatesOverride ?: decodeToolPkgSubpackageStatesFromPrefs())
             val cleanedStates =
                 normalizedStates.filterKeys { packageName ->
-                    toolPkgSubpackageByPackageName.containsKey(packageName) || packageName in BuiltInExtensionResources.packageNames(context)
+                    toolPkgSubpackageByPackageName.containsKey(packageName) || packageName in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty()
                 }
             if (persistIfChanged && cleanedStates != normalizedStates) {
                 persistToolPkgSubpackageStatesToPrefs(cleanedStates)
@@ -524,7 +530,8 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             toolPkgSubpackageStatesCache = cleanedStates
             runtimeCachesReady = true
             val needed = BuiltInExtensionResources.installed(context).filter { (pack, _) ->
-                pack.extension!!.packageNames.any { it in enabledPackageNameSetCache && availablePackages[it]?.isBuiltIn == true }
+                pack.extension!!.packageNames.any { it in enabledPackageNameSetCache && availablePackages[it]?.isBuiltIn == true } &&
+                    requireNotNull(pack.extension).packageNames.none(PackageUpdateState::contains)
             }.map { it.first.id }.toSet()
             (builtInResourceUsage.keys - needed).forEach { builtInResourceUsage.remove(it)?.close() }
             (needed - builtInResourceUsage.keys).forEach { id ->
@@ -608,17 +615,17 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     internal fun getEnabledPackageNameSetInternal(): Set<String> {
         ensureInitialized()
         if (runtimeCachesReady) {
-            return enabledPackageNameSetCache
+            return enabledPackageNameSetCache - PackageUpdateState.updating.value
         }
-        return getEnabledPackageNamesInternal().toSet()
+        return getEnabledPackageNamesInternal().toSet() - PackageUpdateState.updating.value
     }
 
     internal fun getEnabledToolPkgContainerRuntimes(): List<ToolPkgContainerRuntime> {
         ensureInitialized()
         if (runtimeCachesReady) {
-            return buildEnabledToolPkgContainerRuntimes(enabledPackageNamesCache)
+            return buildEnabledToolPkgContainerRuntimes(enabledPackageNamesCache).filterNot { PackageUpdateState.contains(it.packageName) }
         }
-        return buildEnabledToolPkgContainerRuntimes(getEnabledPackageNamesInternal())
+        return buildEnabledToolPkgContainerRuntimes(getEnabledPackageNamesInternal()).filterNot { PackageUpdateState.contains(it.packageName) }
     }
 
     fun cancelToolPkgExecutionsForChat(
@@ -822,7 +829,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         val normalized = linkedMapOf<String, Boolean>()
         states.forEach { (name, enabled) ->
             val canonical = normalizePackageName(name)
-            if (!toolPkgSubpackageByPackageName.containsKey(canonical)) {
+            if (!toolPkgSubpackageByPackageName.containsKey(canonical) && PackageUpdateState.updating.value.isEmpty()) {
                 return@forEach
             }
 
@@ -1697,6 +1704,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     }
 
     fun setToolPkgSubpackageEnabled(subpackagePackageName: String, enabled: Boolean): Boolean {
+        if (PackageUpdateState.contains(updateRootName(subpackagePackageName))) return false
         return toolPkgFacade.setToolPkgSubpackageEnabled(subpackagePackageName, enabled)
     }
 
@@ -1918,7 +1926,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
 
         if (packagesChanged) {
             val pending = decodeEnabledPackageNamesFromPrefs().filter {
-                !availablePackages.containsKey(it) && it in BuiltInExtensionResources.packageNames(context)
+                !availablePackages.containsKey(it) && (it in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty())
             }
             persistEnabledPackageNamesToPrefs((enabledPackageNames + pending).distinct())
             AppLogger.d(TAG, "Updated enabled package names with default packages.")
@@ -3282,6 +3290,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
      * For toolpkg containers this may also activate default-enabled subpackages.
      */
     fun enablePackage(packageName: String): String {
+        packageUpdateError(packageName)?.let { return it }
         ensureInitialized()
         val normalizedPackageName = normalizePackageName(packageName)
 
@@ -3393,6 +3402,9 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             return failure(PackageActivationErrorCode.MISSING_PACKAGE_NAME, "Missing required parameter: package_name")
         }
 
+        packageUpdateError(normalizedPackageName)?.let {
+            return failure(PackageActivationErrorCode.PACKAGE_LOAD_FAILED, it)
+        }
         val containerRuntime = toolPkgContainers[normalizedPackageName]
         if (containerRuntime != null) {
             return failure(PackageActivationErrorCode.PACKAGE_NOT_ACTIVATABLE, "ToolPkg container '$normalizedPackageName' is not a package and cannot be activated.")
@@ -3483,6 +3495,10 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 }
             }
 
+            // Loading metadata and environment settings can overlap with the start of an update.
+            packageUpdateError(normalizedPackageName)?.let {
+                return failure(PackageActivationErrorCode.PACKAGE_LOAD_FAILED, it)
+            }
             // Register the package tools with AIToolHandler
             val selectedPackage = selectToolPackageState(toolPackage)
             registerPackageTools(selectedPackage)
@@ -3736,7 +3752,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             val normalizedPackages = normalizeEnabledPackageNames(currentPackages)
             val builtInNames = BuiltInExtensionResources.packageNames(context)
             val cleanedPackages = normalizedPackages.filter { packageName ->
-                availablePackages.containsKey(packageName) || packageName in builtInNames
+                availablePackages.containsKey(packageName) || packageName in builtInNames || PackageUpdateState.updating.value.isNotEmpty()
             }
 
             if (cleanedPackages.size != currentPackages.size || cleanedPackages != currentPackages) {
@@ -3752,7 +3768,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             val states = getToolPkgSubpackageStatesInternal()
             val cleanedStates =
                 states.filterKeys { packageName ->
-                    toolPkgSubpackageByPackageName.containsKey(packageName) || packageName in BuiltInExtensionResources.packageNames(context)
+                    toolPkgSubpackageByPackageName.containsKey(packageName) || packageName in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty()
                 }
 
             if (cleanedStates.size != states.size) {
@@ -3794,7 +3810,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     internal fun saveEnabledPackageNames(enabledPackageNames: List<String>) {
         val normalizedPackages = normalizeEnabledPackageNames(enabledPackageNames)
         val pending = decodeEnabledPackageNamesFromPrefs().filter {
-            !availablePackages.containsKey(it) && it in BuiltInExtensionResources.packageNames(context)
+            !availablePackages.containsKey(it) && (it in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty())
         }
         persistEnabledPackageNamesToPrefs((normalizedPackages + pending).distinct())
         if (isInitialized || runtimeCachesReady) {
@@ -3823,7 +3839,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     internal fun saveToolPkgSubpackageStates(states: Map<String, Boolean>) {
         val normalizedStates = normalizeToolPkgSubpackageStates(states)
         val pending = decodeToolPkgSubpackageStatesFromPrefs().filterKeys {
-            !toolPkgSubpackageByPackageName.containsKey(it) && it in BuiltInExtensionResources.packageNames(context)
+            !toolPkgSubpackageByPackageName.containsKey(it) && (it in BuiltInExtensionResources.packageNames(context) || PackageUpdateState.updating.value.isNotEmpty())
         }
         persistToolPkgSubpackageStatesToPrefs(pending + normalizedStates)
         if (isInitialized || runtimeCachesReady) {
@@ -3891,6 +3907,63 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         }
     }
 
+    fun updateRootName(packageName: String): String {
+        ensureInitialized()
+        val normalized = normalizePackageName(packageName)
+        return toolPkgSubpackageByPackageName[normalized]?.containerPackageName ?: normalized
+    }
+
+    /** Stop this extension's runtimes and release resource leases while keeping activation preferences. */
+    fun preparePackageUpdate(names: Set<String>) {
+        names.filter { isToolPkgContainer(it) }.forEach(::destroyToolPkgExecutionEngines)
+        synchronized(initLock) {
+            BuiltInExtensionResources.specs(context).filter { spec -> spec.extension!!.packageNames.any { it in names } }
+                .forEach { spec -> builtInResourceUsage.remove(spec.id)?.close() }
+        }
+        notifyToolPkgRuntimeChangeListeners()
+    }
+
+    fun completePackageUpdate(names: Set<String>) {
+        val activeNames = names.filter { activePackageToolNames.containsKey(it) }
+        try {
+            getAvailablePackages(forceRefresh = true)
+            // Registered executors capture their script; replace them before releasing the update gate.
+            activeNames.forEach { name ->
+                if (!availablePackages.containsKey(name) || !isPackageEnabled(name)) {
+                    unregisterPackageTools(name)
+                } else {
+                    val tools = checkNotNull(getPackageTools(name)) { "Failed to reload updated tools: $name" }
+                    registerPackageTools(selectToolPackageState(tools))
+                }
+            }
+        } catch (error: Exception) {
+            activeNames.forEach(::unregisterPackageTools)
+            throw error
+        } finally {
+            PackageUpdateState.finish(names)
+            refreshToolPkgRuntimeState(persistIfChanged = false)
+        }
+    }
+
+    fun updatePackageNames(packageName: String): Set<String> {
+        val root = updateRootName(packageName)
+        return setOf(root) + toolPkgContainers[root]?.subpackages.orEmpty().map { it.packageName }
+    }
+
+    private fun packageUpdateError(packageName: String): String? {
+        val updatingName = if (PackageUpdateState.contains(packageName)) packageName else updateRootName(packageName)
+        if (!PackageUpdateState.contains(updatingName)) return null
+        // Type metadata survives the temporary removal of the old package from the scan cache.
+        val kind = if (PackageUpdateState.isPlugin(updatingName)) "package" else "script"
+        return "$kind is unavailable: $packageName"
+    }
+
+    fun packageAvailabilityError(packageName: String): String? {
+        packageUpdateError(packageName)?.let { return it }
+        val kind = if (isToolPkgContainer(updateRootName(packageName))) "package" else "script"
+        return if (!isPackageEnabled(packageName)) "$kind is disabled: $packageName" else null
+    }
+
     /** Checks if a package is enabled */
     fun isPackageEnabled(packageName: String): Boolean {
         ensureInitialized()
@@ -3911,6 +3984,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
      * For toolpkg containers this also disables all internal subpackages.
      */
     fun disablePackage(packageName: String): String {
+        packageUpdateError(packageName)?.let { return it }
         ensureInitialized()
         val normalizedPackageName = normalizePackageName(packageName)
 
@@ -4077,14 +4151,15 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
      * Deletes a package file from external storage and removes it from the in-memory cache.
      * This action is permanent and cannot be undone.
      */
-    fun deletePackage(packageName: String, preservePluginActivity: Boolean = false): Boolean {
+    fun deletePackage(packageName: String, preservePluginActivity: Boolean = false, forUpdate: Boolean = false): Boolean {
+        if (!forUpdate && packageUpdateError(packageName) != null) return false
         ensureInitialized()
         val normalizedPackageName = normalizePackageName(packageName)
         // 刷新真实来源，避免旧缓存或同 ID 的另一份安装包在删除后重新出现。
         loadAvailablePackages(refreshExternalOnly = true)
         if (toolPkgSubpackageByPackageName.containsKey(normalizedPackageName)) return false
         val metadata = availablePackages[normalizedPackageName] ?: return false
-        if (metadata.isBuiltIn || getEnabledToolPkgDependents(normalizedPackageName).isNotEmpty()) return false
+        if (metadata.isBuiltIn || (!forUpdate && getEnabledToolPkgDependents(normalizedPackageName).isNotEmpty())) return false
         val sourcePaths = externalPackageScanCache.values.mapNotNull { entry ->
             val result = entry.result
             val name = if (result.toolPackage != null) result.toolPackage.name
@@ -4101,14 +4176,14 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             AppLogger.w(TAG, "Package sources were not completely removed: $normalizedPackageName")
             return false
         }
-        disablePackage(normalizedPackageName)
-        removeFromCachesAfterDelete(normalizedPackageName)
+        if (!forUpdate) disablePackage(normalizedPackageName)
+        removeFromCachesAfterDelete(normalizedPackageName, preserveStates = forUpdate)
         externalPackageScanCache = externalPackageScanCache.filterKeys { it !in sourcePaths }
         if (!preservePluginActivity) pluginActivityStore.remove(normalizedPackageName)
         return true
     }
 
-    private fun removeFromCachesAfterDelete(packageName: String) {
+    private fun removeFromCachesAfterDelete(packageName: String, preserveStates: Boolean = false) {
         if (toolPkgContainers.containsKey(packageName)) {
             val container = toolPkgContainers.remove(packageName)
             availablePackages.remove(packageName)
@@ -4119,7 +4194,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             container?.subpackages?.forEach { subpackage ->
                 availablePackages.remove(subpackage.packageName)
                 toolPkgSubpackageByPackageName.remove(subpackage.packageName)
-                states.remove(subpackage.packageName)
+                if (!preserveStates) states.remove(subpackage.packageName)
             }
             saveToolPkgSubpackageStates(states)
             return

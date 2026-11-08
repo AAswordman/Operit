@@ -24,12 +24,15 @@ internal data class HubEntry(
     val location: String = "",
     val updateAvailable: Boolean = false,
 ) {
+    // Import prepares an absent extension; replacement belongs to the explicit update action.
+    val importable get() = !bundled && (pack?.extension == null || !stored)
     val isModel get() = category in setOf("stt", "tts", "ocr")
     val downloadable get() = !bundled && (legacy != null || pack != null || model?.let { it.archive != null || it.hfRepository.isNotBlank() || it.files.all { file -> file.url.isNotBlank() } } == true)
 }
 internal data class HubSnapshot(val entries: List<HubEntry>, val ubuntuInstalled: Boolean, val ubuntuPending: Boolean, val errors: List<String>)
 internal class ResourceHubRepository(private val context: Context) {
     val models = SpeechModels(context)
+    private val extensionDescriptions by lazy { com.ai.assistance.operit.data.resources.extensions.BuiltInExtensionMetadata.descriptions(context) }
     suspend fun snapshot(): HubSnapshot {
         PackResources.cleanupObsoleteExtensions(context)
         val engineReady = PackResources.isReady(context, PackResources.SPEECH_ENGINE)
@@ -54,8 +57,8 @@ internal class ResourceHubRepository(private val context: Context) {
                 catalog[model.key]?.bytes ?: model.bytes, complete && engineReady, models.hasData(model),
                 inUse = LocalModelRuntimeRegistry.isInUse(models.directory(model)), model = model, location = models.directory(model).absolutePath)
         }
-        for (pack in PackResources.catalog(context).packs) {
-            val category = when { pack.id == PackResources.OCR_MODELS -> "ocr"; pack.id.startsWith("template-") -> "template"; pack.extension != null -> pack.extension.kind; else -> "engine" }
+        for (pack in PackResources.catalog(context).packs.filter { it.extension == null }) {
+            val category = when { pack.id == PackResources.OCR_MODELS -> "ocr"; pack.id.startsWith("template-") -> "template"; else -> "engine" }
             val title = when {
                 pack.id == PackResources.OCR_MODELS -> context.getString(R.string.hub_ocr_name)
                 pack.id.startsWith("template-") -> context.getString(R.string.hub_template_name, pack.name)
@@ -64,8 +67,9 @@ internal class ResourceHubRepository(private val context: Context) {
             }
             val bundled = PackResources.isBundled(context, pack.id)
             entries += HubEntry(pack.id, title, category,
-                context.getString(when (category) { "ocr" -> R.string.hub_ocr_bundled_hint; "template" -> R.string.hub_template_hint; "plugin", "sandbox" -> R.string.hub_builtin_extension_hint; else -> R.string.hub_engine_hint }),
-                pack.archive.bytes, PackResources.isReady(context, pack.id), bundled || PackResources.directory(context, pack.id).exists(),
+                if (pack.extension != null) extensionDescriptions.getValue(pack.id).resolve(context) else
+                    context.getString(when (category) { "ocr" -> R.string.hub_ocr_bundled_hint; "template" -> R.string.hub_template_hint; else -> R.string.hub_engine_hint }),
+                pack.archive.bytes, PackResources.isReady(context, pack.id), bundled || (if (pack.extension != null) PackResources.hasLocalData(context, pack.id) else PackResources.directory(context, pack.id).exists()),
                 PackResources.isInUse(context, pack.id), bundled, pack = pack, location = if (bundled) context.packageResourcePath + "!/assets/" + when {
                     pack.extension != null -> "packages/${File(pack.extension.path).name}"
                     pack.id.startsWith("template-") -> "templates/${pack.id.removePrefix("template-")}"

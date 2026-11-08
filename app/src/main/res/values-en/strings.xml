@@ -963,7 +963,7 @@
     <string name="package_tools">Included Tools</string>
     <string name="package_import_success">Package imported successfully</string>
     <string name="package_import_error">Package import failed</string>
-    <string name="no_packages_available">No packages available</string>
+    <string name="no_packages_available">No scripts available</string>
     <string name="no_packages_imported">No packages imported yet</string>
     <string name="remove_package">Remove Package</string>
     <string name="package_removed">Package removed</string>
@@ -3734,7 +3734,6 @@
     <string name="config_renamed">Configuration Renamed</string>
 
     <!-- ModelApiSettingsSection strings -->
-    <string name="api_endpoint_placeholder">e.g.: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Actual request URL: %s</string>
     <string name="endpoint_completion_hint">Hint: If you enter a base URL, the system will automatically complete the path. To disable, add # at the end of the URL.</string>
     <string name="api_key_placeholder_default">No key set. Type one here or use the API key pool</string>
@@ -6347,10 +6346,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Failed to create virtual screen.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Virtual screen prewarm failed: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Virtual screen failed to start, aborted to avoid operations on main screen.</string>
-    <string name="phone_agent_thinking">Thinking...</string>
-    <string name="phone_agent_completed">Completed</string>
-    <string name="phone_agent_executing_action">Executing %1$s...</string>
-    <string name="phone_agent_executing">Executing...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">Skip</string>
@@ -7456,14 +7451,14 @@
     <string name="chat_style_bubble_ai_image_disabled_by_glass">AI bubble frosted glass or water glass background is currently enabled, AI bubble images will not take effect</string>
     <string name="login_github_to_manage_scripts">Log in to GitHub to publish and manage your scripts</string>
     <string name="login_github_to_manage_packages">Log in to GitHub to publish and manage your packages</string>
-    <string name="market_tab_artifact">Sandbox Packages</string>
+    <string name="market_tab_artifact">Scripts</string>
     <string name="market_tab_all">All</string>
     <string name="market_tab_categories">Categories</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Mine</string>
     <string name="market_category_type_all">All</string>
-    <string name="market_category_type_script">Script</string>
+    <string name="market_category_type_script">Scripts</string>
     <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -7510,9 +7505,9 @@
     <string name="available_scripts_market">Available Scripts</string>
     <string name="available_packages_market">Available Packages</string>
     <string name="no_matching_scripts_found">No matching scripts found</string>
-    <string name="no_matching_packages_found">No matching packages found</string>
+    <string name="no_matching_packages_found">No matching scripts found</string>
     <string name="script_market_search_placeholder">Search script name, description, author...</string>
-    <string name="package_market_search_placeholder">Search package name, description, author...</string>
+    <string name="package_market_search_placeholder">Search script name, description, author…</string>
     <string name="no_scripts_available">No scripts available</string>
     <string name="no_market_packages_available">No packages available</string>
     <string name="publish_new_script">Publish New Script</string>
@@ -7697,19 +7692,19 @@
     <string name="import_external_plugin">Import external plugin</string>
     <string name="package_script_only">Only HJSON (.hjson), JavaScript (.js), and TypeScript (.ts) files are supported</string>
     <string name="package_add_dialog_title_plugin">Add plugin</string>
-    <string name="package_add_dialog_title_package">Add sandbox package</string>
+    <string name="package_add_dialog_title_package">Add script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Import an existing script, or create a JS template with comments.</string>
     <string name="package_add_import_existing_plugin">Import existing plugin</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Import existing sandbox package</string>
+    <string name="package_add_import_existing_package">Import existing script</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Create JS template</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Create TypeScript template</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Create JS template</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Create a .js script with METADATA and a sample tool.</string>
     <string name="package_template_identity_title">New template</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -7728,7 +7723,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Import as plugin or sandbox package</string>
+    <string name="package_share_choice_import">Import as plugin or script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Add as a chat attachment</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -8071,9 +8066,8 @@
     <string name="market_manage_submit_revision">Submit new version after modification</string>
     <string name="market_manage_loading_request_title">Loading Request</string>
     <string name="market_manage_loading_request_message">Request is being processed, please wait…</string>
-    <string name="market_version_incompatible_title">Cannot Download: Client Version Not Supported</string>
-    <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
-    <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
+    <string name="market_toolpkg_api_incompatible_title">Cannot Install: ToolPkg API Not Supported</string>
+    <string name="market_toolpkg_api_incompatible_message">This plugin declares ToolPkg API %1$s. This device supports %2$s, so this plugin cannot be installed.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
     <string name="data_recovery_include_logs">Include logs in snapshot</string>
     <string name="data_recovery_include_logs_description">Logs help diagnose failures but may contain sensitive information. This only changes the export and does not delete device logs.</string>
@@ -8153,7 +8147,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Plugin market</string>
-    <string name="package_market">Package market</string>
+    <string name="package_market">Script market</string>
     <string name="plugin_sort_action">Sort</string>
     <string name="plugin_sort_custom">Custom order</string>
     <string name="plugin_sort_name">Name</string>
@@ -8172,7 +8166,7 @@
     <string name="plugin_manage_load_errors">Loading errors (%1$d)</string>
     <string name="plugin_import_format_help">Import formats</string>
     <string name="plugin_import_format_description">Plugins accept .toolpkg files containing manifest.json or manifest.hjson and the declared entry files and resources.</string>
-    <string name="sandbox_import_format_description">Sandbox packages accept .js, .ts and .hjson files. Scripts require METADATA; TypeScript must be compiled separately.</string>
+    <string name="sandbox_import_format_description">Standalone scripts support .js, .ts and .hjson files. Scripts need METADATA; TypeScript must be compiled separately.</string>
     <string name="skill_list_count">Skills · %1$d</string>
     <string name="mcp_start_services">Start services</string>
     <string name="mcp_starting_services">Starting</string>
@@ -8396,8 +8390,8 @@
 <string name="data_storage_extension_item_count">%1$d items</string>
 <string name="data_storage_extension_mcp">Model Context Protocol</string>
 <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
-<string name="data_storage_extension_plugin_source">Plugin source</string>
-<string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+<string name="data_storage_extension_plugin_data">Plugin data</string>
+<string name="data_storage_extension_plugin_data_empty">No plugin data</string>
 <string name="data_storage_extension_plugins">Plugins</string>
 <string name="data_storage_extension_plugins_empty">No runtime plugins found</string>
 <string name="data_storage_extension_scripts">Scripts</string>
@@ -8969,7 +8963,7 @@
     <string name="theme_transfer_author">Author</string>
     <string name="theme_transfer_code">Share code</string>
     <string name="theme_transfer_file">Theme file .oktheme</string>
-    <string name="theme_transfer_full_contents">Includes theme parameters, background images or video, both bubble images, custom fonts, avatars, and media adjustments.</string>
+    <string name="theme_transfer_full_contents">Includes all theme resources.</string>
     <string name="theme_transfer_paste">Share code or theme link</string>
     <string name="theme_transfer_choose_file">Choose theme file</string>
     <string name="theme_transfer_generate">Generate code</string>
@@ -9188,4 +9182,82 @@
     <string name="theme_icon_navigation">Common navigation icon</string>
     <string name="theme_appearance_disabled">Disabled</string>
     <string name="toolreg_terminal_task_desc">Terminal managed task operation: %1$s</string>
+    <string name="update_source_failed_reason">%1$s failed: %2$s</string>
+
+    <string name="extension_interfaces">Interfaces</string>
+    <string name="extension_description_title">Description</string>
+    <string name="extension_description_expand">Read more</string>
+    <string name="extension_description_collapse">Show less</string>
+    <string name="extension_detail_load_failed">Unable to load extension details. Check that it is still installed or retry.</string>
+    <string name="extension_toggle_failed">Unable to change activation. Check dependencies and environment settings, then retry.</string>
+    <string name="extension_detail_retry">Retry</string>
+
+    <string name="extension_detail_brief">Overview</string>
+    <string name="extension_detail_description">Detailed description</string>
+    <string name="extension_detail_information">Information</string>
+    <string name="extension_detail_manage">Manage</string>
+    <string name="extension_detail_contents">Contents</string>
+    <string name="extension_detail_dependencies">Dependencies</string>
+    <string name="extension_detail_subpackages">Subpackages</string>
+    <string name="extension_detail_type">Type</string>
+    <string name="extension_detail_status">Status</string>
+    <string name="extension_detail_version">Version</string>
+    <string name="extension_detail_source">Source</string>
+    <string name="extension_detail_imported">Manually imported</string>
+    <string name="extension_detail_market_source">Market installation</string>
+    <string name="extension_detail_remove">Remove extension</string>
+    <string name="extension_detail_remove_hint">Delete this extension and its files</string>
+    <string name="extension_detail_resources">Resources</string>
+    <string name="extension_detail_wasm">WASM modules</string>
+    <string name="extension_detail_workflows">Workflow templates</string>
+    <string name="extension_detail_workspaces">Workspace templates</string>
+    <string name="extension_detail_developers">Developers</string>
+    <string name="extension_detail_updated">Updated</string>
+    <string name="extension_detail_entry">Entry point</string>
+    <string name="extension_detail_path">Path</string>
+    <string name="extension_detail_market_entry">Market entry</string>
+    <string name="extension_detail_enabled">Enabled</string>
+    <string name="extension_detail_disabled">Disabled</string>
+    <string name="extension_detail_other_versions">Other versions</string>
+    <string name="extension_detail_empty_subpackages">This plugin has no subpackages.</string>
+    <string name="extension_detail_tools">Tools</string>
+    <string name="extension_detail_navigation">Navigation entries</string>
+    <string name="extension_detail_widgets">Desktop widgets</string>
+    <string name="extension_detail_default_state">Default state</string>
+    <string name="extension_detail_source_unavailable">Source unavailable</string>
+    <string name="extension_detail_install_config">Install configuration</string>
+
+    <string name="extension_detail_downloads">Downloads</string>
+    <string name="extension_detail_likes">Likes</string>
+    <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d updates</string>
+    <string name="extension_update_now">Update</string>
+    <string name="extension_updating">Updating</string>
+    <string name="extension_install">Download</string>
+    <string name="extension_installed">Installed</string>
+
+    <string name="extension_new_version">New version</string>
+    <string name="script_filter_all">All scripts</string>
+    <string name="script_filter_enabled">Enabled scripts</string>
+    <string name="script_filter_disabled">Disabled scripts</string>
+    <string name="script_list_count">%1$d scripts</string>
+    <string name="studio_resources_imported">Imported %1$d resources</string>
+    <string name="studio_import_resource_hint">Select multiple PNG, JPEG, WebP, static SVG images or TTF and OTF fonts</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Type</string>
+    <string name="builtin_market_download_size">Download size</string>
+    <string name="builtin_market_packages">Included extensions</string>
+    <string name="builtin_market_open_installed">View installed</string>
+    <string name="builtin_market_about">About</string>
+    <string name="builtin_market_description">Provided with Operit built-in resources. After downloading, manage and enable it and view its tools in the plugin or script list.</string>
+    <string name="builtin_market_information">Information</string>
+    <string name="builtin_market_source">Source</string>
+    <string name="builtin_market_resource_version">Resource version</string>
+    <string name="builtin_resource_import">Import built-in resources</string>
+    <string name="builtin_resource_import_hint">Select the matching plugin or script, then import the corresponding resource ZIP.</string>
+    <string name="builtin_resource_no_targets">No built-in resources are available for import.</string>
+    <string name="builtin_market_version">Resource version %1$s</string>
+    <string name="extension_updates_no_sources">No plugins or scripts have an update source to check. Manually imported items without a market source cannot be checked.</string>
+    <string name="data_storage_extension_plugin_data_desc">Contains world books and plugin settings. Manage this data in the corresponding plugin.</string>
 </resources>

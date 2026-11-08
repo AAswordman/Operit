@@ -8,31 +8,18 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,25 +27,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,10 +49,12 @@ import com.ai.assistance.operit.services.ServiceLifecycleOwner
 import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 /**
  * PhoneAgent UI 自动化进度悬浮卡片。
- * 在屏幕底部显示当前步骤进度、状态文案，以及一个可点击的取消按钮。
+ * 在屏幕底部显示简短任务阶段与暂停、停止按钮；步骤计数只保留在内部状态中。
  */
 class UIAutomationProgressOverlay private constructor(private val context: Context) {
     private val TAG = "UIAutomationProgressOverlay"
@@ -101,7 +81,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
     data class ProgressInfo(
         val currentStep: Int,
         val totalSteps: Int,
-        val statusText: String
+        val status: PhoneAgentUiStatus
     )
 
     private var progressInfo by mutableStateOf<ProgressInfo?>(null)
@@ -139,7 +119,8 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
                         WindowManager.LayoutParams.TYPE_PHONE
                     }
                     // 不获取输入焦点，但允许点击卡片区域
-                    flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    flags = WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
                     format = PixelFormat.TRANSLUCENT
@@ -150,6 +131,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
                 layoutParams = params
 
                 overlayView = ComposeView(context).apply {
+                    importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
                     setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
                     setViewTreeLifecycleOwner(lifecycleOwner)
                     setViewTreeViewModelStoreOwner(lifecycleOwner)
@@ -218,7 +200,8 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE
             },
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED or
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                 WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS or
@@ -227,6 +210,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
+            alpha = automationPassthroughAlpha(context)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
@@ -235,6 +219,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
 
         borderLayoutParams = params
         borderView = ComposeView(context).apply {
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnDetachedFromWindow)
             setViewTreeLifecycleOwner(lifecycleOwner)
             setViewTreeViewModelStoreOwner(lifecycleOwner)
@@ -276,7 +261,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
 
     fun show(
         totalSteps: Int,
-        initialStatus: String,
+        initialStatus: PhoneAgentUiStatus,
         onCancel: () -> Unit,
         onToggleTakeOver: (Boolean) -> Unit
     ) {
@@ -285,7 +270,7 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
             cancelCallback = onCancel
             takeOverToggleCallback = onToggleTakeOver
             isPaused = false
-            progressInfo = ProgressInfo(currentStep = 1, totalSteps = totalSteps, statusText = initialStatus)
+            progressInfo = ProgressInfo(currentStep = 1, totalSteps = totalSteps, status = initialStatus)
             if (borderEnabled) {
                 ensureBorderOverlay()
                 borderView?.visibility = View.VISIBLE
@@ -296,11 +281,11 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
         }
     }
 
-    fun updateProgress(currentStep: Int, totalSteps: Int, statusText: String) {
+    fun updateProgress(currentStep: Int, totalSteps: Int, status: PhoneAgentUiStatus) {
         runOnMainThread {
             if (overlayView == null) return@runOnMainThread
             val safeCurrent = if (currentStep <= 0) 1 else currentStep
-            progressInfo = ProgressInfo(currentStep = safeCurrent, totalSteps = totalSteps, statusText = statusText)
+            progressInfo = ProgressInfo(currentStep = safeCurrent, totalSteps = totalSteps, status = status)
         }
     }
 
@@ -344,9 +329,35 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
         }
     }
 
-    /**
-     * 在截图或实际 UI 操作期间临时隐藏卡片（通过调整可见性实现）。
-     */
+    /** Keep the current phase visible while allowing an injected gesture through the card. */
+    suspend fun setInputPassthrough(enabled: Boolean): Unit = withContext(Dispatchers.Main.immediate) {
+        val view = overlayView ?: return@withContext
+        val params = layoutParams ?: return@withContext
+        params.flags = if (enabled) params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+            else params.flags and WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE.inv()
+        params.alpha = if (enabled) automationPassthroughAlpha(context) else 1f
+        try {
+            windowManager?.updateViewLayout(view, params)
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Error updating progress input passthrough", e)
+            throw e
+        }
+        if (enabled) {
+            // updateViewLayout schedules a traversal. Resume after that frame's work so DOWN
+            // cannot target the old touchable card while its window update is still pending.
+            suspendCancellableCoroutine<Unit> { continuation ->
+                val resumeAfterTraversal = Runnable { if (continuation.isActive) continuation.resume(Unit) }
+                val nextFrame = Runnable { handler.post(resumeAfterTraversal) }
+                view.postOnAnimation(nextFrame)
+                continuation.invokeOnCancellation {
+                    view.removeCallbacks(nextFrame)
+                    handler.removeCallbacks(resumeAfterTraversal)
+                }
+            }
+        }
+    }
+
+    /** Screenshot capture hides the card; the border represents the entire active tool call. */
     suspend fun setOverlayVisible(visible: Boolean) {
         try {
             withContext(Dispatchers.Main) {
@@ -373,8 +384,9 @@ class UIAutomationProgressOverlay private constructor(private val context: Conte
 
                 layoutParams = params
                 borderView?.let { border ->
-                    border.alpha = if (shouldHide) 0f else 1f
-                    border.visibility = if (shouldHide) View.GONE else View.VISIBLE
+                    val active = borderEnabled && progressInfo != null
+                    border.alpha = if (active) 1f else 0f
+                    border.visibility = if (active) View.VISIBLE else View.GONE
                 }
             }
         } catch (e: Exception) {
@@ -433,6 +445,7 @@ private fun ProgressCard(
     onToggleTakeOver: (Boolean) -> Unit,
     onDragBy: (Float) -> Unit
 ) {
+    val visibleStatus = if (isPaused) PhoneAgentUiStatus.Paused else info.status
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -450,7 +463,7 @@ private fun ProgressCard(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color.White,
+                containerColor = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             )
         ) {
@@ -467,34 +480,29 @@ private fun ProgressCard(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Smartphone,
-                        contentDescription = stringResource(R.string.common_phone_agent),
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
+                        imageVector = visibleStatus.icon,
+                        contentDescription = null,
+                        tint = if (visibleStatus.needsAttention)
+                            MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(22.dp)
                     )
                     Column(
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                imageVector = statusIconFor(info.statusText),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = "${stringResource(R.string.common_phone_agent)} ${info.currentStep}/${info.totalSteps}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
                         Text(
-                            text = info.statusText,
+                            text = stringResource(R.string.phone_agent_title),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = stringResource(visibleStatus.labelResId),
                             fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -506,7 +514,7 @@ private fun ProgressCard(
                     IconButton(onClick = { onToggleTakeOver(!isPaused) }) {
                         Icon(
                             imageVector = if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
-                            contentDescription = if (isPaused) stringResource(R.string.common_resume_agent) else stringResource(R.string.common_take_over),
+                            contentDescription = if (isPaused) stringResource(R.string.phone_agent_resume_task) else stringResource(R.string.phone_agent_pause_task),
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -514,21 +522,12 @@ private fun ProgressCard(
                     IconButton(onClick = onCancel) {
                         Icon(
                             imageVector = Icons.Filled.Close,
-                            contentDescription = stringResource(R.string.common_cancel),
+                            contentDescription = stringResource(R.string.phone_agent_stop_task),
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
         }
-    }
-}
-
-private fun statusIconFor(statusText: String): ImageVector {
-    val text = statusText.lowercase()
-    return when {
-        text.contains("execut") -> Icons.Filled.PlayArrow
-        text.contains("done") || text.contains("success") -> Icons.Filled.CheckCircle
-        else -> Icons.Filled.Info
     }
 }

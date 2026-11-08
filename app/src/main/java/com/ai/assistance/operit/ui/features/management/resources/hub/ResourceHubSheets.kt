@@ -46,7 +46,6 @@ internal fun HubDetailSheet(entry: HubEntry, state: HubState, busy: Boolean, onD
             Text(stringResource(if (entry.stored) R.string.hub_local_path else R.string.hub_install_path), style = MaterialTheme.typography.labelMedium)
             SelectionContainer { Text(entry.location, style = MaterialTheme.typography.bodySmall) }
         }
-        if (entry.pack?.extension != null) Text(stringResource(R.string.hub_builtin_extension_hint), style = MaterialTheme.typography.bodySmall)
         entry.model?.let { model ->
             HubDetailLine(stringResource(R.string.hub_engine), model.driver.type)
             HubDetailLine(stringResource(R.string.hub_version), model.version)
@@ -76,7 +75,7 @@ internal fun HubDetailSheet(entry: HubEntry, state: HubState, busy: Boolean, onD
         TextButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }) { Text(stringResource(R.string.offline_resources_source)) }
         if (!entry.bundled) {
             if ((!entry.ready || entry.updateAvailable) && entry.downloadable) Button(onClick = onDownload, enabled = !busy && !entry.inUse, modifier = Modifier.fillMaxWidth()) { Text(stringResource(if (entry.updateAvailable) R.string.hub_update_resource else R.string.offline_resources_download)) }
-            OutlinedButton(onClick = onImport, enabled = !busy && !entry.inUse, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.offline_resources_import)) }
+            if (entry.importable) OutlinedButton(onClick = onImport, enabled = !busy && !entry.inUse, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.offline_resources_import)) }
             if (entry.ready) OutlinedButton(onClick = onExport, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.resource_save_backup)) }
             if (entry.stored) {
                 val deleteWarning = when {

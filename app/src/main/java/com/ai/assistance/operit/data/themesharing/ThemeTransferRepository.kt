@@ -5,6 +5,8 @@ import android.net.Uri
 import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundleStore
 import com.ai.assistance.operit.data.resources.theme.ThemeScriptBundle
+import com.ai.assistance.operit.data.theme.script.ThemeScriptDefaults
+import com.ai.assistance.operit.data.theme.script.ThemeScriptManifest
 import com.ai.assistance.operit.data.theme.script.ThemeScriptContract
 import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.model.CharacterCard
@@ -16,6 +18,7 @@ import com.ai.assistance.operit.data.preferences.ThemePreferenceValues
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
 import java.io.File
+import kotlinx.serialization.json.JsonObject
 import java.io.InputStream
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
@@ -74,6 +77,44 @@ internal class ThemeTransferRepository(private val context: Context) {
         val defaultId = CharacterCardManager.DEFAULT_CHARACTER_CARD_ID
         val defaultCard = cards.getCharacterCard(defaultId)
         return listOf(defaultCard) + existing.filter { it.id != defaultId }
+    }
+
+    fun createCode(source: ThemeTransferSource, name: String, author: String): String {
+        val appearance = source.values.string(ThemePreferenceValues.SCRIPT_URI_KEY)?.let { reference ->
+            val file = ThemeScriptBundleStore.fileForReference(context.filesDir, reference)
+            ThemeAppearanceParameters.export(ThemeScriptBundleStore.readManifest(file).appearance)
+        }
+        return ThemeShareCode.encode(
+            ThemeTransferSchema.create(name, author, source.values, source.layout, false, appearance = appearance),
+        )
+    }
+
+    fun prepareCode(input: String, cache: File): PreparedTheme {
+        val document = ThemeShareCode.decode(input)
+        if (document.appearance == null) return PreparedTheme(document)
+        val directory = File(cache, UUID.randomUUID().toString())
+        if (!directory.mkdirs()) throw ThemeTransferException(ThemeTransferError.IO_ERROR)
+        return PreparedTheme(document, directory)
+    }
+
+    private fun appearanceBundle(values: ThemePreferenceValues, parameters: JsonObject): ThemeScriptBundle {
+        val reference = values.string(ThemePreferenceValues.SCRIPT_URI_KEY)
+        val bundle = if (reference == null) {
+            ThemeScriptBundle(ThemeScriptManifest(1, "assets/main.js"), ThemeScriptDefaults.SOURCE, emptyMap())
+        } else {
+            ThemeScriptBundleStore.read(ThemeScriptBundleStore.fileForReference(context.filesDir, reference))
+        }
+        return bundle.copy(manifest = bundle.manifest.copy(
+            appearance = ThemeAppearanceParameters.merge(bundle.manifest.appearance, parameters),
+        ))
+    }
+
+    fun appearancePreview(theme: PreparedTheme, current: ThemePreferenceValues): File? {
+        val parameters = theme.document.appearance ?: return theme.scriptPreviewFile
+        val bundle = appearanceBundle(current, parameters)
+        val file = ThemeScriptBundleStore.create(requireNotNull(theme.directory), bundle)
+        theme.replaceAppearancePreview(file)
+        return file
     }
 
     fun createArchive(
@@ -229,6 +270,11 @@ internal class ThemeTransferRepository(private val context: Context) {
                         copied += file
                         values = values.withString(ThemePreferenceValues.SCRIPT_URI_KEY, Uri.fromFile(file).toString())
                     }
+                    val parameterScript = theme.document.appearance?.let { parameters ->
+                        val file = ThemeScriptBundleStore.create(context.filesDir, appearanceBundle(current, parameters))
+                        copied += file
+                        Uri.fromFile(file).toString()
+                    }
                     val document = theme.document.copy(values = values)
                     // 在同一笔 DataStore 写入中再次检查配置，并同时保存全局聊天布局。
                     preferences.mutateThemeAndLayoutForCharacterCard(
@@ -240,7 +286,9 @@ internal class ThemeTransferRepository(private val context: Context) {
                         ) {
                             throw ThemeTransferException(ThemeTransferError.OVERWRITE_REQUIRED)
                         }
-                        ThemeTransferSchema.merge(latest, document)
+                        val merged = ThemeTransferSchema.merge(latest, document)
+                        if (parameterScript == null) merged
+                        else merged.withString(ThemePreferenceValues.SCRIPT_URI_KEY, parameterScript)
                     }
                 } catch (e: Exception) {
                     copied.forEach { it.delete() }

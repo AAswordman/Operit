@@ -714,8 +714,18 @@ fun ModelApiSettingsSection(
             }
 
             regionWarningType?.let { warningType ->
-                SettingsInfoBanner(text = stringResource(warningType.messageResource()))
+                Text(
+                    text = stringResource(warningType.messageResource()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
+
+            // 请求地址紧邻端点标题，输入框下方仅保留填写或固定端点说明。
+            val completedEndpoint =
+                selectedApiProvider?.let {
+                    EndpointCompleter.completeEndpoint(apiEndpointInput, it)
+                } ?: apiEndpointInput
 
             if (isMnnProvider) {
                 MnnSettingsBlock(
@@ -771,7 +781,7 @@ fun ModelApiSettingsSection(
                 )
                 SettingsTextField(
                     title = stringResource(R.string.api_endpoint),
-                    subtitle = stringResource(R.string.antigravity_endpoint_fixed),
+                    subtitle = stringResource(R.string.actual_request_url, completedEndpoint),
                     value = apiEndpointInput,
                     onValueChange = {},
                     enabled = false,
@@ -800,7 +810,7 @@ fun ModelApiSettingsSection(
                 )
                 SettingsTextField(
                     title = stringResource(R.string.api_endpoint),
-                    subtitle = stringResource(R.string.codex_endpoint_fixed),
+                    subtitle = stringResource(R.string.actual_request_url, completedEndpoint),
                     value = apiEndpointInput,
                     onValueChange = {},
                     enabled = false,
@@ -812,7 +822,7 @@ fun ModelApiSettingsSection(
             } else if (!isEmbeddedLocalProvider) {
                 SettingsTextField(
                         title = stringResource(R.string.api_endpoint),
-                        subtitle = stringResource(R.string.api_endpoint_placeholder),
+                        subtitle = stringResource(R.string.actual_request_url, completedEndpoint),
                         value = apiEndpointInput,
                         onValueChange = {
                             apiEndpointInput = it.replace("\n", "").replace("\r", "").replace(" ", "")
@@ -895,22 +905,17 @@ fun ModelApiSettingsSection(
                 }
             }
 
-            val completedEndpoint =
-                selectedApiProvider?.let {
-                    EndpointCompleter.completeEndpoint(apiEndpointInput, it)
-                } ?: apiEndpointInput
-            if (completedEndpoint != apiEndpointInput) {
+            if (!isEmbeddedLocalProvider) {
                 Text(
-                    text = stringResource(R.string.actual_request_url, completedEndpoint),
-                    style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = when {
+                        isAntigravityProvider -> stringResource(R.string.antigravity_endpoint_fixed)
+                        isCodexProvider -> stringResource(R.string.codex_endpoint_fixed)
+                        else -> stringResource(R.string.endpoint_completion_hint)
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(
-                    text = stringResource(R.string.endpoint_completion_hint),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+            }
 
             var showKeyPoolDialog by remember(config.id) { mutableStateOf(false) }
             var savingKeyPoolDialog by remember(config.id) { mutableStateOf(false) }
@@ -1066,9 +1071,6 @@ fun ModelApiSettingsSection(
                     }
             )
 
-            if (isAntigravityProvider || isCodexProvider) {
-                SettingsInfoBanner(text = stringResource(if (isCodexProvider) R.string.codex_direct_media_processing_desc else R.string.antigravity_direct_media_processing_desc))
-            }
             if (isCodexProvider) {
                 SettingsSwitchRow(
                     title = stringResource(R.string.enable_codex_web_search),
@@ -1078,7 +1080,11 @@ fun ModelApiSettingsSection(
                 )
             }
             if (selectedApiProvider == ApiProviderType.DEEPSEEK) {
-                SettingsInfoBanner(text = stringResource(R.string.deepseek_files_api_hint))
+                Text(
+                    text = stringResource(R.string.deepseek_files_api_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             // Google Search Grounding 开关 (仅Gemini支持)
             if (selectedApiProvider == ApiProviderType.GOOGLE ||

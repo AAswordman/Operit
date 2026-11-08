@@ -38,6 +38,8 @@ import com.ai.assistance.operit.core.tools.protocol.AITool
 import com.ai.assistance.operit.data.chat.deletion.ChatDeletionResult
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.MessageSection
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
@@ -3271,12 +3273,21 @@ class ChatViewModel(context: Context) : ViewModel() {
         }
     }
 
-    /** 朗读消息内容 */
+    /** 手动朗读使用当前消息片段；编辑后的片段由消息模型统一解析。 */
+    fun speakMessage(message: ChatMessage) {
+        speakMessage(message.resolvedSections(), interrupt = true)
+    }
+
     fun speakMessage(message: String) {
         speakMessage(message, interrupt = true)
     }
 
+    /** 自动朗读仍接收运行时协议字符串，在此边界转换为消息片段。 */
     fun speakMessage(message: String, interrupt: Boolean) {
+        speakMessage(MessageSectionCodec.parse(message), interrupt)
+    }
+
+    private fun speakMessage(sections: List<MessageSection>, interrupt: Boolean) {
         val submission = speechSubmissionOrder.reserve(interrupt)
         if (interrupt) {
             speechPlaybackJob?.cancel()
@@ -3291,7 +3302,7 @@ class ChatViewModel(context: Context) : ViewModel() {
                 if (interrupt) _isSpeechPaused.value = false
                 logSpeechState(
                     "speakMessage.start",
-                    "interrupt=$interrupt provider=${currentVoiceService?.javaClass?.simpleName} rawLen=${message.length} preview=\"${speechPreview(message)}\""
+                    "interrupt=$interrupt provider=${currentVoiceService?.javaClass?.simpleName} sectionCount=${sections.size}"
                 )
                 if (currentVoiceService == null) {
                     _isSpeechSessionActive.value = false
@@ -3302,11 +3313,11 @@ class ChatViewModel(context: Context) : ViewModel() {
                 }
 
                 val cleanerRegexs = speechServiceProfiles.getCurrentTtsProfile().cleanerRegexs
-                val cleanedText = TtsCleaner.clean(message, cleanerRegexs)
+                val cleanedText = TtsCleaner.cleanForSpeech(sections, cleanerRegexs)
                 val cleanMessage = WaifuMessageProcessor.cleanContentForWaifu(cleanedText)
                 AppLogger.d(
                     TAG,
-                    "speech[cleaned] rawLen=${message.length} cleanedLen=${cleanedText.length} finalLen=${cleanMessage.length} preview=\"${speechPreview(cleanMessage)}\""
+                    "speech[cleaned] sectionCount=${sections.size} cleanedLen=${cleanedText.length} finalLen=${cleanMessage.length} preview=\"${speechPreview(cleanMessage)}\""
                 )
 
                 if (cleanMessage.isBlank()) {

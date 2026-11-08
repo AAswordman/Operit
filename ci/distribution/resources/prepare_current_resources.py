@@ -42,7 +42,7 @@ def save_report(report: dict, output: Path) -> None:
     # 使用既有 Android reports 上传入口保存轻量证据，资源归档留在 runner 供正式发布使用。
     reports = ROOT / 'app/build/reports/offline-resources'
     reports.mkdir(parents=True, exist_ok=True)
-    for source in (ROOT / 'app/config/offline-packs.json', ROOT / 'app/config/offline-pack-sources.json',
+    for source in (ROOT / 'app/config/offline-packs.json', ROOT / 'app/config/builtin-extensions.json', ROOT / 'app/config/offline-pack-sources.json',
                    output / 'assets/SHA256SUMS.txt', target):
         shutil.copyfile(source, reports / source.name)
     print(json.dumps(report, ensure_ascii=False), flush=True)
@@ -61,8 +61,9 @@ def prepare_current(packages: Path, output: Path) -> dict:
     assets = output / 'assets'
     snapshot = output / 'offline-pack-sources.json'
     catalog = prepare(assets, output / 'cache', packages, base, snapshot)
-    # 两份生成文件来自同一次准备，严格检查读取的目录与 APK 打包输入完全相同。
+    # 两份目录与源码快照来自同一次准备，严格检查读取的目录与 APK 打包输入完全相同。
     shutil.copyfile(assets / pinned.name, pinned)
+    shutil.copyfile(assets / 'builtin-extensions.json', config / 'builtin-extensions.json')
     shutil.copyfile(snapshot, config / snapshot.name)
     verify_catalog(current_source=True)
     report = {
@@ -71,6 +72,7 @@ def prepare_current(packages: Path, output: Path) -> dict:
         'packs': len(catalog['packs']),
         'published': False,
         'catalogSha256': digest(pinned),
+        'builtinCatalogSha256': digest(config / 'builtin-extensions.json'),
         'snapshotSha256': digest(snapshot),
     }
     save_report(report, output)
@@ -96,6 +98,12 @@ def release_prepared(apk: Path, commit: str, output: Path, *, publish_resources:
     with zipfile.ZipFile(apk) as package:
         if package.read('assets/offline-packs.json') != pinned.read_bytes():
             raise ValueError('APK 资源目录与本轮准备资源不一致')
+    builtin = ROOT / 'app/config/builtin-extensions.json'
+    if report['builtinCatalogSha256'] != digest(builtin):
+        raise ValueError('内置市场目录与准备记录不一致')
+    with zipfile.ZipFile(apk) as package:
+        if package.read('assets/builtin-extensions.json') != builtin.read_bytes():
+            raise ValueError('APK 内置市场目录与本轮准备资源不一致')
     verify_catalog(current_source=True)
     if publish_resources:
         # 资源附件全部核对并公开成功后，调用方才允许创建和公开应用 Release。

@@ -63,6 +63,9 @@ class PrepareCurrentResourcesTest(unittest.TestCase):
         initial_assets = self.root / 'initial-assets'
         self.old_catalog = prepare_hub.prepare(initial_assets, self.root / 'cache', self.packages, seed, self.snapshot)
         shutil.copyfile(initial_assets / self.pinned.name, self.pinned)
+        self.builtin = self.root / 'app/config/builtin-extensions.json'
+        shutil.copyfile(initial_assets / self.builtin.name, self.builtin)
+        self.old_builtin = self.builtin.read_bytes()
         self.old_pinned = self.pinned.read_bytes()
         self.old_snapshot = self.snapshot.read_bytes()
         self.blobs = {
@@ -120,6 +123,7 @@ class PrepareCurrentResourcesTest(unittest.TestCase):
         apk = self.root / 'app-kong.apk'
         with zipfile.ZipFile(apk, 'w') as package:
             package.writestr('assets/offline-packs.json', self.pinned.read_bytes())
+            package.writestr('assets/builtin-extensions.json', self.builtin.read_bytes())
         return output, apk
 
     def release(self, output, apk, *, commit=None, publish=True):
@@ -159,13 +163,15 @@ class PrepareCurrentResourcesTest(unittest.TestCase):
         verify_hub_catalog.main(current_source=True)
         snapshot = json.loads(self.snapshot.read_text())
         self.assertEqual(self.revision, snapshot['sourceRevision'])
-        self.assertEqual(12, len(json.loads(self.pinned.read_text())['packs']))
+        self.assertEqual(11, len(json.loads(self.pinned.read_text())['packs']))
+        self.assertEqual(1, len(json.loads(self.builtin.read_text())['packs']))
         self.publisher.assert_not_called()
 
     def test_apk_with_a_different_catalog_cannot_publish_resources(self):
         output, apk = self.prepared_apk()
         with zipfile.ZipFile(apk, 'w') as package:
             package.writestr('assets/offline-packs.json', self.old_pinned)
+            package.writestr('assets/builtin-extensions.json', self.old_builtin)
         with self.assertRaisesRegex(ValueError, 'APK 资源目录'):
             self.release(output, apk)
         self.publisher.assert_not_called()
@@ -188,7 +194,7 @@ class PrepareCurrentResourcesTest(unittest.TestCase):
     def test_android_report_contains_catalog_snapshot_checksums_and_receipt(self):
         output, apk = self.prepared_apk()
         reports = self.root / 'app/build/reports/offline-resources'
-        expected = {'offline-packs.json', 'offline-pack-sources.json', 'SHA256SUMS.txt', 'resource-preparation.json'}
+        expected = {'offline-packs.json', 'builtin-extensions.json', 'offline-pack-sources.json', 'SHA256SUMS.txt', 'resource-preparation.json'}
         self.assertEqual(expected, {path.name for path in reports.iterdir()})
         self.assertEqual(self.pinned.read_bytes(), (reports / self.pinned.name).read_bytes())
         self.assertEqual(self.snapshot.read_bytes(), (reports / self.snapshot.name).read_bytes())

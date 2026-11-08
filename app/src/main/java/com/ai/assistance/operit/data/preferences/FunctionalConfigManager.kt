@@ -65,7 +65,10 @@ internal fun remapDeletedConfigReferences(
 }
 
 /** 管理不同功能使用的模型配置 这个类用于将FunctionType映射到对应的ModelConfigID */
-class FunctionalConfigManager(private val context: Context) {
+class FunctionalConfigManager(
+    private val context: Context,
+    private val configDataStore: DataStore<Preferences> = context.functionalConfigDataStore,
+) {
 
     // 定义key
     companion object {
@@ -140,7 +143,7 @@ class FunctionalConfigManager(private val context: Context) {
 
     // 获取完整的功能配置映射（包含modelIndex）
     val functionConfigMappingWithIndexFlow: Flow<Map<FunctionType, FunctionConfigMapping>> =
-            context.functionalConfigDataStore.data.map { preferences ->
+            configDataStore.data.map { preferences ->
                 readFunctionConfigMapping(preferences)
             }
 
@@ -160,7 +163,7 @@ class FunctionalConfigManager(private val context: Context) {
 
     // 保存功能配置映射（包含modelIndex）
     suspend fun saveFunctionConfigMappingWithIndex(mapping: Map<FunctionType, FunctionConfigMapping>) {
-        context.functionalConfigDataStore.edit { preferences ->
+        configDataStore.edit { preferences ->
             writeFunctionConfigMapping(preferences, mapping)
         }
     }

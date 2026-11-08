@@ -286,16 +286,13 @@ internal class PackageManagerToolPkgFacade(
         val enabledSet = packageManager.getEnabledPackageNameSetInternal()
         val localizationContext = resolveContext ?: packageManager.contextInternal
         val containerEnabled = enabledSet.contains(container.packageName)
-        val uiModules =
-            if (containerEnabled) {
-                buildToolPkgUiModules(
-                    container = container,
-                    localizationContext = localizationContext,
-                    runtime = TOOLPKG_RUNTIME_COMPOSE_DSL
-                )
-            } else {
-                emptyList()
-            }
+        // Declared UI metadata stays readable when disabled; executable UI remains activation-gated.
+        val declaredUiModules = buildToolPkgUiModules(
+            container = container,
+            localizationContext = localizationContext,
+            runtime = TOOLPKG_RUNTIME_COMPOSE_DSL
+        )
+        val uiModules = if (containerEnabled) declaredUiModules else emptyList()
 
         val subpackages =
             container.subpackages.map { subpackage ->
@@ -325,6 +322,10 @@ internal class PackageManagerToolPkgFacade(
             requires = container.requires,
             fileSizeBytes = container.fileSizeBytes,
             isBuiltIn = container.sourceType != ToolPkgSourceType.EXTERNAL,
+            mainEntry = container.mainEntry,
+            sourcePath = container.sourcePath,
+            navigationEntryCount = container.navigationEntries.size,
+            desktopWidgetCount = container.desktopWidgets.size,
             resourceCount = container.resources.size,
             wasmModuleCount = wasmModules.size,
             workflowTemplateCount = workflowTemplates.size,
@@ -332,6 +333,7 @@ internal class PackageManagerToolPkgFacade(
             uiModuleCount = container.uiModules.size,
             wasmModules = wasmModules,
             uiModules = uiModules,
+            hasConfigurableUi = declaredUiModules.isNotEmpty(),
             subpackages = subpackages,
             workflowTemplates = workflowTemplates,
             workspaceTemplates = workspaceTemplates
@@ -420,6 +422,9 @@ internal class PackageManagerToolPkgFacade(
         packageManager.ensureInitialized()
         return runCatching {
             val normalizedContainerPackageName = packageManager.normalizePackageName(containerPackageName)
+            check(!PackageUpdateState.contains(normalizedContainerPackageName)) {
+                "package is unavailable: $normalizedContainerPackageName"
+            }
             val runtime =
                 packageManager.toolPkgContainersInternal[normalizedContainerPackageName]
                     ?: throw IllegalArgumentException("ToolPkg container not found: $containerPackageName")
@@ -920,6 +925,9 @@ internal class PackageManagerToolPkgFacade(
 
         return runCatching {
             val normalizedContainerPackageName = packageManager.normalizePackageName(containerPackageName)
+            check(!PackageUpdateState.contains(normalizedContainerPackageName)) {
+                "package is unavailable: $normalizedContainerPackageName"
+            }
             val runtime =
                 packageManager.toolPkgContainersInternal[normalizedContainerPackageName]
                     ?: throw IllegalArgumentException("ToolPkg container not found: $containerPackageName")
@@ -1002,6 +1010,7 @@ internal class PackageManagerToolPkgFacade(
             }
 
             val executeScriptFunctionStartTime = if (shouldLogTiming) messageTimingNow() else 0L
+            check(!PackageUpdateState.contains(runtime.packageName)) { "package is unavailable: ${runtime.packageName}" }
             packageManager.recordPluginUse(runtime.packageName)
             val executionResult = executionEngine.executeScriptFunction(
                 script = script,

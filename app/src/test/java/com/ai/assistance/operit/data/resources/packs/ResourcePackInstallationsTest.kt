@@ -253,4 +253,14 @@ class ResourcePackInstallationsTest {
         assertFalse(oldRoot.exists())
         assertEquals(current, checkNotNull(find(current)).spec)
     }
+    @Test fun aNewChildPackageInTheCatalogDoesNotHideTheVerifiedOldInstallation() {
+        val old = spec("old"); install(old)
+        val oldExtension = requireNotNull(old.extension)
+        val current = spec("current", "new").copy(extension = oldExtension.copy(
+            packageNames = oldExtension.packageNames + "new.child"))
+        val installed = checkNotNull(find(current, old))
+        assertEquals(old, installed.spec)
+        assertFalse(installed.hasCurrentContent(current))
+    }
+
 }

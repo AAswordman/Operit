@@ -49,7 +49,7 @@ data class ConfigurationResourceUiState(
         get() {
             val selected = selectedIds
             return (packages?.items.orEmpty()).filter { item ->
-                item.id in selected || item.category.name in selected
+                !item.locked && (item.id in selected || item.category.name in selected)
             }.distinctBy { it.id }
         }
     val selectedBytes: Long
@@ -106,7 +106,7 @@ class ConfigurationResourceStorageViewModel(
     }
 
     fun toggleCategory(group: ExtensionCategoryGroup) {
-        if (_state.value.job.running || group.items.isEmpty()) return
+        if (group.locked || _state.value.job.running || group.items.isEmpty()) return
         _state.update {
             val next = it.selectedIds.toMutableSet()
             val itemIds = group.items.map { item -> item.id }
@@ -123,7 +123,7 @@ class ConfigurationResourceStorageViewModel(
     }
 
     fun toggleItem(group: ExtensionCategoryGroup, item: ExtensionItem) {
-        if (_state.value.job.running) return
+        if (item.locked || _state.value.job.running) return
         _state.update {
             val next = it.selectedIds.toMutableSet()
             if (!next.add(item.id)) next.remove(item.id)

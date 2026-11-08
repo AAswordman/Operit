@@ -17,6 +17,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -86,15 +87,15 @@ fun CharacterCardDialog(
     onAvatarReset: () -> Unit,
     isSaving: Boolean = false,
 ) {
-    var name by remember(characterCard.id) { mutableStateOf(characterCard.name) }
-    var description by remember(characterCard.id) { mutableStateOf(characterCard.description) }
-    var characterSetting by remember(characterCard.id) { mutableStateOf(characterCard.characterSetting) }
-    var openingStatement by remember(characterCard.id) { mutableStateOf(characterCard.openingStatement) } // 新增：开场白
-    var otherContentChat by remember(characterCard.id) { mutableStateOf(characterCard.otherContentChat) }
-    var otherContentVoice by remember(characterCard.id) { mutableStateOf(characterCard.otherContentVoice) }
+    val nameEditor = rememberPromptEditorState(characterCard.id, "name", characterCard.name)
+    val descriptionEditor = rememberPromptEditorState(characterCard.id, "description", characterCard.description)
+    val characterSettingEditor = rememberPromptEditorState(characterCard.id, "characterSetting", characterCard.characterSetting)
+    val openingStatementEditor = rememberPromptEditorState(characterCard.id, "openingStatement", characterCard.openingStatement)
+    val otherContentChatEditor = rememberPromptEditorState(characterCard.id, "otherContentChat", characterCard.otherContentChat)
+    val otherContentVoiceEditor = rememberPromptEditorState(characterCard.id, "otherContentVoice", characterCard.otherContentVoice)
     var attachedTagIds by remember(characterCard.id) { mutableStateOf(characterCard.attachedTagIds) }
-    var advancedCustomPrompt by remember(characterCard.id) { mutableStateOf(characterCard.advancedCustomPrompt) }
-    var marks by remember(characterCard.id) { mutableStateOf(characterCard.marks) }
+    val advancedCustomPromptEditor = rememberPromptEditorState(characterCard.id, "advancedCustomPrompt", characterCard.advancedCustomPrompt)
+    val marksEditor = rememberPromptEditorState(characterCard.id, "marks", characterCard.marks)
     var chatModelBindingMode by remember(characterCard.id) {
         mutableStateOf(CharacterCardChatModelBindingMode.normalize(characterCard.chatModelBindingMode))
     }
@@ -124,7 +125,8 @@ fun CharacterCardDialog(
     
     // 大屏编辑状态
     var showFullScreenEdit by remember { mutableStateOf(false) }
-    var fullScreenEditTitle by remember { mutableStateOf("") }
+    var fullScreenEditTitle by remember(characterCard.id) { mutableStateOf("") }
+    var fullScreenEditor by remember(characterCard.id) { mutableStateOf<PromptEditorState?>(null) }
     var fullScreenEditValue by remember { mutableStateOf("") }
     var fullScreenEditField by remember { mutableStateOf("") }
 
@@ -285,15 +287,15 @@ fun CharacterCardDialog(
             return null
         }
         return characterCard.copy(
-            name = name,
-            description = description,
-            characterSetting = characterSetting,
-            openingStatement = openingStatement,
-            otherContentChat = otherContentChat,
-            otherContentVoice = otherContentVoice,
+            name = nameEditor.text,
+            description = descriptionEditor.text,
+            characterSetting = characterSettingEditor.text,
+            openingStatement = openingStatementEditor.text,
+            otherContentChat = otherContentChatEditor.text,
+            otherContentVoice = otherContentVoiceEditor.text,
             attachedTagIds = attachedTagIds,
-            advancedCustomPrompt = advancedCustomPrompt,
-            marks = marks,
+            advancedCustomPrompt = advancedCustomPromptEditor.text,
+            marks = marksEditor.text,
             chatModelBindingMode = CharacterCardChatModelBindingMode.normalize(chatModelBindingMode),
             chatModelConfigId = if (
                 chatModelBindingMode == CharacterCardChatModelBindingMode.FIXED_CONFIG &&
@@ -356,27 +358,21 @@ fun CharacterCardDialog(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     CompactTextFieldWithExpand(
-                        value = name,
-                        onValueChange = { name = it },
+                        editor = nameEditor,
                         label = stringResource(R.string.character_card_name),
                         singleLine = true,
                         onExpandClick = {
                             fullScreenEditTitle = context.getString(R.string.character_card_edit_name)
-                            fullScreenEditValue = name
-                            fullScreenEditField = "name"
-                            showFullScreenEdit = true
+                            fullScreenEditor = nameEditor
                         }
                     )
                     CompactTextFieldWithExpand(
-                        value = description,
-                        onValueChange = { description = it },
+                        editor = descriptionEditor,
                         label = stringResource(R.string.character_card_description),
                         maxLines = 2,
                         onExpandClick = {
                             fullScreenEditTitle = context.getString(R.string.character_card_edit_description)
-                            fullScreenEditValue = description
-                            fullScreenEditField = "description"
-                            showFullScreenEdit = true
+                            fullScreenEditor = descriptionEditor
                         }
                     )
                 }
@@ -384,17 +380,14 @@ fun CharacterCardDialog(
 
         // 角色设定
         CompactTextFieldWithExpand(
-            value = characterSetting,
-            onValueChange = { characterSetting = it },
+            editor = characterSettingEditor,
             label = stringResource(R.string.character_card_character_setting),
             placeholder = stringResource(R.string.character_card_character_setting_placeholder),
             minLines = 5,
             maxLines = 8,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_character_setting)
-                fullScreenEditValue = characterSetting
-                fullScreenEditField = "characterSetting"
-                showFullScreenEdit = true
+                fullScreenEditor = characterSettingEditor
             }
         )
 
@@ -415,13 +408,13 @@ fun CharacterCardDialog(
             // 翻译按钮
             IconButton(
                 onClick = {
-                    if (openingStatement.isNotBlank() && !isTranslating) {
+                    if (openingStatementEditor.text.isNotBlank() && !isTranslating) {
                         scope.launch {
                             isTranslating = true
                             try {
                                 val enhancedAIService = EnhancedAIService.getInstance(context)
-                                val translatedText = enhancedAIService.translateText(openingStatement)
-                                openingStatement = translatedText
+                                val translatedText = enhancedAIService.translateText(openingStatementEditor.text)
+                                openingStatementEditor.replaceText(translatedText)
                             } catch (e: Exception) {
                                 // 翻译失败，可以显示错误提示
                             } finally {
@@ -430,7 +423,7 @@ fun CharacterCardDialog(
                         }
                     }
                 },
-                enabled = openingStatement.isNotBlank() && !isTranslating,
+                enabled = openingStatementEditor.text.isNotBlank() && !isTranslating,
                 modifier = Modifier.size(28.dp)
             ) {
                 if (isTranslating) {
@@ -450,16 +443,13 @@ fun CharacterCardDialog(
         }
 
         CompactTextFieldWithExpand(
-            value = openingStatement,
-            onValueChange = { openingStatement = it },
+            editor = openingStatementEditor,
             placeholder = stringResource(R.string.character_card_opening_statement_placeholder),
             minLines = 2,
             maxLines = 4,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_opening_statement)
-                fullScreenEditValue = openingStatement
-                fullScreenEditField = "openingStatement"
-                showFullScreenEdit = true
+                fullScreenEditor = openingStatementEditor
             }
         )
 
@@ -473,16 +463,13 @@ fun CharacterCardDialog(
             color = MaterialTheme.colorScheme.primary
         )
         CompactTextFieldWithExpand(
-            value = otherContentChat,
-            onValueChange = { otherContentChat = it },
+            editor = otherContentChatEditor,
             placeholder = stringResource(R.string.character_card_other_content_chat_placeholder),
             minLines = 2,
             maxLines = 4,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_other_content_chat)
-                fullScreenEditValue = otherContentChat
-                fullScreenEditField = "otherContentChat"
-                showFullScreenEdit = true
+                fullScreenEditor = otherContentChatEditor
             }
         )
 
@@ -494,47 +481,38 @@ fun CharacterCardDialog(
             color = MaterialTheme.colorScheme.primary
         )
         CompactTextFieldWithExpand(
-            value = otherContentVoice,
-            onValueChange = { otherContentVoice = it },
+            editor = otherContentVoiceEditor,
             placeholder = stringResource(R.string.character_card_other_content_voice_placeholder),
             minLines = 2,
             maxLines = 4,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_other_content_voice)
-                fullScreenEditValue = otherContentVoice
-                fullScreenEditField = "otherContentVoice"
-                showFullScreenEdit = true
+                fullScreenEditor = otherContentVoiceEditor
             }
         )
 
         // 高级自定义提示词
         CompactTextFieldWithExpand(
-            value = advancedCustomPrompt,
-            onValueChange = { advancedCustomPrompt = it },
+            editor = advancedCustomPromptEditor,
             label = stringResource(R.string.character_card_custom_prompt),
             placeholder = stringResource(R.string.character_card_custom_prompt_placeholder),
             minLines = 2,
             maxLines = 3,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_custom_prompt)
-                fullScreenEditValue = advancedCustomPrompt
-                fullScreenEditField = "advancedCustomPrompt"
-                showFullScreenEdit = true
+                fullScreenEditor = advancedCustomPromptEditor
             }
         )
 
         CompactTextFieldWithExpand(
-            value = marks,
-            onValueChange = { marks = it },
+            editor = marksEditor,
             label = stringResource(R.string.character_card_marks),
             placeholder = stringResource(R.string.character_card_marks_placeholder),
             minLines = 1,
             maxLines = 2,
             onExpandClick = {
                 fullScreenEditTitle = context.getString(R.string.character_card_edit_marks)
-                fullScreenEditValue = marks
-                fullScreenEditField = "marks"
-                showFullScreenEdit = true
+                fullScreenEditor = marksEditor
             }
         )
         }
@@ -979,7 +957,16 @@ fun CharacterCardDialog(
         onDismiss = { showToolAccessDialog = false }
     )
     
-    // 全屏编辑对话框
+    // 表单持有字段状态，全屏视口使用独立草稿，只有保存才写回。
+    fullScreenEditor?.let { editor ->
+        FullScreenEditDialog(
+            title = fullScreenEditTitle,
+            editor = editor,
+            onDismiss = { fullScreenEditor = null },
+            onSave = { fullScreenEditor = null },
+        )
+    }
+    // 保留角色卡语音设置的现有 String 回调接口。
     if (showFullScreenEdit) {
         FullScreenEditDialog(
             title = fullScreenEditTitle,
@@ -987,14 +974,6 @@ fun CharacterCardDialog(
             onDismiss = { showFullScreenEdit = false },
             onSave = { newValue ->
                 when (fullScreenEditField) {
-                    "name" -> name = newValue
-                    "description" -> description = newValue
-                    "characterSetting" -> characterSetting = newValue
-                    "openingStatement" -> openingStatement = newValue // 新增
-                    "otherContentChat" -> otherContentChat = newValue
-                    "otherContentVoice" -> otherContentVoice = newValue
-                    "advancedCustomPrompt" -> advancedCustomPrompt = newValue
-                    "marks" -> marks = newValue
                     "waifuCustomPrompt" -> speechSettings = speechSettings?.copy(customPrompt = newValue)
                     "waifuSelfiePrompt" -> speechSettings = speechSettings?.copy(selfiePrompt = newValue)
                 }
@@ -1688,15 +1667,93 @@ fun CompactTextFieldWithExpand(
     }
 }
 
-// 全屏编辑对话框
+// 带展开按钮的紧凑输入框
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun CompactTextFieldWithExpand(
+    editor: PromptEditorState,
+    label: String? = null,
+    placeholder: String? = null,
+    singleLine: Boolean = false,
+    minLines: Int = 1,
+    maxLines: Int = Int.MAX_VALUE,
+    onExpandClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            state = editor.textFieldState,
+            scrollState = editor.scrollState,
+            label = label?.let { { Text(it, fontSize = 11.sp) } },
+            placeholder = placeholder?.let { { Text(it, fontSize = 11.sp) } },
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(end = 32.dp), // 为右上角按钮留空间
+            textStyle = LocalTextStyle.current.copy(fontSize = 12.sp),
+            lineLimits = if (singleLine) {
+                TextFieldLineLimits.SingleLine
+            } else {
+                TextFieldLineLimits.MultiLine(minHeightInLines = minLines, maxHeightInLines = maxLines)
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.25f),
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.25f),
+                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+            )
+        )
+
+        // 右上角展开按钮
+        IconButton(
+            onClick = onExpandClick,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .size(28.dp)
+                .offset(x = (-2).dp, y = 2.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.OpenInFull,
+                contentDescription = stringResource(R.string.character_card_fullscreen_edit),
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+// 语音设置仍通过其现有回调写回，由同一个全屏编辑器处理草稿。
 @Composable
 fun FullScreenEditDialog(
     title: String,
     value: String,
     onDismiss: () -> Unit,
-    onSave: (String) -> Unit
+    onSave: (String) -> Unit,
 ) {
-    var editValue by remember { mutableStateOf(value) }
+    val editor = rememberPromptEditorState("speech-settings", title, value)
+    FullScreenEditDialog(
+        title = title,
+        editor = editor,
+        onDismiss = onDismiss,
+        onSave = { onSave(editor.text) },
+    )
+}
+
+// 全屏编辑对话框
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun FullScreenEditDialog(
+    title: String,
+    editor: PromptEditorState,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    // 两种高度的编辑窗口不能共享 ScrollState，否则会相互改变滚动上限。
+    val draft = rememberPromptEditorState(
+        editor.ownerId, editor.fieldId, editor.text, editor.textFieldState.selection,
+    )
     
     Dialog(
         onDismissRequest = onDismiss,
@@ -1744,8 +1801,8 @@ fun FullScreenEditDialog(
                 
                 // 编辑区域
                 OutlinedTextField(
-                    value = editValue,
-                    onValueChange = { editValue = it },
+                    state = draft.textFieldState,
+                    scrollState = draft.scrollState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -1768,7 +1825,10 @@ fun FullScreenEditDialog(
                     }
                     
                     Button(
-                        onClick = { onSave(editValue) },
+                        onClick = {
+                            editor.applyDraft(draft)
+                            onSave()
+                        },
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(stringResource(R.string.save))

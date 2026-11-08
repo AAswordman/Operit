@@ -435,12 +435,15 @@ val syncMainAssets by tasks.registering(Sync::class) {
     from("config/offline-resources.properties")
     from("config/local-speech-models.json")
     from("config/offline-packs.json")
+    from("config/builtin-extensions.json")
     inputs.property("bundleProjectResources", bundleProjectResources)
     inputs.file(rootProject.file("ci/distribution/resources/prepare_hub.py"))
     inputs.file(rootProject.file("ci/distribution/resources/verify_hub_catalog.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/distribution_catalog.py"))
     inputs.file(rootProject.file("ci/distribution/resources/builtin_packages.py"))
     inputs.file(rootProject.file("ci/distribution/resources/builtin_source_snapshot.py"))
     inputs.file(file("config/offline-pack-sources.json"))
+    inputs.file(rootProject.file("ci/distribution/resources/prepare_extension_metadata.py"))
     inputs.dir(rootProject.file("examples"))
     inputs.file(rootProject.file("tools/example_packages/packages_whitelist.txt"))
     inputs.dir(file("src/main/assets/templates"))
@@ -448,6 +451,11 @@ val syncMainAssets by tasks.registering(Sync::class) {
     into(generatedMainAssetsDir)
     doLast {
         runResourceScript("verify_hub_catalog.py")
+        runResourceScript("prepare_extension_metadata.py", listOf(
+            "--catalog", file("config/offline-packs.json").path,
+            "--examples", rootProject.file("examples").path,
+            "--output", File(generatedMainAssetsDir.get().asFile, "offline-extension-metadata.json").path,
+        ))
         // 只修改生成目录，源码模板和完整插件仍保留，供独立资源发行与完整构建使用。
         if (bundleProjectResources) {
             val sourceRoot = file("src/main/assets/templates")
@@ -519,8 +527,8 @@ android {
         applicationId = "com.ai.assistance.operit"
         minSdk = 26
         targetSdk = 34
-        versionCode = 78
-        versionName = "1.12.2+22"
+        versionCode = 79
+        versionName = "1.12.2+23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -995,6 +1003,7 @@ dependencies {
     androidTestImplementation(libs.test.rules)
     
     // 协程测试依赖
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)
     

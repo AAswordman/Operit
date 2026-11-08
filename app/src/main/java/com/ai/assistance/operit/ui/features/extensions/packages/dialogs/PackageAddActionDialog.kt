@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.DataObject
 import androidx.compose.material.icons.filled.FileOpen
+import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -37,12 +38,13 @@ import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
 /**
  * 包管理加号弹出的中心选择面板。
  * 插件页：导入现有 / 新建 JS 模板 / 新建 TS 模板。
- * 沙盒包页：导入现有 / 新建 JS 模板。
+ * 脚本页：导入现有 / 新建 JS 模板。
  */
 @Composable
 fun PackageAddActionDialog(
     isPluginTab: Boolean,
     onImport: () -> Unit,
+    onImportBuiltIn: () -> Unit,
     onCreateTemplate: (PackageTemplateKind) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -106,6 +108,12 @@ fun PackageAddActionDialog(
                             }
                         ),
                         onClick = onImport
+                    )
+                    AddActionCard(
+                        icon = Icons.Default.Archive,
+                        title = stringResource(R.string.builtin_resource_import),
+                        subtitle = stringResource(R.string.builtin_resource_import_hint),
+                        onClick = onImportBuiltIn,
                     )
                     AddActionCard(
                         icon = Icons.Default.Code,

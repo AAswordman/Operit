@@ -143,7 +143,7 @@ def prepare(output: Path, cache: Path, packages: Path, base_assets: Path | None 
             build_models(ocr_root, cache)
             groups.append(package(output, 'ocr-google-mlkit', 'Google ML Kit 文字识别', [(p.name, p) for p in ocr_root.iterdir() if p.is_file()]))
     fingerprint = hashlib.sha256(json.dumps(groups, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
-    tag = 'resources-v2-' + fingerprint
+    tag = 'resources-v3-' + fingerprint
     for group in groups:
         group['archive']['url'] = f'https://github.com/{RESOURCE_REPOSITORY}/releases/download/{tag}/{group["archive"]["path"]}'
     result = {'schemaVersion': 1, 'releaseTag': tag, 'packs': groups}
@@ -158,9 +158,12 @@ def prepare(output: Path, cache: Path, packages: Path, base_assets: Path | None 
         source_snapshot.parent.mkdir(parents=True, exist_ok=True)
         source_snapshot.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + '\n')
     metadata = output / 'offline-packs.json'
-    metadata.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    metadata.write_text(json.dumps({**result, 'packs': [g for g in groups if 'extension' not in g]}, ensure_ascii=False, indent=2) + '\n')
+    builtin = output / 'builtin-extensions.json'
+    builtin.write_text(json.dumps({**result, 'packs': [g for g in groups if 'extension' in g]}, ensure_ascii=False, indent=2) + '\n')
     sums = [f'{digest(path)}  {path.name}' for path in sorted(output.glob('*.zip'))]
     sums.append(f'{digest(metadata)}  {metadata.name}')
+    sums.append(f'{digest(builtin)}  {builtin.name}')
     (output / 'SHA256SUMS.txt').write_text('\n'.join(sums) + '\n')
     print(json.dumps({'tag': tag, 'packs': len(groups), 'unpacked_bytes': sum(f['bytes'] for g in groups if not g['id'].startswith('engine-') for f in g['files']), 'download_bytes': sum(g['archive']['bytes'] for g in groups)}, ensure_ascii=False))
     return result

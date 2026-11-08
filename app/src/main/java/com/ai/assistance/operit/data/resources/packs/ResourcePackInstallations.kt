@@ -53,7 +53,9 @@ internal object ResourcePackInstallations {
     }
 
     private fun compatible(current: ResourcePackSpec, installed: ResourcePackSpec): Boolean =
-        current.id == installed.id && current.extension != null && current.extension == installed.extension
+        current.id == installed.id && current.extension != null && installed.extension != null &&
+            current.extension.kind == installed.extension.kind && current.extension.path == installed.extension.path &&
+            current.extension.packageNames.first() == installed.extension.packageNames.first()
 
     @Synchronized
     fun supported(

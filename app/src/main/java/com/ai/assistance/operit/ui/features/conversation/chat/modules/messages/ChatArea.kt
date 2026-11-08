@@ -237,7 +237,7 @@ fun ChatArea(
     onRollbackToMessage: ((Int) -> Unit)? = null, // 回滚到指定消息的回调
     onRegenerateMessage: ((Int) -> Unit)? = null,
     onSwitchMessageVariant: ((Int, Int) -> Unit)? = null,
-    onSpeakMessage: ((String) -> Unit)? = null, // 添加朗读回调参数
+    onSpeakMessage: ((ChatMessage) -> Unit)? = null, // 添加朗读回调参数
     onAutoReadMessage: ((String) -> Unit)? = null, // 添加自动朗读回调参数
     onReplyToMessage: ((ChatMessage) -> Unit)? = null, // 添加回复回调参数
     onToggleFavoriteMessage: ((Long, Boolean) -> Unit)? = null,
@@ -588,7 +588,7 @@ private fun MessageItem(
     onRollbackToMessage: ((Int) -> Unit)? = null, // 回滚到指定消息的回调
     onRegenerateMessage: ((Int) -> Unit)? = null,
     onSwitchMessageVariant: ((Int, Int) -> Unit)? = null,
-    onSpeakMessage: ((String) -> Unit)? = null, // 添加朗读回调
+    onSpeakMessage: ((ChatMessage) -> Unit)? = null, // 添加朗读回调
     onReplyToMessage: ((ChatMessage) -> Unit)? = null, // 添加回复回调
     onToggleFavoriteMessage: ((Long, Boolean) -> Unit)? = null,
     onCreateBranch: ((Long) -> Unit)? = null, // 添加创建分支回调
@@ -833,7 +833,7 @@ private fun MessageItem(
                         )
                     },
                     onClick = {
-                        onSpeakMessage?.invoke(message.content)
+                        onSpeakMessage?.invoke(message)
                         showContextMenu = false
                     },
                     leadingIcon = {

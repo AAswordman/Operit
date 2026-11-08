@@ -15,7 +15,7 @@ enum class ExtensionCategory {
     SCRIPT,
     MCP,
     SKILL,
-    PLUGIN_SOURCE,
+    PLUGIN_DATA,
     DEV_PACKAGE,
     MCP_BRIDGE,
     THEME,
@@ -32,14 +32,18 @@ data class ExtensionItem(
     val packageName: String? = null,
     val hasLogo: Boolean = false,
     val lastModifiedMillis: Long = 0L,
-)
+) {
+    val locked: Boolean get() = category == ExtensionCategory.PLUGIN_DATA
+}
 
 data class ExtensionCategoryGroup(
     val category: ExtensionCategory,
     val items: List<ExtensionItem>,
     val bytes: Long,
     val itemCount: Int,
-)
+) {
+    val locked: Boolean get() = category == ExtensionCategory.PLUGIN_DATA
+}
 
 data class PackageSkillSnapshot(
     val groups: List<ExtensionCategoryGroup>,
@@ -70,8 +74,8 @@ class PackageSkillInventory(context: Context) {
         items += scanSkills()
         items += scanDirectoryChildren(
             root = OperitPaths.pluginsDir(),
-            category = ExtensionCategory.PLUGIN_SOURCE,
-            idPrefix = "plugin-source",
+            category = ExtensionCategory.PLUGIN_DATA,
+            idPrefix = "plugin-data",
         )
         items += scanDirectoryChildren(
             root = File(OperitPaths.operitRootDir(), "dev_package"),
@@ -232,6 +236,11 @@ class PackageSkillInventory(context: Context) {
     }
 
     private suspend fun deleteEntry(entry: ExtensionItem): Boolean {
+        // Package configuration contains user data (including world books), never disposable source.
+        if (entry.locked) return false
+        val plugins = OperitPaths.pluginsDir().canonicalFile
+        val target = entry.path.canonicalFile
+        if (plugins.toPath().startsWith(target.toPath()) || target.toPath().startsWith(plugins.toPath())) return false
         return when (entry.category) {
             ExtensionCategory.PLUGIN,
             ExtensionCategory.SCRIPT -> {
@@ -247,7 +256,7 @@ class PackageSkillInventory(context: Context) {
                 mcpRepository.uninstallMCPServer(pluginId) || deletePath(entry.path)
             }
             ExtensionCategory.SKILL -> skillManager.deleteSkill(entry.name) || deletePath(entry.path)
-            ExtensionCategory.PLUGIN_SOURCE,
+            ExtensionCategory.PLUGIN_DATA -> false
             ExtensionCategory.DEV_PACKAGE,
             ExtensionCategory.THEME,
             ExtensionCategory.MCP_BRIDGE -> deletePath(entry.path)

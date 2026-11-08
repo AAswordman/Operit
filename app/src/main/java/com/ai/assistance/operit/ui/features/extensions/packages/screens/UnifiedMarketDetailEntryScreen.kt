@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Code
@@ -66,7 +69,6 @@ import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketReviewState
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketLocalInstallState
 import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketLocalInstallStateKind
-import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketAppVersionCompatibilityKind
 import com.ai.assistance.operit.ui.features.extensions.packages.market.PublishArtifactType
 import com.ai.assistance.operit.ui.features.extensions.packages.market.UnifiedMarketDetailAction
 import com.ai.assistance.operit.ui.features.extensions.packages.market.UnifiedMarketDetailBanner
@@ -88,7 +90,7 @@ import com.ai.assistance.operit.ui.features.extensions.packages.market.effective
 import com.ai.assistance.operit.ui.features.extensions.packages.market.labelResId
 import com.ai.assistance.operit.ui.features.extensions.packages.market.transfer.marketInstallLabel
 import com.ai.assistance.operit.ui.features.extensions.packages.market.marketDetailInitial
-import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveCurrentAppVersionCompatibility
+import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveToolPkgApiCompatibility
 import com.ai.assistance.operit.ui.features.extensions.packages.market.resolveMarketReviewSnapshot
 import com.ai.assistance.operit.ui.features.extensions.packages.screens.market.viewmodel.UnifiedMarketDetailViewModel
 
@@ -128,8 +130,8 @@ fun UnifiedMarketDetailEntryScreen(
     val currentReactions = reactionsMap[entryId].orEmpty()
     val installProgress = installStates[entryId]
     val localInstallState = localInstallStates[entryId]
-    val currentAppVersionCompatibility = entry.resolveCurrentAppVersionCompatibility()
-    val isCurrentAppVersionUnsupported = currentAppVersionCompatibility != null
+    val toolPkgApiCompatibility = entry.resolveToolPkgApiCompatibility()
+    val isToolPkgApiUnsupported = toolPkgApiCompatibility != null
     val likes =
         if (currentReactions.isNotEmpty()) {
             currentReactions.sumOf { if (it.reaction.ifBlank { it.content } == "+1") it.total.coerceAtLeast(1) else 0 }
@@ -183,6 +185,14 @@ fun UnifiedMarketDetailEntryScreen(
     UnifiedMarketDetailScreen(
         onNavigateBack = onNavigateBack,
         installProgress = installProgress,
+        headerActions = buildList {
+            if (entry.allowPublicUpdates && entry.isOpen()) {
+                add(UnifiedMarketDetailAction(
+                    label = stringResource(R.string.market_publish_new_version),
+                    onClick = { onPublishNewVersion(entry) }, icon = Icons.Default.FileUpload,
+                ))
+            }
+        },
         header =
             UnifiedMarketDetailHeader(
                 title = entry.title,
@@ -207,25 +217,21 @@ fun UnifiedMarketDetailEntryScreen(
                             onClick = onNavigateToAuthor
                         )
                     ),
-                badges = entry.detailBadges(),
-                metrics =
-                    listOf(
-                        UnifiedMarketDetailMetric(
-                            value = entry.downloadsCount().toString(),
-                            label = stringResource(R.string.market_sort_downloads)
-                        ),
-                        UnifiedMarketDetailMetric(
-                            value = likes.toString(),
-                            label = stringResource(R.string.market_sort_likes)
-                        ),
-                        UnifiedMarketDetailMetric(
-                            value = formatMarketDetailCompactDate(entry.createdAt ?: entry.updatedAt ?: ""),
-                            label = stringResource(R.string.market_detail_published_label)
-                        )
-                    ),
+                subtitle = entry.marketPublisherName(),
+                badges = entry.detailBadges() + if (localInstallState?.kind == MarketLocalInstallStateKind.INSTALLED) {
+                    listOf(stringResource(R.string.mcp_plugin_installed))
+                } else emptyList(),
+                metrics = listOf(
+                    UnifiedMarketDetailMetric(entry.downloadsCount().toString(), stringResource(R.string.extension_detail_downloads), Icons.Default.FileDownload),
+                    UnifiedMarketDetailMetric(likes.toString(), stringResource(R.string.extension_detail_likes)),
+                    UnifiedMarketDetailMetric(entry.latestVersion?.version.orEmpty().ifBlank { "—" }, stringResource(R.string.extension_detail_version)),
+                    UnifiedMarketDetailMetric(formatMarketDetailCompactDate(entry.updatedAt.orEmpty()), stringResource(R.string.extension_detail_updated)),
+                    UnifiedMarketDetailMetric(entry.detailTypeLabel(context), stringResource(R.string.extension_detail_type),
+                        if (entry.type == "package") Icons.Default.Extension else null),
+                ),
                 statusLabel =
                     if (entry.isOpen()) {
-                        stringResource(R.string.market_detail_status_available)
+                        null
                     } else {
                         stringResource(R.string.market_detail_status_closed)
                     }
@@ -236,20 +242,20 @@ fun UnifiedMarketDetailEntryScreen(
                 onClick = { viewModel.installEntry(entry) },
                 enabled =
                     entry.canInstallFromUnifiedMarket() &&
-                        !isCurrentAppVersionUnsupported &&
+                        !isToolPkgApiUnsupported &&
                         installProgress == null &&
                         localInstallState?.kind != MarketLocalInstallStateKind.INSTALLED,
                 isLoading = installProgress != null,
                 loadingLabel = installProgress?.marketInstallLabel(),
                 icon =
-                    if (isCurrentAppVersionUnsupported) {
+                    if (isToolPkgApiUnsupported) {
                         Icons.Default.Warning
                     } else if (localInstallState.shouldShowSwitchAction()) {
                         Icons.Default.Update
                     } else {
                         Icons.Default.Check
                     },
-                isWarning = isCurrentAppVersionUnsupported
+                isWarning = isToolPkgApiUnsupported
             ),
         secondaryAction =
             sourceUrl.takeIf { it.isNotBlank() }?.let { repositoryUrl ->
@@ -260,24 +266,15 @@ fun UnifiedMarketDetailEntryScreen(
                 )
             },
         banner =
-            if (currentAppVersionCompatibility != null) {
+            if (toolPkgApiCompatibility != null) {
                 UnifiedMarketDetailBanner(
-                    title = stringResource(R.string.market_version_incompatible_title),
+                    title = stringResource(R.string.market_toolpkg_api_incompatible_title),
                     message =
-                        when (currentAppVersionCompatibility.kind) {
-                            MarketAppVersionCompatibilityKind.BELOW_MINIMUM ->
-                                stringResource(
-                                    R.string.market_version_too_low_message,
-                                    currentAppVersionCompatibility.currentVersion,
-                                    currentAppVersionCompatibility.requiredVersion
-                                )
-                            MarketAppVersionCompatibilityKind.ABOVE_MAXIMUM ->
-                                stringResource(
-                                    R.string.market_version_too_high_message,
-                                    currentAppVersionCompatibility.currentVersion,
-                                    currentAppVersionCompatibility.requiredVersion
-                                )
-                        },
+                        stringResource(
+                            R.string.market_toolpkg_api_incompatible_message,
+                            toolPkgApiCompatibility.requiredApiVersion,
+                            toolPkgApiCompatibility.supportedApiVersions
+                        ),
                     icon = Icons.Default.Warning,
                     containerColor = androidx.compose.material3.MaterialTheme.colorScheme.errorContainer,
                     contentColor = androidx.compose.material3.MaterialTheme.colorScheme.onErrorContainer
@@ -348,45 +345,16 @@ fun UnifiedMarketDetailEntryScreen(
                     }
                 }
             }
-            if (entry.allowPublicUpdates && entry.isOpen()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.market_publish_new_version),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = stringResource(R.string.market_publish_new_version_detail_desc),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Button(
-                            onClick = { onPublishNewVersion(entry) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(stringResource(R.string.market_publish_new_version))
-                        }
-                    }
-                }
-            }
         },
         trailingAction =
             entry.versions.takeIf { it.isNotEmpty() }?.let {
                 UnifiedMarketDetailIconAction(
-                    contentDescription = stringResource(R.string.market_detail_view_version_history),
+                    contentDescription = stringResource(R.string.extension_detail_other_versions),
                     onClick = { showVersionHistoryDialog = true },
                     icon = Icons.Default.History
                 )
             },
-        metadataTitle = stringResource(R.string.metadata_title),
+        metadataTitle = stringResource(R.string.extension_detail_information),
         metadataRows = entry.metadataRows(context, review),
         reactions =
             UnifiedMarketDetailReactionsState(
@@ -596,18 +564,6 @@ private fun MarketVersionHistoryRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                text =
-                    stringResource(
-                        R.string.supported_app_versions_colon,
-                        version.minAppVer.orEmpty(),
-                        version.maxAppVer.orEmpty()
-                    ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
             if (showToolPkgApiVersion) {
                 Text(
                     text =
@@ -684,30 +640,34 @@ private fun MarketLocalInstallState?.shouldShowSwitchAction(): Boolean {
     }
 }
 
-private fun MarketV2Entry.detailSections(): List<UnifiedMarketDetailSection> {
-    return buildList {
-        val about = detail.ifBlank { description }
-        if (about.isNotBlank()) {
-            add(
-                UnifiedMarketDetailSection(
-                    title = "About",
-                    body = about,
-                    icon = Icons.Default.Info,
-                    showTitle = false
-                )
-            )
-        }
-        latestVersion?.installConfig?.takeIf { it.isNotBlank() }?.let { config ->
-            add(
-                UnifiedMarketDetailSection(
-                    title = "Install Config",
-                    body = config,
-                    icon = Icons.Default.Code,
-                    isCodeBlock = true
-                )
-            )
-        }
+@Composable
+private fun MarketV2Entry.detailSections(): List<UnifiedMarketDetailSection> = buildList {
+    if (description.isNotBlank()) {
+        add(UnifiedMarketDetailSection(
+            title = stringResource(R.string.extension_detail_brief), body = description,
+            collapsible = true, previewLines = 4,
+        ))
     }
+    if (detail.isNotBlank() && detail != description) {
+        add(UnifiedMarketDetailSection(
+            title = stringResource(R.string.extension_detail_description), body = detail,
+            collapsible = true, previewLines = 8,
+        ))
+    }
+    latestVersion?.installConfig?.takeIf { it.isNotBlank() }?.let { config ->
+        add(UnifiedMarketDetailSection(
+            title = stringResource(R.string.extension_detail_install_config), body = config,
+            icon = Icons.Default.Code, isCodeBlock = true, collapsible = true, previewLines = 6,
+        ))
+    }
+}
+
+private fun MarketV2Entry.detailTypeLabel(context: Context): String = when (type.lowercase()) {
+    "package" -> context.getString(R.string.nav_group_plugins)
+    "script" -> context.getString(R.string.packages)
+    "skill" -> context.getString(R.string.skills)
+    "mcp" -> "MCP"
+    else -> type
 }
 
 private fun MarketV2Entry.metadataRows(
@@ -715,7 +675,11 @@ private fun MarketV2Entry.metadataRows(
     review: com.ai.assistance.operit.ui.features.extensions.packages.market.MarketReviewSnapshot
 ): List<UnifiedMarketDetailInfoRow> {
     return buildList {
-        add(UnifiedMarketDetailInfoRow(context.getString(R.string.type_label), type.ifBlank { "-" }, Icons.Default.Info))
+        add(UnifiedMarketDetailInfoRow(context.getString(R.string.type_label), detailTypeLabel(context), Icons.Default.Info))
+        add(UnifiedMarketDetailInfoRow(context.getString(R.string.extension_detail_market_entry), id))
+        latestVersion?.formatVer?.takeIf { it.isNotBlank() }?.let {
+            add(UnifiedMarketDetailInfoRow(context.getString(R.string.extension_detail_format), it))
+        }
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let {
             add(UnifiedMarketDetailInfoRow(context.getString(R.string.version_label), it, Icons.Default.Update))
         }
@@ -768,15 +732,11 @@ private fun MarketV2Entry.metadataRows(
 
 @Composable
 private fun MarketV2Entry.detailBadges(): List<String> {
+    val context = LocalContext.current
     return buildList {
-        if (type.isNotBlank()) add(type)
-        if (categoryId.isNotBlank()) add(categoryId)
+        add(detailTypeLabel(context))
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let { add("v${normalizeDetailVersionBadge(it)}") }
-        if (PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE) {
-            latestVersion?.let {
-                add(stringResource(R.string.toolpkg_api_version_value, it.effectiveToolPkgApiVersion()))
-            }
-        }
+        if (categoryId.isNotBlank()) add(marketCategoryLabel(context, categoryId))
     }
 }
 

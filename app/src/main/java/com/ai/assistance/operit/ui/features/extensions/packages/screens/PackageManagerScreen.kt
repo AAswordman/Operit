@@ -72,12 +72,12 @@ import com.ai.assistance.operit.ui.components.ErrorDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.components.EmptyState
 import com.ai.assistance.operit.ui.features.extensions.packages.components.PackageTab
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageAddActionDialog
-import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageDetailsDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.BuiltInResourceImportDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageTemplateIdentityDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.QuickPluginCreatorDialog
-import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.ScriptExecutionDialog
 import com.ai.assistance.operit.ui.features.extensions.packages.lists.PackagesList
 import com.ai.assistance.operit.ui.features.extensions.packages.market.BindMarketSearchToTopBar
+import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import com.ai.assistance.operit.ui.features.extensions.packages.market.PluginCreationIntent
 import java.io.File
 import kotlinx.coroutines.delay
@@ -86,6 +86,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.features.extensions.packages.management.PackageAcquisitionActions
+import com.ai.assistance.operit.ui.features.extensions.packages.management.getStandaloneScripts
 import com.ai.assistance.operit.ui.features.extensions.packages.management.PackageManagerMenu
 import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginFilter
 import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginListPreferences
@@ -150,7 +151,7 @@ fun PackageManagerScreen(
     onNavigateToSkillMarket: () -> Unit = {},
     onNavigateToArtifactMarket: () -> Unit = {},
     onStartPluginCreation: (PluginCreationIntent) -> Unit = {},
-    onOpenToolPkgPluginConfig: (String, String, String, Boolean) -> Unit = { _, _, _, _ -> },
+    onOpenPackageDetail: (String, String) -> Unit = { _, _ -> },
     onOpenMarketDetail: (MarketV2Entry) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -175,16 +176,6 @@ fun PackageManagerScreen(
     val visibleImportedPackages = remember { mutableStateOf<List<String>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
 
-    // State for selected package and showing details
-    var selectedPackage by remember { mutableStateOf<String?>(null) }
-    var showDetails by remember { mutableStateOf(false) }
-
-    // State for script execution
-    var showScriptExecution by remember { mutableStateOf(false) }
-    var selectedTool by remember { mutableStateOf<PackageTool?>(null) }
-    var selectedToolPackageName by remember { mutableStateOf<String?>(null) }
-    var scriptExecutionResult by remember { mutableStateOf<ToolResult?>(null) }
-
     // State for snackbar
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -205,6 +196,9 @@ fun PackageManagerScreen(
     var pluginFilter by remember { mutableStateOf(pluginListPreferences.readFilter()) }
     val pluginActivities by packageManager.pluginActivityStore.activities.collectAsState()
     var refreshGeneration by remember { mutableStateOf(0) }
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    LaunchedEffect(updateRevision) { refreshGeneration++ }
+
     val filteredPluginContainers by remember(
         pluginContainers.value, pluginSearchQuery, pluginFilter, visibleImportedPackages.value
     ) {
@@ -250,6 +244,7 @@ fun PackageManagerScreen(
     var quickPluginSetupRunning by remember { mutableStateOf(false) }
     var quickPluginSetupResult by remember { mutableStateOf<ToolResult?>(null) }
     var showPackageAddActionDialog by remember { mutableStateOf(false) }
+    var builtInImportIsPlugin by rememberSaveable { mutableStateOf<Boolean?>(null) }
     var pendingTemplateKind by remember { mutableStateOf<PackageTemplateKind?>(null) }
 
     val environmentPackages by remember {
@@ -393,7 +388,7 @@ fun PackageManagerScreen(
                                             val importResult =
                                                 packageManager.addPackageFileFromExternalStorage(tempFile.absolutePath)
 
-                                            val available = packageManager.getExecutableAvailablePackages(forceRefresh = true)
+                                            val available = packageManager.getStandaloneScripts(forceRefresh = true)
                                             val allAvailable = packageManager.getAvailablePackages()
                                             val plugins =
                                                 packageManager
@@ -481,6 +476,10 @@ fun PackageManagerScreen(
 
         }
 
+    val isCurrentScreen = LocalIsCurrentScreen.current
+    LaunchedEffect(isCurrentScreen) {
+        if (isCurrentScreen) refreshGeneration++
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -496,7 +495,7 @@ fun PackageManagerScreen(
         try {
             val loadResult =
                 withContext(Dispatchers.IO) {
-                    val available = packageManager.getExecutableAvailablePackages(forceRefresh = true)
+                    val available = packageManager.getStandaloneScripts(forceRefresh = true)
                     val allAvailable = packageManager.getAvailablePackages()
                     val plugins =
                         packageManager
@@ -781,6 +780,10 @@ fun PackageManagerScreen(
                         count = filteredPluginContainers.size,
                         sort = pluginSort,
                         filter = pluginFilter,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("package"))
+                        },
                         onSortChanged = {
                             pluginSort = it
                             pluginListPreferences.saveSort(it)
@@ -796,15 +799,13 @@ fun PackageManagerScreen(
                 Box(Modifier.padding(horizontal = 16.dp)) {
                     PluginListToolbar(
                         count = filteredAvailablePackages.size, sort = pluginSort, filter = sandboxFilter,
-                        onSortChanged = {}, onFilterChanged = { sandboxFilterName = it.name }, showSorting = false,
+                        onSortChanged = {}, onFilterChanged = { sandboxFilterName = it.name }, showSorting = false, scripts = true,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("script"))
+                        },
                     )
                 }
-            }
-            if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
-                TextButton(onClick = {
-                    context.startActivity(android.content.Intent(context, OfflineResourcesActivity::class.java)
-                        .putExtra(OfflineResourcesActivity.EXTRA_GROUP, "extensions"))
-                }, modifier = Modifier.padding(horizontal = 16.dp)) { Text(stringResource(R.string.hub_prepare_builtins)) }
             }
             if ((selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) && packageLoadErrors.value.isNotEmpty()) {
                 TextButton(
@@ -832,8 +833,7 @@ fun PackageManagerScreen(
                             isLoading = isLoading,
                             isSearchActive = pluginSearchQuery.isNotBlank(),
                             onPluginClick = { packageName ->
-                                selectedPackage = packageName
-                                showDetails = true
+                                onOpenPackageDetail(packageName, filteredPluginContainers.getValue(packageName).displayName)
                             },
                              onTogglePlugin = { details, isChecked ->
                                 val currentImported =
@@ -913,8 +913,8 @@ fun PackageManagerScreen(
                                 showQuickPluginCreatorDialog = true
                             },
                             onPackageClick = { packageName ->
-                                selectedPackage = packageName
-                                showDetails = true
+                                val script = filteredAvailablePackages.getValue(packageName)
+                                onOpenPackageDetail(packageName, script.displayName.resolve(context).ifBlank { script.name })
                             },
                             onTogglePackage = { packageName, isChecked ->
                                 val currentImported =
@@ -988,100 +988,6 @@ fun PackageManagerScreen(
                 }
             }
 
-            // Package Details Dialog
-            if (showDetails && selectedPackage != null) {
-                PackageDetailsDialog(
-                    packageName = selectedPackage!!,
-                    packageDescription = allAvailablePackages.value[selectedPackage]?.description?.resolve(context)
-                        ?: "",
-                    toolPackage = allAvailablePackages.value[selectedPackage],
-                    packageManager = packageManager,
-                    isContainerEnabled = selectedPackage in importedPackages.value,
-                    onRunScript = { toolPackageName, tool ->
-                        selectedToolPackageName = toolPackageName
-                        selectedTool = tool
-                        showScriptExecution = true
-                    },
-                    onOpenToolPkgPluginConfig = { containerPackageName, uiModuleId, title, keepAlive ->
-                        showDetails = false
-                        onOpenToolPkgPluginConfig(containerPackageName, uiModuleId, title, keepAlive)
-                    },
-                    onOpenMarketDetail = { entry ->
-                        showDetails = false
-                        onOpenMarketDetail(entry)
-                    },
-                    onDismiss = {
-                        showDetails = false
-                        scope.launch {
-                            val imported = withContext(Dispatchers.IO) { packageManager.getEnabledPackageNames() }
-                            importedPackages.value = imported
-                            visibleImportedPackages.value = imported.toList()
-                        }
-                    },
-                    onPackageDeleted = {
-                        showDetails = false
-                        scope.launch {
-                            AppLogger.d(
-                                "PackageManagerScreen",
-                                "onPackageDeleted callback triggered. Refreshing package lists."
-                            )
-                            // Refresh the package lists after deletion
-                            isLoading = true
-                            val loadResult =
-                                withContext(Dispatchers.IO) {
-                                    val available = packageManager.getExecutableAvailablePackages(forceRefresh = true)
-                                    val allAvailable = packageManager.getAvailablePackages()
-                                    val plugins =
-                                        packageManager
-                                            .getToolPkgPluginContainerDetails(context)
-                                            .associateBy { it.packageName }
-                                    val imported = packageManager.getEnabledPackageNames()
-                                    PackageManagerSnapshot(
-                                        availablePackages = available,
-                                        allAvailablePackages = allAvailable,
-                                        pluginContainers = plugins,
-                                        importedPackages = imported,
-                                        packageLoadErrors = packageManager.getPackageLoadErrors(),
-                                        packageLoadErrorInfos = packageManager.getPackageLoadErrorInfos()
-                                    )
-                                }
-
-                            availablePackages.value = loadResult.availablePackages
-                            allAvailablePackages.value = loadResult.allAvailablePackages
-                            pluginContainers.value = loadResult.pluginContainers
-                            importedPackages.value = loadResult.importedPackages
-                            packageLoadErrors.value = loadResult.packageLoadErrors
-                            packageLoadErrorInfos.value = loadResult.packageLoadErrorInfos
-                            visibleImportedPackages.value = importedPackages.value.toList()
-                            AppLogger.d(
-                                "PackageManagerScreen",
-                                "Lists refreshed. Available: ${availablePackages.value.keys}, Imported: ${importedPackages.value}"
-                            )
-                            isLoading = false
-                            OKToast.success(context, context.getString(R.string.pkg_delete_success), OKToast.LENGTH_SHORT).show()
-                        }
-                    }
-                )
-            }
-
-            // Script Execution Dialog
-            if (showScriptExecution && selectedTool != null && selectedPackage != null) {
-                val executionPackageName = selectedToolPackageName ?: selectedPackage!!
-                ScriptExecutionDialog(
-                    packageName = executionPackageName,
-                    tool = selectedTool!!,
-                    environmentVariables = allAvailablePackages.value[executionPackageName]?.env.orEmpty(),
-                    packageManager = packageManager,
-                    initialResult = scriptExecutionResult,
-                    onExecuted = { result -> scriptExecutionResult = result },
-                    onDismiss = {
-                        showScriptExecution = false
-                        scriptExecutionResult = null
-                        selectedToolPackageName = null
-                    }
-                )
-            }
-
             // Environment Variables Dialog for packages
             if (showEnvDialog) {
                 PackageEnvironmentVariablesDialog(
@@ -1122,7 +1028,7 @@ fun PackageManagerScreen(
                             val refreshed =
                                 withContext(Dispatchers.IO) {
                                     PackageManagerSnapshot(
-                                        availablePackages = packageManager.getExecutableAvailablePackages(forceRefresh = true),
+                                        availablePackages = packageManager.getStandaloneScripts(forceRefresh = true),
                                         allAvailablePackages = packageManager.getAvailablePackages(),
                                         pluginContainers =
                                             packageManager
@@ -1187,6 +1093,10 @@ fun PackageManagerScreen(
                         showPackageAddActionDialog = false
                         packageFilePicker.launch("*/*")
                     },
+                    onImportBuiltIn = {
+                        showPackageAddActionDialog = false
+                        builtInImportIsPlugin = selectedTab == PackageTab.PLUGINS
+                    },
                     onCreateTemplate = { kind ->
                         showPackageAddActionDialog = false
                         pendingTemplateKind = kind
@@ -1195,6 +1105,9 @@ fun PackageManagerScreen(
                 )
             }
 
+            builtInImportIsPlugin?.let { isPlugin ->
+                BuiltInResourceImportDialog(isPlugin, packageManager, onDismiss = { builtInImportIsPlugin = null })
+            }
             pendingTemplateKind?.let { kind ->
                 PackageTemplateIdentityDialog(
                     kind = kind,
@@ -1241,7 +1154,7 @@ fun PackageManagerScreen(
                             val loadResult =
                                 withContext(Dispatchers.IO) {
                                     val available =
-                                        packageManager.getExecutableAvailablePackages(forceRefresh = true)
+                                        packageManager.getStandaloneScripts(forceRefresh = true)
                                     val allAvailable = packageManager.getAvailablePackages()
                                     val plugins =
                                         packageManager

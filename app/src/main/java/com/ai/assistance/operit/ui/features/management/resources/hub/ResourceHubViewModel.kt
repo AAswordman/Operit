@@ -145,6 +145,7 @@ internal class ResourceHubViewModel(application: Application) : AndroidViewModel
     fun importResource(id: String, uri: Uri) = perform(id, R.string.offline_resources_import) {
         val entry = repo.snapshot().entries.first { it.id == id }
         check(!entry.bundled)
+        check(entry.importable) { context.getString(R.string.hub_extension_remove_before_import) }
         when {
             entry.legacy != null -> OfflineResources.importZip(context, entry.id, uri, progress)
             entry.pack != null -> checkNotNull(context.contentResolver.openInputStream(uri)).use { PackResources.importArchive(context, entry.id, it, documentName(uri), progress) }

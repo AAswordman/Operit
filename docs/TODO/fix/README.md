@@ -7,6 +7,8 @@
 [返回 TODO 总览](../README.md)
 
 ## 计划索引
+
+- [提示词编辑状态与更新下载来源适配](prompt-editing-and-update-sources/index.md)
 - [Code Runner 运行隔离与命令收尾](code-runner-execution-isolation/index.md)
 
 - [密钥池错误的实际请求范围](key-pool-error-scope/index.md)
@@ -125,3 +127,6 @@
 - [离线语音试听回调崩溃](offline-tts-callback/index.md)
 
 - [文字描边输入与显示一致性](theme-text-stroke-consistency/index.md)
+
+- [模型服务缓存与持久化配置一致性](model-service-cache-refresh/index.md)
+- [BLE 写入属性、MTU 分片与会话串行化](ble-write-properties-and-mtu/index.md)

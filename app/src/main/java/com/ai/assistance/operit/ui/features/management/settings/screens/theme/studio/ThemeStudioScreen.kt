@@ -94,6 +94,7 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
     var more by remember { mutableStateOf(false) }
     var preset by remember { mutableStateOf<String?>(null) }
     var notice by remember { mutableStateOf<Int?>(null) }
+    var importedResourceCount by remember { mutableIntStateOf(0) }
     var editorFocusManager by remember { mutableStateOf<FocusManager?>(null) }
     // 工作室有独立窗口，必须清除该窗口的焦点，才能在持久化前提交当前数值草稿。
     fun finishEditing() { editorFocusManager?.clearFocus(force = true) }
@@ -109,8 +110,14 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
             if (state.project != null) state.rememberLocation()
         }
     }
-    val importAsset = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) scope.launch { state.importResource(uri) }
+    val importAsset = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) scope.launch {
+            notice = null
+            if (state.importResources(uris)) {
+                importedResourceCount = uris.distinct().size
+                notice = R.string.studio_resources_imported
+            }
+        }
     }
     val importSource = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch { state.importSource(uri) }
@@ -168,7 +175,8 @@ private fun ThemeStudioScreen(session: ThemeEditorSession, projectKey: String, t
                         }
                         notice?.let { label ->
                             Row(Modifier.fillMaxWidth().padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(label), Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = StudioAccent)
+                                Text(if (label == R.string.studio_resources_imported) stringResource(label, importedResourceCount) else stringResource(label),
+                                    Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = StudioAccent)
                                 IconButton(onClick = { notice = null }) { Icon(Icons.Default.Close, stringResource(R.string.studio_close)) }
                             }
                         }

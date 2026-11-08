@@ -49,3 +49,4 @@
 - [1.12.2+21 发行集成](release-plus21/index.md)
 
 - [持久化模型与业务领域归属整理](model-domain-layout/index.md)
+- [1.12.2+23 正式发行](release-1.12.2-plus-23/index.md)

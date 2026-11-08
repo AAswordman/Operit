@@ -140,7 +140,7 @@ class A2aHttpHandler(
                     }
                     jsonRpcResultResponse(
                         request.id,
-                        JSONObject().put("task", taskToJson(resultTask))
+                        JSONObject().put("task", A2aJsonSerialization.task(resultTask))
                     )
                 }
 
@@ -152,7 +152,7 @@ class A2aHttpHandler(
 
                 METHOD_GET_TASK -> {
                     val task = taskManager.getTask(request.params.requiredString("id"))
-                    jsonRpcResultResponse(request.id, taskToJson(task))
+                    jsonRpcResultResponse(request.id, A2aJsonSerialization.task(task))
                 }
 
                 METHOD_LIST_TASKS -> {
@@ -162,7 +162,7 @@ class A2aHttpHandler(
 
                 METHOD_CANCEL_TASK -> {
                     val task = taskManager.cancelTask(request.params.requiredString("id"))
-                    jsonRpcResultResponse(request.id, taskToJson(task))
+                    jsonRpcResultResponse(request.id, A2aJsonSerialization.task(task))
                 }
 
                 METHOD_SUBSCRIBE_TO_TASK -> {
@@ -221,19 +221,18 @@ class A2aHttpHandler(
         val streamJob: Job = serviceScope.launch(Dispatchers.IO) {
             try {
                 output.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
-                    val initialTask = subscription.snapshot
-                    writeSseEvent(
-                        writer,
-                        jsonRpcStreamResponse(
-                            requestId,
-                            JSONObject().put("task", taskToJson(initialTask))
-                        )
-                    )
-                    if (!A2aTaskManager.isTerminalState(initialTask.state)) {
+                    val initialFrame =
+                        A2aJsonSerialization.taskStreamFrame(requestId, subscription.snapshot)
+                    writeSseEvent(writer, initialFrame.payload)
+                    if (!initialFrame.endsStream) {
                         while (true) {
-                            val event = eventChannel.receive()
-                            writeSseEvent(writer, jsonRpcStreamResponse(requestId, eventToJson(event)))
-                            if (event is A2aTaskEvent.Status && event.final) {
+                            val frame =
+                                A2aJsonSerialization.eventStreamFrame(
+                                    requestId,
+                                    eventChannel.receive()
+                                )
+                            writeSseEvent(writer, frame.payload)
+                            if (frame.endsStream) {
                                 break
                             }
                         }
@@ -272,70 +271,6 @@ class A2aHttpHandler(
         }
     }
 
-    private fun eventToJson(event: A2aTaskEvent): JSONObject {
-        return when (event) {
-            is A2aTaskEvent.Status -> statusUpdateEvent(event.task, event.final)
-            is A2aTaskEvent.Artifact -> JSONObject().put(
-                "artifactUpdate",
-                JSONObject().apply {
-                    put("taskId", event.task.id)
-                    put("contextId", event.task.contextId)
-                    put("artifact", artifactToJson(event.task.id, event.text))
-                    put("append", true)
-                    put("lastChunk", false)
-                }
-            )
-        }
-    }
-
-    private fun statusUpdateEvent(task: A2aTaskSnapshot, final: Boolean): JSONObject {
-        return JSONObject().put(
-            "statusUpdate",
-            JSONObject().apply {
-                put("taskId", task.id)
-                put("contextId", task.contextId)
-                put("status", statusToJson(task))
-                put("final", final)
-            }
-        )
-    }
-
-    private fun taskToJson(task: A2aTaskSnapshot): JSONObject {
-        return JSONObject().apply {
-            put("id", task.id)
-            put("contextId", task.contextId)
-            put("status", statusToJson(task))
-            if (task.output.isNotBlank()) {
-                put("artifacts", JSONArray().put(artifactToJson(task.id, task.output)))
-            }
-        }
-    }
-
-    private fun statusToJson(task: A2aTaskSnapshot): JSONObject {
-        return JSONObject().apply {
-            put("state", task.state)
-            task.error?.takeIf { it.isNotBlank() }?.let { message ->
-                put(
-                    "message",
-                    JSONObject().apply {
-                        put("messageId", "${task.id}-status")
-                        put("contextId", task.contextId)
-                        put("taskId", task.id)
-                        put("role", ROLE_AGENT)
-                        put("parts", JSONArray().put(JSONObject().put("text", message)))
-                    }
-                )
-            }
-        }
-    }
-
-    private fun artifactToJson(taskId: String, text: String): JSONObject {
-        return JSONObject().apply {
-            put("artifactId", "$taskId-result")
-            put("parts", JSONArray().put(JSONObject().put("text", text)))
-        }
-    }
-
     private fun parseSendMessageRequest(params: JSONObject): A2aSendMessageRequest {
         val configuration = params.optionalObject("configuration")
         val returnImmediately = configuration?.optionalBoolean("returnImmediately") ?: false
@@ -367,16 +302,7 @@ class A2aHttpHandler(
         if (parts.length() == 0) {
             throw A2aProtocolException("A2A message parts must not be empty")
         }
-        val text = buildList {
-            for (index in 0 until parts.length()) {
-                val part = parts.optJSONObject(index)
-                    ?: throw A2aProtocolException("A2A message part[$index] must be an object")
-                if (part.length() != 1 || !part.has("text")) {
-                    throw A2aProtocolException("A2A server accepts text parts only")
-                }
-                add(part.requiredString("text"))
-            }
-        }.joinToString(separator = "\n")
+        val text = parseA2aTextParts(parts)
         if (text.isBlank()) {
             throw A2aProtocolException("A2A message text must not be blank")
         }
@@ -418,7 +344,7 @@ class A2aHttpHandler(
         val page = tasks.drop(startIndex).take(query.pageSize)
         return JSONObject().apply {
             put("tasks", JSONArray().apply {
-                page.forEach { task -> put(taskToJson(task)) }
+                page.forEach { task -> put(A2aJsonSerialization.task(task)) }
             })
             if (startIndex + page.size < tasks.size) {
                 put("nextPageToken", page.last().id)
@@ -494,20 +420,8 @@ class A2aHttpHandler(
     private fun jsonRpcResultResponse(id: Any, result: JSONObject): NanoHTTPD.Response {
         return jsonResponse(
             NanoHTTPD.Response.Status.OK,
-            JSONObject().apply {
-                put("jsonrpc", JSON_RPC_VERSION)
-                put("id", id)
-                put("result", result)
-            }
+            A2aJsonSerialization.jsonRpcResult(id, result)
         )
-    }
-
-    private fun jsonRpcStreamResponse(id: Any, result: JSONObject): JSONObject {
-        return JSONObject().apply {
-            put("jsonrpc", JSON_RPC_VERSION)
-            put("id", id)
-            put("result", result)
-        }
     }
 
     private fun jsonRpcErrorResponse(
@@ -576,7 +490,6 @@ class A2aHttpHandler(
         private const val JSON_RPC_PROTOCOL_BINDING = "JSONRPC"
         private const val JSON_RPC_VERSION = "2.0"
         private const val ROLE_USER = "ROLE_USER"
-        private const val ROLE_AGENT = "ROLE_AGENT"
         private const val METHOD_SEND_MESSAGE = "SendMessage"
         private const val METHOD_SEND_STREAMING_MESSAGE = "SendStreamingMessage"
         private const val METHOD_GET_TASK = "GetTask"
@@ -607,6 +520,39 @@ class A2aHttpHandler(
         )
     }
 }
+
+/**
+ * A2A 1.0 `Part` carries its payload in a `content` oneof (`text`, `raw`, `url`, `data`) while
+ * `metadata`, `filename`, and `mediaType` are sibling fields. The part kind therefore follows
+ * which content member is present; companions such as `mediaType: "text/plain"` leave a text
+ * part a text part.
+ */
+internal fun parseA2aTextParts(parts: JSONArray): String {
+    val texts = mutableListOf<String>()
+    for (index in 0 until parts.length()) {
+        val part = parts.optJSONObject(index)
+            ?: throw A2aProtocolException("A2A message part[$index] must be an object")
+        val contentMembers = A2A_PART_CONTENT_MEMBERS.filter { part.hasNonNullValue(it) }
+        if (contentMembers.size != 1) {
+            throw A2aProtocolException(
+                "A2A message part[$index] must contain exactly one of " +
+                    A2A_PART_CONTENT_MEMBERS.joinToString(separator = ", ")
+            )
+        }
+        val contentMember = contentMembers.single()
+        if (contentMember != A2A_TEXT_MEMBER) {
+            throw A2aProtocolException(
+                "A2A server accepts text parts only, part[$index] contains $contentMember"
+            )
+        }
+        texts += part.requiredString(A2A_TEXT_MEMBER)
+    }
+    return texts.joinToString(separator = "\n")
+}
+
+private const val A2A_TEXT_MEMBER = "text"
+
+private val A2A_PART_CONTENT_MEMBERS = listOf(A2A_TEXT_MEMBER, "raw", "url", "data")
 
 private fun JSONObject.requiredString(name: String): String {
     return optionalString(name) ?: throw A2aProtocolException("A2A field $name is required")

@@ -889,7 +889,7 @@
     <string name="package_tools">Include instrumente</string>
     <string name="package_import_success">Pachetul a fost importat cu succes</string>
     <string name="package_import_error">Eroare la importarea pachetului</string>
-    <string name="no_packages_available">Nu există pachete disponibile</string>
+    <string name="no_packages_available">Nu există scripturi disponibile</string>
     <string name="no_plugins_available">Nu există pluginuri disponibile în acest moment</string>
     <string name="no_packages_imported">Nu a fost importat încă niciun pachet</string>
     <string name="remove_package">Eliminarea pachetului</string>
@@ -910,19 +910,19 @@
     <string name="package_js_only">Se acceptă doar JavaScript(.js) și ToolPkg(.toolpkg) Document</string>
     <string name="package_script_only">Se acceptă doar HJSON(.hjson),JavaScript(.js) și TypeScript(.ts) Document</string>
     <string name="package_add_dialog_title_plugin">Adaugă plugin</string>
-    <string name="package_add_dialog_title_package">Adaugă pachet sandbox</string>
+    <string name="package_add_dialog_title_package">Adaugă script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Importă un script existent sau creează un șablon JS cu comentarii.</string>
     <string name="package_add_import_existing_plugin">Importă un plugin existent</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Importă un pachet sandbox existent</string>
+    <string name="package_add_import_existing_package">Importă un script existent</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Creează un șablon JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Creează un șablon TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Creează un șablon JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Creează un script .js cu METADATA și un instrument demonstrativ.</string>
     <string name="package_template_identity_title">Șablon nou</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -941,7 +941,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Importă ca plugin sau pachet sandbox</string>
+    <string name="package_share_choice_import">Importă ca plugin sau script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Adaugă ca atașament de chat</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -3418,7 +3418,6 @@
     <!-- ModelApiSettingsSection strings -->
     <string name="api_settings">APISetări</string>
     <string name="api_endpoint">APIPunct final</string>
-    <string name="api_endpoint_placeholder">De exemplu: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">Adresa efectivă a cererii: %s</string>
     <string name="endpoint_completion_hint">Sfat: Dacă introduceți elementul de bazăURL, sistemul va completa automat calea. Dacă doriți să dezactivați această funcție, vă rugăm săURLAdăugare la sfârșit#Nr.</string>
     <string name="api_key">APICheie</string>
@@ -3874,14 +3873,14 @@
     <string name="login_github_to_manage_packages">Autentificare GitHub Pentru publicarea și gestionarea kitului dvs. de instrumente</string>
     <string name="browse">Răsfoire</string>
     <string name="my_tab">Al meu</string>
-    <string name="market_tab_artifact">Geantă tip „sandbox”</string>
+    <string name="market_tab_artifact">Scripturi</string>
     <string name="market_tab_all">Toate</string>
     <string name="market_tab_categories">Clasificare</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Al meu</string>
     <string name="market_category_type_all">Toate</string>
-    <string name="market_category_type_script">Scenariu</string>
+    <string name="market_category_type_script">Scripturi</string>
     <string name="market_category_type_package">Plugin</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -3974,11 +3973,11 @@
     <string name="no_matching_plugins_found">Nu s-au găsit pluginuri corespunzătoare</string>
     <string name="no_matching_skills_found">Nu s-au găsit rezultate corespunzătoare Skill</string>
     <string name="no_matching_scripts_found">Nu s-au găsit scripturi corespunzătoare</string>
-    <string name="no_matching_packages_found">Nu s-au găsit kituri corespunzătoare</string>
+    <string name="no_matching_packages_found">Nu s-au găsit scripturi corespunzătoare</string>
     <string name="skill_market_search_placeholder">Abilități de căutare</string>
     <string name="script_market_search_placeholder">Căutare după numele scriptului, descriere și autor...</string>
     <string name="plugin_market_search_placeholder">Plugin de căutare</string>
-    <string name="package_market_search_placeholder">Pachet de căutare</string>
+    <string name="package_market_search_placeholder">Caută numele, descrierea sau autorul scriptului…</string>
     <string name="mcp_market_search_placeholder">Căutare MCP</string>
     <string name="skill_repo_url_not_found">Nu s-a găsit adresa depozitului</string>
     <string name="skill_repo_url_not_found_cannot_install">Nu s-a găsit adresa depozitului; instalarea nu este posibilă</string>
@@ -6491,10 +6490,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Crearea ecranului virtual a eșuat.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Eroare la preîncărcarea ecranului virtual:%1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Ecranul virtual nu a putut fi pornit; procesul a fost întrerupt pentru a evita efectuarea unor operațiuni pe ecranul principal.</string>
-    <string name="phone_agent_thinking">Mă gândesc...</string>
-    <string name="phone_agent_completed">Finalizat</string>
-    <string name="phone_agent_executing_action">Executare %1$s în...</string>
-    <string name="phone_agent_executing">Operațiune în curs de execuție...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">Sari peste</string>
@@ -7620,9 +7615,8 @@
     <string name="github_login_method_external">Autentificați-vă cu browserul extern</string>
     <string name="github_login_starting">Se pregătește autorizarea GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versiunea de publicare ToolPkg provine din manifestul pachetului și nu poate fi modificată manual înainte de publicare</string>
-    <string name="market_version_incompatible_title">Nu se poate descărca: versiunea clientului nu este acceptată</string>
-    <string name="market_version_too_low_message">Versiunea curentă a clientului %1$s este mai mică decât versiunea minimă cerută de resursă, %2$s. Vă rugăm să actualizați clientul înainte de descărcare.</string>
-    <string name="market_version_too_high_message">Versiunea curentă a clientului %1$s este mai mare decât versiunea maximă acceptată de resursă, %2$s. Vă rugăm să utilizați o versiune de client acceptată.</string>
+    <string name="market_toolpkg_api_incompatible_title">Nu se poate instala: API ToolPkg nu este acceptată</string>
+    <string name="market_toolpkg_api_incompatible_message">Acest plugin declară API ToolPkg %1$s. Acest dispozitiv acceptă %2$s, deci pluginul nu poate fi instalat.</string>
     <string name="search_group_title">Căutare</string>
     <string name="thinking_search_group_title">Gândiți și căutați</string>
     <string name="thinking_search_tools_group_title_with_count">Gândiți, căutați și apelați instrumente (%1$d)</string>
@@ -8024,7 +8018,7 @@
     <string name="data_storage_extension_scripts">Scripturi</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Competențe</string>
-    <string name="data_storage_extension_plugin_source">Sursă plugin</string>
+    <string name="data_storage_extension_plugin_data">Date ale pluginurilor</string>
     <string name="data_storage_extension_dev_package">Pachete de dezvoltare</string>
     <string name="data_storage_extension_themes">Pachete de teme</string>
     <string name="data_storage_extension_bridge">Punte MCP</string>
@@ -8033,7 +8027,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Nu există date ale pluginurilor</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8116,7 +8110,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Piață de pluginuri</string>
-    <string name="package_market">Piață de pachete</string>
+    <string name="package_market">Piață de scripturi</string>
     <string name="plugin_sort_action">Sortează</string>
     <string name="plugin_sort_custom">Ordine personalizată</string>
     <string name="plugin_sort_name">Nume</string>
@@ -8135,7 +8129,7 @@
     <string name="plugin_manage_load_errors">Erori de încărcare (%1$d)</string>
     <string name="plugin_import_format_help">Formate de import</string>
     <string name="plugin_import_format_description">Pluginurile acceptă fișiere .toolpkg cu manifest.json sau manifest.hjson și fișierele de intrare și resursele declarate.</string>
-    <string name="sandbox_import_format_description">Pachetele sandbox acceptă .js, .ts și .hjson. Scripturile necesită METADATA; TypeScript trebuie compilat separat.</string>
+    <string name="sandbox_import_format_description">Scripturile independente acceptă .js, .ts și .hjson. Necesită METADATA; TypeScript trebuie compilat separat.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Mesaje AI</string>
@@ -8954,7 +8948,7 @@
     <string name="theme_transfer_author">autor</string>
     <string name="theme_transfer_code">partajați codul</string>
     <string name="theme_transfer_file">Fișier temă .oktheme</string>
-    <string name="theme_transfer_full_contents">Inclusiv parametrii temei, imagini de fundal sau videoclipuri, imagini cu bule ale ambelor părți, fonturi personalizate, avatare și ajustări ale materialelor.</string>
+    <string name="theme_transfer_full_contents">Include toate resursele temei.</string>
     <string name="theme_transfer_paste">Partajați codul sau linkul subiectului</string>
     <string name="theme_transfer_choose_file">Selectați fișierul temă</string>
     <string name="theme_transfer_generate">Generați codul de partajare</string>
@@ -9033,4 +9027,81 @@
     <string name="data_storage_detail_model_engines">Motoare de execuție</string>
     <string name="pkg_delete_failed">Fișierele extensiei nu au putut fi șterse. Verifică accesul sau dezactivează pluginurile dependente.</string>
     <string name="pkg_delete_success">Fișierele extensiei au fost șterse</string>
+
+    <string name="extension_interfaces">Interfețe</string>
+    <string name="extension_description_title">Descriere</string>
+    <string name="extension_description_expand">Citește tot</string>
+    <string name="extension_description_collapse">Restrânge</string>
+    <string name="extension_detail_load_failed">Detaliile extensiei nu pot fi încărcate. Verifică dacă este instalată sau reîncearcă.</string>
+    <string name="extension_toggle_failed">Activarea nu poate fi schimbată. Verifică dependențele și setările mediului.</string>
+    <string name="extension_detail_retry">Reîncearcă</string>
+
+    <string name="extension_detail_brief">Prezentare</string>
+    <string name="extension_detail_description">Descriere detaliată</string>
+    <string name="extension_detail_information">Informații</string>
+    <string name="extension_detail_manage">Gestionare</string>
+    <string name="extension_detail_contents">Conținut</string>
+    <string name="extension_detail_dependencies">Dependențe</string>
+    <string name="extension_detail_subpackages">Subpachete</string>
+    <string name="extension_detail_type">Tip</string>
+    <string name="extension_detail_status">Stare</string>
+    <string name="extension_detail_version">Versiune</string>
+    <string name="extension_detail_source">Sursă</string>
+    <string name="extension_detail_imported">Importat manual</string>
+    <string name="extension_detail_market_source">Instalat din piață</string>
+    <string name="extension_detail_remove">Elimină extensia</string>
+    <string name="extension_detail_remove_hint">Șterge această extensie și fișierele sale</string>
+    <string name="extension_detail_resources">Resurse</string>
+    <string name="extension_detail_wasm">Module WASM</string>
+    <string name="extension_detail_workflows">Șabloane de flux</string>
+    <string name="extension_detail_workspaces">Șabloane de spațiu de lucru</string>
+    <string name="extension_detail_developers">Dezvoltatori</string>
+    <string name="extension_detail_updated">Actualizat</string>
+    <string name="extension_detail_entry">Punct de intrare</string>
+    <string name="extension_detail_path">Cale</string>
+    <string name="extension_detail_market_entry">Element din piață</string>
+    <string name="extension_detail_enabled">Activat</string>
+    <string name="extension_detail_disabled">Dezactivat</string>
+    <string name="extension_detail_other_versions">Alte versiuni</string>
+    <string name="extension_detail_empty_subpackages">Acest plugin nu are subpachete.</string>
+    <string name="extension_detail_tools">Instrumente</string>
+    <string name="extension_detail_navigation">Intrări de navigare</string>
+    <string name="extension_detail_widgets">Widgeturi desktop</string>
+    <string name="extension_detail_default_state">Stare implicită</string>
+    <string name="extension_detail_source_unavailable">Sursă indisponibilă</string>
+    <string name="extension_detail_install_config">Configurare instalare</string>
+
+    <string name="extension_detail_downloads">Descărcări</string>
+    <string name="extension_detail_likes">Aprecieri</string>
+    <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d actualizări</string>
+    <string name="extension_update_now">Actualizează</string>
+    <string name="extension_updating">Se actualizează</string>
+    <string name="extension_install">Descarcă</string>
+    <string name="extension_installed">Instalat</string>
+
+    <string name="extension_new_version">Versiune nouă</string>
+    <string name="script_filter_all">Toate scripturile</string>
+    <string name="script_filter_enabled">Scripturi active</string>
+    <string name="script_filter_disabled">Scripturi dezactivate</string>
+    <string name="script_list_count">%1$d scripturi</string>
+    <string name="studio_resources_imported">%1$d resurse importate</string>
+    <string name="studio_import_resource_hint">Selectează mai multe imagini PNG, JPEG, WebP, SVG statice sau fonturi TTF și OTF</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Tip</string>
+    <string name="builtin_market_download_size">Dimensiune descărcare</string>
+    <string name="builtin_market_packages">Extensii incluse</string>
+    <string name="builtin_market_open_installed">Vezi instalarea</string>
+    <string name="builtin_market_about">Despre</string>
+    <string name="builtin_market_description">Resursă integrată Operit. După descărcare, o poți gestiona, activa și îi poți vedea instrumentele în lista de pluginuri sau scripturi.</string>
+    <string name="builtin_market_information">Informații</string>
+    <string name="builtin_market_source">Sursă</string>
+    <string name="builtin_market_resource_version">Versiunea resursei</string>
+    <string name="builtin_resource_import">Importă resurse integrate</string>
+    <string name="builtin_resource_import_hint">Selectează extensia sau scriptul corespunzător, apoi importă pachetul de resurse ZIP corespunzător.</string>
+    <string name="builtin_resource_no_targets">Nu există resurse integrate disponibile pentru import.</string>
+    <string name="builtin_market_version">Versiunea resursei %1$s</string>
+    <string name="extension_updates_no_sources">Nu există extensii sau scripturi cu o sursă de actualizări. Elementele importate manual fără o sursă din magazin nu pot fi verificate.</string>
+    <string name="data_storage_extension_plugin_data_desc">Conține cărți de lume și setări. Gestionează aceste date în pluginul corespunzător.</string>
 </resources>

@@ -24,7 +24,13 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** 管理多个AIService实例，根据功能类型提供不同的服务配置 */
-class MultiServiceManager(private val context: Context) {
+class MultiServiceManager(
+    private val context: Context,
+    functionalConfigManager: FunctionalConfigManager = FunctionalConfigManager(context),
+    modelConfigManager: ModelConfigManager = ModelConfigManager(context),
+    private val serviceFactory: (ModelConfigData, ModelConfigManager, Context) -> AIService =
+        { config, manager, ctx -> AIServiceFactory.createService(config, manager, ctx) },
+) {
     companion object {
         private const val TAG = "MultiServiceManager"
     }
@@ -47,14 +53,15 @@ class MultiServiceManager(private val context: Context) {
     private class ManagedService(
         val service: AIService,
         val modelConfig: ModelConfigData,
+        val modelIndex: Int,
         var activeLeases: Int = 0,
         var retired: Boolean = false,
         var released: Boolean = false
     )
 
     // 配置管理器
-    private val functionalConfigManager = FunctionalConfigManager(context)
-    private val modelConfigManager = ModelConfigManager(context)
+    private val functionalConfigManager = functionalConfigManager
+    private val modelConfigManager = modelConfigManager
 
     // 服务实例缓存
     private val serviceInstances = mutableMapOf<FunctionType, ManagedService>()
@@ -162,12 +169,19 @@ class MultiServiceManager(private val context: Context) {
     }
 
     private suspend fun getOrCreateServiceForFunctionLocked(functionType: FunctionType): ManagedService {
-        serviceInstances[functionType]?.let {
-            return it
-        }
-
+        // 每次取用都核对持久化配置，不能要求所有配置写入入口记得手动刷新缓存。
         val configMapping = functionalConfigManager.getConfigMappingForFunction(functionType)
         val config = modelConfigManager.getModelConfigFlow(configMapping.configId).first()
+        val cachedService = serviceInstances[functionType]
+        if (cachedService != null && isCacheValid(cachedService, configMapping.configId, configMapping.modelIndex, config)) {
+            return cachedService
+        }
+        cachedService?.let {
+            // 先移除失效缓存；新实例创建失败后，也不能再次取出已经释放的旧服务。
+            serviceInstances.remove(functionType)
+            if (functionType == FunctionType.CHAT) defaultService = null
+            retireManagedServiceLocked(it)
+        }
 
         val rawService = createServiceFromConfig(config, configMapping.modelIndex)
         // 对话继续由输入栏逐次控制；其他生成类功能使用各自的思考映射。
@@ -178,7 +192,8 @@ class MultiServiceManager(private val context: Context) {
         }
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = configMapping.modelIndex
         )
         serviceInstances[functionType] = managedService
 
@@ -193,13 +208,20 @@ class MultiServiceManager(private val context: Context) {
     private suspend fun getOrCreateServiceForConfigLocked(configId: String, modelIndex: Int): ManagedService {
         val normalizedIndex = modelIndex.coerceAtLeast(0)
         val cacheKey = "$configId#$normalizedIndex"
-        customServiceInstances[cacheKey]?.let { return it }
-
         val config = modelConfigManager.getModelConfigFlow(configId).first()
+        val cachedService = customServiceInstances[cacheKey]
+        if (cachedService != null && isCacheValid(cachedService, configId, normalizedIndex, config)) {
+            return cachedService
+        }
+        cachedService?.let {
+            customServiceInstances.remove(cacheKey)
+            retireManagedServiceLocked(it)
+        }
         val service = createServiceFromConfig(config, normalizedIndex)
         val managedService = ManagedService(
             service = service,
-            modelConfig = config
+            modelConfig = config,
+            modelIndex = normalizedIndex
         )
         customServiceInstances[cacheKey] = managedService
 
@@ -207,11 +229,20 @@ class MultiServiceManager(private val context: Context) {
         return managedService
     }
 
+    /** 缓存保存构造时的完整配置与索引，模型、密钥、地址及绑定变化均在下次取用生效。 */
+    private fun isCacheValid(
+        cachedService: ManagedService,
+        expectedConfigId: String,
+        expectedModelIndex: Int,
+        currentConfig: ModelConfigData,
+    ): Boolean = cachedService.modelConfig == currentConfig &&
+        cachedService.modelConfig.id == expectedConfigId && cachedService.modelIndex == expectedModelIndex
+
     /** 获取默认服务（通常是CHAT功能的服务） */
     suspend fun getDefaultService(): AIService {
         ensureInitialized()
         return serviceMutex.withLock {
-            (defaultService ?: getOrCreateServiceForFunctionLocked(FunctionType.CHAT)).service
+            getOrCreateServiceForFunctionLocked(FunctionType.CHAT).service
         }
     }
 
@@ -266,14 +297,11 @@ class MultiServiceManager(private val context: Context) {
         serviceMutex.withLock {
             serviceInstances.remove(functionType)?.let { retireManagedServiceLocked(it) }
 
-            if (functionType == FunctionType.CHAT) {
-                defaultService = null
-                val customServices = customServiceInstances.values.toList()
-                customServiceInstances.clear()
-                customServices.forEach { service ->
-                    retireManagedServiceLocked(service)
-                }
-            }
+            if (functionType == FunctionType.CHAT) defaultService = null
+            // 同一配置可能还被固定模型入口持有，功能刷新时一并废弃它们的缓存快照。
+            val customServices = customServiceInstances.values.toList()
+            customServiceInstances.clear()
+            customServices.forEach { service -> retireManagedServiceLocked(service) }
 
             AppLogger.d(TAG, "已移除功能${functionType}的服务实例缓存")
         }
@@ -355,11 +383,7 @@ class MultiServiceManager(private val context: Context) {
         
         AppLogger.d(TAG, "创建服务: 原始模型='${config.modelName}', 选中模型='$selectedModelName' (请求索引=$modelIndex, 实际索引=$actualIndex)")
 
-        val rawService = AIServiceFactory.createService(
-            config = configWithSelectedModel,
-            modelConfigManager = modelConfigManager,
-            context = context
-        )
+        val rawService = serviceFactory(configWithSelectedModel, modelConfigManager, context)
 
         val requestLimitPerMinute = config.requestLimitPerMinute.coerceAtLeast(0)
         val maxConcurrentRequests = config.maxConcurrentRequests.coerceAtLeast(0)

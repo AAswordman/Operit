@@ -110,7 +110,8 @@ class OfflineHubAssetPreparationTest(unittest.TestCase):
         catalogs = {
             "offline-resources.properties": b"catalog",
             "local-speech-models.json": b"{}",
-            "offline-packs.json": json.dumps({"packs": extensions}).encode(),
+            "offline-packs.json": json.dumps({"packs": []}).encode(),
+            "builtin-extensions.json": json.dumps({"packs": extensions}).encode(),
         }
         for name, data in catalogs.items():
             (config / name).write_bytes(data)
@@ -216,7 +217,8 @@ class FixedCatalogSourceSnapshotTest(unittest.TestCase):
         tag = "resources-v2-" + hashlib.sha256(json.dumps(packs, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
         for pack in packs:
             pack["archive"]["url"] = f"https://github.com/{verify_hub_catalog.RESOURCE_REPOSITORY}/releases/download/{tag}/{pack['archive']['path']}"
-        (self.config / "offline-packs.json").write_text(json.dumps({"schemaVersion": 1, "releaseTag": tag, "packs": packs}))
+        (self.config / "offline-packs.json").write_text(json.dumps({"schemaVersion": 1, "releaseTag": tag, "packs": [p for p in packs if "extension" not in p]}))
+        (self.config / "builtin-extensions.json").write_text(json.dumps({"schemaVersion": 1, "releaseTag": tag, "packs": [p for p in packs if "extension" in p]}))
         self.snapshot = {"schemaVersion": 1, "releaseTag": tag, "sourceRevision": "a" * 40,
             "sources": ["sample.js"], "files": list(self.files.items())}
         self.write_snapshot()

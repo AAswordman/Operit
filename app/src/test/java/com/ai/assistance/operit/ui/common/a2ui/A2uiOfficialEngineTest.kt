@@ -252,7 +252,7 @@ class A2uiOfficialEngineTest {
     }
 }
 
-private class JvmJsonReader(text: String) : A2uiJsonReader {
+internal class JvmJsonReader(text: String) : A2uiJsonReader {
     private val reader = com.google.gson.stream.JsonReader(java.io.StringReader(text))
     override fun peek() = A2uiJsonToken.valueOf(reader.peek().name)
     override fun beginObject() = reader.beginObject()

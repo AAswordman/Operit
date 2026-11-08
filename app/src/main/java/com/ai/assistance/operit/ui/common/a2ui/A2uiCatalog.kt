@@ -386,13 +386,15 @@ private class OperitCardComponent(override val name: String) : A2uiComponent {
     }
 }
 
-/** Keep the official schemas while disabling input during incremental replay. */
+/** Preserve Material button behavior with Operit events and incremental replay controls. */
 private val LocalCardButtonLoading = compositionLocalOf { false }
 private object CardButton : A2uiComponent {
     override val name = "Button"
     override val description = "Button with checks and local busy state"
     private val loading = A2uiProperty.dynamicBoolean("loading")
-    override val properties = BaseCardButton.properties + loading
+    override val properties = BaseCardButton.properties.map {
+        if (it.key == "action") cardEventActionProperty else it
+    } + loading
     @Composable
     override fun A2uiComponentScope.Content(properties: A2uiComponentProperties, modifier: Modifier) {
         CompositionLocalProvider(LocalCardButtonLoading provides (properties.bind(loading) == true)) {

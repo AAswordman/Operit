@@ -1382,24 +1382,28 @@ class ConversationService(
         check(multiServiceManager.hasImageRecognitionConfigured()) {
             context.getString(R.string.tool_image_recognition_not_configured)
         }
-        val service = multiServiceManager.getServiceForFunction(FunctionType.IMAGE_RECOGNITION)
         val imageId = ImagePoolManager.addImage(imagePath)
         check(imageId != "error") { context.getString(R.string.image_read_error) }
         try {
-            val imageLink = MediaLinkBuilder.image(context, imageId)
-            val prompt = if (userIntent.isNullOrBlank()) {
-                "$imageLink\n${context.getString(R.string.conversation_analyze_image_prompt)}"
-            } else {
-                "$imageLink\n$userIntent"
+            // 配置更新会废弃缓存；识别期间持有租约，旧服务在请求完成后才释放。
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.IMAGE_RECOGNITION)
+            try {
+                val imageLink = MediaLinkBuilder.image(context, imageId)
+                val prompt = if (userIntent.isNullOrBlank()) {
+                    "$imageLink\n${context.getString(R.string.conversation_analyze_image_prompt)}"
+                } else {
+                    "$imageLink\n$userIntent"
+                }
+                val result = StringBuilder()
+                lease.service.sendMessage(
+                    context = context,
+                    chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                    modelParameters = lease.modelParameters,
+                ).collect { result.append(it) }
+                return ChatUtils.removeThinkingContent(result.toString()).trim()
+            } finally {
+                withContext(NonCancellable) { lease.close() }
             }
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.IMAGE_RECOGNITION)
-            val result = StringBuilder()
-            service.sendMessage(
-                context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                modelParameters = modelParameters,
-            ).collect { result.append(it) }
-            return ChatUtils.removeThinkingContent(result.toString()).trim()
         } finally {
             ImagePoolManager.removeImage(imageId)
         }
@@ -1411,37 +1415,35 @@ class ConversationService(
         multiServiceManager: MultiServiceManager
     ): String {
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.AUDIO_RECOGNITION)
-
-            val mimeType = android.webkit.MimeTypeMap.getSingleton()
-                .getMimeTypeFromExtension(java.io.File(audioPath).extension.lowercase())
-                ?: "audio/*"
-
-            val mediaId = com.ai.assistance.operit.util.media.MediaPoolManager.addMedia(audioPath, mimeType)
-            if (mediaId == "error") {
-                return "Failed to load audio: $audioPath"
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.AUDIO_RECOGNITION)
+            try {
+                val mimeType = android.webkit.MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(java.io.File(audioPath).extension.lowercase())
+                    ?: "audio/*"
+                val mediaId = com.ai.assistance.operit.util.media.MediaPoolManager.addMedia(audioPath, mimeType)
+                if (mediaId == "error") return "Failed to load audio: $audioPath"
+                try {
+                    val audioLink = MediaLinkBuilder.audio(context, mediaId)
+                    val prompt = if (userIntent.isNullOrBlank()) {
+                        "$audioLink\n${context.getString(R.string.conversation_analyze_audio_prompt)}"
+                    } else {
+                        "$audioLink\n$userIntent"
+                    }
+                    val result = StringBuilder()
+                    lease.service.sendMessage(
+                        context = context,
+                        chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                        modelParameters = lease.modelParameters,
+                    ).collect { result.append(it) }
+                    return ChatUtils.removeThinkingContent(result.toString()).trim()
+                } finally {
+                    com.ai.assistance.operit.util.media.MediaPoolManager.removeMedia(mediaId)
+                }
+            } finally {
+                withContext(NonCancellable) { lease.close() }
             }
-
-            val audioLink = MediaLinkBuilder.audio(context, mediaId)
-            val prompt = if (userIntent.isNullOrBlank()) {
-                "$audioLink\n${context.getString(R.string.conversation_analyze_audio_prompt)}"
-            } else {
-                "$audioLink\n$userIntent"
-            }
-
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.AUDIO_RECOGNITION)
-
-            val result = StringBuilder()
-            service.sendMessage(
-                context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                modelParameters = modelParameters,
-            ).collect { chunk ->
-                result.append(chunk)
-            }
-
-            com.ai.assistance.operit.util.media.MediaPoolManager.removeMedia(mediaId)
-            ChatUtils.removeThinkingContent(result.toString()).trim()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             AppLogger.e(TAG, "音频识别失败", e)
             "Audio recognition failed: ${e.message}"
@@ -1454,37 +1456,35 @@ class ConversationService(
         multiServiceManager: MultiServiceManager
     ): String {
         return try {
-            val service = multiServiceManager.getServiceForFunction(FunctionType.VIDEO_RECOGNITION)
-
-            val mimeType = android.webkit.MimeTypeMap.getSingleton()
-                .getMimeTypeFromExtension(java.io.File(videoPath).extension.lowercase())
-                ?: "video/*"
-
-            val mediaId = com.ai.assistance.operit.util.media.MediaPoolManager.addMedia(videoPath, mimeType)
-            if (mediaId == "error") {
-                return "Failed to load video: $videoPath"
+            val lease = multiServiceManager.acquireServiceForFunction(FunctionType.VIDEO_RECOGNITION)
+            try {
+                val mimeType = android.webkit.MimeTypeMap.getSingleton()
+                    .getMimeTypeFromExtension(java.io.File(videoPath).extension.lowercase())
+                    ?: "video/*"
+                val mediaId = com.ai.assistance.operit.util.media.MediaPoolManager.addMedia(videoPath, mimeType)
+                if (mediaId == "error") return "Failed to load video: $videoPath"
+                try {
+                    val videoLink = MediaLinkBuilder.video(context, mediaId)
+                    val prompt = if (userIntent.isNullOrBlank()) {
+                        "$videoLink\n${context.getString(R.string.conversation_analyze_video_prompt)}"
+                    } else {
+                        "$videoLink\n$userIntent"
+                    }
+                    val result = StringBuilder()
+                    lease.service.sendMessage(
+                        context = context,
+                        chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
+                        modelParameters = lease.modelParameters,
+                    ).collect { result.append(it) }
+                    return ChatUtils.removeThinkingContent(result.toString()).trim()
+                } finally {
+                    com.ai.assistance.operit.util.media.MediaPoolManager.removeMedia(mediaId)
+                }
+            } finally {
+                withContext(NonCancellable) { lease.close() }
             }
-
-            val videoLink = MediaLinkBuilder.video(context, mediaId)
-            val prompt = if (userIntent.isNullOrBlank()) {
-                "$videoLink\n${context.getString(R.string.conversation_analyze_video_prompt)}"
-            } else {
-                "$videoLink\n$userIntent"
-            }
-
-            val modelParameters = multiServiceManager.getModelParametersForFunction(FunctionType.VIDEO_RECOGNITION)
-
-            val result = StringBuilder()
-            service.sendMessage(
-                context = context,
-                chatHistory = listOf(PromptTurn(kind = PromptTurnKind.USER, content = prompt)),
-                modelParameters = modelParameters,
-            ).collect { chunk ->
-                result.append(chunk)
-            }
-
-            com.ai.assistance.operit.util.media.MediaPoolManager.removeMedia(mediaId)
-            ChatUtils.removeThinkingContent(result.toString()).trim()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
         } catch (e: Exception) {
             AppLogger.e(TAG, "视频识别失败", e)
             "Video recognition failed: ${e.message}"

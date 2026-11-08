@@ -471,12 +471,13 @@ open class StandardUITools(protected val context: Context) : ToolImplementations
                 null
             }
 
-            val success = !finalMessage.contains("Max steps reached") && !finalMessage.contains("Error")
+            val success = agent.completedSuccessfully
             val executionMessage = buildString {
                 appendLine("UI automation subagent run summary:")
                 appendLine("Intent: $intent")
-                appendLine("Steps executed: ${agent.stepCount} / ${agentConfig.maxSteps}")
+                appendLine("Controller rounds: ${agent.stepCount} / ${agentConfig.maxSteps}")
                 appendLine("Finished: $success")
+                appendLine("Performance: ${agent.performanceSummary}")
                 appendLine("Final message: $finalMessage")
                 appendLine()
                 appendLine("Full conversation history:")

@@ -50,12 +50,12 @@ def main() -> None:
                 raise ValueError(f"Large resources were bundled in {apk.name}: {forbidden}")
             if package.read("assets/offline-resources.properties") != manifest:
                 raise ValueError("Packaged resource catalog differs from source")
-            for catalog_name in ["local-speech-models.json", "offline-packs.json"]:
+            for catalog_name in ["local-speech-models.json", "offline-packs.json", "builtin-extensions.json"]:
                 if package.read("assets/" + catalog_name) != (ROOT / "app/config" / catalog_name).read_bytes():
                     raise ValueError("Packaged hub catalog differs from source: " + catalog_name)
             # 内置身份与安装入口由固定目录保留，默认 APK 不包含脚本或插件本体。
             catalog = json.loads(package.read("assets/offline-packs.json"))
-            extensions = [p["extension"] for p in catalog["packs"] if "extension" in p]
+            extensions = [p["extension"] for p in json.loads(package.read("assets/builtin-extensions.json"))["packs"]]
             if len(extensions) != 40 or sum(e["kind"] == "plugin" for e in extensions) != 10:
                 raise ValueError("内置扩展目录不完整")
             vad_content = package.read("assets/models/silero_vad.onnx")

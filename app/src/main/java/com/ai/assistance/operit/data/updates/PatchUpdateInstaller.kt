@@ -1,6 +1,5 @@
 package com.ai.assistance.operit.data.updates
 import com.ai.assistance.operit.data.updates.patch.resolvePatchPath
-import com.ai.assistance.operit.data.updates.patch.requirePatchByteRange
 
 import android.content.Context
 import android.content.Intent
@@ -11,18 +10,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.GitHubApiService
 import com.ai.assistance.operit.data.updates.GithubReleaseUtil
 import com.ai.assistance.operit.util.logging.AppLogger
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedOutputStream
@@ -31,9 +21,6 @@ import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.security.DigestOutputStream
 import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicLong
 import java.util.zip.ZipFile
 import kotlin.coroutines.coroutineContext
 import kotlin.math.min
@@ -41,10 +28,8 @@ import kotlin.math.min
 object PatchUpdateInstaller {
     private const val TAG = "PatchUpdateInstaller"
     private const val MAX_CHAIN_STEPS = 64
-    private const val PATCH_DOWNLOAD_THREAD_COUNT = 6
 
     enum class Stage {
-        SELECTING_MIRROR,
         DOWNLOADING_META,
         DOWNLOADING_PATCH,
         APPLYING_PATCH,
@@ -52,6 +37,11 @@ object PatchUpdateInstaller {
         READY_TO_INSTALL
     }
 
+    /**
+     * Probe result for one source in the download-source dialog. Kept here because the
+     * dialog and the patch progress reducer both render it; the patch flow itself no
+     * longer probes, it receives an already-ranked source list.
+     */
     data class MirrorProbeSummary(
         val ok: Boolean,
         val latencyMs: Long?,
@@ -61,14 +51,22 @@ object PatchUpdateInstaller {
 
     sealed class ProgressEvent {
         data class StageChanged(val stage: Stage, val message: String) : ProgressEvent()
-        data class MirrorProbeStarted(val total: Int) : ProgressEvent()
-        data class MirrorProbeResult(
+
+        /** The source the patch flow is currently downloading from. */
+        data class MirrorSelected(val name: String, val attempt: Int, val total: Int) : ProgressEvent()
+
+        /**
+         * A source died while transferring, so the flow moved to the next one. Carrying
+         * the reason is what lets the user see 403/404/timeout per source instead of a
+         * single opaque failure at the end.
+         */
+        data class SourceFailed(
             val name: String,
-            val summary: MirrorProbeSummary,
-            val completed: Int,
+            val reason: String,
+            val attempt: Int,
             val total: Int
         ) : ProgressEvent()
-        data class MirrorSelected(val name: String) : ProgressEvent()
+
         data class ChainScanProgress(
             val scanned: Int,
             val total: Int
@@ -81,15 +79,8 @@ object PatchUpdateInstaller {
         ) : ProgressEvent()
     }
 
-    private const val PROBE_TIMEOUT_MS = 2500
     private val releaseAssetUrlRegex =
         Regex("^https?://github\\.com/([^/]+)/([^/]+)/releases/download/[^/]+/[^?]+(?:\\?.*)?$", RegexOption.IGNORE_CASE)
-
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
 
     private const val WORK_DIR_NAME = "patch_update"
 
@@ -100,8 +91,14 @@ object PatchUpdateInstaller {
         val targetSha256: String,
         val toVersion: String,
         val toPatchIndex: Int,
-        val targetVersionLabel: String
+        val targetVersionLabel: String,
+        val metaAssetSha256: String? = null,
+        val patchAssetSha256: String? = null,
     )
+
+    class AllSourcesFailedException(
+        val failures: List<UpdateSourceDownloader.SourceFailure>,
+    ) : IllegalStateException(failures.joinToString("; ") { "${it.sourceKey}: ${it.reason}" })
 
     fun installApk(context: Context, apkFile: File) {
         val apkUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -125,55 +122,13 @@ object PatchUpdateInstaller {
         context.startActivity(intent)
     }
 
-    suspend fun downloadAndPreparePatchUpdateWithProgress(
+    suspend fun downloadAndPreparePatchUpdate(
         context: Context,
         patchUrl: String,
         metaUrl: String,
-        onEvent: (ProgressEvent) -> Unit
-    ): File = withContext(Dispatchers.IO) {
-        onEvent(
-            ProgressEvent.StageChanged(
-                Stage.SELECTING_MIRROR,
-                context.getString(R.string.patch_update_stage_selecting_mirror)
-            )
-        )
-        val mirrorKey = selectFastestMirrorKeyWithProgress(
-            patchUrl = patchUrl,
-            metaUrl = metaUrl,
-            onEvent = onEvent
-        )
-        onEvent(ProgressEvent.MirrorSelected(mirrorKey))
-
-        downloadAndPreparePatchUpdateInternal(
-            context = context,
-            patchUrl = patchUrl,
-            metaUrl = metaUrl,
-            mirrorKey = mirrorKey,
-            onEvent = onEvent
-        )
-    }
-
-    suspend fun downloadAndPreparePatchUpdateWithProgressUsingMirror(
-        context: Context,
-        patchUrl: String,
-        metaUrl: String,
-        mirrorKey: String,
-        onEvent: (ProgressEvent) -> Unit
-    ): File = withContext(Dispatchers.IO) {
-        downloadAndPreparePatchUpdateInternal(
-            context = context,
-            patchUrl = patchUrl,
-            metaUrl = metaUrl,
-            mirrorKey = mirrorKey,
-            onEvent = onEvent
-        )
-    }
-
-    private suspend fun downloadAndPreparePatchUpdateInternal(
-        context: Context,
-        patchUrl: String,
-        metaUrl: String,
-        mirrorKey: String,
+        sourceKeys: List<String>,
+        metaSha256: String? = null,
+        patchSha256: String? = null,
         onEvent: (ProgressEvent) -> Unit
     ): File = withContext(Dispatchers.IO) {
         val workDir = prepareCleanWorkDir(context)
@@ -184,7 +139,7 @@ object PatchUpdateInstaller {
         val baseApk = File(context.applicationInfo.sourceDir)
         baseApk.copyTo(currentApk, overwrite = true)
 
-        val selectedTargetMetaUrl = selectMirrorUrl(metaUrl, mirrorKey)
+        val metaSources = resolveSources(metaUrl, sourceKeys)
 
         onEvent(
             ProgressEvent.StageChanged(
@@ -192,8 +147,10 @@ object PatchUpdateInstaller {
                 context.getString(R.string.patch_update_stage_downloading_meta)
             )
         )
-        downloadToFile(
-            url = selectedTargetMetaUrl,
+        downloadWithFailover(
+            sources = metaSources,
+            expectedSha256 = metaSha256,
+            multiThread = false,
             out = targetMetaFile,
             label = context.getString(R.string.patch_update_label_meta),
             onEvent = onEvent
@@ -218,8 +175,10 @@ object PatchUpdateInstaller {
             metaUrl = metaUrl,
             currentBaseSha = baseShaActual,
             targetMeta = targetMeta,
+            targetMetaSha256 = metaSha256,
+            targetPatchSha256 = patchSha256,
             workDir = workDir,
-            mirrorKey = mirrorKey,
+            sourceKeys = sourceKeys,
             onEvent = onEvent
         )
 
@@ -245,8 +204,10 @@ object PatchUpdateInstaller {
                     )
                 )
             )
-            downloadToFile(
-                url = selectMirrorUrl(step.metaUrl, mirrorKey),
+            downloadWithFailover(
+                sources = resolveSources(step.metaUrl, sourceKeys),
+                expectedSha256 = step.metaAssetSha256,
+                multiThread = false,
                 out = stepMetaFile,
                 label = context.getString(R.string.patch_update_label_meta_step, stepNo, total),
                 onEvent = onEvent
@@ -276,8 +237,9 @@ object PatchUpdateInstaller {
                     )
                 )
             )
-            downloadToFile(
-                url = selectMirrorUrl(step.patchUrl, mirrorKey),
+            downloadWithFailover(
+                sources = resolveSources(step.patchUrl, sourceKeys),
+                expectedSha256 = step.patchAssetSha256 ?: stepMeta.optString("patchSha256").takeIf { it.isNotBlank() },
                 out = stepPatchFile,
                 label = context.getString(R.string.patch_update_label_patch_step, stepNo, total),
                 multiThread = true,
@@ -356,8 +318,10 @@ object PatchUpdateInstaller {
         metaUrl: String,
         currentBaseSha: String,
         targetMeta: JSONObject,
+        targetMetaSha256: String?,
+        targetPatchSha256: String?,
         workDir: File,
-        mirrorKey: String,
+        sourceKeys: List<String>,
         onEvent: (ProgressEvent) -> Unit
     ): List<PatchStep> {
         val targetFormat = targetMeta.optString("format", "")
@@ -381,6 +345,8 @@ object PatchUpdateInstaller {
             patchUrl = patchUrl,
             metaUrl = metaUrl,
             tag = targetMeta.optString("tag", ""),
+            metaAssetSha256 = targetMetaSha256,
+            patchAssetSha256 = targetPatchSha256,
         ) ?: throw IllegalStateException(context.getString(R.string.patch_update_no_matching_chain))
         if (targetCandidate.baseSha256 == currentBaseSha.trim().lowercase()) {
             return listOf(targetCandidate)
@@ -423,8 +389,10 @@ object PatchUpdateInstaller {
 
             // 每个补丁附件是权威元数据；正文改为可读说明后仍可发现中间补丁。
             val indexFile = File(workDir, "chain_release_$scannedReleases.json")
-            downloadToFile(
-                url = selectMirrorUrl(metaAsset.browser_download_url, mirrorKey),
+            downloadWithFailover(
+                sources = resolveSources(metaAsset.browser_download_url, sourceKeys),
+                expectedSha256 = GithubReleaseUtil.parseAssetDigest(metaAsset.digest),
+                multiThread = false,
                 out = indexFile,
                 label = context.getString(R.string.patch_update_label_meta),
                 onEvent = onEvent,
@@ -434,7 +402,9 @@ object PatchUpdateInstaller {
                 meta = meta,
                 patchUrl = patchAsset.browser_download_url,
                 metaUrl = metaAsset.browser_download_url,
-                tag = release.tag_name
+                tag = release.tag_name,
+                metaAssetSha256 = GithubReleaseUtil.parseAssetDigest(metaAsset.digest),
+                patchAssetSha256 = GithubReleaseUtil.parseAssetDigest(patchAsset.digest),
             ) ?: continue
 
             val edge = "${candidate.baseSha256}->${candidate.targetSha256}"
@@ -469,7 +439,9 @@ object PatchUpdateInstaller {
         meta: JSONObject,
         patchUrl: String,
         metaUrl: String,
-        tag: String
+        tag: String,
+        metaAssetSha256: String?,
+        patchAssetSha256: String?,
     ): PatchStep? {
         val format = meta.optString("format", "")
         if (format != "apkraw-1") return null
@@ -493,7 +465,9 @@ object PatchUpdateInstaller {
             targetSha256 = targetSha,
             toVersion = toVersion,
             toPatchIndex = toPatchIndex,
-            targetVersionLabel = targetVersionLabel
+            targetVersionLabel = targetVersionLabel,
+            metaAssetSha256 = metaAssetSha256,
+            patchAssetSha256 = patchAssetSha256,
         )
     }
 
@@ -530,346 +504,61 @@ object PatchUpdateInstaller {
         return workDir
     }
 
-    private fun selectMirrorUrl(originalUrl: String, mirrorKey: String): String {
-        if (mirrorKey == "GitHub") return originalUrl
-        val mirrors = GithubReleaseUtil.getMirroredUrls(originalUrl)
-        return mirrors[mirrorKey] ?: originalUrl
+    private fun resolveSources(originalUrl: String, sourceKeys: List<String>): List<SourceCandidate> {
+        val byKey = GithubReleaseUtil.getDownloadSources(originalUrl)
+        return sourceKeys.map { key -> SourceCandidate(key = key, url = byKey.getValue(key)) }
     }
 
-    private suspend fun selectFastestMirrorKeyWithProgress(
-        patchUrl: String,
-        metaUrl: String,
-        onEvent: (ProgressEvent) -> Unit
-    ): String {
-        val patchMirrors = GithubReleaseUtil.getMirroredUrls(patchUrl)
-        val metaMirrors = GithubReleaseUtil.getMirroredUrls(metaUrl)
-
-        val keys = LinkedHashSet<String>().apply {
-            addAll(patchMirrors.keys)
-            addAll(metaMirrors.keys)
-            add("GitHub")
-        }
-
-        onEvent(ProgressEvent.MirrorProbeStarted(keys.size))
-
-        val patchProbeMap = keys.associateWith { key ->
-            if (key == "GitHub") patchUrl else patchMirrors[key] ?: patchUrl
-        }
-        val metaProbeMap = keys.associateWith { key ->
-            if (key == "GitHub") metaUrl else metaMirrors[key] ?: metaUrl
-        }
-
-        val patchResults = GithubReleaseUtil.probeMirrorUrls(patchProbeMap, timeoutMs = PROBE_TIMEOUT_MS, requireByteRange = true)
-        val metaResults = GithubReleaseUtil.probeMirrorUrls(metaProbeMap, timeoutMs = PROBE_TIMEOUT_MS)
-
-        var completed = 0
-        var bestKey: String? = null
-        var bestSpeed = Long.MIN_VALUE
-        var bestLatency = Long.MAX_VALUE
-
-        for (key in keys) {
-            coroutineContext.ensureActive()
-            val patchRes = patchResults[key]
-            val metaRes = metaResults[key]
-
-            val ok = patchRes?.ok == true && metaRes?.ok == true
-            val speed =
-                if (patchRes?.bytesPerSec != null && metaRes?.bytesPerSec != null) {
-                    min(patchRes.bytesPerSec!!, metaRes.bytesPerSec!!)
-                } else {
-                    null
-                }
-            val latency =
-                when {
-                    patchRes?.latencyMs != null && metaRes?.latencyMs != null ->
-                        maxOf(patchRes.latencyMs, metaRes.latencyMs)
-                    patchRes?.latencyMs != null -> patchRes.latencyMs
-                    metaRes?.latencyMs != null -> metaRes.latencyMs
-                    else -> null
-                }
-            val error =
-                when {
-                    patchRes?.ok != true -> patchRes?.error ?: "PATCH_PROBE_FAILED"
-                    metaRes?.ok != true -> metaRes?.error ?: "META_PROBE_FAILED"
-                    else -> null
-                }
-
-            completed += 1
-            val summary = MirrorProbeSummary(ok = ok, latencyMs = latency, speedBytesPerSec = speed, error = error)
-            onEvent(ProgressEvent.MirrorProbeResult(name = key, summary = summary, completed = completed, total = keys.size))
-
-            if (ok) {
-                val speedValue = speed ?: -1L
-                val latencyValue = latency ?: Long.MAX_VALUE
-                if (speed != null) {
-                    if (speedValue > bestSpeed || (speedValue == bestSpeed && latencyValue < bestLatency)) {
-                        bestKey = key
-                        bestSpeed = speedValue
-                        bestLatency = latencyValue
-                    }
-                } else if (bestKey == null) {
-                    bestKey = key
-                    bestLatency = latencyValue
-                }
-            }
-        }
-
-        return bestKey ?: "GitHub"
-    }
-
-    private suspend fun downloadToFile(
-        url: String,
+    /**
+     * Fetch one artifact through the ordered source list, verifying it.
+     *
+     * A source is dropped for this artifact only, so a mirror that serves the small meta
+     * but times out on the large patch zip still lets the rest of the chain finish.
+     */
+    private suspend fun downloadWithFailover(
+        sources: List<SourceCandidate>,
         out: File,
         label: String,
-        multiThread: Boolean = false,
+        expectedSha256: String? = null,
+        multiThread: Boolean,
         onEvent: (ProgressEvent) -> Unit
     ) {
-        if (multiThread) {
-            try {
-                downloadToFileMultiThread(url = url, out = out, label = label, onEvent = onEvent)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                // GitHub 镜像可能不支持 Range，分片失败时回退到普通下载。
-                AppLogger.w(TAG, "Range 下载不可用，回退到单线程: $url", error)
-                downloadToFileSingleThread(url = url, out = out, label = label, onEvent = onEvent)
-            }
-            return
-        }
-        downloadToFileSingleThread(url = url, out = out, label = label, onEvent = onEvent)
-    }
-
-    private suspend fun downloadToFileSingleThread(
-        url: String,
-        out: File,
-        label: String,
-        onEvent: (ProgressEvent) -> Unit
-    ) {
-        val req = Request.Builder().url(url).build()
-        httpClient.newCall(req).execute().use { resp ->
-            if (!resp.isSuccessful) {
-                throw IllegalStateException("HTTP ${resp.code}: ${resp.message}")
-            }
-            val body = resp.body ?: throw IllegalStateException("Empty response body")
-            val total = body.contentLength().takeIf { it > 0 }
-            out.parentFile?.mkdirs()
-            if (out.exists()) {
-                runCatching { out.delete() }
-            }
-
-            val buf = ByteArray(128 * 1024)
-            var readTotal = 0L
-            var lastNotifyAt = 0L
-            var lastSpeedSampleAt = 0L
-            var lastSpeedSampleBytes = 0L
-            var speedBytesPerSec = 0L
-
-            onEvent(
-                ProgressEvent.DownloadProgress(
-                    label = label,
-                    readBytes = 0L,
-                    totalBytes = total,
-                    speedBytesPerSec = speedBytesPerSec
+        val outcome = UpdateSourceDownloader.download(
+            sources = sources,
+            out = out,
+            expectedSha256 = expectedSha256,
+            multiThread = multiThread,
+            onAttempt = { attempt, total, source ->
+                onEvent(
+                    ProgressEvent.MirrorSelected(name = source.key, attempt = attempt, total = total)
                 )
-            )
-
-            FileOutputStream(out).use { fos ->
-                body.byteStream().use { ins ->
-                    while (true) {
-                        coroutineContext.ensureActive()
-                        val n = ins.read(buf)
-                        if (n <= 0) break
-                        fos.write(buf, 0, n)
-                        readTotal += n.toLong()
-
-                        val now = System.currentTimeMillis()
-                        if (lastSpeedSampleAt == 0L) {
-                            lastSpeedSampleAt = now
-                            lastSpeedSampleBytes = readTotal
-                        } else {
-                            val elapsed = now - lastSpeedSampleAt
-                            if (elapsed >= 300) {
-                                val delta = readTotal - lastSpeedSampleBytes
-                                if (delta >= 0) {
-                                    speedBytesPerSec = (delta * 1000L) / elapsed.coerceAtLeast(1L)
-                                }
-                                lastSpeedSampleAt = now
-                                lastSpeedSampleBytes = readTotal
-                            }
-                        }
-
-                        if (now - lastNotifyAt >= 300) {
-                            lastNotifyAt = now
-                            onEvent(
-                                ProgressEvent.DownloadProgress(
-                                    label = label,
-                                    readBytes = readTotal,
-                                    totalBytes = total,
-                                    speedBytesPerSec = speedBytesPerSec
-                                )
-                            )
-                        }
-                    }
-                }
-            }
-
-            onEvent(
-                ProgressEvent.DownloadProgress(
-                    label = label,
-                    readBytes = readTotal,
-                    totalBytes = total,
-                    speedBytesPerSec = speedBytesPerSec
-                )
-            )
-        }
-    }
-
-    private suspend fun downloadToFileMultiThread(
-        url: String,
-        out: File,
-        label: String,
-        onEvent: (ProgressEvent) -> Unit
-    ) {
-        val totalBytes = fetchPatchByteLength(url)
-
-        out.parentFile?.mkdirs()
-        if (out.exists()) {
-            runCatching { out.delete() }
-        }
-        RandomAccessFile(out, "rw").use { raf ->
-            raf.setLength(totalBytes)
-        }
-
-        val downloadedBytes = AtomicLong(0L)
-        val finished = AtomicBoolean(false)
-
-        onEvent(
-            ProgressEvent.DownloadProgress(
-                label = label,
-                readBytes = 0L,
-                totalBytes = totalBytes,
-                speedBytesPerSec = 0L
-            )
-        )
-
-        coroutineScope {
-            val reporter = launch(Dispatchers.IO) {
-                var lastBytes = 0L
-                var lastAt = System.currentTimeMillis()
-                while (isActive && !finished.get()) {
-                    delay(300)
-                    val now = System.currentTimeMillis()
-                    val currentBytes = downloadedBytes.get()
-                    val delta = (currentBytes - lastBytes).coerceAtLeast(0L)
-                    val elapsed = (now - lastAt).coerceAtLeast(1L)
-                    val speed = (delta * 1000L) / elapsed
-
-                    onEvent(
-                        ProgressEvent.DownloadProgress(
-                            label = label,
-                            readBytes = currentBytes,
-                            totalBytes = totalBytes,
-                            speedBytesPerSec = speed
-                        )
+            },
+            onSourceFailed = { attempt, total, source, reason ->
+                onEvent(
+                    ProgressEvent.SourceFailed(
+                        name = source.key,
+                        reason = reason,
+                        attempt = attempt,
+                        total = total
                     )
-
-                    lastBytes = currentBytes
-                    lastAt = now
-                }
+                )
+            },
+            onProgress = { progress ->
+                onEvent(
+                    ProgressEvent.DownloadProgress(
+                        label = label,
+                        readBytes = progress.readBytes,
+                        totalBytes = progress.totalBytes,
+                        speedBytesPerSec = progress.speedBytesPerSec
+                    )
+                )
             }
-
-            try {
-                val ranges = splitRanges(totalBytes, PATCH_DOWNLOAD_THREAD_COUNT)
-                ranges.map { (start, end) ->
-                    async(Dispatchers.IO) {
-                        downloadRangeToFile(
-                            url = url,
-                            out = out,
-                            start = start,
-                            end = end,
-                            downloadedBytes = downloadedBytes,
-                            expectedTotal = totalBytes,
-                        )
-                    }
-                }.awaitAll()
-            } finally {
-                finished.set(true)
-                reporter.cancel()
-            }
-        }
-
-        onEvent(
-            ProgressEvent.DownloadProgress(
-                label = label,
-                readBytes = totalBytes,
-                totalBytes = totalBytes,
-                speedBytesPerSec = 0L
-            )
         )
-    }
 
-    private fun fetchPatchByteLength(url: String): Long {
-        val req = Request.Builder()
-            .url(url)
-            .header("Range", "bytes=0-0")
-            .header("Accept-Encoding", "identity")
-            .build()
-        httpClient.newCall(req).execute().use { resp ->
-            return requirePatchByteRange(resp.code, resp.header("Content-Range"), 0L, 0L).total
-        }
-    }
-
-    private fun splitRanges(totalBytes: Long, threadCount: Int): List<Pair<Long, Long>> {
-        val ranges = ArrayList<Pair<Long, Long>>(threadCount)
-        val baseSize = totalBytes / threadCount
-        val remainder = totalBytes % threadCount
-        var start = 0L
-
-        for (i in 0 until threadCount) {
-            val chunkSize = baseSize + if (i < remainder) 1L else 0L
-            if (chunkSize <= 0L) continue
-            val end = start + chunkSize - 1L
-            ranges.add(start to end)
-            start = end + 1L
-        }
-        return ranges
-    }
-
-    private suspend fun downloadRangeToFile(
-        url: String,
-        out: File,
-        start: Long,
-        end: Long,
-        downloadedBytes: AtomicLong,
-        expectedTotal: Long,
-    ) {
-        val req = Request.Builder()
-            .url(url)
-            .addHeader("Range", "bytes=$start-$end")
-            .header("Accept-Encoding", "identity")
-            .build()
-
-        httpClient.newCall(req).execute().use { resp ->
-            val range = requirePatchByteRange(resp.code, resp.header("Content-Range"), start, end, expectedTotal)
-            val body = resp.body ?: throw IllegalStateException("Empty response body for bytes=$start-$end")
-
-            RandomAccessFile(out, "rw").use { raf ->
-                raf.seek(start)
-                val buffer = ByteArray(128 * 1024)
-                body.byteStream().use { ins ->
-                    var remaining = range.length
-                    while (remaining > 0L) {
-                        coroutineContext.ensureActive()
-                        val n = ins.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
-                        if (n < 0) throw java.io.IOException("Patch byte range ended before all bytes arrived")
-                        if (n == 0) continue
-                        raf.write(buffer, 0, n)
-                        remaining -= n
-                        downloadedBytes.addAndGet(n.toLong())
-                    }
-                    if (ins.read() != -1) throw java.io.IOException("Patch byte range contains extra bytes")
-                }
-            }
+        when (outcome) {
+            is UpdateSourceDownloader.Outcome.Success -> Unit
+            is UpdateSourceDownloader.Outcome.Failed ->
+                throw AllSourcesFailedException(outcome.failures)
         }
     }
 

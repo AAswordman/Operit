@@ -109,15 +109,7 @@ internal class ThemeTransferViewModel(application: Application) : AndroidViewMod
         val source = requireNotNull(state.source)
         val code =
             withContext(Dispatchers.IO) {
-                ThemeShareCode.encode(
-                    ThemeTransferSchema.create(
-                        state.name,
-                        state.author,
-                        source.values,
-                        source.layout,
-                        false,
-                    )
-                )
+                repository.createCode(source, state.name, state.author)
             }
         mutable.update { it.copy(generated = code, panel = ThemeTransferPanel.GENERATED) }
     }
@@ -165,8 +157,11 @@ internal class ThemeTransferViewModel(application: Application) : AndroidViewMod
         val state = mutable.value
         val prepared =
             if (state.method == ThemeTransferMethod.CODE) {
-                withContext(Dispatchers.IO) { PreparedTheme(ThemeShareCode.decode(state.input)) }
+                state.prepared?.close()
+                mutable.update { it.copy(prepared = null, previewValues = null) }
+                withContext(Dispatchers.IO) { repository.prepareCode(state.input, cache) }
             } else requireNotNull(state.prepared)
+        mutable.update { it.copy(prepared = prepared) }
         val values = previewValues(prepared, state.selectedId)
         mutable.update {
             it.copy(prepared = prepared, previewValues = values, panel = ThemeTransferPanel.PREVIEW)
@@ -204,7 +199,7 @@ internal class ThemeTransferViewModel(application: Application) : AndroidViewMod
                             )
                     }
             }
-            theme.scriptPreviewFile?.let { file ->
+            repository.appearancePreview(theme, current)?.let { file ->
                 values = values.withString(ThemePreferenceValues.SCRIPT_URI_KEY, Uri.fromFile(file).toString())
             }
             values

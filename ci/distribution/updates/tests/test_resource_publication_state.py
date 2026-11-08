@@ -17,58 +17,77 @@ import published_resource_state as state
 
 
 def fixture():
-    catalog = {'releaseTag': 'resources-v2-test', 'packs': [
+    catalog = {'releaseTag': 'resources-v3-test', 'packs': [
         {'archive': {'path': 'pack.zip', 'bytes': 7, 'sha256': 'a' * 64}}
     ]}
+    builtins = {'releaseTag': 'resources-v3-test', 'packs': [
+        {'archive': {'path': 'script.zip', 'bytes': 9, 'sha256': 'b' * 64}}
+    ]}
     data = (json.dumps(catalog) + '\n').encode()
-    expected = {'pack.zip': (7, 'a' * 64), 'offline-packs.json': (len(data), hashlib.sha256(data).hexdigest())}
+    builtin_bytes = (json.dumps(builtins) + '\n').encode()
+    expected = {'pack.zip': (7, 'a' * 64), 'script.zip': (9, 'b' * 64),
+        'offline-packs.json': (len(data), hashlib.sha256(data).hexdigest()),
+        'builtin-extensions.json': (len(builtin_bytes), hashlib.sha256(builtin_bytes).hexdigest())}
     sums = '\n'.join(sorted(f'{digest}  {name}' for name, (_, digest) in expected.items())) + '\n'
     expected['SHA256SUMS.txt'] = (len(sums.encode()), hashlib.sha256(sums.encode()).hexdigest())
     assets = [{'name': name, 'size': size, 'digest': 'sha256:' + digest, 'state': 'uploaded'}
               for name, (size, digest) in expected.items()]
-    return data, assets, sums
+    return data, assets, sums, builtin_bytes
 
 
 class PublishedResourceStateTest(unittest.TestCase):
     def test_complete_publication_is_reused(self):
-        data, assets, sums = fixture()
-        report = state.verify_remote_assets(data, assets, sums)
+        data, assets, sums, builtin = fixture()
+        report = state.verify_remote_assets(data, assets, sums, builtin)
         self.assertEqual('reused', report['action'])
-        self.assertEqual(3, report['files_verified'])
+        self.assertEqual(5, report['files_verified'])
 
     def test_reordered_checksum_lines_are_valid_when_asset_digest_matches(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         reordered = '\n'.join(reversed(sums.splitlines())) + '\n'
         assets[-1]['digest'] = 'sha256:' + hashlib.sha256(reordered.encode()).hexdigest()
-        self.assertEqual('reused', state.verify_remote_assets(data, assets, reordered)['action'])
+        self.assertEqual('reused', state.verify_remote_assets(data, assets, reordered, builtin)['action'])
 
     def test_changed_remote_bytes_cannot_be_overwritten(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         assets[0]['digest'] = 'sha256:' + 'b' * 64
         with self.assertRaisesRegex(ValueError, '禁止覆盖'):
-            state.verify_remote_assets(data, assets, sums)
+            state.verify_remote_assets(data, assets, sums, builtin)
 
     def test_missing_and_extra_assets_are_not_complete(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         for invalid in [assets[:-1], assets + [{'name': 'extra'}]]:
             with self.assertRaisesRegex(ValueError, '附件集合'):
-                state.verify_remote_assets(data, invalid, sums)
+                state.verify_remote_assets(data, invalid, sums, builtin)
 
     def test_duplicate_asset_names_are_rejected(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         with self.assertRaisesRegex(ValueError, '附件集合'):
-            state.verify_remote_assets(data, assets + [copy.deepcopy(assets[0])], sums)
+            state.verify_remote_assets(data, assets + [copy.deepcopy(assets[0])], sums, builtin)
 
     def test_checksum_manifest_must_describe_current_catalog(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         with self.assertRaisesRegex(ValueError, '总校验清单'):
-            state.verify_remote_assets(data, assets, sums.replace('a' * 64, 'b' * 64))
+            state.verify_remote_assets(data, assets, sums.replace('a' * 64, 'b' * 64), builtin)
 
     def test_unfinished_upload_is_not_reused(self):
-        data, assets, sums = fixture()
+        data, assets, sums, builtin = fixture()
         assets[0]['state'] = 'new'
         with self.assertRaises(ValueError):
-            state.verify_remote_assets(data, assets, sums)
+            state.verify_remote_assets(data, assets, sums, builtin)
+
+    def test_catalogs_from_different_releases_cannot_be_reused(self):
+        data, assets, sums, builtin = fixture()
+        wrong = json.loads(builtin)
+        wrong['releaseTag'] = 'another-release'
+        with self.assertRaisesRegex(ValueError, '发行标签不一致'):
+            state.verify_remote_assets(data, assets, sums, json.dumps(wrong).encode())
+
+    def test_missing_builtin_catalog_asset_is_not_a_complete_publication(self):
+        data, assets, sums, builtin = fixture()
+        without_catalog = [asset for asset in assets if asset['name'] != 'builtin-extensions.json']
+        with self.assertRaisesRegex(ValueError, '附件集合'):
+            state.verify_remote_assets(data, without_catalog, sums, builtin)
 
     def test_draft_without_a_tag_is_found_by_release_id(self):
         draft = {'id': 91, 'tag_name': 'resources-v2-test', 'draft': True}

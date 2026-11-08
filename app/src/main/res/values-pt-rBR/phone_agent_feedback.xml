@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">Assistente do telefone</string>
+    <string name="phone_agent_scanning">Verificando a tela…</string>
+    <string name="phone_agent_planning">Planejando…</string>
+    <string name="phone_agent_tapping">Tocando…</string>
+    <string name="phone_agent_typing">Digitando…</string>
+    <string name="phone_agent_swiping">Deslizando…</string>
+    <string name="phone_agent_entering_app">Abrindo o aplicativo…</string>
+    <string name="phone_agent_back">Voltando…</string>
+    <string name="phone_agent_home">Voltando à tela inicial…</string>
+    <string name="phone_agent_waiting">Aguardando resposta da página…</string>
+    <string name="phone_agent_working">Realizando ação…</string>
+    <string name="phone_agent_paused">Pausado</string>
+    <string name="phone_agent_needs_user">Aguardando sua intervenção</string>
+    <string name="phone_agent_completed">Tarefa concluída</string>
+    <string name="phone_agent_unconfirmed">Ação não confirmada. Verifique a tela atual.</string>
+    <string name="phone_agent_pause_task">Pausar tarefa</string>
+    <string name="phone_agent_resume_task">Retomar tarefa</string>
+    <string name="phone_agent_stop_task">Parar tarefa</string>
+    <string name="phone_agent_screen_unavailable">Não foi possível ler a tela no momento</string>
+</resources>

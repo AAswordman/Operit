@@ -112,7 +112,8 @@ data class GitHubReleaseAsset(
     val browser_download_url: String,
     val size: Long,
     val download_count: Int,
-    val content_type: String
+    val content_type: String,
+    val digest: String? = null,
 )
 
 /**
