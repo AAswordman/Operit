@@ -67,9 +67,7 @@ fun AssistantConfigScreen() {
     val wakeCreateNewChatOnWakeEnabled by wakePrefs.wakeCreateNewChatOnWakeEnabledFlow.collectAsState(
         initial = WakeWordPreferences.DEFAULT_WAKE_CREATE_NEW_CHAT_ON_WAKE_ENABLED
     )
-    val autoNewChatGroup by wakePrefs.autoNewChatGroupFlow.collectAsState(
-        initial = WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP
-    )
+    val autoNewChatGroup by wakePrefs.autoNewChatGroupFlow.collectAsState(initial = WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP)
     val voiceAutoAttachEnabled by wakePrefs.voiceAutoAttachEnabledFlow.collectAsState(initial = WakeWordPreferences.DEFAULT_VOICE_AUTO_ATTACH_ENABLED)
     val voiceAutoAttachItems by wakePrefs.voiceAutoAttachItemsFlow.collectAsState(initial = WakeWordPreferences.getDefaultVoiceAutoAttachItems(context))
     val coroutineScope = rememberCoroutineScope()
@@ -529,21 +527,13 @@ fun AssistantConfigScreen() {
                                 autoNewChatGroupInput = newValue
                                 coroutineScope.launch {
                                     wakePrefs.saveAutoNewChatGroup(
-                                        newValue.ifBlank {
-                                            WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP
-                                        }
+                                        newValue.ifBlank { WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP }
                                     )
                                 }
                             },
                             singleLine = true,
                             textStyle = MaterialTheme.typography.bodyMedium,
-                            label = {
-                                Text(
-                                    stringResource(
-                                        R.string.voice_wakeup_auto_new_chat_group_label
-                                    )
-                                )
-                            },
+                            label = { Text(stringResource(R.string.voice_wakeup_auto_new_chat_group_label)) },
                             placeholder = {
                                 Text(
                                     stringResource(

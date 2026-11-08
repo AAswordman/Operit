@@ -8576,26 +8576,4 @@
     <string name="thinking_config_placeholder_high_zh">e.g. high</string>
     <string name="thinking_config_write_path">Write path</string>
     <string name="thinking_config_placeholder_high">e.g. high</string>
-    <string name="create_subfolder">Create subfolder</string>
-    <string name="move_to_folder">Move to folder…</string>
-    <string name="move_to_folder_title">Move to folder</string>
-    <string name="folder_root">Root</string>
-    <string name="folder_contents_move_to_parent">Direct chats and subfolders will be moved to the parent folder “%1$s”</string>
-    <string name="folder_contents_move_to_root">Direct chats will be moved to “Ungrouped”, and subfolders will be promoted to the root level</string>
-    <string name="backup_import_result_folders_created">\n- Folders created: %1$d</string>
-    <string name="backup_import_result_empty_folders_warning">\nNote: The import changed chat folder assignments and may leave empty folders in the previous folder tree.</string>
-    <string name="target_chat_folder_optional">Target chat folder (optional)</string>
-    <string name="select_folder_or_ungrouped">Select a folder or ungrouped</string>
-    <string name="apply_chat_folder">Apply chat folder</string>
-    <string name="assigned_chats_to_folder">Moved %1$d chat(s) to "%2$s"</string>
-    <string name="chat_history_time_today">Today</string>
-    <string name="chat_history_time_yesterday">Yesterday</string>
-    <string name="chat_history_time_monday">Monday</string>
-    <string name="chat_history_time_tuesday">Tuesday</string>
-    <string name="chat_history_time_wednesday">Wednesday</string>
-    <string name="chat_history_time_thursday">Thursday</string>
-    <string name="chat_history_time_friday">Friday</string>
-    <string name="chat_history_time_saturday">Saturday</string>
-    <string name="chat_history_time_sunday">Sunday</string>
-    <string name="chat_history_time_seven_days_ago">7 days ago</string>
 </resources>

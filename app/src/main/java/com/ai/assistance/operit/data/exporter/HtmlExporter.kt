@@ -20,20 +20,16 @@ object HtmlExporter {
     /**
      * 导出单个对话为 HTML
      */
-    fun exportSingle(context: Context, chatHistory: ChatHistory, folderPath: String? = null): String {
+    fun exportSingle(context: Context, chatHistory: ChatHistory): String {
         val writer = StringWriter()
-        writeSingleToWriter(context, chatHistory, writer, folderPath = folderPath)
+        writeSingleToWriter(context, chatHistory, writer)
         return writer.toString()
     }
 
     /**
      * 导出多个对话为 HTML
      */
-    fun exportMultiple(
-        context: Context,
-        chatHistories: List<ChatHistory>,
-        folderPathsByChatId: Map<String, String> = emptyMap(),
-    ): String {
+    fun exportMultiple(context: Context, chatHistories: List<ChatHistory>): String {
         val writer = StringWriter()
         writeMultipleHeader(
             context = context,
@@ -43,7 +39,7 @@ object HtmlExporter {
         )
         chatHistories.forEachIndexed { index, chatHistory ->
             writeConversationSeparator(writer, index)
-            writeConversationToWriter(context, writer, chatHistory, folderPath = folderPathsByChatId[chatHistory.id])
+            writeConversationToWriter(context, writer, chatHistory)
         }
         writeMultipleFooter(context, writer)
         return writer.toString()
@@ -86,10 +82,9 @@ object HtmlExporter {
         chatHistory: ChatHistory,
         writer: Writer,
         onContentCharactersWritten: (Long) -> Unit = {},
-        folderPath: String? = null,
     ) {
         appendHtmlHeader(writer, chatHistory.title)
-        writeConversationToWriter(context, writer, chatHistory, onContentCharactersWritten, folderPath)
+        writeConversationToWriter(context, writer, chatHistory, onContentCharactersWritten)
         appendHtmlFooter(context, writer)
     }
 
@@ -101,9 +96,8 @@ object HtmlExporter {
         writer: Writer,
         chatHistory: ChatHistory,
         onContentCharactersWritten: (Long) -> Unit = {},
-        folderPath: String? = null,
     ) {
-        appendChatContent(context, writer, chatHistory, onContentCharactersWritten, folderPath)
+        appendChatContent(context, writer, chatHistory, onContentCharactersWritten)
     }
 
     /**
@@ -139,7 +133,6 @@ object HtmlExporter {
         writer: Writer,
         chatHistory: ChatHistory,
         onContentCharactersWritten: (Long) -> Unit,
-        folderPath: String?,
     ) {
         writer.appendLine("<div class=\"conversation\">")
         writer.appendLine("  <div class=\"conversation-header\">")
@@ -147,8 +140,8 @@ object HtmlExporter {
         writer.appendLine("    <div class=\"metadata\">")
         writer.appendLine("      <span><strong>${context.getString(R.string.html_export_created)}:</strong> ${chatHistory.createdAt.format(dateFormatter)}</span>")
         writer.appendLine("      <span><strong>${context.getString(R.string.html_export_updated)}:</strong> ${chatHistory.updatedAt.format(dateFormatter)}</span>")
-        if (folderPath != null) {
-            writer.appendLine("      <span><strong>${context.getString(R.string.html_export_group)}:</strong> ${escapeHtml(folderPath)}</span>")
+        if (chatHistory.group != null) {
+            writer.appendLine("      <span><strong>${context.getString(R.string.html_export_group)}:</strong> ${escapeHtml(chatHistory.group)}</span>")
         }
         writer.appendLine("      <span><strong>${context.getString(R.string.html_export_message_count)}:</strong> ${chatHistory.messages.size}</span>")
         writer.appendLine("    </div>")

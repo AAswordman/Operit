@@ -197,7 +197,6 @@ export function ChatScreenContent({
       <ChatHistorySelector
         busy={viewModel.isBusy || viewModel.historyLoading}
         chats={viewModel.chats}
-        chatFolders={viewModel.chatFolders}
         characterSelector={viewModel.characterSelector}
         historyDisplayMode={viewModel.historyDisplayMode}
         autoSwitchCharacterCard={viewModel.autoSwitchCharacterCard}

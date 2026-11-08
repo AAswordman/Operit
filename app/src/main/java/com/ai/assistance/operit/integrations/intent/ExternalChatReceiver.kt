@@ -22,7 +22,6 @@ class ExternalChatReceiver : BroadcastReceiver() {
         const val EXTRA_REQUEST_ID = "request_id"
         const val EXTRA_MESSAGE = "message"
         const val EXTRA_GROUP = "group"
-        const val EXTRA_FOLDER_ID = "folder_id"
         const val EXTRA_CREATE_NEW_CHAT = "create_new_chat"
         const val EXTRA_CHAT_ID = "chat_id"
         const val EXTRA_CREATE_IF_NONE = "create_if_none"
@@ -57,7 +56,6 @@ class ExternalChatReceiver : BroadcastReceiver() {
                         requestId = intent.getStringExtra(EXTRA_REQUEST_ID),
                         message = intent.getStringExtra(EXTRA_MESSAGE),
                         group = intent.getStringExtra(EXTRA_GROUP),
-                        folderId = intent.getStringExtra(EXTRA_FOLDER_ID),
                         createNewChat = intent.getBooleanExtra(EXTRA_CREATE_NEW_CHAT, false),
                         chatId = intent.getStringExtra(EXTRA_CHAT_ID),
                         createIfNone = intent.getBooleanExtra(EXTRA_CREATE_IF_NONE, true),

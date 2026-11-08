@@ -13,8 +13,6 @@ data class ExternalChatRequest(
     val message: String? = null,
     @SerialName("group")
     val group: String? = null,
-    @SerialName("folder_id")
-    val folderId: String? = null,
     @SerialName("create_new_chat")
     val createNewChat: Boolean = false,
     @SerialName("chat_id")
@@ -62,8 +60,6 @@ data class ExternalChatHttpRequest(
     val message: String? = null,
     @SerialName("group")
     val group: String? = null,
-    @SerialName("folder_id")
-    val folderId: String? = null,
     @SerialName("create_new_chat")
     val createNewChat: Boolean = false,
     @SerialName("chat_id")
@@ -106,7 +102,6 @@ data class ExternalChatHttpRequest(
             requestId = resolvedRequestId,
             message = message,
             group = group,
-            folderId = folderId,
             createNewChat = createNewChat,
             chatId = chatId,
             createIfNone = createIfNone,

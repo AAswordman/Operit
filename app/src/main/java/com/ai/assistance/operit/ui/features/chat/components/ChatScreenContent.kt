@@ -1192,8 +1192,6 @@ fun ChatScreenContent(
 fun ChatHistorySelectorPanel(
         actualViewModel: ChatViewModel,
         chatHistories: List<ChatHistory>,
-        orderingChatHistories: List<ChatHistory>,
-        searchableChatHistories: List<ChatHistory>,
         currentChatId: String,
         showChatHistorySelector: Boolean,
         historyListState: LazyListState,
@@ -1206,22 +1204,12 @@ fun ChatHistorySelectorPanel(
         autoSwitchCharacterCard: Boolean,
         onAutoSwitchCharacterCardChange: (Boolean) -> Unit,
         autoSwitchChatOnCharacterSelect: Boolean,
-        onAutoSwitchChatOnCharacterSelectChange: (Boolean) -> Unit,
-        selectedHistoryCategory: ChatHistoryCategory,
-        onSelectedHistoryCategoryChange: (ChatHistoryCategory) -> Unit,
-        collapsedHistoryGroups: Set<String>,
-        onCollapsedHistoryGroupsChange: (Set<String>) -> Unit,
-        collapsedHistoryCharacters: Set<String>,
-        onCollapsedHistoryCharactersChange: (Set<String>) -> Unit,
+        onAutoSwitchChatOnCharacterSelectChange: (Boolean) -> Unit
 ) {
     // 历史选择器面板（不再包含遮罩层，遮罩层已在外部处理）
-    // Keep the history tree compact while reserving a visible strip to dismiss it.
-    // Use the actual container width so embedded chat screens follow the same proportions.
-    BoxWithConstraints {
-    val panelWidth = (maxWidth * 0.80f).coerceAtMost(304.dp)
     Box(
             modifier =
-                    Modifier.width(panelWidth)
+                    Modifier.width(280.dp)
                             .fillMaxHeight()
                             .background(
                                     color =
@@ -1232,39 +1220,13 @@ fun ChatHistorySelectorPanel(
                             )
     ) {
         val activeStreamingChatIds by actualViewModel.activeStreamingChatIds.collectAsState()
-        val chatFolders by actualViewModel.chatFolders.collectAsState()
         // 直接使用ChatHistorySelector
         ChatHistorySelector(
-                modifier = Modifier.fillMaxSize().padding(top = 4.dp),
-                onNewChat = {
-                    characterCardName,
-                    characterGroupId,
-                    inheritGroupFromCurrent ->
-                    actualViewModel.createNewChat(
-                        characterCardName = characterCardName,
-                        characterGroupId = characterGroupId,
-                        inheritGroupFromCurrent = inheritGroupFromCurrent,
-                    )
+                modifier = Modifier.fillMaxSize().padding(top = 8.dp),
+                onNewChat = { characterCardName, characterGroupId ->
+                    actualViewModel.createNewChat(characterCardName, characterGroupId)
                     // 创建新对话后自动收起侧边框
                     actualViewModel.showChatHistorySelector(false)
-                },
-                onCreateFolderWithInitialChat = {
-                    parentFolderId,
-                    folderName,
-                    characterCardName,
-                    characterGroupId,
-                    onResult ->
-                    actualViewModel.createFolderWithInitialChat(
-                        parentFolderId = parentFolderId,
-                        folderName = folderName,
-                        characterCardName = characterCardName,
-                        characterGroupId = characterGroupId,
-                    ) { result ->
-                        onResult(result)
-                        if (result.isSuccess) {
-                            actualViewModel.showChatHistorySelector(false)
-                        }
-                    }
                 },
                 onSelectChat = { chatId ->
                     actualViewModel.switchChat(chatId)
@@ -1278,10 +1240,23 @@ fun ChatHistorySelectorPanel(
                 onUpdateChatBinding = { chatId, characterCardName, characterGroupId ->
                     actualViewModel.updateChatCharacterBinding(chatId, characterCardName, characterGroupId)
                 },
+                onCreateGroup = { groupName, characterCardName, characterGroupId ->
+                    actualViewModel.createGroup(groupName, characterCardName, characterGroupId)
+                },
+                onUpdateChatOrderAndGroup = { reorderedHistories, movedItem, targetGroup ->
+                    actualViewModel.updateChatOrderAndGroup(
+                            reorderedHistories,
+                            movedItem,
+                            targetGroup
+                    )
+                },
+                onUpdateGroupName = { oldName, newName, characterCardName ->
+                    actualViewModel.updateGroupName(oldName, newName, characterCardName)
+                },
+                onDeleteGroup = { groupName, deleteChats, characterCardName ->
+                    actualViewModel.deleteGroup(groupName, deleteChats, characterCardName)
+                },
                 chatHistories = chatHistories,
-                orderingChatHistories = orderingChatHistories,
-                searchableChatHistories = searchableChatHistories,
-                chatFolders = chatFolders,
                 currentId = currentChatId,
                 activeStreamingChatIds = activeStreamingChatIds,
                 lazyListState = historyListState,
@@ -1298,14 +1273,7 @@ fun ChatHistorySelectorPanel(
                     GestureStateHolder.isChatScreenGestureConsumed = consumed
                     onChatScreenGestureConsumed(consumed)
                 },
-                activePrompt = activePrompt,
-                selectedCategory = selectedHistoryCategory,
-                onSelectedCategoryChange = onSelectedHistoryCategoryChange,
-                collapsedGroups = collapsedHistoryGroups,
-                onCollapsedGroupsChange = onCollapsedHistoryGroupsChange,
-                collapsedCharacters = collapsedHistoryCharacters,
-                onCollapsedCharactersChange = onCollapsedHistoryCharactersChange,
+                activePrompt = activePrompt
         )
-    }
     }
 }

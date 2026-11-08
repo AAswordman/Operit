@@ -38,11 +38,10 @@ inline fun <reified T> rememberLocal(
     val context = LocalContext.current
 
     val state = remember(key) { mutableStateOf(defaultValue) }
-    val hasLocalChange = remember(key) { mutableStateOf(false) }
 
     LaunchedEffect(key) {
         val preferences = context.uiPreferencesDataStore.data.first()
-        val persistedValue = when (defaultValue) {
+        state.value = when (defaultValue) {
             is Boolean -> (preferences[booleanPreferencesKey(key)] ?: defaultValue) as T
             is Int -> (preferences[intPreferencesKey(key)] ?: defaultValue) as T
             is Long -> (preferences[longPreferencesKey(key)] ?: defaultValue) as T
@@ -65,18 +64,14 @@ inline fun <reified T> rememberLocal(
                 }
             }
         }
-        if (!hasLocalChange.value) {
-            state.value = persistedValue
-        }
     }
 
-    return remember(state, hasLocalChange, coroutineScope) {
+    return remember(state, coroutineScope) {
         object : MutableState<T> {
             override var value: T
                 get() = state.value
                 set(newValue) {
                     if (state.value != newValue) {
-                        hasLocalChange.value = true
                         state.value = newValue
                         coroutineScope.launch {
                             context.uiPreferencesDataStore.edit { preferences ->

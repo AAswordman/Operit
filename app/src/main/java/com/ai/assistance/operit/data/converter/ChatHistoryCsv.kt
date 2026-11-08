@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter
  * A chat is represented by one chat row, followed by its message rows and optional variant rows.
  */
 object ChatHistoryCsv {
-    const val FORMAT_VERSION = "2"
+    const val FORMAT_VERSION = "1"
     const val RECORD_CHAT = "chat"
     const val RECORD_MESSAGE = "message"
     const val RECORD_VARIANT = "variant"
@@ -68,9 +68,6 @@ object ChatHistoryCsv {
         "variant_output_duration_ms",
         "variant_wait_duration_ms",
         "variant_completed_at",
-        "chat_folder_id",
-        "chat_folder_path",
-        "chat_is_favorite",
     )
 
     private val columnIndex = HEADER.withIndex().associate { it.value to it.index }
@@ -79,7 +76,7 @@ object ChatHistoryCsv {
         writeRow(writer, HEADER)
     }
 
-    fun writeChat(writer: Writer, history: OperitArchivedChat, folderPath: String? = null) {
+    fun writeChat(writer: Writer, history: OperitArchivedChat) {
         val row = emptyRow()
         put(row, "format_version", FORMAT_VERSION)
         put(row, "record_type", RECORD_CHAT)
@@ -99,9 +96,6 @@ object ChatHistoryCsv {
         put(row, "character_group_id", history.characterGroupId)
         put(row, "locked", history.locked.toString())
         put(row, "pinned", history.pinned.toString())
-        put(row, "chat_folder_id", history.folderId)
-        put(row, "chat_folder_path", folderPath)
-        put(row, "chat_is_favorite", history.isFavorite?.toString())
         writeRow(writer, row)
     }
 

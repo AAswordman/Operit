@@ -25,24 +25,12 @@ interface ChatDao {
     @Query("SELECT * FROM chats ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getAllChatsDirectly(): List<ChatEntity>
 
-    /** 获取所有聊天，按真实最后消息时间排列；空聊天回退到创建时间。 */
-    @Query(
-        "SELECT * FROM chats " +
-            "ORDER BY COALESCE(lastMessageAt, createdAt) DESC, createdAt DESC, id ASC"
-    )
-    fun getRecentChats(): Flow<List<ChatEntity>>
-
     /** 根据ID获取单个聊天 */
     @Query("SELECT * FROM chats WHERE id = :chatId")
     suspend fun getChatById(chatId: String): ChatEntity?
 
-    /** 只插入新聊天；禁止 REPLACE 触发消息外键级联。 */
-    @Insert(onConflict = OnConflictStrategy.ABORT)
-    suspend fun insertChat(chat: ChatEntity)
-
-    /** 更新已有聊天。调用方必须保留只读 legacy group 诊断值。 */
-    @Update
-    suspend fun updateChat(chat: ChatEntity)
+    /** 插入或更新聊天 */
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertChat(chat: ChatEntity)
 
     /** 删除聊天 */
     @Query("DELETE FROM chats WHERE id = :chatId") suspend fun deleteChat(chatId: String)
@@ -59,34 +47,6 @@ interface ChatDao {
             outputTokens: Long,
             currentWindowSize: Long
     )
-
-    /** 插入消息后只向前推进派生缓存，不允许较旧消息倒退最近时间。 */
-    @Query(
-        """
-        UPDATE chats
-        SET lastMessageAt = CASE
-            WHEN lastMessageAt IS NULL OR :messageTimestamp > lastMessageAt
-                THEN :messageTimestamp
-            ELSE lastMessageAt
-        END
-        WHERE id = :chatId
-        """
-    )
-    suspend fun advanceLastMessageAt(chatId: String, messageTimestamp: Long)
-
-    /** 删除、替换、导入或分支后从消息事实表重新计算派生缓存。 */
-    @Query(
-        """
-        UPDATE chats
-        SET lastMessageAt = (
-            SELECT MAX(timestamp)
-            FROM messages
-            WHERE messages.chatId = :chatId
-        )
-        WHERE id = :chatId
-        """
-    )
-    suspend fun recalculateLastMessageAt(chatId: String)
 
     /** 更新聊天标题 */
     @Query("UPDATE chats SET title = :title, updatedAt = :timestamp WHERE id = :chatId")
@@ -108,16 +68,9 @@ interface ChatDao {
         timestamp: Long = System.currentTimeMillis()
     )
 
-    /** 更新聊天文件夹归属。 */
-    @Query("UPDATE chats SET folderId = :folderId, updatedAt = :timestamp WHERE id = :chatId")
-    suspend fun updateChatFolder(
-        chatId: String,
-        folderId: String?,
-        timestamp: Long = System.currentTimeMillis(),
-    )
-
-    @Query("UPDATE chats SET folderId = NULL WHERE folderId = :folderId")
-    suspend fun clearFolderReferences(folderId: String)
+    /** 更新聊天分组 */
+    @Query("UPDATE chats SET `group` = :group, updatedAt = :timestamp WHERE id = :chatId")
+    suspend fun updateChatGroup(chatId: String, group: String?, timestamp: Long = System.currentTimeMillis())
 
     /** 更新聊天绑定的角色卡名称 */
     @Query("UPDATE chats SET characterCardName = :characterCardName, characterGroupId = NULL, updatedAt = :timestamp WHERE id = :chatId")
@@ -146,44 +99,60 @@ interface ChatDao {
     @Query("UPDATE chats SET pinned = :pinned, updatedAt = :timestamp WHERE id = :chatId")
     suspend fun updateChatPinned(chatId: String, pinned: Boolean, timestamp: Long = System.currentTimeMillis())
 
-    /** 对话收藏独立于消息收藏，且不得污染 updatedAt 或 lastMessageAt。 */
-    @Query("UPDATE chats SET isFavorite = :isFavorite WHERE id = :chatId")
-    suspend fun updateChatFavorite(chatId: String, isFavorite: Boolean)
+    /** 更新单个聊天的顺序和分组 */
+    @Query("UPDATE chats SET displayOrder = :displayOrder, `group` = :group, updatedAt = :timestamp WHERE id = :chatId")
+    suspend fun updateChatOrderAndGroup(chatId: String, displayOrder: Long, group: String?, timestamp: Long = System.currentTimeMillis())
 
-    /** 仅按稳定 ID 更新单个聊天的顺序与文件夹。 */
-    @Query("UPDATE chats SET displayOrder = :displayOrder, folderId = :folderId WHERE id = :chatId")
-    suspend fun updateChatOrderAndFolder(
-        chatId: String,
-        displayOrder: Long,
-        folderId: String?,
-    )
+    /** 批量更新聊天的顺序和分组 */
+    @Update
+    suspend fun updateChats(chats: List<ChatEntity>)
+
+    /** 重命名分组 */
+    @Query("UPDATE chats SET `group` = :newName WHERE `group` = :oldName")
+    suspend fun updateGroupName(oldName: String, newName: String)
+
+    /** 重命名指定角色卡下的分组 */
+    @Query("UPDATE chats SET `group` = :newName WHERE `group` = :oldName AND characterCardName = :characterCardName")
+    suspend fun updateGroupNameForCharacter(oldName: String, newName: String, characterCardName: String)
+
+    /** 删除分组下的所有聊天 */
+    @Query("DELETE FROM chats WHERE `group` = :groupName AND locked = 0")
+    suspend fun deleteChatsInGroup(groupName: String)
+
+    /** 删除指定角色卡下分组的所有聊天 */
+    @Query("DELETE FROM chats WHERE `group` = :groupName AND characterCardName = :characterCardName AND locked = 0")
+    suspend fun deleteChatsInGroupForCharacter(groupName: String, characterCardName: String)
+
+    /** 将分组下的所有聊天移动到"未分组" */
+    @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName")
+    suspend fun removeGroupFromChats(groupName: String, timestamp: Long = System.currentTimeMillis())
+
+    /** 将分组下的所有【锁定】聊天移动到"未分组"（用于删除分组但保留锁定聊天） */
+    @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName AND locked = 1")
+    suspend fun removeGroupFromLockedChats(groupName: String, timestamp: Long = System.currentTimeMillis())
+
+    /** 将指定角色卡下分组的所有聊天移动到"未分组" */
+    @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName AND characterCardName = :characterCardName")
+    suspend fun removeGroupFromChatsForCharacter(groupName: String, characterCardName: String, timestamp: Long = System.currentTimeMillis())
+
+    /** 将指定角色卡下分组的所有【锁定】聊天移动到"未分组"（用于删除分组但保留锁定聊天） */
+    @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName AND characterCardName = :characterCardName AND locked = 1")
+    suspend fun removeGroupFromLockedChatsForCharacter(groupName: String, characterCardName: String, timestamp: Long = System.currentTimeMillis())
 
     /** 根据parentChatId获取所有分支对话 */
-    @Query(
-        "SELECT * FROM chats WHERE parentChatId = :parentChatId " +
-            "ORDER BY pinned DESC, displayOrder ASC"
-    )
+    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getBranchesByParentId(parentChatId: String): List<ChatEntity>
 
     /** 根据parentChatId获取所有分支对话（Flow版本） */
-    @Query(
-        "SELECT * FROM chats WHERE parentChatId = :parentChatId " +
-            "ORDER BY pinned DESC, displayOrder ASC"
-    )
+    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
     fun getBranchesByParentIdFlow(parentChatId: String): Flow<List<ChatEntity>>
 
     /** 获取所有没有父对话的对话（即主对话） */
-    @Query(
-        "SELECT * FROM chats WHERE parentChatId IS NULL " +
-            "ORDER BY pinned DESC, displayOrder ASC"
-    )
+    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
     suspend fun getMainChats(): List<ChatEntity>
 
     /** 获取所有没有父对话的对话（Flow版本） */
-    @Query(
-        "SELECT * FROM chats WHERE parentChatId IS NULL " +
-            "ORDER BY pinned DESC, displayOrder ASC"
-    )
+    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getMainChatsFlow(): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（非默认角色卡：只显示该角色卡名称的对话） */
@@ -195,12 +164,20 @@ interface ChatDao {
     fun getChatsByCharacterGroupId(characterGroupId: String): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（默认角色卡：显示该角色卡名称的对话 + 所有characterCardName为null的对话） */
-    @Query("SELECT * FROM chats WHERE (characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL)) ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL) ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterCardOrNull(characterCardName: String): Flow<List<ChatEntity>>
 
     /** 批量清理绑定特定角色卡名称的对话（将characterCardName设为null） */
     @Query("UPDATE chats SET characterCardName = NULL, updatedAt = :timestamp WHERE characterCardName = :characterCardName")
     suspend fun clearCharacterCardBinding(characterCardName: String, timestamp: Long = System.currentTimeMillis())
+
+    /** 批量删除绑定特定角色卡名称的未锁定对话 */
+    @Query("DELETE FROM chats WHERE characterCardName = :characterCardName AND locked = 0")
+    suspend fun deleteUnlockedChatsByCharacterCardName(characterCardName: String): Int
+
+    /** 批量删除未绑定角色卡的未锁定对话 */
+    @Query("DELETE FROM chats WHERE characterCardName IS NULL AND characterGroupId IS NULL AND locked = 0")
+    suspend fun deleteUnlockedUnboundChats(): Int
 
     /** 批量重命名角色卡绑定 */
     @Query("UPDATE chats SET characterCardName = :newName, updatedAt = :timestamp WHERE characterCardName = :oldName")
@@ -255,20 +232,18 @@ interface ChatDao {
         timestamp: Long = System.currentTimeMillis()
     ): Int
 
-    /** 批量为指定聊天更新文件夹归属。 */
-    @Query(
-        "UPDATE chats SET folderId = :folderId, updatedAt = :timestamp WHERE id IN (:chatIds)"
-    )
-    suspend fun updateFolderForChats(
-        chatIds: List<String>,
-        folderId: String?,
-        timestamp: Long = System.currentTimeMillis(),
-    ): Int
-
     /** 批量清理绑定特定角色群组ID的对话（将characterGroupId设为null） */
     @Query("UPDATE chats SET characterGroupId = NULL, updatedAt = :timestamp WHERE characterGroupId = :sourceGroupId")
     suspend fun clearCharacterGroupBinding(
         sourceGroupId: String,
+        timestamp: Long = System.currentTimeMillis()
+    ): Int
+
+    /** 批量为指定聊天更新分组 */
+    @Query("UPDATE chats SET `group` = :groupName, updatedAt = :timestamp WHERE id IN (:chatIds)")
+    suspend fun updateGroupForChats(
+        chatIds: List<String>,
+        groupName: String?,
         timestamp: Long = System.currentTimeMillis()
     ): Int
 

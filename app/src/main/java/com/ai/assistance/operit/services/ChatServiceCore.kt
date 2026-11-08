@@ -311,19 +311,17 @@ class ChatServiceCore(
     /** 创建新的聊天 */
     fun createNewChat(
         characterCardName: String? = null,
-        folderId: String? = null,
+        group: String? = null,
         inheritGroupFromCurrent: Boolean = true,
         setAsCurrentChat: Boolean = true,
-        characterCardId: String? = null,
-        onCreated: ((String) -> Unit)? = null,
+        characterCardId: String? = null
     ) {
         chatHistoryDelegate.createNewChat(
             characterCardName = characterCardName,
-            folderId = folderId,
+            group = group,
             inheritGroupFromCurrent = inheritGroupFromCurrent,
             setAsCurrentChat = setAsCurrentChat,
-            characterCardId = characterCardId,
-            onCreated = onCreated,
+            characterCardId = characterCardId
         )
     }
 
