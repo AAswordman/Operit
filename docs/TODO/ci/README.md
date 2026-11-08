@@ -28,3 +28,4 @@
 
 - [+17 统一 Debug 测试](debug17-unified/index.md)
 - [Open PR 联合测试](open-pr-integration-20261108/index.md)
+- [终端核心默认分支自动同步](terminal-core-auto-sync/index.md)
