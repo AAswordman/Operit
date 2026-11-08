@@ -47,6 +47,7 @@ jobs:
           npx --no-install tsc -p examples/worldbook/tsconfig.json
           npx --no-install tsc -p examples/worldbook/tsconfig.tests.json
           node --test examples/worldbook/tests-dist/*.test.js examples/worldbook/tests/*.test.cjs
+          git diff --exit-code -- examples/worldbook/dist/ examples/worldbook/tests-dist/
       - name: Upload world book distribution
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

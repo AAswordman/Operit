@@ -18,7 +18,7 @@ for (const invalid of ["", "[broken", "{}", "null"]) {
     await storage.ensureWorldBookStorage();
     runtime.writePackageFile("entries.json", invalid);
     await assert.rejects(service.createWorldBookEntry(entry("new")), /世界书/);
-    await assert.rejects(service.importWorldBookEntries({ content: JSON.stringify([entry("import")]) }), /世界书/);
+    await assert.rejects(service.importWorldBookEntries({ content: JSON.stringify([{ ...entry("import"), keywords: ["test"] }]) }), /世界书/);
     assert.equal(runtime.readPackageFile("entries.json"), invalid);
   });
 }
@@ -76,9 +76,10 @@ test("UI IPC creates interleaved with tool creates and imports retain every entr
   for (let i = 0; i < 18; i++) {
     operations.push(client.createWorldBookEntry(entry(`ui-${i}`)));
     operations.push(service.createWorldBookEntry(entry(`tool-${i}`)));
-    operations.push(service.importWorldBookEntries({ content: JSON.stringify([entry(`import-${i}`)]) }));
+    operations.push(service.importWorldBookEntries({ content: JSON.stringify([{ ...entry(`import-${i}`), keywords: ["test"] }]) }));
   }
-  await Promise.all(operations);
+  const results = await Promise.allSettled(operations);
+  for (const result of results) assert.equal(result.status, "fulfilled", JSON.stringify(result));
   const entries = await client.listWorldBookEntries();
   assert.equal(entries.length, 54);
   assert.equal(new Set(entries.map((item) => item.id)).size, 54);
