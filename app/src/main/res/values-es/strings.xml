@@ -5893,10 +5893,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Error al crear la pantalla virtual.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Error al precalentar la pantalla virtual: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">La pantalla virtual no se pudo iniciar. Se ha cancelado para evitar ejecutar acciones en la pantalla principal.</string>
-    <string name="phone_agent_thinking">Pensando...</string>
-    <string name="phone_agent_completed">Completado</string>
-    <string name="phone_agent_executing_action">Ejecutando %1$s...</string>
-    <string name="phone_agent_executing">Ejecutando acción...</string>
     <string name="workflow_skip">Saltar</string>
     <string name="workflow_condition_type_mismatch">Los tipos de comparación de condición no coinciden: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">La condición no se cumple.</string>

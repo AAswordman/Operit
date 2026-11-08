@@ -6491,10 +6491,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Crearea ecranului virtual a eșuat.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Eroare la preîncărcarea ecranului virtual:%1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Ecranul virtual nu a putut fi pornit; procesul a fost întrerupt pentru a evita efectuarea unor operațiuni pe ecranul principal.</string>
-    <string name="phone_agent_thinking">Mă gândesc...</string>
-    <string name="phone_agent_completed">Finalizat</string>
-    <string name="phone_agent_executing_action">Executare %1$s în...</string>
-    <string name="phone_agent_executing">Operațiune în curs de execuție...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">Sari peste</string>

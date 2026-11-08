@@ -5490,10 +5490,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Gagal membuat layar virtual.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Gagal memanaskan layar virtual: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Layar virtual gagal dimulai, dibatalkan untuk menghindari operasi di layar utama.</string>
-    <string name="phone_agent_thinking">Sedang berpikir...</string>
-    <string name="phone_agent_completed">Selesai</string>
-    <string name="phone_agent_executing_action">Sedang mengeksekusi %1$s...</string>
-    <string name="phone_agent_executing">Sedang mengeksekusi operasi...</string>
     <string name="workflow_skip">Lewati</string>
     <string name="workflow_condition_type_mismatch">Jenis perbandingan kondisi tidak konsisten: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">Kondisi tidak terpenuhi</string>

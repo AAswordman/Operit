@@ -2,7 +2,7 @@
 repo: https://github.com/3316891527/Operit
 branch: feat/phone-agent-local-execution
 base: e9bb154a631300ec6fd7d9a073b50d58792aca38
-status: launch-resume-swipe-implemented-validation-pending
+status: presentation-implemented-validation-pending
 ---
 
 # PhoneAgent 控件感知与本地连续执行
@@ -36,3 +36,4 @@ status: launch-resume-swipe-implemented-validation-pending
 
 - [09 能力对齐与观察成本](09-contract-and-observation-cost.md)：第一阶段与第三阶段实现、计时口径和显式设备基准。
 - [10：前台页面继续与真实滑动时序](10-launch-resume-and-swipe.md)：整合 PR #155，保留接管后的前台页面并修复滑动时序与失败反馈。
+- [11：手机助手状态与手势展示](11-progress-and-gesture-presentation.md)：收敛状态文案、移除技术标签并保留手势动画；记录上一版本的用户设备验收。

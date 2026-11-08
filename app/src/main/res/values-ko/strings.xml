@@ -5638,10 +5638,6 @@
     <string name="phone_agent_virtual_screen_create_failed">가상 화면 생성에 실패했습니다.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">가상 화면 사전 준비 실패: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">가상 화면을 시작하지 못하여 메인 화면에서 작업을 피하기 위해 중단되었습니다.</string>
-    <string name="phone_agent_thinking">생각 중...</string>
-    <string name="phone_agent_completed">완료됨</string>
-    <string name="phone_agent_executing_action">%1$s 실행 중...</string>
-    <string name="phone_agent_executing">실행 중...</string>
     <string name="workflow_skip">건너뛰기</string>
     <string name="workflow_condition_type_mismatch">조건 유형 불일치: 왼쪽=\'%1$s\', 오른쪽=\'%2$s\'</string>
     <string name="workflow_condition_not_met">조건이 충족되지 않음</string>

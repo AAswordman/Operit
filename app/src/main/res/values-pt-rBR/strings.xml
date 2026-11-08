@@ -5172,10 +5172,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Falha na criação da tela virtual.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Falha na pré-inicialização da tela virtual: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">A tela virtual falhou ao iniciar e foi abortada para evitar a execução de ações na tela inicial.</string>
-    <string name="phone_agent_thinking">Pensamento...</string>
-    <string name="phone_agent_completed">Concluído</string>
-    <string name="phone_agent_executing_action">Executando %1$s...</string>
-    <string name="phone_agent_executing">Executando operação...</string>
     <string name="workflow_skip">pular sobre</string>
     <string name="workflow_condition_type_mismatch">Tipos de comparação de condições inconsistentes: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">Condição não atendida</string>

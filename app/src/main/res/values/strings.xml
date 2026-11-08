@@ -6897,10 +6897,6 @@
     <string name="phone_agent_virtual_screen_create_failed">虚拟屏幕创建失败。</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">虚拟屏幕预启动失败：%1$s</string>
     <string name="phone_agent_virtual_screen_not_started">虚拟屏幕未能启动，已中止以避免在主屏幕执行操作。</string>
-    <string name="phone_agent_thinking">思考中...</string>
-    <string name="phone_agent_completed">已完成</string>
-    <string name="phone_agent_executing_action">执行 %1$s 中...</string>
-    <string name="phone_agent_executing">执行操作中...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">跳过</string>

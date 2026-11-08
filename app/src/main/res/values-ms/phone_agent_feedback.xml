@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">Pembantu telefon</string>
+    <string name="phone_agent_scanning">Mengimbas skrin…</string>
+    <string name="phone_agent_planning">Merancang…</string>
+    <string name="phone_agent_tapping">Mengetik…</string>
+    <string name="phone_agent_typing">Menaip…</string>
+    <string name="phone_agent_swiping">Meleret…</string>
+    <string name="phone_agent_entering_app">Membuka aplikasi…</string>
+    <string name="phone_agent_back">Kembali…</string>
+    <string name="phone_agent_home">Kembali ke skrin utama…</string>
+    <string name="phone_agent_waiting">Menunggu respons halaman…</string>
+    <string name="phone_agent_working">Menjalankan tindakan…</string>
+    <string name="phone_agent_paused">Dijeda</string>
+    <string name="phone_agent_needs_user">Menunggu tindakan anda</string>
+    <string name="phone_agent_completed">Tugas selesai</string>
+    <string name="phone_agent_unconfirmed">Tindakan belum disahkan. Semak skrin semasa.</string>
+    <string name="phone_agent_pause_task">Jeda tugas</string>
+    <string name="phone_agent_resume_task">Sambung tugas</string>
+    <string name="phone_agent_stop_task">Hentikan tugas</string>
+    <string name="phone_agent_screen_unavailable">Skrin tidak dapat dibaca buat masa ini</string>
+</resources>

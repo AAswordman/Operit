@@ -5406,10 +5406,6 @@
     <string name="siliconflow_error_voice_id_not_set">ID Suara belum ditetapkan, sila pilih suara yang sah.</string>
 
     <string name="phone_agent_virtual_screen_not_started">Skrin maya gagal dimulakan, dibatalkan untuk mengelakkan tindakan di skrin utama.</string>
-    <string name="phone_agent_thinking">Sedang berfikir...</string>
-    <string name="phone_agent_completed">Selesai</string>
-    <string name="phone_agent_executing_action">Sedang melaksanakan %1$s...</string>
-    <string name="phone_agent_executing">Sedang melaksanakan tindakan...</string>
     <string name="workflow_skip">Langkau</string>
     <string name="workflow_condition_type_mismatch">Jenis perbandingan syarat tidak sepadan: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">Syarat tidak dipenuhi</string>

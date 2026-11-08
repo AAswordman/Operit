@@ -25,6 +25,7 @@ import com.ai.assistance.operit.data.preferences.AndroidPermissionPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
 import com.ai.assistance.operit.services.FloatingChatService
+import com.ai.assistance.operit.ui.common.displays.PhoneAgentUiStatus
 import com.ai.assistance.operit.ui.common.displays.UIAutomationProgressOverlay
 import com.ai.assistance.operit.ui.common.displays.UIOperationOverlay
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
@@ -138,6 +139,28 @@ class PhoneAgent(
 
     init {
         actionHandler.setAgentId(agentId)
+    }
+
+    // Only stable, localized phases reach an overlay; full results still reach onStep/context.
+    private fun progressStatusFor(result: StepResult): PhoneAgentUiStatus = when {
+        !result.success -> PhoneAgentUiStatus.Unconfirmed
+        result.action?.actionName == "Take_over" -> PhoneAgentUiStatus.NeedsUser
+        result.finished -> PhoneAgentUiStatus.Completed
+        result.action?.metadata == "do" -> progressStatusForAction(result.action.actionName)
+        else -> PhoneAgentUiStatus.Planning
+    }
+
+    private fun progressStatusForAction(actionName: String?): PhoneAgentUiStatus = when (actionName) {
+        "Launch" -> PhoneAgentUiStatus.EnteringApp
+        "Tap" -> PhoneAgentUiStatus.Tapping
+        "Type" -> PhoneAgentUiStatus.Typing
+        "Swipe" -> PhoneAgentUiStatus.Swiping
+        "Back" -> PhoneAgentUiStatus.Back
+        "Home" -> PhoneAgentUiStatus.Home
+        "Wait" -> PhoneAgentUiStatus.Waiting
+        "Take_over" -> PhoneAgentUiStatus.NeedsUser
+        "Inspect", "Observe" -> PhoneAgentUiStatus.Scanning
+        else -> PhoneAgentUiStatus.Working
     }
 
     private suspend fun awaitIfPaused() {
@@ -359,7 +382,7 @@ class PhoneAgent(
         try {
             if (progress != null) {
                 useFullscreenStatusIndicatorForAgent(context, agentId)
-                progress.show(config.maxSteps, context.getString(R.string.phone_agent_waiting_startup),
+                progress.show(config.maxSteps, PhoneAgentUiStatus.Working,
                     onCancel = {
                         PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                         runJob?.cancel(CancellationException("User cancelled UI automation"))
@@ -464,7 +487,7 @@ class PhoneAgent(
             if (useShowerUi) {
                 showerOverlay?.showAutomationControls(
                     totalSteps = config.maxSteps,
-                    initialStatus = context.getString(R.string.phone_agent_thinking),
+                    initialStatus = PhoneAgentUiStatus.Planning,
                     onTogglePauseResume = { isPaused -> pausedMutable?.value = isPaused },
                     onExit = {
                         PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
@@ -474,7 +497,7 @@ class PhoneAgent(
             } else if (!isMainScreenAgent) {
                 progressOverlay.show(
                     config.maxSteps,
-                    context.getString(R.string.phone_agent_thinking),
+                    PhoneAgentUiStatus.Planning,
                     onCancel = {
                         PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                         job?.cancel(CancellationException("User cancelled UI automation"))
@@ -491,14 +514,13 @@ class PhoneAgent(
                     performance = performance,
                     inputScope = { block -> actionHandler.withLocalInputFeedback(block) },
                     tapAt = { x, y -> actionHandler.tapNode(x, y) },
-                    onStep = { index, total, action ->
-                        val actionLabel = context.getString(when (action) {
-                            PhoneLocalAction.Tap -> R.string.phone_agent_local_tap
-                            PhoneLocalAction.Type -> R.string.phone_agent_local_type
-                            PhoneLocalAction.Wait -> R.string.phone_agent_local_wait
-                        })
-                        progressOverlay.updateProgress(stepCount, config.maxSteps,
-                            context.getString(R.string.phone_agent_local_step, index, total, actionLabel))
+                    onStep = { _, _, action ->
+                        val status = when (action) {
+                            PhoneLocalAction.Tap -> PhoneAgentUiStatus.Tapping
+                            PhoneLocalAction.Type -> PhoneAgentUiStatus.Typing
+                            PhoneLocalAction.Wait -> PhoneAgentUiStatus.Waiting
+                        }
+                        progressOverlay.updateProgress(stepCount, config.maxSteps, status)
                     }
                 )
             }
@@ -514,16 +536,7 @@ class PhoneAgent(
             AppLogger.d("PhoneAgent", "[$agentId] run: starting first step for task='$task', hasShowerDisplayAtStart=$hasShowerDisplayAtStart")
             awaitIfPaused()
             var result = _executeStep(task, isFirst = true)
-            val firstAction = result.action
-            val firstStatusText = when {
-                result.finished -> result.message ?: context.getString(R.string.phone_agent_completed)
-                firstAction != null && firstAction.metadata == "do" -> {
-                    val actionName = firstAction.actionName ?: ""
-                    if (actionName.isNotEmpty()) context.getString(R.string.phone_agent_executing_action, actionName) else context.getString(R.string.phone_agent_executing)
-                }
-                else -> context.getString(R.string.phone_agent_thinking)
-            }
-
+            val firstStatus = progressStatusFor(result)
             if (!useShowerUi) {
                 val hasShowerNow = hasShowerDisplay("Error re-checking Shower virtual display state after first step")
 
@@ -545,32 +558,32 @@ class PhoneAgent(
                         useShowerIndicatorForAgent(context, agentId)
                         showerOverlay?.showAutomationControls(
                             totalSteps = config.maxSteps,
-                            initialStatus = firstStatusText,
+                            initialStatus = firstStatus,
                             onTogglePauseResume = { isPaused -> pausedMutable?.value = isPaused },
                             onExit = {
                                 PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                                 job?.cancel(CancellationException("User cancelled UI automation"))
                             }
                         )
-                        showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, firstStatusText)
+                        showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, firstStatus)
                     } else {
                         progressOverlay.show(
                             config.maxSteps,
-                            "Thinking...",
+                            PhoneAgentUiStatus.Planning,
                             onCancel = {
                                 PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                                 job?.cancel(CancellationException("User cancelled UI automation"))
                             },
                             onToggleTakeOver = { isPaused -> pausedMutable?.value = isPaused }
                         )
-                        progressOverlay.updateProgress(stepCount, config.maxSteps, firstStatusText)
+                        progressOverlay.updateProgress(stepCount, config.maxSteps, firstStatus)
                         useShowerUi = false
                     }
                 } else {
-                    progressOverlay.updateProgress(stepCount, config.maxSteps, firstStatusText)
+                    progressOverlay.updateProgress(stepCount, config.maxSteps, firstStatus)
                 }
             } else {
-                showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, firstStatusText)
+                showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, firstStatus)
             }
 
             onStep?.invoke(result)
@@ -584,15 +597,7 @@ class PhoneAgent(
             while (_stepCount < config.maxSteps) {
                 awaitIfPaused()
                 result = _executeStep(null, isFirst = false)
-                val action = result.action
-                val statusText = when {
-                    result.finished -> result.message ?: context.getString(R.string.phone_agent_completed)
-                    action != null && action.metadata == "do" -> {
-                        val actionName = action.actionName ?: ""
-                        if (actionName.isNotEmpty()) context.getString(R.string.phone_agent_executing_action, actionName) else context.getString(R.string.phone_agent_executing)
-                    }
-                    else -> context.getString(R.string.phone_agent_thinking)
-                }
+                val status = progressStatusFor(result)
 
                 if (!useShowerUi) {
                     val hasShowerNow = hasShowerDisplay("Error re-checking Shower state in loop")
@@ -605,32 +610,32 @@ class PhoneAgent(
                             useShowerIndicatorForAgent(context, agentId)
                             showerOverlay?.showAutomationControls(
                                 totalSteps = config.maxSteps,
-                                initialStatus = statusText,
+                                initialStatus = status,
                                 onTogglePauseResume = { isPaused -> pausedMutable?.value = isPaused },
                                 onExit = {
                                     PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                                     job?.cancel(CancellationException("User cancelled UI automation"))
                                 }
                             )
-                            showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, statusText)
+                            showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, status)
                         } else {
                             progressOverlay.show(
                                 config.maxSteps,
-                                "Thinking...",
+                                PhoneAgentUiStatus.Planning,
                                 onCancel = {
                                     PhoneAgentJobRegistry.cancelAgent(agentId, "User cancelled UI automation")
                                     job?.cancel(CancellationException("User cancelled UI automation"))
                                 },
                                 onToggleTakeOver = { isPaused -> pausedMutable?.value = isPaused }
                             )
-                            progressOverlay.updateProgress(stepCount, config.maxSteps, statusText)
+                            progressOverlay.updateProgress(stepCount, config.maxSteps, status)
                             useShowerUi = false
                         }
                     } else {
-                        progressOverlay.updateProgress(stepCount, config.maxSteps, statusText)
+                        progressOverlay.updateProgress(stepCount, config.maxSteps, status)
                     }
                 } else {
-                    showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, statusText)
+                    showerOverlay?.updateAutomationProgress(stepCount, config.maxSteps, status)
                 }
 
                 onStep?.invoke(result)
@@ -691,9 +696,7 @@ class PhoneAgent(
         if (imageOnly) localSession?.invalidate()
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
         if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
-            _stepCount, config.maxSteps, context.getString(
-                if (localSession != null && !imageOnly) R.string.phone_agent_reading_nodes else R.string.phone_agent_reading_screenshot
-            )
+            _stepCount, config.maxSteps, PhoneAgentUiStatus.Scanning
         )
 
         val observationStarted = System.nanoTime()
@@ -749,14 +752,13 @@ class PhoneAgent(
         _contextHistory.add("user" to userMessage)
 
         if (isMainScreenAgent) {
-            val nodeCount = localSession?.lastNodeCount
-            val status = when {
-                imageOnly -> context.getString(R.string.phone_agent_waiting_controller)
-                nodeCount != null -> context.getString(R.string.phone_agent_nodes_ready, nodeCount, localSession?.lastCandidateCount ?: 0, localSession?.lastSentCount ?: 0)
-                localSession != null -> context.getString(R.string.phone_agent_nodes_failed)
-                else -> context.getString(R.string.phone_agent_waiting_controller)
-            }
-            UIAutomationProgressOverlay.getInstance(context).updateProgress(_stepCount, config.maxSteps, status)
+            // Keep observation diagnostics out of the floating task status.
+            AppLogger.d("PhoneAgent", "[$agentId] observation_ready: nodes=${localSession?.lastNodeCount} candidates=${localSession?.lastCandidateCount} sent=${localSession?.lastSentCount} image_only=$imageOnly screenshot_available=$screenshotAvailable")
+            val observationAvailable = if (includeImage) screenshotAvailable else localSession?.lastNodeCount != null
+            UIAutomationProgressOverlay.getInstance(context).updateProgress(
+                _stepCount, config.maxSteps,
+                if (observationAvailable) PhoneAgentUiStatus.Planning else PhoneAgentUiStatus.ScreenUnavailable
+            )
         }
         val modelStarted = System.nanoTime()
         performance.modelCalls++
@@ -804,7 +806,7 @@ class PhoneAgent(
             awaitIfPaused()
             if (isMainScreenAgent) UIAutomationProgressOverlay.getInstance(context).updateProgress(
                 _stepCount, config.maxSteps,
-                context.getString(R.string.phone_agent_executing_action, parsedAction.actionName.orEmpty())
+                progressStatusForAction(parsedAction.actionName)
             )
             val executionStarted = System.nanoTime()
             val pausedBefore = performance.pausedMs

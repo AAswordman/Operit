@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">スマートフォンアシスタント</string>
+    <string name="phone_agent_scanning">画面をスキャンしています…</string>
+    <string name="phone_agent_planning">操作を計画しています…</string>
+    <string name="phone_agent_tapping">タップしています…</string>
+    <string name="phone_agent_typing">入力しています…</string>
+    <string name="phone_agent_swiping">スワイプしています…</string>
+    <string name="phone_agent_entering_app">アプリを開いています…</string>
+    <string name="phone_agent_back">前の画面に戻っています…</string>
+    <string name="phone_agent_home">ホーム画面に戻っています…</string>
+    <string name="phone_agent_waiting">画面の応答を待っています…</string>
+    <string name="phone_agent_working">操作しています…</string>
+    <string name="phone_agent_paused">一時停止中</string>
+    <string name="phone_agent_needs_user">操作をお待ちしています</string>
+    <string name="phone_agent_completed">タスクが完了しました</string>
+    <string name="phone_agent_unconfirmed">操作を確認できません。現在の画面を確認してください</string>
+    <string name="phone_agent_pause_task">タスクを一時停止</string>
+    <string name="phone_agent_resume_task">タスクを再開</string>
+    <string name="phone_agent_stop_task">タスクを停止</string>
+    <string name="phone_agent_screen_unavailable">現在、画面を読み取れません</string>
+</resources>

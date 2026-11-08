@@ -3572,8 +3572,6 @@
     <string name="mcp_deployment_command_failed">コマンドの実行に失敗しました: %1$s</string>
     <string name="webvisit_button_cancel">キャンセル</string>
     <string name="accessibility_provider_unknown">不明</string>
-    <string name="phone_agent_thinking">考え中...</string>
-    <string name="phone_agent_completed">完了しました</string>
     <string name="workflow_skip">スキップする</string>
     <string name="skill_error_import_failed">インポートに失敗しました: %1$s</string>
     <string name="model_config_collapse">閉じる</string>
@@ -7256,8 +7254,6 @@
     <string name="phone_agent_virtual_screen_create_failed">仮想画面を作成できませんでした。</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">仮想画面の事前起動に失敗しました：%1$s</string>
     <string name="phone_agent_virtual_screen_not_started">仮想画面を起動できませんでした。メイン画面での操作を避けるため中止しました。</string>
-    <string name="phone_agent_executing_action">%1$s を実行しています...</string>
-    <string name="phone_agent_executing">操作を実行しています...</string>
     <string name="workflow_condition_type_mismatch">条件比較の型が一致しません：left=「%1$s」、right=「%2$s」</string>
     <string name="workflow_condition_not_met">条件を満たしていません</string>
     <string name="workflow_node_execute_exception">ノード実行中の例外：%1$s</string>

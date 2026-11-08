@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">휴대전화 도우미</string>
+    <string name="phone_agent_scanning">화면 스캔 중…</string>
+    <string name="phone_agent_planning">다음 동작 계획 중…</string>
+    <string name="phone_agent_tapping">누르는 중…</string>
+    <string name="phone_agent_typing">입력 중…</string>
+    <string name="phone_agent_swiping">스와이프 중…</string>
+    <string name="phone_agent_entering_app">앱을 여는 중…</string>
+    <string name="phone_agent_back">이전 화면으로 돌아가는 중…</string>
+    <string name="phone_agent_home">홈 화면으로 돌아가는 중…</string>
+    <string name="phone_agent_waiting">화면 응답 대기 중…</string>
+    <string name="phone_agent_working">작업 중…</string>
+    <string name="phone_agent_paused">일시 중지됨</string>
+    <string name="phone_agent_needs_user">사용자 조작 대기 중</string>
+    <string name="phone_agent_completed">작업 완료</string>
+    <string name="phone_agent_unconfirmed">동작이 확인되지 않았습니다. 현재 화면을 확인하세요.</string>
+    <string name="phone_agent_pause_task">작업 일시 중지</string>
+    <string name="phone_agent_resume_task">작업 계속</string>
+    <string name="phone_agent_stop_task">작업 중지</string>
+    <string name="phone_agent_screen_unavailable">현재 화면을 읽을 수 없습니다</string>
+</resources>

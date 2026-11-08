@@ -6347,10 +6347,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Failed to create virtual screen.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Virtual screen prewarm failed: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Virtual screen failed to start, aborted to avoid operations on main screen.</string>
-    <string name="phone_agent_thinking">Thinking...</string>
-    <string name="phone_agent_completed">Completed</string>
-    <string name="phone_agent_executing_action">Executing %1$s...</string>
-    <string name="phone_agent_executing">Executing...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">Skip</string>
