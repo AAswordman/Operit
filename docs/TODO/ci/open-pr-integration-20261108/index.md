@@ -17,3 +17,5 @@ branch: test/open-pr-integration-20261108
 4. 推送测试分支并派发现有 Android 构建与测试；不发布 Release，不等待 CI 结束。
 
 诊断功能不在本轮范围。临时专项 PR 检查按既有约定在通过并保留证据后清理，通用检查保留。
+
+[联合测试结果与发行移交](02-release-handoff.md)
