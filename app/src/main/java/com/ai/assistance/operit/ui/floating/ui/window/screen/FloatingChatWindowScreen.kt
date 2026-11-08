@@ -1,7 +1,9 @@
 package com.ai.assistance.operit.ui.floating.ui.window.screen
 
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import android.annotation.SuppressLint
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.animation.core.*
 import androidx.compose.animation.*
 import androidx.compose.foundation.Canvas
@@ -56,11 +58,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
-import com.ai.assistance.operit.ui.features.chat.components.AttachmentChip
-import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMemory
-import com.ai.assistance.operit.ui.features.chat.components.ScrollToBottomButton
-import com.ai.assistance.operit.ui.features.chat.components.rememberChatMessageHeightMemory
-import com.ai.assistance.operit.ui.features.chat.components.style.cursor.CursorStyleChatMessage
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.AttachmentChip
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.list.ChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.navigation.ScrollToBottomButton
+import com.ai.assistance.operit.ui.features.conversation.chat.foundation.list.rememberChatMessageHeightMemory
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor.CursorStyleChatMessage
 import com.ai.assistance.operit.ui.floating.ui.window.components.*
 import com.ai.assistance.operit.ui.floating.ui.window.models.*
 import com.ai.assistance.operit.ui.floating.ui.window.viewmodel.*
@@ -69,7 +71,7 @@ import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.ui.floating.FloatContext
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import kotlin.math.roundToInt
@@ -985,6 +987,7 @@ private fun AttachmentsList(floatContext: FloatContext) {
         floatContext.attachments.forEach { attachment ->
             AttachmentChip(
                 attachmentInfo = attachment,
+                attachments = floatContext.attachments,
                 onRemove = { floatContext.onRemoveAttachment?.invoke(attachment.filePath) },
                 onInsert = { }
             )

@@ -3,17 +3,20 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
 
 /**
  * Kimi K2.5 Provider (Moonshot API).
@@ -53,6 +56,7 @@ open class KimiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -66,14 +70,13 @@ open class KimiProvider(
                 apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
-                optionId = thinkingOptionId,
+                optionId = thinkingOptionId ?: this.thinkingOptionId,
             )
         }
 
         if (!enableThinking) {
-            val baseRequestBodyJson =
-                super.createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-            val jsonObject = JSONObject(baseRequestBodyJson)
+            val jsonObject =
+                super.createRequestBodyObject(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
             if (stream) {
                 jsonObject.put("stream_options", JSONObject().put("include_usage", true))
             }
@@ -92,15 +95,15 @@ open class KimiProvider(
         for (param in modelParameters) {
             if (param.isEnabled) {
                 when (param.valueType) {
-                    com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                         jsonObject.put(param.apiName, param.currentValue as Int)
-                    com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                         jsonObject.put(param.apiName, param.currentValue as Float)
-                    com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                         jsonObject.put(param.apiName, param.currentValue as String)
-                    com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                         jsonObject.put(param.apiName, param.currentValue as Boolean)
-                    com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                         val raw = param.currentValue.toString().trim()
                         val parsed: Any? = try {
                             when {
@@ -148,13 +151,7 @@ open class KimiProvider(
             )
         jsonObject.put("messages", messagesArray)
 
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString("KimiProvider", sanitizedLogJson.toString(4), "Final Kimi K2.5 request body: ")
+        logRequestBody("KimiProvider", jsonObject, "Final Kimi K2.5 request body: ")
 
         return createJsonRequestBody(jsonObject.toString())
     }
@@ -234,20 +231,26 @@ open class KimiProvider(
             queuedOpenToolCalls.clear()
         }
 
-        fun flushOpenToolCallsAsCancelled(reason: String) {
+        fun flushOpenToolCallsAsUnmatched(reason: String) {
             emitQueuedToolCallsIfNeeded()
             if (openToolCalls.isEmpty()) return
 
             AppLogger.w(
                 "KimiProvider",
-                "发现未完成的tool_calls，按取消处理: count=${openToolCalls.size}, reason=$reason"
+                "发现未匹配的tool_calls，按工具结果未匹配处理: count=${openToolCalls.size}, reason=$reason"
             )
             for (openToolCall in openToolCalls) {
                 messagesArray.put(
                     JSONObject().apply {
                         put("role", "tool")
                         put("tool_call_id", openToolCall.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.unmatchedToolResultContent(
+                                reason,
+                                openToolCall.matchingName
+                            )
+                        )
                     }
                 )
             }
@@ -260,7 +263,7 @@ open class KimiProvider(
                 if (useToolCall) {
                     when (turn.kind) {
                         PromptTurnKind.SYSTEM -> {
-                            flushOpenToolCallsAsCancelled("system_boundary")
+                            flushOpenToolCallsAsUnmatched("system_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "system")
@@ -271,7 +274,7 @@ open class KimiProvider(
 
                         PromptTurnKind.USER,
                         PromptTurnKind.SUMMARY -> {
-                            flushOpenToolCallsAsCancelled("user_boundary")
+                            flushOpenToolCallsAsUnmatched("user_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "user")
@@ -292,11 +295,11 @@ open class KimiProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("assistant_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("assistant_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls, reasoningContent)
                             } else {
-                                flushOpenToolCallsAsCancelled("assistant_boundary")
+                                flushOpenToolCallsAsUnmatched("assistant_boundary")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
@@ -323,11 +326,11 @@ open class KimiProvider(
 
                             if (toolCalls != null && toolCalls.length() > 0) {
                                 if (openToolCalls.isNotEmpty()) {
-                                    flushOpenToolCallsAsCancelled("typed_tool_call_before_result")
+                                    flushOpenToolCallsAsUnmatched("typed_tool_call_before_result")
                                 }
                                 queueToolCalls(textContent, toolCalls)
                             } else {
-                                flushOpenToolCallsAsCancelled("typed_tool_call_without_payload")
+                                flushOpenToolCallsAsUnmatched("typed_tool_call_without_payload")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
@@ -374,7 +377,7 @@ open class KimiProvider(
                                     )
                                 }
 
-                                flushOpenToolCallsAsCancelled("tool_result_partial_batch")
+                                flushOpenToolCallsAsUnmatched("tool_result_partial_batch")
 
                                 appendReadableImageMessageIfNeeded(
                                     messagesArray,
@@ -391,7 +394,7 @@ open class KimiProvider(
                                     )
                                 }
                             } else {
-                                flushOpenToolCallsAsCancelled("tool_result_without_structured_match")
+                                flushOpenToolCallsAsUnmatched("tool_result_without_structured_match")
                                 if (textContent.isNotEmpty()) {
                                     messagesArray.put(
                                         JSONObject().apply {
@@ -468,7 +471,7 @@ open class KimiProvider(
             }
         }
 
-        flushOpenToolCallsAsCancelled("history_end")
+        flushOpenToolCallsAsUnmatched("history_end")
         return messagesArray
     }
 
@@ -477,6 +480,7 @@ open class KimiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -492,6 +496,7 @@ open class KimiProvider(
             chatHistory,
             modelParameters,
             enableThinking,
+            thinkingOptionId,
             stream,
             availableTools,
             preserveThinkInHistory,

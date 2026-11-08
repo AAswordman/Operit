@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.subpack
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.*
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer

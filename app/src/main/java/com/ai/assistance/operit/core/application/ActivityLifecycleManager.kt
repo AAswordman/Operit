@@ -3,7 +3,7 @@ package com.ai.assistance.operit.core.application
 import android.app.Activity
 import android.app.Application
 import android.os.Bundle
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.view.WindowManager
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.data.preferences.ApiPreferences

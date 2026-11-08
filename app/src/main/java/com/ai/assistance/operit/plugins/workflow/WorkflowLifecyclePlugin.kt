@@ -6,7 +6,7 @@ import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookParams
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookPlugin
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookPluginRegistry
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 private object WorkflowAppLifecycleHookPlugin : AppLifecycleHookPlugin {
     private const val TAG = "WorkflowLifecyclePlugin"

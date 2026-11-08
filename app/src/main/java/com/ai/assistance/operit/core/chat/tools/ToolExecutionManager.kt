@@ -1,0 +1,839 @@
+package com.ai.assistance.operit.core.chat.tools
+
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
+import com.ai.assistance.operit.ui.common.a2ui.CardFences
+import android.content.Context
+import com.ai.assistance.operit.R
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHookDecision
+import com.ai.assistance.operit.core.chat.protocol.toolFailurePayload
+import com.ai.assistance.operit.util.logging.ChatTrace
+
+import com.ai.assistance.operit.core.tools.StringResultData
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
+import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
+import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
+import com.ai.assistance.operit.core.tools.protocol.ToolInvocation
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilityResolver
+import com.ai.assistance.operit.core.tools.permissions.PermissionCapabilitySession
+import com.ai.assistance.operit.util.stream.StreamCollector
+import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import com.ai.assistance.operit.core.chat.tools.timing.ToolExecutionTiming
+import kotlinx.coroutines.asContextElement
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.ui.common.displays.MessageContentParser
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
+import com.ai.assistance.operit.util.stream.splitBy
+import com.ai.assistance.operit.util.stream.stream
+import com.ai.assistance.operit.util.android.LocaleUtils
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
+import org.json.JSONObject
+
+/** Utility class for managing tool executions */
+object ToolExecutionManager {
+    private const val TAG = "ToolExecutionManager"
+    private const val PACKAGE_PROXY_TOOL_NAME = "package_proxy"
+    private const val PACKAGE_CALLER_NAME_PARAM = "__operit_package_caller_name"
+    private const val PACKAGE_CHAT_ID_PARAM = "__operit_package_chat_id"
+    private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
+    private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
+
+    data class ToolRuntimeContext(
+        val callerCardId: String? = null,
+        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        val callerChatId: String? = null,
+        val a2uiRunId: String? = null,
+        val publishA2ui: (suspend (String) -> Unit)? = null,
+    )
+
+    private data class ResolvedToolTarget(
+        val tool: AITool,
+        val displayName: String
+    )
+
+    /**
+     * Tool round markup is injected into the assistant stream right after model text that usually
+     * ends mid-line. The XML block detector only opens a block at a line boundary, so markup glued
+     * onto the previous character is rendered as plain model text, and is re-parsed out of history
+     * as assistant text instead of a tool result. Keep every injected block on its own line.
+     */
+    internal fun ensureOwnLine(content: String): String {
+        val withLeadingBreak = if (content.startsWith("\n")) content else "\n$content"
+        return if (withLeadingBreak.endsWith("\n")) withLeadingBreak else "$withLeadingBreak\n"
+    }
+
+    private fun resolveToolTarget(tool: AITool): ResolvedToolTarget {
+        if (tool.name != PACKAGE_PROXY_TOOL_NAME &&
+            tool.name != CliToolModeSupport.PROXY_TOOL_NAME
+        ) {
+            return ResolvedToolTarget(tool = tool, displayName = tool.name)
+        }
+
+        val targetToolName = tool.parameters
+            .firstOrNull { it.name == "tool_name" }
+            ?.value
+            ?.trim()
+            .orEmpty()
+        if (targetToolName.isBlank()) {
+            return ResolvedToolTarget(tool = tool, displayName = tool.name)
+        }
+
+        val forwardedParameters = resolveProxyParameters(tool)
+        return ResolvedToolTarget(
+            tool = AITool(name = targetToolName, parameters = forwardedParameters),
+            displayName = targetToolName
+        )
+    }
+
+    private fun resolveDisplayToolName(tool: AITool): String {
+        return resolveToolTarget(tool).displayName
+    }
+
+    private fun isJsPackageTool(toolName: String, jsPackageNames: Set<String>): Boolean {
+        val toolNameParts = toolName.split(':', limit = 2)
+        val packageName = toolNameParts.getOrNull(0)
+        return toolNameParts.size == 2 &&
+            packageName != null &&
+            jsPackageNames.contains(packageName)
+    }
+
+    internal fun currentToolRuntimeContext(): ToolRuntimeContext? =
+        toolRuntimeContextThreadLocal.get()
+
+    private fun addPackageContextParamIfMissing(
+        params: MutableList<ToolParameter>,
+        name: String,
+        value: String?
+    ) {
+        if (value.isNullOrBlank()) {
+            return
+        }
+        if (params.any { it.name == name }) {
+            return
+        }
+        params.add(ToolParameter(name, value))
+    }
+
+    private fun injectPackageCallContext(
+        invocation: ToolInvocation,
+        jsPackageNames: Set<String>,
+        callerName: String?,
+        callerChatId: String?,
+        callerCardId: String?
+    ): ToolInvocation {
+        val resolvedTargetTool = resolveToolTarget(invocation.tool).tool
+        if (!isJsPackageTool(resolvedTargetTool.name, jsPackageNames)) {
+            return invocation
+        }
+
+        val updatedParams = invocation.tool.parameters.toMutableList()
+        addPackageContextParamIfMissing(updatedParams, PACKAGE_CALLER_NAME_PARAM, callerName)
+        addPackageContextParamIfMissing(updatedParams, PACKAGE_CHAT_ID_PARAM, callerChatId)
+        addPackageContextParamIfMissing(updatedParams, PACKAGE_CALLER_CARD_ID_PARAM, callerCardId)
+
+        if (updatedParams.size == invocation.tool.parameters.size) {
+            return invocation
+        }
+
+        return invocation.copy(
+            tool = invocation.tool.copy(parameters = updatedParams)
+        )
+    }
+
+    private fun getParameterValue(tool: AITool, name: String): String? {
+        return tool.parameters.firstOrNull { it.name == name }?.value?.trim()
+    }
+
+    private fun isInvocationAllowedForRoleCard(
+        invocation: ToolInvocation,
+        roleCardToolAccess: com.ai.assistance.operit.data.preferences.ResolvedCharacterCardToolAccess
+    ): Boolean {
+        val toolName = invocation.tool.name.trim()
+        val resolvedTarget = resolveToolTarget(invocation.tool).tool
+
+        return when {
+            toolName == CliToolModeSupport.SEARCH_TOOL_NAME -> true
+
+            toolName == CliToolModeSupport.PROXY_TOOL_NAME -> {
+                isResolvedTargetAllowedForRoleCard(resolvedTarget, roleCardToolAccess)
+            }
+
+            toolName == "use_package" -> {
+                if (!roleCardToolAccess.isBuiltinToolAllowed("use_package")) {
+                    false
+                } else {
+                    val sourceName = getParameterValue(invocation.tool, "package_name").orEmpty()
+                    sourceName.isBlank() || roleCardToolAccess.isExternalSourceAllowed(sourceName)
+                }
+            }
+
+            toolName == PACKAGE_PROXY_TOOL_NAME -> {
+                if (!roleCardToolAccess.isBuiltinToolAllowed("package_proxy")) {
+                    false
+                } else {
+                    val resolvedTargetName = resolvedTarget.name.trim()
+                    if (resolvedTargetName.isBlank() || !resolvedTargetName.contains(':')) {
+                        true
+                    } else {
+                        isResolvedTargetAllowedForRoleCard(resolvedTarget, roleCardToolAccess)
+                    }
+                }
+            }
+
+            toolName.contains(':') -> {
+                val sourceName = toolName.substringBefore(':').trim()
+                sourceName.isBlank() || roleCardToolAccess.isExternalSourceAllowed(sourceName)
+            }
+
+            else -> roleCardToolAccess.isBuiltinToolAllowed(toolName)
+        }
+    }
+
+    private fun buildRoleCardDeniedResult(
+        context: Context,
+        invocation: ToolInvocation
+    ): ToolResult {
+        return ToolResult(
+            toolName = resolveDisplayToolName(invocation.tool),
+            success = false,
+            result = StringResultData(""),
+            error = context.getString(R.string.character_card_tool_access_denied_runtime)
+        )
+    }
+
+    private fun isEnglishLanguage(context: Context): Boolean {
+        return !LocaleUtils.usesChineseContent(context)
+    }
+
+    private fun buildToolExposureDeniedResult(
+        context: Context,
+        invocation: ToolInvocation,
+        toolExposureMode: ToolExposureMode
+    ): ToolResult? {
+        val toolName = invocation.tool.name.trim()
+        val useEnglish = isEnglishLanguage(context)
+        val errorMessage =
+            when {
+                toolExposureMode == ToolExposureMode.CLI &&
+                    !CliToolModeSupport.isCliPublicTool(toolName) -> {
+                    CliToolModeSupport.buildCliTopLevelRestrictionErrorMessage(
+                        attemptedToolName = resolveDisplayToolName(invocation.tool),
+                        useEnglish = useEnglish
+                    )
+                }
+
+                toolExposureMode == ToolExposureMode.FULL &&
+                    CliToolModeSupport.isCliPublicTool(toolName) -> {
+                    CliToolModeSupport.buildCliModeUnavailableMessage(useEnglish)
+                }
+
+                else -> null
+            } ?: return null
+
+        val resultToolName =
+            if (toolExposureMode == ToolExposureMode.CLI &&
+                !CliToolModeSupport.isCliPublicTool(toolName)
+            ) {
+                resolveDisplayToolName(invocation.tool)
+            } else {
+                toolName
+            }
+
+        return ToolResult(
+            toolName = resultToolName,
+            success = false,
+            result = StringResultData(""),
+            error = errorMessage
+        )
+    }
+
+    private fun isResolvedTargetAllowedForRoleCard(
+        resolvedTarget: AITool,
+        roleCardToolAccess: com.ai.assistance.operit.data.preferences.ResolvedCharacterCardToolAccess
+    ): Boolean {
+        val resolvedTargetName = resolvedTarget.name.trim()
+        if (resolvedTargetName.isBlank()) {
+            return true
+        }
+
+        val usePackageSourceName =
+            if (resolvedTargetName == "use_package") {
+                getParameterValue(resolvedTarget, "package_name")
+            } else {
+                null
+            }
+
+        return CliToolModeSupport.isToolNameAllowedForRoleCard(
+            toolName = resolvedTargetName,
+            usePackageSourceName = usePackageSourceName,
+            roleCardToolAccess = roleCardToolAccess
+        )
+    }
+
+    private fun resolveProxyParameters(tool: AITool): List<ToolParameter> {
+        val paramsRaw = tool.parameters
+            .firstOrNull { it.name == "params" }
+            ?.value
+            ?.trim()
+            .orEmpty()
+        if (paramsRaw.isBlank()) {
+            return emptyList()
+        }
+
+        val paramsObject = runCatching { JSONObject(paramsRaw) }.getOrNull() ?: return emptyList()
+        val forwardedParameters = mutableListOf<ToolParameter>()
+        val keys = paramsObject.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val value = paramsObject.opt(key)
+            val valueString = when (value) {
+                null, JSONObject.NULL -> "null"
+                is String -> value
+                else -> value.toString()
+            }
+            forwardedParameters.add(ToolParameter(name = key, value = valueString))
+        }
+        return forwardedParameters
+    }
+
+    /**
+     * 从 AI 响应中提取工具调用。
+     * @param response AI 的响应字符串。
+     * @return 检测到的工具调用列表。
+     */
+    suspend fun extractToolInvocations(response: String): List<ToolInvocation> {
+        val invocations = mutableListOf<ToolInvocation>()
+        val content = CardFences.forTools(response)
+
+        val charStream = content.stream()
+        val plugins = listOf(StreamXmlPlugin())
+
+        charStream.splitBy(plugins).collect { group ->
+            val chunkContent = StringBuilder()
+            group.stream.collect { chunk -> chunkContent.append(chunk) }
+            val chunkString = chunkContent.toString()
+
+            if (chunkString.isEmpty()) return@collect
+
+            if (group.tag is StreamXmlPlugin) {
+                ChatMarkupRegex.toolCallPattern.findAll(chunkString).forEach { toolMatch ->
+                    val toolName = toolMatch.groupValues.getOrNull(2) ?: return@forEach
+                    val toolBody = toolMatch.groupValues.getOrNull(3).orEmpty()
+
+                    val parameters = mutableListOf<ToolParameter>()
+                    MessageContentParser.toolParamPattern.findAll(toolBody)
+                        .forEach { paramMatch ->
+                            val paramName = paramMatch.groupValues[1]
+                            val paramValue = paramMatch.groupValues[2]
+                            parameters.add(ToolParameter(paramName, unescapeXml(paramValue)))
+                        }
+
+                    val tool = AITool(name = toolName, parameters = parameters)
+                    invocations.add(
+                        ToolInvocation(
+                            tool = tool,
+                            rawText = toolMatch.value,
+                            responseLocation = toolMatch.range
+                        )
+                    )
+                }
+            }
+        }
+
+        AppLogger.d(
+            TAG,
+            "Found ${invocations.size} tool invocations: ${invocations.map { resolveDisplayToolName(it.tool) }}, response=${ChatTrace.describe(response)}"
+        )
+        return invocations
+    }
+
+    /**
+     * Unescapes XML special characters
+     * @param input The XML escaped string
+     * @return Unescaped string
+     */
+    private fun unescapeXml(input: String): String {
+        var result = input
+
+        // 处理 CDATA 标记
+        if (result.startsWith("<![CDATA[") && result.endsWith("]]>")) {
+            result = result.substring(9, result.length - 3)
+        }
+
+        // 即使没有完整的 CDATA 标记，也尝试清理末尾的 ]]> 和开头的 <![CDATA[
+        if (result.endsWith("]]>")) {
+            result = result.substring(0, result.length - 3)
+        }
+
+        if (result.startsWith("<![CDATA[")) {
+            result = result.substring(9)
+        }
+
+        return result.replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&apos;", "'")
+    }
+
+    /**
+     * Execute a tool safely, with parameter validation
+     *
+     * @param invocation The tool invocation to execute
+     * @param executor The tool executor to use
+     * @return The result of the tool execution
+     */
+    fun executeToolSafely(
+        invocation: ToolInvocation,
+        executor: ToolExecutor,
+        toolHandler: AIToolHandler? = null
+    ): Flow<ToolResult> {
+        val validationResult = executor.validateParameters(invocation.tool)
+        if (!validationResult.valid) {
+            return flow {
+                emit(
+                    ToolResult(
+                        toolName = invocation.tool.name,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Invalid parameters: ${validationResult.errorMessage}"
+                    )
+                )
+            }
+        }
+
+        return executor.invokeAndStream(invocation.tool).catch { e ->
+            AppLogger.e(TAG, "Tool execution error: ${invocation.tool.name}", e)
+            toolHandler?.notifyToolExecutionError(invocation.tool, e)
+            emit(
+                ToolResult(
+                    toolName = invocation.tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "Tool execution error: ${e.message}"
+                )
+            )
+        }
+    }
+
+    /**
+     * Check if a tool requires permission and verify if it has permission
+     *
+     * @param androidContext Android context used to resolve permission error messages
+     * @param toolHandler The AIToolHandler instance to use for permission checks
+     * @param invocation The tool invocation to check permissions for
+     * @return A pair containing (has permission, error result if no permission)
+     */
+    suspend fun checkToolPermission(
+        androidContext: Context,
+        toolHandler: AIToolHandler,
+        invocation: ToolInvocation,
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+    ): Pair<Boolean, ToolResult?> {
+        val resolvedTarget = resolveToolTarget(invocation.tool)
+        val permissionTool =
+            if (toolExposureMode == ToolExposureMode.CLI &&
+                invocation.tool.name == CliToolModeSupport.PROXY_TOOL_NAME
+            ) {
+                invocation.tool
+            } else {
+                resolvedTarget.tool
+            }
+
+        if (toolExposureMode == ToolExposureMode.CLI &&
+            (invocation.tool.name == CliToolModeSupport.SEARCH_TOOL_NAME ||
+                invocation.tool.name == CliToolModeSupport.PROXY_TOOL_NAME)
+        ) {
+            toolHandler.notifyToolPermissionChecked(
+                permissionTool,
+                granted = true,
+                reason = "CLI public tool"
+            )
+            return Pair(true, null)
+        }
+
+        // 所有模型生成的工具调用都必须经过统一权限检查，参数文本不能改变权限路径。
+        val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+        val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool)
+
+        if (!permissionResult.isGranted) {
+            val errorMessage =
+                androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+            val errorResult =
+                ToolResult(
+                    toolName = resolvedTarget.displayName,
+                    success = false,
+                    result = StringResultData(""),
+                    error = errorMessage
+                )
+            toolHandler.notifyToolPermissionChecked(
+                permissionTool,
+                granted = false,
+                reason = errorMessage
+            )
+            return Pair(false, errorResult)
+        }
+
+        toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+        return Pair(true, null)
+    }
+
+    /**
+     *
+     * 执行工具调用，包括权限检查、并行/串行执行和结果聚合。
+     * @param invocations 要执行的工具调用列表。
+     * @param toolHandler AIToolHandler 的实例。
+     * @param packageManager PackageManager 的实例。
+     * @param collector 按原始调用顺序输出最终结果的 StreamCollector。
+     * @return 有序结果及已经输出的 XML，供循环内模型历史复用。
+     */
+    internal suspend fun executeInvocations(
+        invocations: List<ToolInvocation>,
+        context: Context,
+        toolHandler: AIToolHandler,
+        packageManager: PackageManager,
+        collector: StreamCollector<String>,
+        permissionSession: PermissionCapabilitySession,
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        callerName: String? = null,
+        callerChatId: String? = null,
+        callerCardId: String? = null,
+        a2uiRunId: String? = null,
+        onA2uiCard: (suspend (String) -> Unit)? = null,
+        toolCallOffset: Int = 0,
+        onToolTiming: suspend (ToolCallExecution) -> Unit = {},
+    ): ToolExecutionBatch = PermissionCapabilityResolver.withSession(permissionSession) {
+        val outputMutex = Mutex()
+        suspend fun publishMarkup(markup: String) {
+            outputMutex.withLock { collector.emit(ensureOwnLine(markup)) }
+        }
+        val timing = ToolExecutionTiming(invocations.size, onToolTiming, toolCallOffset)
+        try {
+        timing.queued()
+        coroutineScope {
+        val orderedResults = OrderedToolResults(invocations.size, ::publishMarkup)
+        suspend fun completeResult(index: Int, result: ToolResult) {
+            timing.completed(index)
+            orderedResults.complete(index, result)
+        }
+        // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
+        // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
+        withContext(Dispatchers.Default) {
+            toolHandler.registerDefaultTools()
+        }
+
+        val roleCardToolAccess = if (callerCardId.isNullOrBlank()) {
+            null
+        } else {
+            runCatching {
+                CharacterCardToolAccessResolver
+                    .getInstance(context)
+                    .resolve(callerCardId, packageManager)
+            }.onFailure { error ->
+                AppLogger.e(TAG, "角色卡工具权限解析失败: callerCardId=$callerCardId", error)
+            }.getOrNull()
+        }
+        val publishA2ui: (suspend (String) -> Unit)? = if (onA2uiCard == null) null else { document ->
+            // 卡片和工具结果共用输出锁，避免并行工具交错破坏消息栅栏。
+            outputMutex.withLock { onA2uiCard(document) }
+        }
+        val toolRuntimeContext =
+            ToolRuntimeContext(
+                callerCardId = callerCardId,
+                toolExposureMode = toolExposureMode,
+                callerChatId = callerChatId,
+                a2uiRunId = a2uiRunId,
+                publishA2ui = publishA2ui,
+            )
+
+        // 1. 顶层工具暴露模式拦截
+        val toolExposurePermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in invocations.withIndex()) {
+            val deniedResult = buildToolExposureDeniedResult(context, invocation, toolExposureMode)
+            if (deniedResult == null) {
+                toolExposurePermittedInvocations.add(IndexedValue(index, invocation))
+            } else {
+                toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
+                completeResult(index, deniedResult)
+            }
+        }
+
+        // 2. 角色卡工具权限拦截（优先于权限弹窗与包自动激活）
+        val roleCardPermittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in toolExposurePermittedInvocations) {
+            val deniedResult = if (roleCardToolAccess?.customEnabled == true &&
+                !isInvocationAllowedForRoleCard(invocation, roleCardToolAccess)
+            ) {
+                buildRoleCardDeniedResult(context, invocation)
+            } else {
+                null
+            }
+
+            if (deniedResult == null) {
+                roleCardPermittedInvocations.add(IndexedValue(index, invocation))
+            } else {
+                toolHandler.notifyToolExecutionResult(invocation.tool, deniedResult)
+                completeResult(index, deniedResult)
+            }
+        }
+
+        // 3. Hook 拦截与权限检查
+        val permittedInvocations = mutableListOf<IndexedValue<ToolInvocation>>()
+        for ((index, invocation) in roleCardPermittedInvocations) {
+            toolHandler.notifyToolCallRequested(invocation.tool)
+            val interceptionTool = resolveToolTarget(invocation.tool).tool
+            when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
+                AIToolHookDecision.Allow -> {
+                    val (hasPermission, errorResult) =
+                        checkToolPermission(context, toolHandler, invocation, toolExposureMode)
+                    if (hasPermission) {
+                        permittedInvocations.add(IndexedValue(index, invocation))
+                    } else {
+                        completeResult(index, checkNotNull(errorResult))
+                    }
+                }
+
+                is AIToolHookDecision.Block -> {
+                    val interceptedResult =
+                        toolHandler.buildToolInterceptionResult(
+                            resolveDisplayToolName(invocation.tool),
+                            interception
+                        )
+                    toolHandler.notifyToolExecutionResult(invocation.tool, interceptedResult)
+                    toolHandler.notifyToolExecutionFinished(invocation.tool)
+                    completeResult(index, interceptedResult)
+                }
+            }
+        }
+
+        val injectedInvocations =
+            if (callerName.isNullOrBlank() && callerChatId.isNullOrBlank() && callerCardId.isNullOrBlank()) {
+                permittedInvocations
+            } else {
+                val jsPackageNames = packageManager.getAvailablePackages().keys
+                permittedInvocations.map { (index, invocation) ->
+                    IndexedValue(
+                        index,
+                        injectPackageCallContext(
+                            invocation = invocation,
+                            jsPackageNames = jsPackageNames,
+                            callerName = callerName,
+                            callerChatId = callerChatId,
+                            callerCardId = callerCardId
+                        )
+                    )
+                }
+            }
+
+        // 4. 按并行/串行对工具进行分组
+        val parallelizableToolNames = setOf(
+            "list_files", "read_file", "read_file_part", "read_file_full", "file_exists",
+            "find_files", "file_info", "grep_code", "calculate", "ffmpeg_info",
+            "visit_web", "download_file"
+        )
+        val (parallelInvocations, serialInvocations) = injectedInvocations.partition {
+            parallelizableToolNames.contains(
+                it.value.tool.name
+            )
+        }
+
+        // 5. 执行工具并收集聚合结果
+        // 启动并行工具
+        val parallelJobs = parallelInvocations.map { (index, invocation) ->
+            async {
+                timing.start(index)
+                val result =
+                    executeTool(
+                        invocation = invocation,
+                        toolHandler = toolHandler,
+                        packageManager = packageManager,
+                        runtimeContext = toolRuntimeContext
+                    )
+                completeResult(index, result)
+            }
+        }
+
+        // 顺序执行串行工具
+        for ((index, invocation) in serialInvocations) {
+            timing.start(index)
+            val result =
+                executeTool(
+                    invocation = invocation,
+                    toolHandler = toolHandler,
+                    packageManager = packageManager,
+                    runtimeContext = toolRuntimeContext
+                )
+            completeResult(index, result)
+        }
+
+        // 等待所有并行任务完成
+        parallelJobs.awaitAll()
+
+        return@coroutineScope orderedResults.finish()
+        }
+        } finally {
+            // 取消和异常也冻结计时；关闭的输出流不能用计时错误替换原始执行结果。
+            withContext(NonCancellable) {
+                try {
+                    timing.finish()
+                } catch (error: Exception) {
+                    AppLogger.w(TAG, "工具计时终态未保存", error)
+                }
+            }
+        }
+    }
+
+    /**
+     * 聚合单个调用的最终结果。发布由原始调用位置统一控制，避免保存分段结果而模型收到聚合结果。
+     */
+    private suspend fun executeTool(
+        invocation: ToolInvocation,
+        toolHandler: AIToolHandler,
+        packageManager: PackageManager,
+        runtimeContext: ToolRuntimeContext
+    ): ToolResult {
+        val toolName = invocation.tool.name
+        val displayToolName = resolveDisplayToolName(invocation.tool)
+
+        return withContext(toolRuntimeContextThreadLocal.asContextElement(runtimeContext)) {
+            try {
+                val executor = toolHandler.getToolExecutorOrActivate(toolName)
+                if (executor == null) {
+                    // 如果仍然为 null，则构建错误消息
+                    val errorMessage =
+                        buildToolNotAvailableErrorMessage(toolName, packageManager, toolHandler)
+                    val notAvailableResult =
+                        ToolResult(
+                            toolName = displayToolName,
+                            success = false,
+                            result = StringResultData(""),
+                            error = errorMessage
+                        )
+                    toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
+                    return@withContext notAvailableResult
+                }
+
+                toolHandler.notifyToolExecutionStarted(invocation.tool)
+
+                val finalResult = aggregateToolResults(
+                    displayToolName,
+                    executeToolSafely(invocation, executor, toolHandler)
+                )
+                toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
+                return@withContext finalResult
+            } finally {
+                toolHandler.notifyToolExecutionFinished(invocation.tool)
+            }
+        }
+    }
+
+    /** Keep the existing aggregation semantics, but publish this result to both history paths. */
+    internal suspend fun aggregateToolResults(
+        displayToolName: String,
+        source: Flow<ToolResult>
+    ): ToolResult {
+        val collectedResults = mutableListOf<ToolResult>()
+        source.collect { collectedResults.add(it) }
+        if (collectedResults.isEmpty()) {
+            return ToolResult(
+                toolName = displayToolName,
+                success = false,
+                result = StringResultData(""),
+                error = "The tool execution returned no results."
+            )
+        }
+        val lastResult = collectedResults.last()
+        // 在类型信息尚未丢失时归并失败：来源和说明进入 error，独立输出进入 result。
+        val failures = collectedResults.map { if (it.success) null else toolFailurePayload(it) }
+        val combinedResultString = collectedResults.mapIndexed { index, res ->
+            val failure = failures[index]
+            when {
+                res.success -> res.result.toString().trim()
+                index == collectedResults.lastIndex && !failure?.message.isNullOrBlank() -> checkNotNull(failure).output
+                else -> "Step error: ${checkNotNull(failure).render().ifBlank { "Unknown error" }}"
+            }
+        }.filter { it.isNotEmpty() }.joinToString("\n")
+        val finalFailure = failures.last()
+        val finalError = if (finalFailure != null && finalFailure.message.isNotBlank()) finalFailure.message else lastResult.error
+        return ToolResult(
+            toolName = displayToolName,
+            success = lastResult.success,
+            result = StringResultData(combinedResultString),
+            error = finalError,
+        )
+    }
+
+    /**
+     * 构建工具不可用的错误信息，统一逻辑避免重复
+     */
+    private suspend fun buildToolNotAvailableErrorMessage(
+        toolName: String,
+        packageManager: PackageManager,
+        toolHandler: AIToolHandler
+    ): String {
+        return when {
+            toolName.contains('.') && !toolName.contains(':') -> {
+                val parts = toolName.split('.', limit = 2)
+                "Tool invocation syntax error: for tools inside a package, use the 'packName:toolName' format instead of '${toolName}'. You may want to call '${parts.getOrNull(0)}:${parts.getOrNull(1)}'."
+            }
+
+            toolName.contains(':') -> {
+                val parts = toolName.split(':', limit = 2)
+                val packName = parts[0]
+                val toolNamePart = parts.getOrNull(1) ?: ""
+                val isJsPackageAvailable = packageManager.getAvailablePackages().containsKey(packName)
+                val isMcpServerAvailable = packageManager.getAvailableServerPackages().containsKey(packName)
+                val isAvailable = isJsPackageAvailable || isMcpServerAvailable
+
+                if (!isAvailable) {
+                    "The tool package or MCP server '$packName' does not exist."
+                } else {
+                    // 包存在，检查是否已激活（通过检查该包的任何工具是否已注册）
+                    val packageTools =
+                        packageManager.getPackageTools(packName)?.tools ?: emptyList()
+                    val isAdviceTool = packageTools.any { it.advice && it.name == toolNamePart }
+                    val isPackageActivated = packageTools
+                        .filter { !it.advice }
+                        .any { toolHandler.getToolExecutor("$packName:${it.name}") != null }
+
+                    if (isAdviceTool) {
+                        "Tool '$toolNamePart' is an advice-only entry in package '$packName' and is not executable."
+                    } else if (isPackageActivated) {
+                        // 包已激活但工具不存在
+                        "Tool '$toolNamePart' does not exist in tool package '$packName'. Please use the 'use_package' tool and specify package name '$packName' to list all available tools in this package."
+                    } else {
+                        // 包未激活
+                        "Tool package '$packName' is not activated. Auto-activation was attempted but failed, or tool '$toolNamePart' does not exist. Please use 'use_package' with package name '$packName' to check available tools."
+                    }
+                }
+            }
+
+            else -> {
+                // 检查是否直接把包名当作工具名调用了
+                val isPackageName = packageManager.getAvailablePackages().containsKey(toolName)
+                if (isPackageName) {
+                    "Error: '$toolName' is a tool package, not a tool. Please use the 'use_package' tool with package name '$toolName' to activate this package before using its tools."
+                } else {
+                    "Tool '${toolName}' is unavailable or does not exist. If this is a tool inside a package, call it using the 'packName:toolName' format."
+                }
+            }
+        }
+    }
+
+}

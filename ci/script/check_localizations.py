@@ -92,10 +92,17 @@ def locale_path_details(path: str) -> tuple[str, bool] | None:
         return bcp47.group("parts").replace("+", "-"), len(parts) == 1
     legacy = LEGACY_LOCALE_RE.fullmatch("-".join(parts[:2]))
     if legacy and legacy.group("region") is not None:
-        return f"{legacy.group('language')}-{legacy.group('region')}", len(parts) == 2
+        language = legacy.group("language")
+        if language == "in":
+            language = "id"
+        return f"{language}-{legacy.group('region')}", len(parts) == 2
     legacy = LEGACY_LOCALE_RE.fullmatch(parts[0])
     if legacy:
-        return legacy.group("language"), len(parts) == 1
+        language = legacy.group("language")
+        if language == "in":
+            language = "id"
+        return language, len(parts) == 1
+
     return None
 
 
@@ -215,7 +222,25 @@ def load_snapshot(commit: str) -> Snapshot:
 
 
 def placeholder_tokens(text: str) -> Counter[str]:
-    return Counter(PRINTF_RE.findall(text) + BRACE_RE.findall(text))
+    tokens: list[str] = []
+    index = 0
+    while index < len(text):
+        if text[index] != "%":
+            index += 1
+            continue
+        if text.startswith("%%", index):
+            index += 2
+            continue
+        match = PRINTF_RE.match(text, index)
+        if match:
+            tokens.append(match.group(0))
+            index = match.end()
+        else:
+            # Keep malformed markers visible to the comparison instead of silently dropping them.
+            tokens.append(text[index : index + 1])
+            index += 1
+    tokens.extend(BRACE_RE.findall(text))
+    return Counter(tokens)
 
 
 def placeholder_mismatch(source: ResourceEntry, target: ResourceEntry) -> bool:

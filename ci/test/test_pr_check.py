@@ -55,9 +55,25 @@ class ScopeClassificationTest(unittest.TestCase):
         self.assertFalse(plan.android_jvm)
         self.assertTrue(plan.android_full)
 
+    def test_terminal_command_sources_use_full_lane(self) -> None:
+        for path in (
+            "tools/native_apply_patch/src/lib.rs",
+            "tools/native_apply_patch/install.sh",
+            "tools/native_apply_patch/Cargo.lock",
+            "tools/web_chat_cli/src/client.rs",
+            "tools/web_chat_cli/install.sh",
+            "tools/web_chat_cli/package_assets.py",
+            "tools/web_chat_cli/Cargo.lock",
+            "tools/terminal_commands/verify_assets.py",
+            "tools/terminal_commands/rust-toolchain.toml",
+            ".github/actions/terminal-commands/action.yml",
+        ):
+            with self.subTest(path=path):
+                self.assertTrue(classify_paths([path]).android_full)
+
     def test_android_workflow_changes_use_full_lane(self) -> None:
         for path in (
-            ".github/workflows/android-build.yml",
+            ".github/workflows/build.yml",
             ".github/workflows/android-tests.yml",
             ".github/workflows/pr-check.yml",
         ):
@@ -66,9 +82,6 @@ class ScopeClassificationTest(unittest.TestCase):
 
     def test_relocated_native_modules_use_full_lane(self) -> None:
         for path in (
-            "avator/dragonbones/CMakeLists.txt",
-            "avator/fbx/CMakeLists.txt",
-            "avator/mmd/CMakeLists.txt",
             "llm/llama/CMakeLists.txt",
             "llm/mnn/CMakeLists.txt",
         ):

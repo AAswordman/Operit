@@ -18,6 +18,10 @@ sealed class MarkdownGroupedItem {
 }
 
 interface MarkdownNodeGrouper {
+    /** 分组和单独节点可共享消息级渲染信息，默认不增加额外行为。 */
+    @Composable
+    fun RenderScope(nodes: List<MarkdownNodeStable>, content: @Composable () -> Unit) { content() }
+
     fun group(nodes: List<MarkdownNodeStable>, rendererId: String): List<MarkdownGroupedItem>
 
     @Composable

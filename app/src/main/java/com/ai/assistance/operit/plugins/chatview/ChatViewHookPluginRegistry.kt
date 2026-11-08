@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.plugins.chatview
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

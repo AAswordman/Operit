@@ -7,25 +7,25 @@ import android.webkit.MimeTypeMap
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityControl
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMapping
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
-import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
-import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.media.MediaLinkParser
+import com.ai.assistance.operit.api.chat.model.ThinkingQualityControl
+import com.ai.assistance.operit.api.chat.model.ThinkingQualityMapping
+import com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry
+import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeHolder
+import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeSlot
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterGroupCard
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterGroupCard
 import com.ai.assistance.operit.data.model.FunctionType
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.getModelByIndex
-import com.ai.assistance.operit.data.model.getModelList
-import com.ai.assistance.operit.data.model.getValidModelIndex
+import com.ai.assistance.operit.data.config.model.getModelByIndex
+import com.ai.assistance.operit.data.config.model.getModelList
+import com.ai.assistance.operit.data.config.model.getValidModelIndex
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
@@ -45,9 +45,9 @@ import com.ai.assistance.operit.integrations.http.bridge.WebChatManagementBridge
 import com.ai.assistance.operit.integrations.externalchat.ExternalChatResponseSanitizer
 import com.ai.assistance.operit.services.core.MAX_DISPLAY_PAGE_COUNT
 import com.ai.assistance.operit.services.core.resolveDisplayPageRanges
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.StructuredAssistantContentParser
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.StructuredAssistantContentParser
 import com.ai.assistance.operit.ui.theme.resolveThemeColorScheme
 import fi.iki.elonen.NanoHTTPD
 import java.io.BufferedWriter
@@ -277,7 +277,7 @@ class WebChatHttpBridge(
             WebBootstrapResponse(
                 versionName = BuildConfig.VERSION_NAME,
                 currentChatId = currentChatId,
-                defaultChatStyle = snapshot.chatStyle,
+                defaultChatStyle = snapshot.aiChatStyle,
                 defaultInputStyle = snapshot.inputStyle,
                 showThinkingProcess = snapshot.showThinkingProcess,
                 showStatusTags = snapshot.showStatusTags,
@@ -1097,7 +1097,7 @@ class WebChatHttpBridge(
         val pipeOutput = PipedOutputStream(pipeInput)
         val activeChatId = AtomicReference(chatId)
         val streamJob: Job = serviceScope.launch(Dispatchers.IO) {
-            pipeOutput.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
+            withSseWriter(pipeOutput, "chatId=$chatId") { writer ->
                 try {
                     val switched = switchAppChatContext(
                         chatId = chatId,
@@ -1112,7 +1112,7 @@ class WebChatHttpBridge(
                                 error = "Failed to switch chat context"
                             )
                         )
-                        return@use
+                        return@withSseWriter
                     }
                     val structuredRenderPreferences = resolveStructuredRenderPreferences(chatId)
 
@@ -1177,7 +1177,7 @@ class WebChatHttpBridge(
                                 error = "Timed out while waiting for response stream"
                             )
                         )
-                        return@use
+                        return@withSseWriter
                     }
 
                     val streamToCollect = ExternalChatResponseSanitizer.sanitizeStream(
@@ -2411,7 +2411,7 @@ class WebChatHttpBridge(
                 },
                 scale = snapshot.fontScale
             ),
-            chatStyle = snapshot.chatStyle,
+            chatStyle = snapshot.aiChatStyle,
             showThinkingProcess = snapshot.showThinkingProcess,
             showStatusTags = snapshot.showStatusTags,
             showInputProcessingStatus = snapshot.showInputProcessingStatus,
@@ -2843,13 +2843,30 @@ class WebChatHttpBridge(
         pathOrName: String,
         fallback: String? = null
     ): String {
-        val extension = MimeTypeMap.getFileExtensionFromUrl(pathOrName)
-            ?.takeIf { it.isNotBlank() }
-            ?.lowercase(Locale.US)
+        val fileName = pathOrName.substringAfterLast('/').substringBefore('?').substringBefore('#')
+        val extension = fileName.substringAfterLast('.', missingDelimiterValue = "")
+            .lowercase(Locale.US)
+            .takeIf { it.isNotBlank() && it != fileName.lowercase(Locale.US) }
+        val webMimeType = mimeTypeForWebExtension(extension)
+        if (webMimeType != null) {
+            return webMimeType
+        }
         val mimeType = extension?.let {
             MimeTypeMap.getSingleton().getMimeTypeFromExtension(it)
         } ?: URLConnection.guessContentTypeFromName(pathOrName)
         return mimeType ?: fallback ?: DEFAULT_BINARY_MIME_TYPE
+    }
+
+    private fun mimeTypeForWebExtension(extension: String?): String? {
+        return when (extension) {
+            "js", "mjs", "cjs" -> "text/javascript"
+            "css" -> "text/css"
+            "json", "map" -> "application/json"
+            "wasm" -> "application/wasm"
+            "svg" -> "image/svg+xml"
+            "html", "htm" -> "text/html"
+            else -> null
+        }
     }
 
     private fun NanoHTTPD.Response.withCors(): NanoHTTPD.Response {

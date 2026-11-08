@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="character_card_tab_speech">falar</string>
+    <string name="character_speech_scope">Configure apenas a função que está sendo editada</string>
+    <string name="character_speech_draft_hint">As configurações de fala são salvas com o cartão de personagem; cancelar não salvará e desligar o modo Waifu não limpará o conteúdo configurado.</string>
+    <string name="character_speech_load_failed">Não foi possível ler as configurações de fala deste personagem. Tente novamente.</string>
+    <string name="character_speech_save_before_emoji">Salve o cartão de personagem primeiro e depois gerencie suas expressões personalizadas.</string>
+    <string name="character_speech_emoji_hint">Gerencie a biblioteca de expressões deste personagem; adições e exclusões de grupos e imagens serão salvas imediatamente.</string>
+</resources>

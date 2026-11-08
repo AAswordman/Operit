@@ -13,7 +13,7 @@ import {
     BluetoothScanResultData, BluetoothSessionData, BluetoothTransferData, BluetoothReadData,
     BluetoothBleServicesData, BluetoothBleNotificationData,
     UIPageResultData, UIActionResultData, CombinedOperationResultData, AutomationExecutionResultData,
-    CalculationResultData, FFmpegResultData, ADBResultData, IntentResultData, TerminalCommandResultData, HiddenTerminalCommandResultData, TerminalSessionScreenResultData, MusicPlaybackResultData,
+    CalculationResultData, FFmpegResultData, ADBResultData, IntentResultData, TerminalCommandResultData, TerminalTaskResultData, HiddenTerminalCommandResultData, TerminalSessionScreenResultData, MusicPlaybackResultData,
     FilePartContentData, FileApplyResultData, WorkflowListResultData, WorkflowResultData, WorkflowDetailResultData,
     ChatServiceStartResultData, ChatCreationResultData, ChatListResultData, ChatFindResultData, AgentStatusResultData,
     ChatSwitchResultData, ChatTitleUpdateResultData, ChatDeleteResultData, MessageSendResultData, MemoryQueryResultData, MemoryLinkResultData, MemoryLinkQueryResultData, GrepResultData,
@@ -168,6 +168,10 @@ export interface ToolResultMap {
 
     // Terminal operations
     'execute_terminal': TerminalCommandResultData;
+    'execute_in_terminal_session': TerminalCommandResultData;
+    'start_terminal_task': TerminalTaskResultData;
+    'poll_terminal_task': TerminalTaskResultData;
+    'cancel_terminal_task': TerminalTaskResultData;
     'execute_in_terminal_session_streaming': TerminalCommandResultData;
     'execute_hidden_terminal_command': HiddenTerminalCommandResultData;
     'get_terminal_session_screen': TerminalSessionScreenResultData;

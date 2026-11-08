@@ -283,7 +283,11 @@ function installRuntimeGlobals({ packageId, configDir, fixtures, registry }) {
     Chat: createChatTools(fixtures)
   };
 
+  // UI registration uses icon names; this runner collects hooks without rendering UI.
+  global.Icons = new Proxy({}, { get: (_target, name) => name });
+  global.Java = require("./node_storage_runtime.cjs").createNodeJavaBridge();
   global.ToolPkg = {
+    ipc: require("./node_storage_runtime.cjs").createNodeIpc(),
     getConfigDir(pluginId) {
       const suffix = pluginId ? String(pluginId).trim() : packageId;
       const target = path.resolve(configDir, suffix || packageId);
@@ -293,6 +297,7 @@ function installRuntimeGlobals({ packageId, configDir, fixtures, registry }) {
     registerUiRoute() {},
     registerNavigationEntry() {},
     registerDesktopWidget() {},
+    registerUiModule() {},
     registerToolboxUiModule() {},
     registerAppLifecycleHook() {},
     registerToolPromptComposeHook() {},
@@ -330,6 +335,7 @@ function installRuntimeGlobals({ packageId, configDir, fixtures, registry }) {
   global.registerToolPkgUiRoute = global.ToolPkg.registerUiRoute;
   global.registerToolPkgNavigationEntry = global.ToolPkg.registerNavigationEntry;
   global.registerToolPkgDesktopWidget = global.ToolPkg.registerDesktopWidget;
+  global.registerToolPkgUiModule = global.ToolPkg.registerUiModule;
   global.registerToolPkgToolboxUiModule = global.ToolPkg.registerToolboxUiModule;
   global.registerToolPkgAppLifecycleHook = global.ToolPkg.registerAppLifecycleHook;
   global.registerToolPkgMessageProcessingPlugin = global.ToolPkg.registerMessageProcessingPlugin;

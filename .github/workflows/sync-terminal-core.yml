@@ -1,0 +1,37 @@
+name: Sync terminal core
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - terminal
+      - .gitmodules
+      - ci/script/sync_terminal_core.py
+      - .github/workflows/sync-terminal-core.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 两个应用分支共用终端默认分支；串行处理，每次读取两个分支的最新引用。
+concurrency:
+  group: terminal-core-default-branch
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: >-
+      github.repository == '3316891527/Operit' &&
+      (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out the adopted terminal version
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          persist-credentials: false
+      - name: Advance the terminal core default branch
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: python3 -B ci/script/sync_terminal_core.py

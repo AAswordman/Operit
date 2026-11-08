@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_batch">バッチ管理</string>
+
+    <!-- 补齐此前缺少的日语译文。 -->
+    <string name="tp_all">All</string>
+    <string name="tp_selected_count">%1$d selected</string>
+    <string name="tp_allow_hint">自動で実行</string>
+    <string name="tp_ask_hint">毎回確認</string>
+    <string name="tp_forbid_hint">実行を禁止</string>
+    <string name="tp_search">ツール名や説明を検索</string>
+    <string name="tp_follow_default">既定に従う</string>
+    <string name="tp_follow_default_with_value">既定に従う · %1$s</string>
+    <string name="tp_select_visible">現在の結果をすべて選択</string>
+    <string name="tp_no_matches">一致するツールがありません。別のキーワードを試してください。</string>
+    <string name="tp_already_configured">選択したルールに設定済み</string>
+    <string name="tp_apply_count">%1$d 項目に適用</string>
+    <string name="tp_default_title">既定の実行方式</string>
+    <string name="tp_default_description">個別設定がないツールに適用します。既定の方式を変更しても、個別ルールは上書きしません。</string>
+    <string name="tp_saved">権限設定を保存しました</string>
+    <string name="tp_save_failed">保存できませんでした。もう一度お試しください。</string>
+    <string name="tp_rules_count">個別ルール · %1$d</string>
+    <string name="tp_rules_description">個別ルールを優先します。「既定に従う」を選ぶと、その個別設定を削除します。</string>
+    <string name="tp_results_count">%1$d 項目を表示</string>
+    <string name="tp_empty_rules">個別ルールはありません。すべてのツールが既定の方式に従います。</string>
+    <string name="tp_empty_filter">このカテゴリーには個別ルールがありません</string>
+    <string name="tp_change">ルールを変更</string>
+    <string name="tp_batch_title">%1$d 項目のルールを変更</string>
+    <string name="tp_help">既定の実行方式は、個別ルールがないツールに適用します。「許可」は自動実行、「確認」は毎回実行前に確認、「禁止」は実行をブロックします。\n\n個別ルールは常に優先され、既定の方式を変更しても上書きしません。許可、確認、禁止を個別に設定できます。「既定に従う」を選んだ場合のみ個別ルールを削除します。\n\nツール名や説明で検索し、状態で絞り込めます。追加や一括管理では、検索・絞り込みをまたいで選択を保持し、選択したツールだけに適用します。キャンセルすると保存しません。ルール欄の「前の変更を元に戻す」で、このページでの直前の変更を戻せます。保存結果は簡易通知で表示します。\n\nこの設定はツール実行の確認のみを管理し、Android のシステム権限の代わりにはなりません。</string>
+    <string name="workflow_schedule_invalid">設定を確認してください。間隔は 15 分以上でオーバーフローしない値、Cron は有効な 5 フィールド、日付は実在するものが必要です。有効なスケジュールには締切までに次の実行が必要です。</string>
+    <string name="workflow_repeat_daily_hint">繰り返しを有効にすると、指定日から毎日その現地時刻に実行します。無効なら 1 回のみ実行します。</string>
+    <string name="workflow_repeat_hint">繰り返しを有効にすると、間隔または Cron に従って継続実行します。無効なら次の 1 回のみ実行します。</string>
+    <string name="workflow_end_time_label">締切時刻（任意）</string>
+    <string name="workflow_end_time_hint">空欄なら締切なしです。現地時刻を yyyy-MM-dd HH:mm:ss で入力してください。締切後は新しい実行を開始しません。</string>
+    <string name="workflow_schedule_timing_hint">固定間隔は、スケジュールの有効化・変更後に丸ごと待ってから実行し、最短は 15 分です。Cron はシステムの現在のタイムゾーンに従います。バックグラウンドでは Android WorkManager が実行を調整します。スリープ、省電力、バックグラウンド制限、待ち行列で遅れる場合があり、定刻実行は保証しません。強制停止後は、アプリを再度開くと再開します。</string>
+    <string name="tp_undo_last">前の変更を元に戻す</string>
+    <string name="tp_restored">前の変更を元に戻しました</string>
+</resources>

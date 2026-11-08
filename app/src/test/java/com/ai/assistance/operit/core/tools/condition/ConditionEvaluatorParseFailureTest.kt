@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.condition
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.mockito.Mockito

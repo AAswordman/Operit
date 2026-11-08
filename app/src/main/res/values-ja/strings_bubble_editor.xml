@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">まず装飾サイズと文字の余白を調整してください。縁が変形する場合はプリセットを選びます。余白スライダーは左右を同時に変更します。</string>
+    <string name="chat_bubble_decoration_size">装飾サイズ</string>
+    <string name="chat_bubble_text_space">文字の左右余白</string>
+    <string name="chat_bubble_text_space_value">左 %1$d · 右 %2$d dp</string>
+    <string name="chat_bubble_reset_size">サイズと余白をリセット</string>
+    <string name="chat_bubble_border_presets">残す縁の装飾</string>
+    <string name="chat_bubble_border_small">少なめ</string>
+    <string name="chat_bubble_border_normal">標準</string>
+    <string name="chat_bubble_border_large">多め</string>
+    <string name="chat_bubble_advanced">詳細調整</string>
+    <string name="chat_bubble_advanced_hint">中央は文字に合わせて広がり、周囲の装飾は保たれます。切り取りは画像外側の空白を除きます。</string>
+    <string name="chat_bubble_horizontal_region">横方向の拡張範囲</string>
+    <string name="chat_bubble_vertical_region">縦方向の拡張範囲</string>
+</resources>

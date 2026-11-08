@@ -1,0 +1,47 @@
+---
+repo: https://github.com/3316891527/Operit
+branch: fix/upstream-service-cache-ble-write
+status: implemented-ci-pending
+---
+
+# 模型服务缓存与持久化配置一致性
+
+取用模型服务时，旧实现直接复用内存中的功能缓存、自定义配置缓存与默认聊天服务，没有检查配置是否已经修改。修改配置、功能绑定或模型索引后，未触发显式刷新的调用可能继续使用旧服务。
+
+来源为[上游 7dbab534](https://github.com/AAswordman/Operit/commit/7dbab53443fee304a55207558323d43b85af4b01)。本轮移植缓存校验、识别服务租约与配置快照读取，保留本地思考配置、限流和参数加载失败或取消时归还租约的行为。
+
+## 实现 [DONE]
+
+MultiServiceManager 每次按功能、固定配置或默认聊天入口取用时，读取持久化配置并比较完整配置快照、配置 ID 和模型索引。未改变时复用，改变时废弃旧缓存并重建；旧服务仍有租约时，等最后一个租约归还后释放。失效条目先移出缓存，避免新实例构造失败后重新返回已经释放的旧实例。
+
+FunctionalConfigManager 支持注入 DataStore，生产环境仍使用原有版本化存储。ModelConfigManager 的 Flow 直接复用当前 Preferences 快照与既有解码规则，不在 map 中二次订阅 DataStore。
+
+图片、音频和视频识别持有服务租约，结束、失败和取消时都在 NonCancellable 中归还；媒体池条目在 finally 中清理。图片配置校验与错误传播保留，功能思考装饰器和限流继续参与构造。配置存储格式、模型接口和功能绑定字段没有改变。
+
+## 回归源码
+
+MultiServiceManagerConfigRefreshTest 包含 11 项 JVM 回归源码，覆盖以下场景：
+
+- 修改保存的模型、地址和密钥后重建，未变时复用
+- 切换功能绑定和同一配置中的模型索引
+- 默认聊天服务和固定配置入口的刷新
+- 多个租约持有旧服务，最后归还才释放，重复关闭不重复释放
+- 非聊天功能显式刷新时也废弃固定配置缓存
+- 新实例构造失败并将配置改回后，不取回已释放的旧实例
+- 参数加载被取消时归还未交付租约
+- 缓存重建后功能思考选项仍进入实际 provider 调用
+- Flow 只解码本次发射快照，不二次读取存储
+
+## CI 初始化空指针修复 [DONE]
+
+上一版提交 `a368f277` 的 [Android Tests 报告](https://github.com/3316891527/Operit/actions/runs/42030312916) 中，这 11 项用例均在初始化 ModelConfigManager 时失败，实际异常为 `getApplicationContext(...) must not be null`，位置是 ModelConfigManager 第 71 行。10 项用例经由 Fixture 触发，单快照 Flow 用例直接构造时触发，尚未执行各自的缓存行为断言。
+
+原因是新回归使用了未配置 applicationContext 的 Mockito Context。ModelConfigManager 构造统计仓库时要求非空的应用 Context，普通模拟对象默认返回 null。统一增加测试 Context 工厂，让 applicationContext 返回该模拟对象，并让 Fixture 和直接构造的 Flow 用例共用。保留全部 11 项用例及其断言，不修改生产缓存或统计仓库的非空要求，不新增空值回退处理。
+
+本轮根据已下载的 CI 完整报告核对根因，并追加修复提交；只运行本地静态检查，修复后的 JVM 结果交给新提交的工作流，不能把修复源码和静态检查描述为 11 项用例已经执行通过。
+
+## 验证边界
+
+本地只执行差异、仓库规范、本地化和受影响文档链接静态检查；没有执行 Kotlin 编译、JVM 测试或设备模型请求。新增及既有回归由仓库工作流执行，结果另行记录。
+
+设备待核对：修改翻译、总结、识图等功能配置后立即请求；请求进行中再修改配置；修改固定聊天模型、模型索引、限流与思考设置。租约保护针对持有租约的请求，旧的直接取用接口保持原签名。

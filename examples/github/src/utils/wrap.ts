@@ -1,13 +1,15 @@
-export type ToolResponse<T> = {
-    success: boolean;
-    message: string;
-    data?: T;
-    error_stack?: string;
-};
+import { toolFailure } from './toolFailure';
+import type { ToolFailure } from './toolFailure';
 
-export async function wrap<T>(
-    func: (params: any) => Promise<T>,
-    params: any,
+export type ToolResponse<T> = {
+    success: true;
+    message: string;
+    data: T;
+} | ToolFailure;
+
+export async function wrap<T, P>(
+    func: (params: P) => Promise<T>,
+    params: P,
     successMessage: string,
     failMessage: string
 ): Promise<void> {
@@ -15,12 +17,8 @@ export async function wrap<T>(
         const data = await func(params);
         const result: ToolResponse<T> = { success: true, message: successMessage, data };
         complete(result);
-    } catch (error: any) {
-        const result: ToolResponse<T> = {
-            success: false,
-            message: `${failMessage}: ${String(error && error.message ? error.message : error)}`,
-            error_stack: String(error && error.stack ? error.stack : '')
-        };
-        complete(result);
+    } catch (error: unknown) {
+        console.error(`[github] ${failMessage}`, error);
+        complete(toolFailure(error, failMessage));
     }
 }

@@ -1,0 +1,5 @@
+<resources>
+    <string name="workflow_failure_named_node">Node “%1$s” failed: %2$s</string>
+    <string name="workflow_failure_action">Action: %1$s</string>
+    <string name="workflow_failure_reason">Reason: %1$s</string>
+</resources>

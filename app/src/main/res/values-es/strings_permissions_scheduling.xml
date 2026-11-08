@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_allow_hint">ejecutar automáticamente</string>
+    <string name="tp_ask_hint">Confirmar cada vez</string>
+    <string name="tp_forbid_hint">No se permite correr</string>
+    <string name="tp_all">Todos</string>
+    <string name="tp_search">Nombre o descripción de la herramienta de búsqueda</string>
+    <string name="tp_follow_default">seguir por defecto</string>
+    <string name="tp_follow_default_with_value">Siga el valor predeterminado · %1$s</string>
+    <string name="tp_selected_count">Artículo %1$d seleccionado</string>
+    <string name="tp_select_visible">Seleccionar todos los resultados actuales</string>
+    <string name="tp_no_matches">No hay herramienta de búsqueda de coincidencias; pruebe con otras palabras clave</string>
+    <string name="tp_already_configured">Configurado como regla de destino</string>
+    <string name="tp_apply_count">Aplicar al artículo %1$d</string>
+    <string name="tp_default_title">Modo de ejecución predeterminado</string>
+    <string name="tp_default_description">Las herramientas que no están configuradas individualmente utilizan esta regla. Modificar el modo predeterminado no sobrescribirá reglas individuales.</string>
+    <string name="tp_saved">Configuración de permisos guardada</string>
+    <string name="tp_save_failed">Error al guardar, inténtelo de nuevo</string>
+    <string name="tp_rules_count">Regla única · %1$d</string>
+    <string name="tp_batch">Gestión de lotes</string>
+    <string name="tp_rules_description">Las reglas individuales tienen prioridad; seleccione \"Seguir predeterminado\" para eliminar esta configuración.</string>
+    <string name="tp_results_count">Mostrando artículos %1$d</string>
+    <string name="tp_empty_rules">Aún no existe una regla única, todas las herramientas siguen el método predeterminado</string>
+    <string name="tp_empty_filter">Aún no existe una regla individual para esta categoría.</string>
+    <string name="tp_change">Modificar reglas</string>
+    <string name="tp_batch_title">Modificar reglas %1$d</string>
+    <string name="tp_help">El modo de ejecución predeterminado se utiliza para herramientas sin reglas individuales: permitir se ejecutará automáticamente, pedir confirmación antes de cada ejecución y no permitir impedirá que se ejecute. \n\n Las reglas individuales siempre tienen prioridad y la modificación del modo predeterminado no las sobrescribirá. Permitir, preguntar y prohibir se pueden configurar individualmente; Al seleccionar Seguir el valor predeterminado se eliminarán las reglas individuales. \n\nPuede buscar nombres o descripciones de herramientas y filtrar por estado. La adición y la administración por lotes conservarán la selección en todas las búsquedas y filtros, y solo se aplicarán a las herramientas seleccionadas; cancelar no lo guardará. \"Deshacer la última modificación\" en el área de reglas puede restaurar el último cambio en esta página; Utilice el mensaje de luz para guardar el resultado. \n\nEsta configuración solo administra la confirmación de ejecución de la herramienta y no reemplaza los permisos del sistema Android.</string>
+    <string name="workflow_schedule_invalid">Verifique la configuración: el intervalo es de al menos 15 minutos y no puede desbordarse; Cron requiere cinco campos válidos; la fecha debe existir realmente; el plan habilitado debe tener la próxima ejecución antes de la fecha límite.</string>
+    <string name="workflow_repeat_daily_hint">Después de una apertura repetida, se ejecutará a la hora local todos los días a partir de la fecha especificada; solo se ejecutará una vez cuando esté cerrado.</string>
+    <string name="workflow_repeat_hint">Después de una activación repetida, continuará ejecutándose de acuerdo con intervalos o reglas Cron; cuando esté cerrado, solo se ejecutará la próxima vez.</string>
+    <string name="workflow_end_time_label">Fecha límite (opcional)</string>
+    <string name="workflow_end_time_hint">Déjelo en blanco para indicar que no hay límite. Utilice la hora local aaaa-MM-dd HH:mm:ss; la ejecución no comenzará una vez superado el plazo.</string>
+    <string name="workflow_schedule_timing_hint">Intervalo fijo espera el intervalo completo desde que se habilita o modifica el horario, al menos 15 minutos; Cron coincide con el reloj en la zona horaria actual del sistema. El fondo está programado por Android WorkManager. La suspensión, el ahorro de energía, las restricciones en segundo plano y las colas de tareas pueden retrasar la ejecución y no se puede garantizar la puntualidad. Después de forzar la detención, deberá volver a abrir la aplicación para continuar.</string>
+    <string name="tp_undo_last">Deshacer la última modificación</string>
+    <string name="tp_restored">La última modificación se ha deshecho.</string>
+</resources>

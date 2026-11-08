@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">正在复制...</string>
+    <string name="workspace_transfer_moving">正在移动...</string>
+    <string name="workspace_transfer_scanning">正在统计文件...</string>
+    <string name="workspace_transfer_processing">正在处理...</string>
+    <string name="workspace_transfer_finishing">正在清理来源...</string>
+    <string name="workspace_transfer_name">名称</string>
+    <string name="workspace_transfer_source">来源</string>
+    <string name="workspace_transfer_destination">目标</string>
+    <string name="workspace_transfer_copied">已复制</string>
+    <string name="workspace_transfer_remaining">剩余</string>
+    <string name="workspace_transfer_speed">速度</string>
+    <string name="workspace_transfer_item">第 %1$d / %2$d 项 · 当前项进度</string>
+    <string name="workspace_transfer_files">文件：%1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">正在取消...</string>
+    <string name="workspace_transfer_deleting">正在删除...</string>
+    <string name="workspace_transfer_deleted_items">已删除 %1$d / %2$d 项</string>
+    <string name="workspace_transfer_delete_scope">进度按所选项目计数，单个目录内部的进度未知。</string>
+    <string name="workspace_transfer_delete_cancel_note">取消将在当前删除返回后停止后续项目，已删除内容不会恢复。</string>
+</resources>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="voice_floating_window"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_voice_floating"
+        android:shortcutShortLabel="@string/service_voice_floating_window"
+        android:shortcutLongLabel="@string/service_voice_floating_window">
+        <intent
+            android:action="com.ai.assistance.operit.action.OPEN_VOICE_FLOATING_WINDOW"
+            android:targetPackage="com.ai.assistance.operit.kong"
+            android:targetClass="com.ai.assistance.operit.services.assistant.OperitAssistActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="open_settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutShortLabel="@string/nav_settings"
+        android:shortcutLongLabel="@string/nav_settings">
+        <intent
+            android:action="com.ai.assistance.operit.action.OPEN_SETTINGS_SHORTCUT"
+            android:targetPackage="com.ai.assistance.operit.kong"
+            android:targetClass="com.ai.assistance.operit.ui.main.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="data_recovery"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutShortLabel="@string/shortcut_data_recovery"
+        android:shortcutLongLabel="@string/shortcut_data_recovery">
+        <intent
+            android:action="com.ai.assistance.operit.action.OPEN_DATA_RECOVERY"
+            android:targetPackage="com.ai.assistance.operit.kong"
+            android:targetClass="com.ai.assistance.operit.ui.recovery.DataRecoveryActivity" />
+    </shortcut>
+</shortcuts>

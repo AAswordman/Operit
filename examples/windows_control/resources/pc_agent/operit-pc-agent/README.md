@@ -60,9 +60,9 @@ Public read endpoints:
 - `GET /api/startup/state`
 
 Config / command endpoint:
-- `POST /api/config`
+- `POST /api/config` (local requests are allowed; remote requests require the current `token` in the JSON body)
 - `POST /api/command/execute` (requires `token`)
-- `POST /api/startup/apply_recommended_bind`
+- `POST /api/startup/apply_recommended_bind` (local requests are allowed; remote requests require the current `token` in the JSON body)
 
 File endpoints (all require `token` in JSON body):
 - `POST /api/file/list`
@@ -84,7 +84,23 @@ File endpoints (all require `token` in JSON body):
 
 - Default bind address is `127.0.0.1`.
 - `apiToken` is always enabled. If missing, agent auto-generates one.
+- `GET /api/config` returns the token only to loopback or an address assigned to this host; remote responses keep `apiToken` empty and retain only `apiTokenConfigured`.
+- Local requests may update configuration and apply startup recovery without a token. Requests from other addresses must include the current `token` in the JSON body. The `token` authenticates the existing configuration; `apiToken` / `api_token` sets its replacement and is not an authentication credential.
+- Local management also requires a local IP or `localhost` in the HTTP Host header. Cross-origin requests and non-same-origin browser fetches do not receive local privileges. Forwarded headers are not trusted.
+- Open the pairing and configuration console on the PC itself. Remote API clients receive redacted configuration, even when authenticated.
+- LAN mode exposes the HTTP service to the configured network, so use the token together with host firewall rules to limit access.
+- After upgrading from a version that exposed the token remotely, rotate the token if the agent was reachable from an untrusted network.
 - In wizard one-click fill, token is generated only when missing (existing token is reused).
+
+## Verification
+
+Run the configuration security regression suite with Node.js 18 or newer:
+
+```bash
+npm test
+```
+
+No native dependencies or running agent are needed. The suite covers local pairing, remote token redaction, configuration and recovery authorization, token rotation, forwarded-header spoofing, cross-origin requests and DNS rebinding.
 
 ## Troubleshooting
 

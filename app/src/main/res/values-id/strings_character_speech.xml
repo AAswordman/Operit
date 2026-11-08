@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="character_card_tab_speech">berbicara</string>
+    <string name="character_speech_scope">Konfigurasikan hanya peran yang sedang diedit</string>
+    <string name="character_speech_draft_hint">Pengaturan ucapan disimpan dengan kartu karakter; membatalkan tidak akan menyimpan, dan mematikan mode Waifu tidak akan menghapus konten yang dikonfigurasi.</string>
+    <string name="character_speech_load_failed">Tidak dapat membaca pengaturan ucapan untuk karakter ini, coba lagi.</string>
+    <string name="character_speech_save_before_emoji">Simpan kartu karakter terlebih dahulu, lalu kelola ekspresi kustomnya.</string>
+    <string name="character_speech_emoji_hint">Kelola perpustakaan ekspresi karakter ini; penambahan dan penghapusan grup dan gambar akan segera disimpan.</string>
+</resources>

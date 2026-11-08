@@ -1201,7 +1201,7 @@ Java_com_ai_assistance_llama_LlamaNative_nativeGenerateStream(JNIEnv * env, jcla
     }
 
     const int32_t n_ctx = static_cast<int32_t>(llama_n_ctx(session->ctx));
-    int maxNew = maxTokens <= 0 ? 256 : static_cast<int>(maxTokens);
+    int maxNew = maxTokens <= 0 ? 16384 : static_cast<int>(maxTokens);
     if (n_ctx > 0) {
         const int32_t reserveForGeneration = std::max<int32_t>(32, std::min<int32_t>(maxNew, n_ctx / 4));
         const int32_t maxPromptTokens = std::max<int32_t>(1, n_ctx - reserveForGeneration);

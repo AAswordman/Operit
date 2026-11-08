@@ -31,7 +31,9 @@ private val Context.functionalConfigDataStore: DataStore<Preferences> by
 @Serializable
 data class FunctionConfigMapping(
     val configId: String = FunctionalConfigManager.DEFAULT_CONFIG_ID,
-    val modelIndex: Int = 0
+    val modelIndex: Int = 0,
+    val enableThinking: Boolean = false,
+    val thinkingOptionId: String = ""
 )
 
 internal data class FunctionConfigMappingRepair(
@@ -51,7 +53,7 @@ internal fun remapDeletedConfigReferences(
 
     affectedFunctions.forEach { functionType ->
         updatedMapping[functionType] = FunctionConfigMapping(
-            configId = FunctionalConfigManager.DEFAULT_CONFIG_ID,
+            configId = if (functionType == FunctionType.MEMORY_EMBEDDING) "" else FunctionalConfigManager.DEFAULT_CONFIG_ID,
             modelIndex = 0,
         )
     }
@@ -63,7 +65,10 @@ internal fun remapDeletedConfigReferences(
 }
 
 /** 管理不同功能使用的模型配置 这个类用于将FunctionType映射到对应的ModelConfigID */
-class FunctionalConfigManager(private val context: Context) {
+class FunctionalConfigManager(
+    private val context: Context,
+    private val configDataStore: DataStore<Preferences> = context.functionalConfigDataStore,
+) {
 
     // 定义key
     companion object {
@@ -130,13 +135,15 @@ class FunctionalConfigManager(private val context: Context) {
         }
 
         private fun defaultMapping(): Map<FunctionType, FunctionConfigMapping> {
-            return FunctionType.values().associateWith { FunctionConfigMapping(DEFAULT_CONFIG_ID, 0) }
+            return FunctionType.values().associateWith { functionType ->
+                FunctionConfigMapping(if (functionType == FunctionType.MEMORY_EMBEDDING) "" else DEFAULT_CONFIG_ID, 0)
+            }
         }
     }
 
     // 获取完整的功能配置映射（包含modelIndex）
     val functionConfigMappingWithIndexFlow: Flow<Map<FunctionType, FunctionConfigMapping>> =
-            context.functionalConfigDataStore.data.map { preferences ->
+            configDataStore.data.map { preferences ->
                 readFunctionConfigMapping(preferences)
             }
 
@@ -156,7 +163,7 @@ class FunctionalConfigManager(private val context: Context) {
 
     // 保存功能配置映射（包含modelIndex）
     suspend fun saveFunctionConfigMappingWithIndex(mapping: Map<FunctionType, FunctionConfigMapping>) {
-        context.functionalConfigDataStore.edit { preferences ->
+        configDataStore.edit { preferences ->
             writeFunctionConfigMapping(preferences, mapping)
         }
     }
@@ -164,13 +171,13 @@ class FunctionalConfigManager(private val context: Context) {
     // 获取指定功能的配置ID
     suspend fun getConfigIdForFunction(functionType: FunctionType): String {
         val mapping = functionConfigMappingFlow.first()
-        return mapping[functionType] ?: DEFAULT_CONFIG_ID
+        return mapping.getValue(functionType)
     }
 
     // 获取指定功能的完整配置（包含modelIndex）
     suspend fun getConfigMappingForFunction(functionType: FunctionType): FunctionConfigMapping {
         val mapping = functionConfigMappingWithIndexFlow.first()
-        return mapping[functionType] ?: FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)
+        return mapping.getValue(functionType)
     }
 
     // 设置指定功能的配置ID
@@ -181,18 +188,31 @@ class FunctionalConfigManager(private val context: Context) {
     // 设置指定功能的配置ID和模型索引
     suspend fun setConfigForFunction(functionType: FunctionType, configId: String, modelIndex: Int) {
         val mapping = functionConfigMappingWithIndexFlow.first().toMutableMap()
-        mapping[functionType] = FunctionConfigMapping(configId, modelIndex)
+        val current = mapping[functionType] ?: FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)
+        mapping[functionType] = current.copy(configId = configId, modelIndex = modelIndex)
+        saveFunctionConfigMappingWithIndex(mapping)
+    }
+
+    suspend fun setThinkingForFunction(
+            functionType: FunctionType,
+            enableThinking: Boolean,
+            thinkingOptionId: String
+    ) {
+        val mapping = functionConfigMappingWithIndexFlow.first().toMutableMap()
+        val current = mapping[functionType] ?: FunctionConfigMapping(DEFAULT_CONFIG_ID, 0)
+        mapping[functionType] =
+                current.copy(enableThinking = enableThinking, thinkingOptionId = thinkingOptionId)
         saveFunctionConfigMappingWithIndex(mapping)
     }
 
     // 重置指定功能的配置为默认
     suspend fun resetFunctionConfig(functionType: FunctionType) {
-        setConfigForFunction(functionType, DEFAULT_CONFIG_ID)
+        setConfigForFunction(functionType, if (functionType == FunctionType.MEMORY_EMBEDDING) "" else DEFAULT_CONFIG_ID)
     }
 
     // 重置所有功能配置为默认
     suspend fun resetAllFunctionConfigs() {
-        val defaultMapping = FunctionType.values().associateWith { FunctionConfigMapping(DEFAULT_CONFIG_ID, 0) }
+        val defaultMapping = defaultMapping()
         saveFunctionConfigMappingWithIndex(defaultMapping)
     }
 }

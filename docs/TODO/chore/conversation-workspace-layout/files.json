@@ -1,0 +1,810 @@
+{
+  "baseline": "9b9bb75d93b96b72204067fa576db30e5279d960",
+  "files": [
+    {
+      "source": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/WorkspaceEditorCommentTest.kt",
+      "target": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/WorkspaceEditorCommentTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": []
+    },
+    {
+      "source": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/WorkspaceEditorInitialLineTest.kt",
+      "target": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/WorkspaceEditorInitialLineTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": []
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/LocalWebServer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/LocalWebServer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "FileApiEntry",
+        "LocalWebServer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/WebViewHandler.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/WebViewHandler.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "WebViewHandler"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/WorkspaceFileSelector.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/mentions/MentionSuggestionPanel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.mentions",
+      "symbols": [
+        "MentionSuggestionPanel",
+        "MentionSuggestionPanelStyle"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/WorkspaceUtils.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceUtils.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "createAndGetDefaultWorkspace",
+        "createAndResetWorkspaceDirectory",
+        "ensureWorkspaceDirExists",
+        "getLegacyWorkspacePath",
+        "getWorkspacePath"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/computer/ComputerScreen.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/terminal/ComputerScreen.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.computer",
+      "newPackage": "com.ai.assistance.operit.ui.features.automation.terminal",
+      "symbols": [
+        "ComputerScreen"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/FileManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/FileManager.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "DirectoryEntry",
+        "FileBrowser",
+        "QuickPathEntry",
+        "getFileIcon"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceBackupManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceBackupManager.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "BackupManifest",
+        "FileStat",
+        "WorkspaceBackupManager"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceCommandExecutionState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceCommandExecutionState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "WorkspaceCommandExecutionState",
+        "toWorkspaceCommandOutputEntries"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceConfig.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceConfig.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "CommandConfig",
+        "ExportConfig",
+        "PreviewConfig",
+        "ServerConfig",
+        "WatchConfig",
+        "WorkspaceConfig",
+        "WorkspaceConfigReader"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceFileModels.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceFileModels.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "OpenFileInfo",
+        "key"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceFilePreviewSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/WorkspaceFilePreviewSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "buildWorkspacePreviewUri",
+        "isAudio",
+        "isHtml",
+        "isImage",
+        "isMarkdown",
+        "isMediaPreviewable",
+        "isPdf",
+        "isReadOnlyDocumentPreviewable",
+        "isReadOnlyPreview",
+        "isSpreadsheetDocument",
+        "isVideo",
+        "isWordDocument",
+        "resolvedMimeType",
+        "workspaceMimeTypeForPath",
+        "workspaceShouldOpenAsDirectPreview"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceImagePreview.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/WorkspaceImagePreview.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "WorkspaceImagePreview"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceManager.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "CommandButtonsView",
+        "VSCodeTab",
+        "WorkspaceManager"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspacePreviewRefreshBus.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/WorkspacePreviewRefreshBus.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "WorkspacePreviewRefreshBus",
+        "WorkspacePreviewRefreshEvent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceReadOnlyDocumentPreview.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/preview/WorkspaceReadOnlyDocumentPreview.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.preview",
+      "symbols": [
+        "WorkspacePreviewFileState",
+        "WorkspaceReadOnlyDocumentPreview",
+        "rememberWorkspacePreviewFileState",
+        "workspacePreviewUriFromFile"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceScreen.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceScreen.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "WorkspaceScreen"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceSetup.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/WorkspaceSetup.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace",
+      "symbols": [
+        "ProjectTypeCard",
+        "WorkspaceSetup"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/FileBrowserClipboard.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/FileBrowserClipboard.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": [
+        "FileBrowserClipboard",
+        "FileBrowserClipboardItem"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/FileBrowserSelectionBar.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/FileBrowserSelectionBar.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": [
+        "FileBrowserSelectionBar"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/WorkspaceBrowserDialogs.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/WorkspaceBrowserDialogs.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": [
+        "FileBrowserContextMenu",
+        "FileBrowserSortDialog",
+        "sortDirectoryEntries"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/WorkspaceBrowserOperations.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/WorkspaceBrowserOperations.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": [
+        "FileBrowserOperations"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/WorkspaceBrowserSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/WorkspaceBrowserSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": [
+        "directoryModifiedTime",
+        "isValidWorkspaceEntryName",
+        "pruneWorkspaceShareCache"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/properties/WorkspacePropertiesDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/properties/WorkspacePropertiesDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.properties",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.properties",
+      "symbols": [
+        "WorkspacePropertiesDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/properties/WorkspacePropertiesRepository.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/properties/WorkspacePropertiesRepository.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.properties",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.properties",
+      "symbols": [
+        "PropertyNode",
+        "WorkspaceDirectoryTotals",
+        "WorkspaceProperties",
+        "WorkspacePropertiesRepository",
+        "WorkspacePropertiesTarget",
+        "WorkspacePropertySource",
+        "WorkspaceTimeChangeResult"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/properties/WorkspacePropertyAccess.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/properties/WorkspacePropertyAccess.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.properties",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.properties",
+      "symbols": [
+        "WorkspacePropertyAccess"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/properties/WorkspacePropertyProviders.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/properties/WorkspacePropertyProviders.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.properties",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.properties",
+      "symbols": [
+        "RemoteWorkspacePropertySource",
+        "SafWorkspacePropertySource"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceCopyProgress.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceCopyProgress.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": [
+        "WorkspaceCopyProgress"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceCopyProgressDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceCopyProgressDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": [
+        "WorkspaceCopyProgressDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceDeleteProgress.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceDeleteProgress.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": [
+        "WorkspaceDeleteOperation",
+        "WorkspaceDeleteProgress"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceDeleteProgressDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceDeleteProgressDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": [
+        "WorkspaceDeleteProgressDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceFileOperationDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceFileOperationDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": [
+        "WorkspaceFileOperationDialog",
+        "WorkspaceOperationDetail"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/CanvasCodeEditorView.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/CanvasCodeEditorView.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "CanvasCodeEditorView",
+        "EditorCompletionCallback",
+        "EditorKeyCommand"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/CodeEditor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/CodeEditor.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "CodeEditor",
+        "NativeCodeEditor"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/CodeFormatter.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/CodeFormatter.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "CodeFormatter"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/CommentSyntax.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/CommentSyntax.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "CommentSyntax",
+        "CommentSyntaxRegistry"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/EditorDocument.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/EditorDocument.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "EditorDocument",
+        "EditorEditCommand",
+        "editorCellWidth",
+        "editorCodeUnitLength",
+        "editorExpandOffsetToCharacterEnd",
+        "editorNextCharacterOffset",
+        "editorNextSymbolOffset",
+        "editorPreviousCharacterOffset",
+        "editorPreviousSymbolOffset",
+        "editorSnapOffsetToCharacterBoundary"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/EditorMetrics.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/EditorMetrics.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "EditorMetrics"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/EditorSyntaxHighlighter.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/EditorSyntaxHighlighter.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "EditorSyntaxHighlighter",
+        "HighlightSnapshot"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/LanguageDetector.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/LanguageDetector.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": [
+        "LanguageDetector"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/CompletionPopup.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/CompletionPopup.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "CompletionItemRow",
+        "CompletionPopup"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/CompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/CompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "CompletionItem",
+        "CompletionItemKind",
+        "CompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/CompletionProviderFactory.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/CompletionProviderFactory.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "CompletionProviderFactory"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/DartCompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/DartCompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "DartCompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/DefaultCompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/DefaultCompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "DefaultCompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/HtmlCompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/HtmlCompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "HtmlCompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/JavaScriptCompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/JavaScriptCompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "JavaScriptCompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/completion/KotlinCompletionProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/completion/KotlinCompletionProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.completion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.completion",
+      "symbols": [
+        "KotlinCompletionProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/BaseLanguageSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/BaseLanguageSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "BaseLanguageSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/DartSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/DartSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "DartSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/HtmlSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/HtmlSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "HtmlSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/JavaScriptSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/JavaScriptSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "JavaScriptSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/KotlinSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/KotlinSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "KotlinSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/LanguageFactory.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/LanguageFactory.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "LanguageFactory"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/LanguageSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/LanguageSupport.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "LanguageSupport"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/language/LanguageSupportRegistry.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/language/LanguageSupportRegistry.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.language",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.language",
+      "symbols": [
+        "LanguageSupportRegistry"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/theme/EditorTheme.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/theme/EditorTheme.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor.theme",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor.theme",
+      "symbols": [
+        "DarkTheme",
+        "EditorTheme",
+        "LightTheme",
+        "getThemeForLanguage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/links/WorkspaceFileLink.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/links/WorkspaceFileLink.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.links",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.links",
+      "symbols": [
+        "WorkspaceFileLink",
+        "parseWorkspaceFileLink"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/links/WorkspaceFileLinkHost.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/links/WorkspaceFileLinkHost.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.links",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.links",
+      "symbols": [
+        "LocalWorkspaceFileLinkOpener",
+        "WorkspaceFileLinkDialog",
+        "WorkspaceFileLinkHost"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/links/WorkspaceMarkdownLink.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/links/WorkspaceMarkdownLink.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.links",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.links",
+      "symbols": [
+        "WorkspaceMarkdownLink",
+        "findWorkspaceMarkdownAnchorLine",
+        "resolveWorkspaceMarkdownLink"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/markdown/WorkspaceMarkdownPreview.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/markdown/WorkspaceMarkdownPreview.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.markdown",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.markdown",
+      "symbols": [
+        "WorkspaceMarkdownPreview"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/process/DepthLimitedFileObserver.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/process/DepthLimitedFileObserver.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.process",
+      "symbols": [
+        "DepthLimitedFileObserver",
+        "WorkspaceFileChange",
+        "WorkspaceFileChangeKind"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/process/GitIgnoreFilter.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/process/GitIgnoreFilter.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.process",
+      "symbols": [
+        "GitIgnoreFilter"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/process/WorkspaceAttachmentProcessor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/process/WorkspaceAttachmentProcessor.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.process",
+      "symbols": [
+        "WorkspaceAttachmentProcessor"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/process/WorkspaceChangeTracker.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/process/WorkspaceChangeTracker.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.process",
+      "symbols": [
+        "WorkspaceChangeSnapshot",
+        "WorkspaceChangeTracker"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/process/WorkspaceRuleFileReader.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/process/WorkspaceRuleFileReader.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.process",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.process",
+      "symbols": [
+        "WorkspaceRuleFileReader"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/search/WorkspaceTextSearch.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/search/WorkspaceTextSearch.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.search",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.search",
+      "symbols": [
+        "FileSearchBar",
+        "activeSearchMatchAfterUpdate",
+        "findTextMatches"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/text/WorkspaceTextReadPolicy.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/text/WorkspaceTextReadPolicy.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.text",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.text",
+      "symbols": [
+        "WORKSPACE_TEXT_PREVIEW_LIMIT_BYTES",
+        "readWorkspaceTextWithinLimit"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubHome.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/hub/WorkspaceHubHome.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.hub",
+      "symbols": [
+        "WorkspaceHubHome"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubOverlay.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/hub/WorkspaceHubOverlay.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.hub",
+      "symbols": [
+        "WorkspaceHubOverlay"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubScreen.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/hub/WorkspaceHubScreen.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.hub",
+      "symbols": [
+        "WorkspaceHubScreen"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/hub/WorkspaceHubState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.hub",
+      "symbols": [
+        "WorkspaceEntryAction",
+        "WorkspaceEntryRequest",
+        "WorkspaceHubPage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceSessionTabs.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/workspace/hub/WorkspaceSessionTabs.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.workspace",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.hub",
+      "symbols": [
+        "WorkspaceSessionTabs"
+      ]
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/FileBrowserClipboardTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/FileBrowserClipboardTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/WorkspaceBrowserSupportTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/WorkspaceBrowserSupportTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/browser/transfer/WorkspaceDeleteOperationTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/browser/transfer/WorkspaceDeleteOperationTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.browser.transfer",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.browser.transfer",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/editor/WorkspaceCommentSyntaxTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/editor/WorkspaceCommentSyntaxTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.editor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.editor",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/links/WorkspaceFileLinkTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/links/WorkspaceFileLinkTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.links",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.links",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/links/WorkspaceMarkdownLinkTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/links/WorkspaceMarkdownLinkTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.links",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.links",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/search/WorkspaceTextSearchTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/search/WorkspaceTextSearchTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.search",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.search",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/text/WorkspaceTextReadPolicyTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/workspace/text/WorkspaceTextReadPolicyTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.webview.workspace.text",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.workspace.text",
+      "symbols": []
+    }
+  ]
+}

@@ -1,0 +1,2498 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#10171b" />
+    <title>Operit · 语音服务 · 交互设计稿</title>
+    <style>
+      /* 沿用现有工作区的紧凑行、低对比表面和主题色，不引入供应商总览首页。 */
+      :root {
+        color-scheme: dark;
+        --bg: #10171b;
+        --surface: #192227;
+        --raised: #202c33;
+        --ink: #e5edf1;
+        --muted: #9aabb5;
+        --line: #303e46;
+        --accent: #91cbe9;
+        --on-accent: #103548;
+        --soft: #243d4b;
+        --quiet: #152027;
+        --track: #3d4d57;
+        --danger: #f3ada7;
+        --good: #a2cdbd;
+        --shade: #0008;
+        font-family:
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          "Noto Sans CJK SC",
+          "Microsoft YaHei",
+          sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html[data-theme="light"] {
+        color-scheme: light;
+        --bg: #f4f7f9;
+        --surface: #fff;
+        --raised: #edf3f6;
+        --ink: #26343d;
+        --muted: #667b88;
+        --line: #dce5eb;
+        --accent: #326e8b;
+        --on-accent: #fff;
+        --soft: #e1eff7;
+        --quiet: #f4f8fa;
+        --track: #d0dde5;
+        --danger: #ae4941;
+        --good: #386f5c;
+        --shade: #142b4055;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scrollbar-gutter: stable;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      body:has(dialog[open]) {
+        overflow: hidden;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+        background: none;
+        border: 0;
+        touch-action: manipulation;
+      }
+      button:disabled,
+      input:disabled,
+      select:disabled,
+      textarea:disabled {
+        cursor: default;
+        opacity: 0.42;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      summary:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 20px;
+        font-weight: 650;
+        letter-spacing: -0.4px;
+      }
+      h2 {
+        font-size: 14px;
+        font-weight: 620;
+      }
+      h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .icon {
+        width: 20px;
+        height: 20px;
+        flex: none;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+      }
+      .small-icon {
+        width: 16px;
+        height: 16px;
+      }
+      .shell {
+        width: min(100%, 640px);
+        margin: auto;
+      }
+      .previewbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 22px;
+        border-bottom: 1px solid var(--line);
+        font-size: 10px;
+        letter-spacing: 0.03em;
+        color: var(--muted);
+      }
+      .previewbar button {
+        padding: 4px 0;
+        color: var(--accent);
+        font-size: 11px;
+      }
+      .header {
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 5;
+        padding: env(safe-area-inset-top) 16px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 64px;
+      }
+      .titlebar h1 {
+        flex: 1;
+      }
+      .iconbtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .iconbtn:hover {
+        background: var(--raised);
+      }
+      .draft-state {
+        font-size: 10px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .draft-state:before {
+        content: "";
+        width: 5px;
+        height: 5px;
+        background: var(--good);
+        border-radius: 50%;
+      }
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 3px;
+      }
+      .tab {
+        height: 51px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 560;
+      }
+      .tab small {
+        font-size: 10px;
+        font-weight: 450;
+        letter-spacing: 0.03em;
+      }
+      .tab[aria-selected="true"] {
+        color: var(--accent);
+      }
+      .tab[aria-selected="true"]:after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 23%;
+        right: 23%;
+        height: 3px;
+        border-radius: 3px 3px 0 0;
+        background: var(--accent);
+      }
+      main {
+        padding: 20px 20px 0;
+      }
+      .section-kicker {
+        font-size: 11px;
+        color: var(--muted);
+        padding: 0 2px 9px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .section-kicker b {
+        color: var(--accent);
+        font-weight: 500;
+        font-size: 10px;
+      }
+      .profile {
+        display: flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+        margin-bottom: 21px;
+      }
+      .profile-main {
+        flex: 1;
+        display: flex;
+        gap: 13px;
+        align-items: center;
+        min-width: 0;
+        padding: 15px;
+        text-align: left;
+      }
+      .profile-mark {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--soft);
+        color: var(--accent);
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        flex: none;
+      }
+      .profile-name {
+        font-size: 15px;
+        font-weight: 600;
+        display: block;
+        overflow-wrap: anywhere;
+      }
+      .profile-sub {
+        font-size: 11px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 4px;
+      }
+      .profile .iconbtn {
+        margin-right: 6px;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 5px;
+        background: var(--soft);
+        color: var(--accent);
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+      .badge.quiet {
+        background: var(--raised);
+        color: var(--muted);
+      }
+      .badge.demo {
+        font-size: 9px;
+        letter-spacing: 0.05em;
+      }
+      .heading {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 0 2px 9px;
+      }
+      .heading > .icon {
+        width: 17px;
+        height: 17px;
+        color: var(--accent);
+      }
+      .heading .tail {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .card {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: 14px;
+        margin-bottom: 19px;
+        overflow: hidden;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 14px 15px;
+        min-height: 63px;
+        text-align: left;
+      }
+      .row + .row,
+      .separated {
+        border-top: 1px solid var(--line);
+      }
+      .row.clickable:hover {
+        background: var(--raised);
+      }
+      .copy {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-title {
+        display: block;
+        font-size: 13px;
+        font-weight: 520;
+      }
+      .row-desc {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 4px;
+        line-height: 1.55;
+      }
+      .row-value {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+        color: var(--accent);
+        font-size: 12px;
+        max-width: 57%;
+        text-align: right;
+        overflow-wrap: anywhere;
+      }
+      .chevron {
+        color: var(--muted);
+        width: 16px;
+        height: 16px;
+      }
+      .engine-note {
+        padding: 0 15px 13px;
+        display: flex;
+        gap: 7px;
+        align-items: flex-start;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .engine-note .icon {
+        width: 14px;
+        height: 14px;
+        margin-top: 2px;
+      }
+      .fields {
+        padding: 2px 15px 15px;
+      }
+      .field {
+        display: block;
+        margin-top: 13px;
+      }
+      .field > span:first-child {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 7px;
+      }
+      .field input,
+      .field select,
+      .field textarea,
+      .text-input {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--quiet);
+        color: var(--ink);
+        padding: 11px 12px;
+        line-height: 1.5;
+        outline-offset: 2px;
+      }
+      .field textarea {
+        resize: vertical;
+        min-height: 95px;
+        font-size: 12px;
+      }
+      .field input::placeholder,
+      .field textarea::placeholder {
+        color: var(--muted);
+        opacity: 0.7;
+      }
+      .field select {
+        padding-right: 26px;
+        cursor: pointer;
+      }
+      .input-action {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .input-action input {
+        flex: 1;
+        min-width: 0;
+      }
+      .input-action .iconbtn {
+        width: 39px;
+        height: 39px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        color: var(--accent);
+      }
+      .helper {
+        font-size: 10px;
+        color: var(--muted);
+        line-height: 1.65;
+        margin-top: 7px;
+      }
+      .voice-value {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+        flex: 1;
+      }
+      .voice-symbol {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        background: var(--soft);
+        border-radius: 9px;
+      }
+      .sliders {
+        padding: 15px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+      .slider-top {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 12px;
+      }
+      .slider-top output {
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+        color: var(--accent);
+      }
+      input[type="range"] {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        height: 4px;
+        margin: 9px 0 7px;
+        border-radius: 3px;
+        background: linear-gradient(
+          to right,
+          var(--accent) 0%,
+          var(--accent) var(--fill, 33.33%),
+          var(--track) var(--fill, 33.33%),
+          var(--track) 100%
+        );
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        appearance: none;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 3px solid var(--surface);
+        box-shadow: 0 0 0 1px var(--accent);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--surface);
+      }
+      .scale {
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
+        font-size: 9px;
+      }
+      .fold > summary {
+        padding: 14px 15px;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 61px;
+      }
+      .fold > summary::-webkit-details-marker {
+        display: none;
+      }
+      .fold > summary .chevron {
+        margin-left: auto;
+        transition: transform 0.15s;
+      }
+      .fold[open] > summary .chevron {
+        transform: rotate(90deg);
+      }
+      .fold-content {
+        border-top: 1px solid var(--line);
+        padding: 0 15px 15px;
+      }
+      .cleaner-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border-bottom: 1px solid var(--line);
+        padding: 7px 0;
+      }
+      .cleaner-pattern {
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+        padding: 8px 0;
+      }
+      .cleaner-row code {
+        font-size: 11px;
+        flex: 1;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        color: var(--muted);
+      }
+      .cleaner-row .iconbtn {
+        width: 35px;
+        height: 35px;
+      }
+      .linkbtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--accent);
+        min-height: 40px;
+        font-size: 12px;
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      .linkbtn:hover {
+        background: var(--soft);
+      }
+      .linkbtn.danger {
+        color: var(--danger);
+      }
+      .test-body {
+        padding: 15px;
+      }
+      .test-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 13px;
+      }
+      .test-title .badge {
+        margin-left: auto;
+      }
+      .test-title .icon {
+        color: var(--accent);
+      }
+      .test-text {
+        resize: vertical;
+        min-height: 85px;
+        font-size: 13px;
+        margin: 0 0 13px;
+      }
+      .primary,
+      .secondary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 43px;
+        border-radius: 10px;
+        padding: 10px 17px;
+        font-size: 13px;
+        font-weight: 550;
+      }
+      .primary {
+        background: var(--accent);
+        color: var(--on-accent);
+      }
+      .secondary {
+        border: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--raised);
+      }
+      .wide {
+        width: 100%;
+      }
+      .audio-demo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 44px;
+        margin: 0 0 13px;
+        padding: 0 3px;
+      }
+      .audio-demo small {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .waveform {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        height: 34px;
+        flex: 1;
+        max-width: 200px;
+        color: var(--accent);
+      }
+      .waveform i {
+        display: block;
+        width: 3px;
+        border-radius: 3px;
+        height: var(--bar);
+        background: currentColor;
+        opacity: 0.42;
+      }
+      .playing .waveform i {
+        animation: pulse 0.85s ease-in-out infinite alternate;
+        animation-delay: var(--delay);
+        opacity: 0.9;
+      }
+      @keyframes pulse {
+        from {
+          transform: scaleY(0.35);
+        }
+        to {
+          transform: scaleY(1);
+        }
+      }
+      .test-note {
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.6;
+        margin-top: 10px;
+        text-align: center;
+      }
+      .switch {
+        appearance: none;
+        -webkit-appearance: none;
+        position: relative;
+        flex: none;
+        width: 39px;
+        height: 23px;
+        background: var(--track);
+        border: 1px solid var(--track);
+        border-radius: 20px;
+        margin: 0;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .switch:before {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 17px;
+        height: 17px;
+        background: var(--muted);
+        border-radius: 50%;
+        transition: transform 0.15s;
+      }
+      .switch:checked {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .switch:checked:before {
+        transform: translateX(16px);
+        background: var(--on-accent);
+      }
+      .mic-zone {
+        text-align: center;
+        padding: 18px 0 13px;
+      }
+      .mic-orb {
+        display: grid;
+        place-items: center;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: var(--soft);
+        color: var(--accent);
+        margin: 0 auto 11px;
+        position: relative;
+      }
+      .mic-orb .icon {
+        width: 26px;
+        height: 26px;
+      }
+      .mic-zone.recording .mic-orb:after {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border: 1px solid var(--accent);
+        border-radius: 50%;
+        animation: ripple 1.5s infinite;
+      }
+      .mic-label {
+        font-size: 12px;
+      }
+      .mic-hint {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 5px;
+      }
+      .result {
+        margin-top: 14px;
+        border-radius: 10px;
+        background: var(--quiet);
+        padding: 13px;
+        min-height: 86px;
+      }
+      .result-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .result-head .iconbtn {
+        width: 30px;
+        height: 30px;
+      }
+      .result p {
+        font-size: 13px;
+        line-height: 1.8;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      .placeholder {
+        color: var(--muted);
+      }
+      .state-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 10px;
+        padding: 0 2px 13px;
+      }
+      .state-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--good);
+      }
+      .error {
+        color: var(--danger);
+        font-size: 11px;
+        line-height: 1.65;
+        margin-top: 9px;
+      }
+      .errorbox {
+        padding: 11px 13px;
+        border: 1px solid var(--danger);
+        background: var(--quiet);
+        border-radius: 9px;
+        margin: 12px 0;
+        font-size: 11px;
+        color: var(--danger);
+      }
+      .wake-banner {
+        background: var(--soft);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        margin-bottom: 18px;
+      }
+      .wake-banner .row {
+        min-height: 82px;
+      }
+      .wake-banner .row-title {
+        font-size: 15px;
+      }
+      .wake-banner .icon {
+        color: var(--accent);
+      }
+      .segments {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+        background: var(--quiet);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 4px;
+        margin: 14px 15px 0;
+      }
+      .segments button {
+        min-height: 39px;
+        font-size: 12px;
+        border-radius: 6px;
+        color: var(--muted);
+      }
+      .segments button[aria-checked="true"] {
+        background: var(--soft);
+        color: var(--accent);
+        font-weight: 550;
+      }
+      .embedded {
+        padding: 0 15px 14px;
+      }
+      .embedded .field {
+        margin-top: 14px;
+      }
+      .compact-row {
+        min-height: 58px;
+        padding: 13px 0;
+      }
+      .personal-samples {
+        display: flex;
+        gap: 8px;
+        margin: 14px 0 12px;
+      }
+      .sample {
+        flex: 1;
+        padding: 11px 6px;
+        text-align: center;
+        border: 1px dashed var(--line);
+        border-radius: 10px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .sample.done {
+        border-style: solid;
+        background: var(--soft);
+        color: var(--accent);
+      }
+      .sample .icon {
+        width: 17px;
+        height: 17px;
+        display: block;
+        margin: 0 auto 5px;
+      }
+      .two-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .two-actions > * {
+        flex: 1;
+      }
+      .attachments {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        padding: 2px 13px 15px;
+      }
+      .attach-tile {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        min-height: 100px;
+        padding: 14px 3px 9px;
+        background: var(--quiet);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        text-align: center;
+      }
+      .attach-tile[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: var(--soft);
+      }
+      .attach-tile > .icon {
+        color: var(--accent);
+      }
+      .attach-tile strong {
+        font-size: 11px;
+        font-weight: 550;
+      }
+      .attach-tile small {
+        font-size: 9px;
+        line-height: 1.4;
+        color: var(--muted);
+        max-width: 100%;
+        overflow-wrap: anywhere;
+      }
+      .attach-tile .tick {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        font-size: 9px;
+        color: var(--accent);
+      }
+      .attachment-hint {
+        padding: 0 15px 12px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .assist-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        color: var(--accent);
+        padding: 0 0 18px;
+        min-height: 40px;
+        font-size: 12px;
+        width: 100%;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .footer {
+        text-align: center;
+        padding: 2px 20px max(30px, env(safe-area-inset-bottom));
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.9;
+      }
+      .footer button {
+        color: var(--accent);
+        font-size: 11px;
+        min-height: 40px;
+      }
+      .sheet {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        padding: 0;
+        width: min(520px, calc(100% - 28px));
+        max-height: min(84dvh, 840px);
+        border-radius: 20px;
+        box-shadow: 0 20px 90px var(--shade);
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .sheet::backdrop {
+        background: #040c1177;
+        backdrop-filter: blur(3px);
+      }
+      .sheet-header {
+        position: sticky;
+        top: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 13px 10px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+        z-index: 2;
+      }
+      .sheet-header h2 {
+        flex: 1;
+        font-size: 16px;
+      }
+      .sheet-content {
+        padding: 16px 20px 20px;
+      }
+      .sheet-description {
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.7;
+        margin-bottom: 12px;
+      }
+      .choice {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 65px;
+        border-radius: 10px;
+        padding: 12px;
+        text-align: left;
+      }
+      .choice:hover {
+        background: var(--raised);
+      }
+      .choice[aria-pressed="true"] {
+        background: var(--soft);
+        color: var(--accent);
+      }
+      .choice > .copy strong {
+        display: block;
+        font-size: 13px;
+        font-weight: 550;
+      }
+      .choice > .copy small {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        margin-top: 4px;
+        line-height: 1.5;
+      }
+      .choice > .icon {
+        width: 19px;
+        height: 19px;
+        color: var(--accent);
+      }
+      .choice-group {
+        color: var(--muted);
+        font-size: 10px;
+        padding: 16px 12px 6px;
+      }
+      .sheet-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      .sheet-actions button {
+        min-width: 80px;
+      }
+      .sheet-search {
+        margin-bottom: 9px;
+        font-size: 13px;
+      }
+      .checkrow {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--muted);
+        font-size: 12px;
+        min-height: 43px;
+        margin-top: 9px;
+      }
+      .checkrow input {
+        accent-color: var(--accent);
+        width: 16px;
+        height: 16px;
+      }
+      .danger-text {
+        color: var(--danger) !important;
+      }
+      .toast {
+        position: fixed;
+        bottom: max(25px, env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: calc(100% - 40px);
+        padding: 12px 17px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--raised);
+        color: var(--ink);
+        font-size: 12px;
+        box-shadow: 0 8px 24px var(--shade);
+        z-index: 100;
+        text-align: center;
+        pointer-events: none;
+      }
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+      @keyframes ripple {
+        from {
+          transform: scale(0.9);
+          opacity: 0.8;
+        }
+        to {
+          transform: scale(1.22);
+          opacity: 0;
+        }
+      }
+      @media (max-width: 600px) {
+        .sheet {
+          position: fixed;
+          top: auto;
+          bottom: 0;
+          margin: 0 auto;
+          width: 100%;
+          max-height: 88dvh;
+          border-radius: 21px 21px 0 0;
+          border-bottom: 0;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        .sheet-header:before {
+          content: "";
+          position: absolute;
+          top: 7px;
+          left: calc(50% - 16px);
+          width: 32px;
+          height: 3px;
+          background: var(--track);
+          border-radius: 3px;
+        }
+        .sheet-header {
+          padding-top: 20px;
+        }
+      }
+      @media (min-width: 800px) {
+        body {
+          background: var(--quiet);
+        }
+        .shell {
+          margin: 30px auto;
+          border: 1px solid var(--line);
+          border-radius: 20px;
+          background: var(--bg);
+          overflow: clip;
+          min-height: calc(100vh - 60px);
+        }
+        .header {
+          top: 0;
+        }
+        .previewbar {
+          border-radius: 20px 20px 0 0;
+        }
+      }
+      @media (max-width: 359px) {
+        main {
+          padding: 17px 14px 0;
+        }
+        .header {
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+        .draft-state {
+          display: none;
+        }
+        .tab {
+          gap: 5px;
+          font-size: 12px;
+        }
+        .tab small {
+          font-size: 9px;
+        }
+        .sliders {
+          gap: 14px;
+        }
+        .attachments {
+          gap: 5px;
+          padding-left: 10px;
+          padding-right: 10px;
+        }
+        .row-value {
+          max-width: 55%;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *:before,
+        *:after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol id="i-back" viewBox="0 0 24 24">
+          <path d="m14 5-7 7 7 7M7 12h14" />
+        </symbol>
+        <symbol id="i-chevron" viewBox="0 0 24 24">
+          <path d="m9 5 7 7-7 7" />
+        </symbol>
+        <symbol id="i-down" viewBox="0 0 24 24">
+          <path d="m6 9 6 6 6-6" />
+        </symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"
+          />
+        </symbol>
+        <symbol id="i-volume" viewBox="0 0 24 24">
+          <path
+            d="m11 4-6 5H2v6h3l6 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"
+          />
+        </symbol>
+        <symbol id="i-mic" viewBox="0 0 24 24">
+          <rect x="9" y="2" width="6" height="13" rx="3" />
+          <path d="M5 10v2a7 7 0 0 0 14 0v-2m-7 9v3m-4 0h8" />
+        </symbol>
+        <symbol id="i-wake" viewBox="0 0 24 24">
+          <path d="M4 13v-2m4 6V7m4 13V4m4 13V7m4 6v-2" />
+        </symbol>
+        <symbol id="i-more" viewBox="0 0 24 24">
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </symbol>
+        <symbol id="i-plus" viewBox="0 0 24 24">
+          <path d="M12 4v16M4 12h16" />
+        </symbol>
+        <symbol id="i-check" viewBox="0 0 24 24">
+          <path d="m5 12 4 4L19 6" />
+        </symbol>
+        <symbol id="i-close" viewBox="0 0 24 24">
+          <path d="m6 6 12 12M6 18 18 6" />
+        </symbol>
+        <symbol id="i-play" viewBox="0 0 24 24">
+          <path d="m8 4 12 8-12 8z" />
+        </symbol>
+        <symbol id="i-stop" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+        </symbol>
+        <symbol id="i-list" viewBox="0 0 24 24">
+          <path d="M8 5h13M8 12h13M8 19h13M3 5h.1M3 12h.1M3 19h.1" />
+        </symbol>
+        <symbol id="i-copy" viewBox="0 0 24 24">
+          <rect x="8" y="8" width="12" height="14" rx="2" />
+          <path d="M16 8V3H3v14h5" />
+        </symbol>
+        <symbol id="i-info" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 10v7m0-11h.01" />
+        </symbol>
+        <symbol id="i-link" viewBox="0 0 24 24">
+          <path d="M15 3h6v6m0-6L10 14m1-10H4v17h17v-7" />
+        </symbol>
+        <symbol id="i-eye" viewBox="0 0 24 24">
+          <path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" />
+          <circle cx="12" cy="12" r="3" />
+        </symbol>
+        <symbol id="i-monitor" viewBox="0 0 24 24">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <path d="M8 21h8m-4-4v4" />
+        </symbol>
+        <symbol id="i-bell" viewBox="0 0 24 24">
+          <path d="M5 17h14l-2-3V8a5 5 0 0 0-10 0v6zm5 3h4" />
+        </symbol>
+        <symbol id="i-location" viewBox="0 0 24 24">
+          <path d="M19 9c0 6-7 13-7 13S5 15 5 9a7 7 0 0 1 14 0Z" />
+          <circle cx="12" cy="9" r="2" />
+        </symbol>
+        <symbol id="i-clock" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 6v6l4 2" />
+        </symbol>
+        <symbol id="i-settings" viewBox="0 0 24 24">
+          <path d="M4 7h16M4 17h16M8 4v6m8 4v6" />
+        </symbol>
+        <symbol id="i-folder" viewBox="0 0 24 24">
+          <path d="M2 6h8l2 2h10v12H2zM2 6V3h8l2 3" />
+        </symbol>
+      </defs>
+    </svg>
+    <div class="shell">
+      <div class="previewbar">
+        <span>交互设计稿 · 示例配置，仅本页生效</span
+        ><button data-action="reset">重置示例</button>
+      </div>
+      <header class="header">
+        <div class="titlebar">
+          <a class="iconbtn" href="index.html" aria-label="返回设计稿索引"
+            ><svg class="icon"><use href="#i-back" /></svg
+          ></a>
+          <h1>语音服务</h1>
+          <span class="draft-state" id="draft-state" aria-live="polite"
+            >示例草稿</span
+          ><button
+            class="iconbtn"
+            data-action="theme"
+            aria-label="切换深浅主题"
+            title="切换深浅主题"
+          >
+            <svg class="icon"><use href="#i-sun" /></svg>
+          </button>
+        </div>
+        <nav class="tabs" role="tablist" aria-label="语音服务类型">
+          <button
+            class="tab"
+            id="tab-tts"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel"
+            data-action="tab"
+            data-tab="tts"
+          >
+            <svg class="icon small-icon"><use href="#i-volume" /></svg>朗读
+            <small>TTS</small>
+          </button>
+          <button
+            class="tab"
+            id="tab-stt"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel"
+            tabindex="-1"
+            data-action="tab"
+            data-tab="stt"
+          >
+            <svg class="icon small-icon"><use href="#i-mic" /></svg>识别
+            <small>STT</small>
+          </button>
+          <button
+            class="tab"
+            id="tab-wake"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel"
+            tabindex="-1"
+            data-action="tab"
+            data-tab="wake"
+          >
+            <svg class="icon small-icon"><use href="#i-wake" /></svg>语音唤醒
+          </button>
+        </nav>
+      </header>
+      <main
+        id="panel"
+        role="tabpanel"
+        aria-labelledby="tab-tts"
+        tabindex="0"
+      ></main>
+      <footer class="footer">
+        <button data-action="demo-state">切换测试演示状态</button>
+        <p>本稿只演示配置与交互，不调用语音服务或麦克风。</p>
+      </footer>
+    </div>
+    <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+      <div class="sheet-header">
+        <h2 id="sheet-title"></h2>
+        <button class="iconbtn" data-action="close-sheet" aria-label="关闭窗口">
+          <svg class="icon"><use href="#i-close" /></svg>
+        </button>
+      </div>
+      <div class="sheet-content" id="sheet-content"></div>
+    </dialog>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <script>
+      "use strict";
+      // 所有配置均为内存中的示例；演示不使用实际密钥、不录音，也不发起网络请求。
+      const $ = (selector) => document.querySelector(selector);
+      const h = (value) =>
+        String(value).replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': String.fromCharCode(38) + "quot;",
+              "'": "&#39;",
+            })[char],
+        );
+      const icon = (name, cls = "") =>
+        `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+      const clone = (value) => JSON.parse(JSON.stringify(value));
+      const ttsEngines = [
+        {
+          id: "system",
+          name: "系统 TTS",
+          group: "设备上的引擎",
+          desc: "使用 Android 系统语音引擎",
+          local: true,
+        },
+        {
+          id: "vits",
+          name: "VITS / Piper",
+          group: "设备上的引擎",
+          desc: "使用本地语音包",
+          local: true,
+        },
+        {
+          id: "openai",
+          name: "OpenAI 兼容",
+          group: "在线语音服务",
+          desc: "HTTP 语音接口，自定义地址与模型",
+          url: "https://api.openai.com/v1/audio/speech",
+          model: "gpt-4o-mini-tts",
+          voice: "alloy",
+        },
+        {
+          id: "openai-ws",
+          name: "OpenAI Realtime",
+          group: "在线语音服务",
+          desc: "WebSocket 实时语音接口",
+          url: "wss://api.openai.com/v1/realtime",
+          model: "gpt-4o-realtime-preview",
+          voice: "alloy",
+        },
+        {
+          id: "siliconflow",
+          name: "硅基流动",
+          group: "在线语音服务",
+          desc: "SiliconFlow 语音合成",
+          url: "https://api.siliconflow.cn/v1/audio/speech",
+          model: "FunAudioLLM/CosyVoice2-0.5B",
+          voice: "charles",
+        },
+        {
+          id: "minimax",
+          name: "MiniMax",
+          group: "在线语音服务",
+          desc: "自定义模型与音色 ID",
+          url: "https://api.minimax.chat/v1/t2a_v2",
+          model: "speech-02-turbo",
+          voice: "",
+        },
+        {
+          id: "mimo",
+          name: "MiMo",
+          group: "在线语音服务",
+          desc: "小米 MiMo 语音合成",
+          url: "https://api.xiaomimimo.com/v1/chat/completions",
+          model: "mimo-v2.5-tts",
+          voice: "mimo_default",
+        },
+        {
+          id: "doubao",
+          name: "豆包",
+          group: "在线语音服务",
+          desc: "App ID、访问令牌与音色",
+          url: "https://openspeech.bytedance.com/api/v1/tts",
+          model: "",
+          voice: "BV700_V2_streaming",
+        },
+        {
+          id: "http",
+          name: "自定义 HTTP",
+          group: "在线语音服务",
+          desc: "配置请求模板与响应处理",
+          url: "",
+          model: "",
+          voice: "",
+        },
+      ];
+      const sttEngines = [
+        {
+          id: "sherpa",
+          name: "Sherpa NCNN",
+          group: "设备上的引擎",
+          desc: "在本机识别，无需连接语音接口",
+          local: true,
+        },
+        {
+          id: "openai-stt",
+          name: "OpenAI 兼容",
+          group: "在线识别服务",
+          desc: "兼容语音转写接口",
+          url: "https://api.openai.com/v1/audio/transcriptions",
+          model: "whisper-1",
+        },
+        {
+          id: "deepgram",
+          name: "Deepgram",
+          group: "在线识别服务",
+          desc: "配置识别服务与模型",
+          url: "https://api.deepgram.com/v1/listen",
+          model: "nova-2",
+        },
+      ];
+      function baseConfig(engine) {
+        return {
+          endpoint: engine.url || "",
+          apiKey: "",
+          model: engine.model || "",
+          voice: engine.voice || "",
+          locale: "",
+          packagePath: "",
+          speaker: 0,
+          options: "{}",
+          headers: "{}",
+          method: "POST",
+          contentType: "application/json",
+          body: "{}",
+          pipeline: "[]",
+        };
+      }
+      function profile(id, name, engine) {
+        return {
+          id,
+          name,
+          engine: engine.id,
+          rate: 1,
+          pitch: 1,
+          configs: { [engine.id]: baseConfig(engine) },
+          cleaners: ["\\*\\*", "(?s)<think>.*?</think>"],
+        };
+      }
+      function initialState() {
+        return {
+          tab: "tts",
+          theme: "dark",
+          demoOutcome: "success",
+          serial: 10,
+          profiles: {
+            tts: [
+              profile("tts-system", "系统朗读", ttsEngines[0]),
+              profile("tts-online", "在线朗读", ttsEngines[2]),
+            ],
+            stt: [
+              profile("stt-local", "本地识别", sttEngines[0]),
+              profile("stt-online", "在线转写", sttEngines[1]),
+            ],
+          },
+          active: { tts: "tts-system", stt: "stt-local" },
+          testText: "你好，我在。今天想聊些什么？",
+          testLanguage: "zh",
+          wake: {
+            enabled: false,
+            mode: "stt",
+            phrase: "小欧",
+            regex: false,
+            timeout: 5,
+            greeting: true,
+            greetingText: "我在",
+            newChat: false,
+            group: "全局助手",
+            autoAttach: true,
+            samples: 0,
+            attachments: [
+              {
+                name: "屏幕",
+                icon: "monitor",
+                keywords: "屏幕",
+                enabled: true,
+              },
+              { name: "通知", icon: "bell", keywords: "通知", enabled: true },
+              {
+                name: "位置",
+                icon: "location",
+                keywords: "哪个地方",
+                enabled: true,
+              },
+              {
+                name: "时间",
+                icon: "clock",
+                keywords: "时间,几点",
+                enabled: true,
+              },
+            ],
+          },
+        };
+      }
+      let state = initialState();
+      let demo = { kind: null, seconds: 0, text: "", error: "" };
+      let demoTimer = null;
+      let toastTimer = null;
+      let sheetActions = [];
+      let formAction = null;
+      let focusBeforeSheet = null;
+      let foldState = {};
+      const panel = $("#panel");
+      const sheet = $("#sheet");
+      function current(mode = state.tab) {
+        return state.profiles[mode].find(
+          (item) => item.id === state.active[mode],
+        );
+      }
+      function engines(mode = state.tab) {
+        return mode === "tts" ? ttsEngines : sttEngines;
+      }
+      function engineInfo(mode = state.tab) {
+        return engines(mode).find((item) => item.id === current(mode).engine);
+      }
+      function config(mode = state.tab) {
+        const p = current(mode);
+        return p.configs[p.engine];
+      }
+      function toast(message) {
+        clearTimeout(toastTimer);
+        $("#toast").textContent = message;
+        $("#toast").hidden = false;
+        toastTimer = setTimeout(() => {
+          $("#toast").hidden = true;
+        }, 2800);
+      }
+      function updated() {
+        $("#draft-state").textContent = "草稿已更新";
+      }
+      function stopDemo() {
+        clearInterval(demoTimer);
+        clearTimeout(demoTimer);
+        demoTimer = null;
+        demo = { kind: null, seconds: 0, text: "", error: "" };
+      }
+      function profileHeader(mode) {
+        const p = current(mode),
+          e = engineInfo(mode);
+        return `<div class="section-kicker"><span>当前${mode === "tts" ? "朗读" : "识别"}档案</span><b>切换即用于${mode === "tts" ? "朗读" : "识别"}</b></div><div class="profile"><button class="profile-main" data-action="profiles" aria-label="选择${mode === "tts" ? "朗读" : "识别"}档案"><span class="profile-mark">${icon(mode === "tts" ? "volume" : "mic")}</span><span class="copy"><span class="profile-name">${h(p.name)}</span><span class="profile-sub">${h(e.name)}<span class="badge quiet">${e.local ? "本地" : "在线"}</span></span></span>${icon("down", "chevron")}</button><button class="iconbtn" data-action="profile-menu" aria-label="管理当前档案">${icon("more")}</button></div>`;
+      }
+      function heading(name, symbol, tail = "") {
+        return `<div class="heading">${icon(symbol)}<h2>${name}</h2>${tail ? `<span class="tail">${tail}</span>` : ""}</div>`;
+      }
+      function field(
+        label,
+        key,
+        value,
+        {
+          type = "text",
+          placeholder = "",
+          scope = "config",
+          disabled = false,
+          multiline = false,
+          action = "",
+        } = {},
+      ) {
+        const id = `field-${scope}-${key}`;
+        return `<label class="field" for="${id}"><span>${label}</span><span class="input-action">${multiline ? `<textarea id="${id}" data-field="${key}" data-scope="${scope}" spellcheck="false" ${disabled ? "disabled" : ""}>${h(value)}</textarea>` : `<input id="${id}" type="${type}" value="${h(value)}" placeholder="${h(placeholder)}" data-field="${key}" data-scope="${scope}" ${type === "password" ? 'autocomplete="new-password"' : ""} ${disabled ? "disabled" : ""}>`}${action ? `<button class="iconbtn" type="button" data-action="${action}" aria-label="${action === "reveal-key" ? "显示或隐藏密钥" : "打开" + label + "列表"}">${icon(action === "reveal-key" ? "eye" : "list")}</button>` : ""}</span></label>`;
+      }
+      function selectField(label, key, value, options, scope = "config") {
+        return `<label class="field"><span>${label}</span><select data-field="${key}" data-scope="${scope}" aria-label="${label}">${options.map(([id, name]) => `<option value="${h(id)}" ${value === id ? "selected" : ""}>${h(name)}</option>`).join("")}</select></label>`;
+      }
+      function switchRow(title, desc, key, checked, scope = "wake") {
+        return `<label class="row"><span class="copy"><span class="row-title">${title}</span>${desc ? `<span class="row-desc">${desc}</span>` : ""}</span><input class="switch" type="checkbox" role="switch" aria-label="${title}" data-field="${key}" data-scope="${scope}" ${checked ? "checked" : ""}></label>`;
+      }
+      function engineRow(mode) {
+        const e = engineInfo(mode);
+        return `<button class="row clickable" data-action="engine"><span class="copy"><span class="row-title">${mode === "tts" ? "朗读" : "识别"}引擎</span></span><span class="row-value">${h(e.name)}${icon("chevron", "chevron")}</span></button><div class="engine-note">${icon(e.local ? "folder" : "link")}<span>${e.local ? (mode === "tts" ? "在设备上生成语音，无需填写接口密钥。" : "音频在本机处理，不上传至识别服务。") : "使用当前档案的地址和凭据连接语音服务。"}</span></div>`;
+      }
+      function commonConnection(mode) {
+        const c = config(mode),
+          e = engineInfo(mode),
+          isDoubao = e.id === "doubao";
+        return `<div class="fields separated">${field("接口地址", "endpoint", c.endpoint, { placeholder: e.id === "http" ? "填写 URL 模板" : "https://…" })}${isDoubao ? field("App ID", "model", c.model, { placeholder: "填写应用 ID" }) : ""}${field(isDoubao ? "访问令牌" : "API Key", "apiKey", c.apiKey, { type: "password", placeholder: isDoubao ? "填写访问令牌" : "填写接口密钥", action: "reveal-key" })}${!isDoubao && e.id !== "http" ? field("模型", "model", c.model, { placeholder: "填写模型名称", action: "models" }) : ""}${mode === "tts" && e.id !== "http" ? field("音色 ID", "voice", c.voice, { placeholder: "填写或选择音色", action: "voices" }) : ""}</div>`;
+      }
+      function fold(id, title, desc, body, cls = "") {
+        return `<details class="fold ${cls}" data-fold="${id}" ${foldState[id] ? "open" : ""}><summary><span class="copy"><span class="row-title">${title}</span>${desc ? `<span class="row-desc">${desc}</span>` : ""}</span>${icon("chevron", "chevron")}</summary><div class="fold-content">${body}</div></details>`;
+      }
+      function cleaners() {
+        const p = current("tts");
+        return (
+          p.cleaners
+            .map(
+              (pattern, index) =>
+                `<div class="cleaner-row"><button class="cleaner-pattern" data-action="edit-cleaner" data-index="${index}" aria-label="编辑第${index + 1}条清理规则"><code>${h(pattern)}</code></button><button class="iconbtn" data-action="remove-cleaner" data-index="${index}" aria-label="移除第${index + 1}条清理规则">${icon("close", "small-icon")}</button></div>`,
+            )
+            .join("") +
+          `<button class="linkbtn" data-action="add-cleaner">${icon("plus", "small-icon")}添加清理规则</button>`
+        );
+      }
+      function ttsSettings() {
+        const c = config("tts"),
+          e = engineInfo("tts");
+        let specific = "";
+        if (e.id === "system")
+          specific = `<div class="fields separated">${selectField(
+            "语言",
+            "locale",
+            c.locale,
+            [
+              ["", "跟随系统语言"],
+              ["zh-CN", "中文（中国大陆）"],
+              ["en-US", "English (US)"],
+            ],
+          )}</div><div class="row separated"><button class="voice-value" data-action="voices"><span class="voice-symbol">${icon("wake", "small-icon")}</span><span class="copy"><span class="row-title">${h(c.voice || "系统默认音色")}</span><span class="row-desc">点击选择此设备的音色</span></span>${icon("chevron", "chevron")}</button>${c.voice ? `<button class="iconbtn" data-action="reset-voice" aria-label="使用系统默认音色">${icon("close", "small-icon")}</button>` : ""}</div>`;
+        else if (e.id === "vits")
+          specific = `<div class="fields separated">${field("语音包路径", "packagePath", c.packagePath, { placeholder: "填写本地语音包路径" })}${field("说话人 ID", "speaker", c.speaker, { type: "number", placeholder: "0" })}</div>`;
+        else specific = commonConnection("tts");
+        const advanced =
+          e.id === "http"
+            ? `<div class="card">${fold(
+                "http",
+                "请求与响应",
+                "请求模板、请求头和响应处理",
+                `${selectField("请求方法", "method", c.method, [
+                  ["POST", "POST"],
+                  ["GET", "GET"],
+                ])}${field("Content-Type", "contentType", c.contentType)}${field("请求头 JSON", "headers", c.headers, { multiline: true })}${field("请求体模板", "body", c.body, { multiline: true })}${field("响应处理流水线", "pipeline", c.pipeline, { multiline: true })}<p class="helper">沿用当前接口使用的模板占位符。JSON 编辑内容会在离开输入框时校验。</p><p class="error" id="json-error" role="alert"></p>`,
+              )}</div>`
+            : e.id === "vits"
+              ? `<div class="card">${fold("vits", "语音包选项", "按需配置推理参数", field("选项 JSON", "options", c.options, { multiline: true }) + '<p class="error" id="json-error" role="alert"></p>')}</div>`
+              : "";
+        return (
+          heading("引擎与声音", "volume") +
+          `<div class="card">${engineRow("tts")}${specific}</div>` +
+          heading("朗读习惯", "settings") +
+          `<div class="card"><div class="sliders">${["rate", "pitch"].map((key, index) => `<label><span class="slider-top"><span>${index === 0 ? "语速" : "音调"}</span><output id="output-${key}" for="slider-${key}">${Number(current("tts")[key]).toFixed(2)}×</output></span><input id="slider-${key}" aria-label="${index === 0 ? "语速" : "音调"}" type="range" min="0.5" max="2" step="0.25" value="${current("tts")[key]}" style="--fill:${((current("tts")[key] - 0.5) / 1.5) * 100}%" data-field="${key}" data-scope="profile"><span class="scale"><span>${index === 0 ? "舒缓" : "低"}</span><span>${index === 0 ? "轻快" : "高"}</span></span></label>`).join("")}</div>${fold("cleaners", `朗读前清理 <span class="badge quiet">${current("tts").cleaners.length} 条</span>`, "移除不需要读出的文本", cleaners(), "separated")}</div>` +
+          advanced +
+          ttsTest()
+        );
+      }
+      function waveform() {
+        return `<span class="waveform" aria-hidden="true">${[8, 12, 18, 10, 26, 19, 31, 13, 24, 17, 29, 20, 13, 25, 16, 30, 20, 11, 22, 14, 8, 17, 11, 6].map((height, i) => `<i style="--bar:${height}px;--delay:${(i % 7) * 0.08}s"></i>`).join("")}</span>`;
+      }
+      function ttsTest() {
+        const playing = demo.kind === "tts";
+        return `<div class="card"><div class="test-body ${playing ? "playing" : ""}"><div class="test-title">${icon("play")}<h2>听听现在的声音</h2><span class="badge quiet demo">交互演示</span></div><textarea class="text-input test-text" aria-label="试听文字" data-field="testText" data-scope="state">${h(state.testText)}</textarea><div class="audio-demo">${waveform()}<small>${playing ? "正在演示播放状态" : "使用当前朗读档案"}</small></div>${demo.error ? `<div class="errorbox" role="alert">${h(demo.error)}</div>` : ""}<button class="primary wide" data-action="test-tts">${icon(playing ? "stop" : "play", "small-icon")}${playing ? "停止试听" : "试听这段文字"}</button><p class="test-note">试听区展示操作状态，本设计稿不生成或播放音频。</p></div></div>`;
+      }
+      function sttSettings() {
+        const e = engineInfo("stt");
+        return (
+          heading("识别服务", "mic") +
+          `<div class="card">${engineRow("stt")}${e.local ? "" : commonConnection("stt")}</div>` +
+          sttTest()
+        );
+      }
+      function sttTest() {
+        const recording = demo.kind === "stt";
+        return `<div class="card"><div class="test-body"><div class="test-title">${icon("mic")}<h2>试着说一句</h2><span class="badge quiet demo">交互演示</span></div>${selectField(
+          "识别语言",
+          "testLanguage",
+          state.testLanguage,
+          engineInfo("stt").local
+            ? [["zh", "中文 · zh"]]
+            : [
+                ["zh", "中文 · zh"],
+                ["en", "English · en"],
+                ["auto", "自动识别"],
+              ],
+          "state",
+        )}<div class="mic-zone ${recording ? "recording" : ""}"><div class="mic-orb">${icon("mic")}</div><p class="mic-label">${recording ? "正在演示识别状态" : "准备好后，开始说话"}</p><p class="mic-hint">${recording ? "00:" + String(demo.seconds).padStart(2, "0") + " · 点击下方按钮结束" : "结束后保留本次结果，可选中或复制"}</p></div>${demo.error ? `<div class="errorbox" role="alert">${h(demo.error)}</div>` : ""}<button class="primary wide" data-action="test-stt">${icon(recording ? "stop" : "mic", "small-icon")}${recording ? "结束并查看结果" : "开始识别演示"}</button><div class="result" aria-live="polite"><div class="result-head"><span>${demo.text ? "演示识别结果" : "识别结果"}</span><button class="iconbtn" data-action="copy-result" aria-label="复制识别结果" ${!demo.text ? "disabled" : ""}>${icon("copy", "small-icon")}</button></div><p class="${demo.text ? "" : "placeholder"}">${h(demo.text || "识别到的文字会显示在这里。")}</p></div><p class="test-note">本稿使用示例文字演示结果，不启动录音。</p></div></div>`;
+      }
+      function wakeSettings() {
+        const w = state.wake;
+        const attachmentTiles = w.attachments
+          .map(
+            (item, index) =>
+              `<button class="attach-tile" data-action="attachment" data-index="${index}" aria-label="配置${item.name}关键词" aria-pressed="${item.enabled}" ${!w.autoAttach ? "disabled" : ""}><span class="tick">${item.enabled ? "✓" : ""}</span>${icon(item.icon)}<strong>${item.name}</strong><small>${h(item.keywords.replace(/,/g, " · "))}</small></button>`,
+          )
+          .join("");
+        return (
+          `<div class="wake-banner"><label class="row">${icon("wake")}<span class="copy"><span class="row-title">后台监听</span><span class="row-desc">${w.enabled ? "持续监听唤醒词 · 需要麦克风权限" : "关闭时不会在后台监听唤醒词"}</span></span><input type="checkbox" class="switch" role="switch" aria-label="后台监听" data-field="enabled" data-scope="wake" ${w.enabled ? "checked" : ""}></label></div><button class="assist-link" data-action="assistant">${icon("link", "small-icon")}系统助手设置${icon("chevron", "chevron")}</button>` +
+          heading("怎样叫醒我", "wake") +
+          `<div class="card"><div class="segments" role="radiogroup" aria-label="唤醒识别方式"><button role="radio" aria-checked="${w.mode === "stt"}" data-action="wake-mode" data-mode="stt">STT 文字匹配</button><button role="radio" aria-checked="${w.mode === "personal"}" data-action="wake-mode" data-mode="personal">个性化唤醒</button></div>${w.mode === "stt" ? `<div class="embedded">${field("唤醒词", "phrase", w.phrase, { scope: "wake", placeholder: "例如：小欧" })}</div><div class="row separated"><span class="copy"><span class="row-title">唤醒识别</span><span class="row-desc">后台唤醒词检测使用本地引擎</span></span><span class="row-value">Sherpa NCNN <span class="badge quiet">本地</span></span></div>${switchRow("使用正则表达式", "按正则规则匹配识别到的文字", "regex", w.regex)}<p class="error" id="wake-regex-error" role="alert" style="padding:0 15px 10px;margin:0"></p>` : `<div class="embedded"><p class="helper" style="margin-top:13px">录下几遍自己的唤醒声音，建立个性化模板。</p><div class="personal-samples">${[0, 1, 2].map((i) => `<div class="sample ${i < w.samples ? "done" : ""}">${icon(i < w.samples ? "check" : "mic")}第 ${i + 1} 遍</div>`).join("")}</div><div class="two-actions"><button class="secondary" data-action="enroll">${icon("mic", "small-icon")}${w.samples < 3 ? "录制第 " + (w.samples + 1) + " 遍（演示）" : "重新录制（演示）"}</button><button class="secondary" data-action="clear-samples" ${!w.samples ? "disabled" : ""}>清除</button></div><p class="helper">模板操作为演示，不录制或保存真实声音。</p></div>`}</div>` +
+          heading("唤醒以后", "settings") +
+          `<div class="card">${switchRow("先说一句话", "进入语音模式前朗读问候语", "greeting", w.greeting)}<div class="fields separated">${field("问候语", "greetingText", w.greetingText, { scope: "wake", disabled: !w.greeting })}</div>${switchRow("新建对话", "每次唤醒后开始一个新的对话", "newChat", w.newChat)}<div class="fields separated">${field("新对话分组", "group", w.group, { scope: "wake", disabled: !w.newChat })}</div><div class="fields separated">${field("无响应超时（秒）", "timeout", w.timeout, { scope: "wake", type: "number" })}<p class="helper">连续无语音输入时结束本次语音模式，范围 1–600 秒。</p><p class="error" id="timeout-error" role="alert"></p></div></div>` +
+          heading("带上需要的上下文", "monitor") +
+          `<div class="card">${switchRow("关键词附件", "说到关键词时自动附加对应信息", "autoAttach", w.autoAttach)}<div class="attachments">${attachmentTiles}</div><p class="attachment-hint">点选项目，编辑触发词与启用状态。</p></div>`
+        );
+      }
+      function render() {
+        document.documentElement.dataset.theme = state.theme;
+        document.querySelector('meta[name="theme-color"]').content =
+          state.theme === "dark" ? "#10171b" : "#f4f7f9";
+        document.querySelectorAll('[role="tab"]').forEach((tab) => {
+          const selected = tab.dataset.tab === state.tab;
+          tab.setAttribute("aria-selected", String(selected));
+          tab.tabIndex = selected ? 0 : -1;
+        });
+        panel.setAttribute("aria-labelledby", "tab-" + state.tab);
+        panel.innerHTML =
+          state.tab === "wake"
+            ? wakeSettings()
+            : profileHeader(state.tab) +
+              (state.tab === "tts" ? ttsSettings() : sttSettings());
+      }
+      function showSheet(title, body) {
+        if (!sheet.open) focusBeforeSheet = document.activeElement;
+        if (sheet.open) sheet.close();
+        $("#sheet-title").textContent = title;
+        $("#sheet-content").innerHTML = body;
+        formAction = null;
+        sheetActions = [];
+        sheet.showModal();
+      }
+      function closeSheet() {
+        sheet.close();
+        if (focusBeforeSheet && focusBeforeSheet.isConnected)
+          focusBeforeSheet.focus();
+      }
+      function choiceSheet(
+        title,
+        items,
+        onChoose,
+        { search = false, description = "", footer = "" } = {},
+      ) {
+        showSheet(
+          title,
+          `${description ? `<p class="sheet-description">${description}</p>` : ""}${search ? '<input class="text-input sheet-search" type="search" placeholder="搜索名称或 ID" aria-label="搜索选项" data-choice-search>' : ""}<div id="choices">${items.map((item, i) => `${item.group && (i === 0 || item.group !== items[i - 1].group) ? `<p class="choice-group">${h(item.group)}</p>` : ""}<button class="choice" data-action="choice" data-index="${i}" aria-pressed="${Boolean(item.selected)}" data-search="${h((item.name + " " + (item.desc || "")).toLowerCase())}">${item.icon ? icon(item.icon) : ""}<span class="copy"><strong>${h(item.name)}</strong>${item.desc ? `<small>${h(item.desc)}</small>` : ""}</span>${item.selected ? icon("check") : ""}</button>`).join("")}</div><p class="helper" id="no-choices" hidden>没有匹配的项目。</p>${footer}`,
+        );
+        sheetActions = items.map((item) => () => onChoose(item));
+      }
+      function formSheet(
+        title,
+        body,
+        onSubmit,
+        { save = "保存", danger = false } = {},
+      ) {
+        showSheet(
+          title,
+          `<form id="sheet-form">${body}<p class="error" id="form-error" role="alert"></p><div class="sheet-actions"><button class="secondary" type="button" data-action="close-sheet">取消</button><button class="primary ${danger ? "danger-text" : ""}" type="submit">${save}</button></div></form>`,
+        );
+        formAction = onSubmit;
+      }
+      function errorForm(message) {
+        $("#form-error").textContent = message;
+        return false;
+      }
+      function profiles() {
+        const mode = state.tab;
+        choiceSheet(
+          mode === "tts" ? "选择朗读档案" : "选择识别档案",
+          state.profiles[mode].map((p) => ({
+            id: p.id,
+            name: p.name,
+            desc: engines(mode).find((e) => e.id === p.engine).name,
+            selected: p.id === state.active[mode],
+            icon: mode === "tts" ? "volume" : "mic",
+          })),
+          (item) => {
+            stopDemo();
+            state.active[mode] = item.id;
+            closeSheet();
+            updated();
+            render();
+          },
+          {
+            footer: `<button class="linkbtn wide" data-action="new-profile">${icon("plus", "small-icon")}新建档案</button>`,
+          },
+        );
+      }
+      function profileMenu() {
+        const p = current(),
+          count = state.profiles[state.tab].length;
+        choiceSheet(
+          "管理档案",
+          [
+            { id: "rename", name: "重命名", desc: p.name, icon: "settings" },
+            {
+              id: "duplicate",
+              name: "复制为新档案",
+              desc: "保留当前引擎与参数",
+              icon: "copy",
+            },
+            {
+              id: "delete",
+              name: "删除档案",
+              desc: count === 1 ? "至少保留一个档案" : "删除后使用剩余档案",
+              icon: "close",
+            },
+          ],
+          (item) => {
+            if (item.id === "rename") profileName("rename");
+            if (item.id === "duplicate") profileName("duplicate");
+            if (item.id === "delete") deleteProfile();
+          },
+        );
+      }
+      function profileName(kind) {
+        const mode = state.tab,
+          p = current(mode);
+        const initial =
+          kind === "rename"
+            ? p.name
+            : kind === "duplicate"
+              ? p.name + " 副本"
+              : "";
+        formSheet(
+          kind === "rename"
+            ? "重命名档案"
+            : kind === "duplicate"
+              ? "复制档案"
+              : "新建档案",
+          `<label class="field"><span>档案名称</span><input id="profile-name" maxlength="40" value="${h(initial)}" placeholder="为这个声音起个名字" autocomplete="off" autofocus></label>${kind === "new" ? '<label class="checkrow"><input id="profile-copy" type="checkbox">从当前档案复制配置</label>' : ""}`,
+          () => {
+            const name = $("#profile-name").value.trim();
+            if (!name) return errorForm("请填写档案名称。");
+            if (
+              state.profiles[mode].some(
+                (item) =>
+                  item.name === name && (kind !== "rename" || item.id !== p.id),
+              )
+            )
+              return errorForm("这个名称已存在，请换一个名称。");
+            if (kind === "rename") p.name = name;
+            else {
+              const copyCurrent =
+                kind === "duplicate" || $("#profile-copy").checked;
+              const created = copyCurrent
+                ? clone(p)
+                : profile("new", name, engines(mode)[0]);
+              created.id = mode + "-" + ++state.serial;
+              created.name = name;
+              state.profiles[mode].push(created);
+              state.active[mode] = created.id;
+              stopDemo();
+            }
+            closeSheet();
+            updated();
+            render();
+            toast(kind === "rename" ? "档案已重命名" : "已创建示例档案");
+            return true;
+          },
+        );
+      }
+      function deleteProfile() {
+        const mode = state.tab,
+          p = current(mode);
+        if (state.profiles[mode].length === 1) {
+          toast("至少保留一个" + (mode === "tts" ? "朗读" : "识别") + "档案");
+          return;
+        }
+        formSheet(
+          "删除档案",
+          `<p class="sheet-description">删除「${h(p.name)}」及其示例设置？此操作仅影响当前设计稿。</p>`,
+          () => {
+            state.profiles[mode] = state.profiles[mode].filter(
+              (item) => item.id !== p.id,
+            );
+            state.active[mode] = state.profiles[mode][0].id;
+            stopDemo();
+            closeSheet();
+            updated();
+            render();
+            return true;
+          },
+          { save: "删除" },
+        );
+      }
+      function chooseEngine() {
+        const mode = state.tab,
+          p = current(mode);
+        choiceSheet(
+          mode === "tts" ? "选择朗读引擎" : "选择识别引擎",
+          engines(mode).map((item) => ({
+            ...item,
+            selected: item.id === p.engine,
+            icon: item.local ? "folder" : "link",
+          })),
+          (item) => {
+            stopDemo();
+            p.engine = item.id;
+            if (!p.configs[item.id]) p.configs[item.id] = baseConfig(item);
+            if (mode === "stt") state.testLanguage = "zh";
+            closeSheet();
+            updated();
+            render();
+          },
+        );
+      }
+      function chooseVoice() {
+        const e = engineInfo("tts"),
+          c = config("tts");
+        const items =
+          e.id === "system"
+            ? [
+                { id: "", name: "系统默认音色", desc: "跟随 Android 系统设置" },
+                {
+                  id: "zh-CN · 示例音色",
+                  name: "中文音色（示例）",
+                  desc: "zh-CN · 设备提供的音色列表位置",
+                },
+                {
+                  id: "en-US · 示例音色",
+                  name: "English（示例）",
+                  desc: "en-US · 设备提供的音色列表位置",
+                },
+              ]
+            : [
+                {
+                  id: e.voice || "voice-example",
+                  name: e.voice || "示例音色",
+                  desc: "服务端音色列表的展示位置",
+                },
+                {
+                  id: "custom-voice-example",
+                  name: "自定义音色（示例）",
+                  desc: "也可以在输入框填写音色 ID",
+                },
+              ];
+        choiceSheet(
+          "选择音色",
+          items.map((item) => ({
+            ...item,
+            selected: item.id === c.voice,
+            icon: "volume",
+          })),
+          (item) => {
+            c.voice = item.id;
+            closeSheet();
+            updated();
+            render();
+          },
+          {
+            search: true,
+            description:
+              e.id === "system"
+                ? "原生页面显示此设备实际安装的音色；当前为交互示例。"
+                : "原生页面读取服务支持的音色；当前展示示例条目。",
+            footer:
+              '<button class="linkbtn wide" data-action="manual-voice">手动填写音色 ID</button>',
+          },
+        );
+      }
+      function manualVoice() {
+        formSheet(
+          "音色 ID",
+          `<label class="field"><span>音色 ID</span><input id="manual-voice" value="${h(config("tts").voice)}" placeholder="填写音色 ID"></label>`,
+          () => {
+            config("tts").voice = $("#manual-voice").value.trim();
+            closeSheet();
+            updated();
+            render();
+            return true;
+          },
+        );
+      }
+      function chooseModel() {
+        const e = engineInfo(),
+          c = config();
+        choiceSheet(
+          "选择模型",
+          [
+            {
+              id: e.model || "model-example",
+              name: e.model || "model-example",
+              desc: "示例模型，可手动填写其他名称",
+              selected: c.model === (e.model || "model-example"),
+            },
+            {
+              id: "custom-model-example",
+              name: "custom-model-example",
+              desc: "自定义接口返回的模型示例",
+              selected: c.model === "custom-model-example",
+            },
+          ],
+          (item) => {
+            c.model = item.id;
+            closeSheet();
+            updated();
+            render();
+          },
+          {
+            search: true,
+            description: "交互稿仅演示模型选择，不从服务端获取列表。",
+          },
+        );
+      }
+      function addCleaner(index = null) {
+        formSheet(
+          index === null ? "添加清理规则" : "编辑清理规则",
+          `<label class="field"><span>正则表达式</span><textarea id="new-cleaner" spellcheck="false" placeholder="匹配需要在朗读前移除的文本">${index === null ? "" : h(current("tts").cleaners[index])}</textarea></label>`,
+          () => {
+            const value = $("#new-cleaner").value.trim();
+            if (!value) return errorForm("请输入正则表达式。");
+            try {
+              validatePattern(value);
+            } catch (error) {
+              return errorForm("正则表达式无效：" + error.message);
+            }
+            if (index === null) current("tts").cleaners.push(value);
+            else current("tts").cleaners[index] = value;
+            closeSheet();
+            updated();
+            render();
+            return true;
+          },
+        );
+      }
+      // Kotlin 支持内联标志；预览只校验浏览器可表达的同类标志。
+      function validatePattern(value) {
+        const prefix = value.match(/^\(\?([ims]+)\)/);
+        return new RegExp(
+          prefix ? value.slice(prefix[0].length) : value,
+          prefix ? prefix[1] : "",
+        );
+      }
+      function attachment(index) {
+        const item = state.wake.attachments[index];
+        formSheet(
+          item.name + "关键词",
+          `<label class="checkrow"><input id="attach-enabled" type="checkbox" ${item.enabled ? "checked" : ""}>启用${item.name}附件</label><label class="field"><span>触发词，用逗号分隔</span><input id="attach-keywords" value="${h(item.keywords)}" placeholder="例如：时间,几点"></label><p class="helper">命中任一关键词时附带对应信息。</p>`,
+          () => {
+            const words = $("#attach-keywords")
+              .value.split(/[,，]/)
+              .map((word) => word.trim())
+              .filter(Boolean);
+            if (!words.length) return errorForm("请至少填写一个触发词。");
+            item.keywords = [...new Set(words)].join(",");
+            item.enabled = $("#attach-enabled").checked;
+            closeSheet();
+            updated();
+            render();
+            return true;
+          },
+        );
+      }
+      function demoError(kind) {
+        if (state.demoOutcome === "permission" && kind === "stt") {
+          return "演示：麦克风权限未授予。原生页面将在这里提供授权入口。";
+        }
+        if (state.demoOutcome === "unavailable") {
+          return "演示：语音服务暂不可用，请检查当前档案的引擎或连接配置。";
+        }
+        return "";
+      }
+      function testTts() {
+        if (demo.kind === "tts") {
+          stopDemo();
+          render();
+          return;
+        }
+        if (!state.testText.trim()) {
+          toast("先写一段想试听的文字");
+          return;
+        }
+        stopDemo();
+        demo.error = demoError("tts");
+        if (demo.error) {
+          render();
+          return;
+        }
+        demo.kind = "tts";
+        render();
+        demoTimer = setTimeout(() => {
+          demo.kind = null;
+          demoTimer = null;
+          render();
+          toast("试听状态演示结束");
+        }, 3500);
+      }
+      function testStt() {
+        if (demo.kind === "stt") {
+          clearInterval(demoTimer);
+          demoTimer = null;
+          demo.kind = null;
+          demo.text = "你好，小欧。帮我看看今天的安排。";
+          render();
+          return;
+        }
+        stopDemo();
+        demo.error = demoError("stt");
+        if (demo.error) {
+          render();
+          return;
+        }
+        demo.kind = "stt";
+        render();
+        demoTimer = setInterval(() => {
+          demo.seconds++;
+          const hint = $(".mic-hint");
+          if (hint)
+            hint.textContent =
+              "00:" +
+              String(demo.seconds).padStart(2, "0") +
+              " · 点击下方按钮结束";
+          if (demo.seconds >= 59) {
+            clearInterval(demoTimer);
+            demoTimer = null;
+            demo.kind = null;
+            render();
+          }
+        }, 1000);
+      }
+      async function copyResult() {
+        try {
+          await navigator.clipboard.writeText(demo.text);
+          toast("已复制识别结果");
+        } catch (error) {
+          console.error("复制识别结果失败", error);
+          toast("当前浏览器未允许复制，可长按结果文字选择。");
+        }
+      }
+      function changeTab(tab) {
+        if (state.tab === tab) return;
+        stopDemo();
+        state.tab = tab;
+        render();
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
+      function demoState() {
+        choiceSheet(
+          "测试演示状态",
+          [
+            {
+              id: "success",
+              name: "正常操作",
+              desc: "试听播放状态、识别开始与结束",
+              selected: state.demoOutcome === "success",
+            },
+            {
+              id: "permission",
+              name: "未授予麦克风权限",
+              desc: "查看识别测试的权限提示",
+              selected: state.demoOutcome === "permission",
+            },
+            {
+              id: "unavailable",
+              name: "服务不可用",
+              desc: "查看当前测试区的错误状态",
+              selected: state.demoOutcome === "unavailable",
+            },
+          ],
+          (item) => {
+            stopDemo();
+            state.demoOutcome = item.id;
+            closeSheet();
+            render();
+            toast("演示状态已切换");
+          },
+          {
+            description:
+              "此处仅切换设计稿的测试状态，不检查设备权限或服务连接。",
+          },
+        );
+      }
+      function handleAction(button) {
+        const action = button.dataset.action;
+        if (action === "theme") {
+          state.theme = state.theme === "dark" ? "light" : "dark";
+          render();
+        } else if (action === "tab") changeTab(button.dataset.tab);
+        else if (action === "profiles") profiles();
+        else if (action === "profile-menu") profileMenu();
+        else if (action === "new-profile") profileName("new");
+        else if (action === "engine") chooseEngine();
+        else if (action === "voices") chooseVoice();
+        else if (action === "manual-voice") manualVoice();
+        else if (action === "models") chooseModel();
+        else if (action === "close-sheet") closeSheet();
+        else if (action === "choice")
+          sheetActions[Number(button.dataset.index)]();
+        else if (action === "reset-voice") {
+          config("tts").voice = "";
+          updated();
+          render();
+        } else if (action === "reveal-key") {
+          const input = $("#field-config-apiKey");
+          input.type = input.type === "password" ? "text" : "password";
+          button.setAttribute("aria-pressed", String(input.type === "text"));
+        } else if (action === "add-cleaner") addCleaner();
+        else if (action === "edit-cleaner")
+          addCleaner(Number(button.dataset.index));
+        else if (action === "remove-cleaner") {
+          current("tts").cleaners.splice(Number(button.dataset.index), 1);
+          updated();
+          render();
+        } else if (action === "test-tts") testTts();
+        else if (action === "test-stt") testStt();
+        else if (action === "copy-result") {
+          copyResult();
+        } else if (action === "wake-mode") {
+          state.wake.mode = button.dataset.mode;
+          updated();
+          render();
+        } else if (action === "attachment")
+          attachment(Number(button.dataset.index));
+        else if (action === "assistant")
+          toast("原生页面将在这里打开 Android 默认助手设置");
+        else if (action === "enroll") {
+          state.wake.samples =
+            state.wake.samples < 3 ? state.wake.samples + 1 : 0;
+          updated();
+          render();
+          toast("已更新模板演示状态，未录制声音");
+        } else if (action === "clear-samples") {
+          formSheet(
+            "清除唤醒模板",
+            '<p class="sheet-description">清除当前三个位置中的示例模板？</p>',
+            () => {
+              state.wake.samples = 0;
+              closeSheet();
+              updated();
+              render();
+              return true;
+            },
+            { save: "清除" },
+          );
+        } else if (action === "demo-state") demoState();
+        else if (action === "reset") {
+          formSheet(
+            "重置示例",
+            '<p class="sheet-description">恢复初始示例配置，包括本页新建的档案与唤醒设置。</p>',
+            () => {
+              stopDemo();
+              const theme = state.theme;
+              state = initialState();
+              state.theme = theme;
+              foldState = {};
+              closeSheet();
+              render();
+              $("#draft-state").textContent = "示例草稿";
+              toast("已恢复初始示例");
+              return true;
+            },
+            { save: "重置" },
+          );
+        }
+      }
+      document.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-action]");
+        if (button && !button.disabled) handleAction(button);
+      });
+      document.addEventListener("submit", (event) => {
+        if (event.target.id === "sheet-form") {
+          event.preventDefault();
+          if (formAction) formAction();
+        }
+      });
+      document.addEventListener("input", (event) => {
+        const input = event.target;
+        if (input.hasAttribute("data-choice-search")) {
+          const term = input.value.trim().toLowerCase();
+          let count = 0;
+          document.querySelectorAll("#choices .choice").forEach((choice) => {
+            choice.hidden = !choice.dataset.search.includes(term);
+            if (!choice.hidden) count++;
+          });
+          $("#no-choices").hidden = count !== 0;
+          return;
+        }
+        if (!input.dataset.field) return;
+        const key = input.dataset.field,
+          scope = input.dataset.scope;
+        if (input.type === "checkbox" || input.tagName === "SELECT") return;
+        const value =
+          input.type === "range" ? Number(input.value) : input.value;
+        if (scope === "profile") current()[key] = Number(value);
+        else if (scope === "state") state[key] = value;
+        else if (scope === "wake" && key !== "timeout" && key !== "phrase")
+          state.wake[key] = value;
+        else if (
+          scope === "config" &&
+          !["headers", "body", "pipeline", "options", "speaker"].includes(key)
+        )
+          config()[key] = value;
+        if (input.type === "range") {
+          const output = $("#output-" + key);
+          output.textContent = Number(value).toFixed(2) + "×";
+          input.style.setProperty("--fill", ((value - 0.5) / 1.5) * 100 + "%");
+        }
+        updated();
+      });
+      document.addEventListener("change", (event) => {
+        const input = event.target;
+        if (!input.dataset.field) return;
+        const key = input.dataset.field,
+          scope = input.dataset.scope,
+          value = input.type === "checkbox" ? input.checked : input.value;
+        if (scope === "wake") {
+          if (key === "timeout") {
+            const number = Number(value);
+            const valid =
+              Number.isInteger(number) && number >= 1 && number <= 600;
+            $("#timeout-error").textContent = valid
+              ? ""
+              : "请输入 1–600 之间的整数。";
+            input.setAttribute("aria-invalid", String(!valid));
+            if (!valid) return;
+            state.wake.timeout = number;
+          } else if (key === "phrase") {
+            if (!value.trim()) {
+              toast("唤醒词不能为空");
+              input.value = state.wake.phrase;
+              return;
+            }
+            if (state.wake.regex) {
+              try {
+                validatePattern(value);
+              } catch (error) {
+                $("#wake-regex-error").textContent =
+                  "正则表达式无效：" + error.message;
+                input.setAttribute("aria-invalid", "true");
+                return;
+              }
+            }
+            state.wake.phrase = value;
+            $("#wake-regex-error").textContent = "";
+            input.setAttribute("aria-invalid", "false");
+          } else if (key === "regex" && value) {
+            try {
+              validatePattern(state.wake.phrase);
+            } catch (error) {
+              input.checked = false;
+              $("#wake-regex-error").textContent =
+                "正则表达式无效：" + error.message;
+              return;
+            }
+            state.wake.regex = true;
+          } else state.wake[key] = value;
+          if (input.type === "checkbox") {
+            updated();
+            render();
+            return;
+          }
+        } else if (scope === "profile") {
+          current()[key] = Number(value);
+        } else if (scope === "config") {
+          if (["headers", "pipeline", "options"].includes(key)) {
+            try {
+              const parsed = JSON.parse(value);
+              if (key === "pipeline" && !Array.isArray(parsed))
+                throw new Error("响应流水线需要使用 JSON 数组");
+              if (
+                ["headers", "options"].includes(key) &&
+                (parsed === null ||
+                  Array.isArray(parsed) ||
+                  typeof parsed !== "object")
+              )
+                throw new Error("这里需要使用 JSON 对象");
+              config()[key] = value;
+              $("#json-error").textContent = "";
+              input.setAttribute("aria-invalid", "false");
+            } catch (error) {
+              $("#json-error").textContent = "格式无效：" + error.message;
+              input.setAttribute("aria-invalid", "true");
+              return;
+            }
+          } else if (key === "speaker") {
+            if (!/^\d+$/.test(value)) {
+              toast("说话人 ID 需要是非负整数");
+              return;
+            }
+            config().speaker = Number(value);
+          } else config()[key] = value;
+        } else if (scope === "state") state[key] = value;
+        updated();
+      });
+      document.addEventListener(
+        "toggle",
+        (event) => {
+          if (event.target.matches("details[data-fold]"))
+            foldState[event.target.dataset.fold] = event.target.open;
+        },
+        true,
+      );
+      $(".tabs").addEventListener("keydown", (event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+          return;
+        const tabs = ["tts", "stt", "wake"];
+        let index = tabs.indexOf(state.tab);
+        if (event.key === "Home") index = 0;
+        else if (event.key === "End") index = 2;
+        else index = (index + (event.key === "ArrowRight" ? 1 : 2)) % 3;
+        event.preventDefault();
+        changeTab(tabs[index]);
+        $("#tab-" + tabs[index]).focus();
+      });
+      sheet.addEventListener("click", (event) => {
+        if (event.target === sheet) {
+          const rect = sheet.getBoundingClientRect();
+          if (
+            event.clientX < rect.left ||
+            event.clientX > rect.right ||
+            event.clientY < rect.top ||
+            event.clientY > rect.bottom
+          )
+            closeSheet();
+        }
+      });
+      sheet.addEventListener("cancel", () => {
+        if (focusBeforeSheet && focusBeforeSheet.isConnected)
+          focusBeforeSheet.focus();
+      });
+      render();
+    </script>
+  </body>
+</html>

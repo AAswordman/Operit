@@ -1,0 +1,5 @@
+<resources>
+    <string name="workflow_failure_named_node">Nodul „%1$s” a eșuat: %2$s</string>
+    <string name="workflow_failure_action">Acțiune: %1$s</string>
+    <string name="workflow_failure_reason">Motiv: %1$s</string>
+</resources>

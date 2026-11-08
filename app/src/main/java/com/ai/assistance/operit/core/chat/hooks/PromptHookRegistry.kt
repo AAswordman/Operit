@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.chat.hooks
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.CopyOnWriteArrayList
 
 private const val TAG = "PromptHookRegistry"

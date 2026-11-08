@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.GitHubUser
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -112,7 +112,8 @@ data class GitHubReleaseAsset(
     val browser_download_url: String,
     val size: Long,
     val download_count: Int,
-    val content_type: String
+    val content_type: String,
+    val digest: String? = null,
 )
 
 /**

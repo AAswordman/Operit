@@ -125,7 +125,10 @@ export function installMockRuntime(options?: {
       }
     }
   };
+  const bridges = require(path.join(process.cwd(), "tools/toolpkg/node_storage_runtime.cjs"));
+  (globalThis as Record<string, unknown>).Java = bridges.createNodeJavaBridge();
   (globalThis as Record<string, unknown>).ToolPkg = {
+    ipc: bridges.createNodeIpc(),
     getConfigDir(pluginId?: string) {
       const effectiveId = String(pluginId || packageId || "").trim() || packageId;
       const targetDir = path.join(configDir, effectiveId);
@@ -164,11 +167,15 @@ export function loadWorldBookModules() {
   clearModule("../../dist/shared/worldbook_storage.js");
   clearModule("../../dist/shared/worldbook_service.js");
   clearModule("../../dist/shared/worldbook_variables.js");
+  clearModule("../../dist/shared/worldbook_rpc.js");
+  clearModule("../../dist/shared/worldbook_client.js");
   clearModule("../../dist/main.js");
 
   const storage = require("../../dist/shared/worldbook_storage.js");
   const service = require("../../dist/shared/worldbook_service.js");
   const variables = require("../../dist/shared/worldbook_variables.js");
   const main = require("../../dist/main.js");
-  return { storage, service, variables, main };
+  require("../../dist/shared/worldbook_rpc.js").registerWorldBookStorageService();
+  const client = require("../../dist/shared/worldbook_client.js");
+  return { storage, service, variables, main, client };
 }

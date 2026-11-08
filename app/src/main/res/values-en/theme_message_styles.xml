@@ -1,0 +1,7 @@
+<resources>
+    <string name="theme_message_bubble_options">Bubble settings</string>
+    <string name="theme_message_bubble_scope_user">Applies to user messages</string>
+    <string name="theme_message_bubble_scope_ai">Applies to AI messages</string>
+    <string name="theme_message_bubble_scope_both">Applies to user and AI messages</string>
+    <string name="theme_message_style_summary">User · %1$s / AI · %2$s</string>
+</resources>

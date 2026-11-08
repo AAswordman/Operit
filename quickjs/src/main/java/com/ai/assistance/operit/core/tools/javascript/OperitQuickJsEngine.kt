@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,11 +16,21 @@ import org.json.JSONTokener
 class OperitQuickJsEngine : Closeable {
 
     private val runtimeRef = AtomicReference<QuickJsNativeRuntime?>()
+    private val runtimeThread = AtomicReference<Thread?>()
     private val nativeInterfaceRef = AtomicReference<Any?>()
     private val methodCache = ConcurrentHashMap<String, Method>()
     private val closed = AtomicBoolean(false)
+    // Java Thread.id 是 JVM 内计数，不是 /proc/self/task 里的内核 tid，
+    // 所以只能在运行线程自己启动时记录 Process.myTid() 供外部按线程采样 CPU。
+    private val runtimeTid = AtomicLong(-1L)
     private val runtimeExecutor = Executors.newSingleThreadExecutor { runnable ->
-        Thread(runnable, "OperitQuickJsRuntime").apply { isDaemon = true }
+        Thread({
+            runtimeTid.set(android.os.Process.myTid().toLong())
+            runnable.run()
+        }, "OperitQuickJsRuntime").apply {
+            isDaemon = true
+            runtimeThread.set(this)
+        }
     }
     private val hostDispatcher = QuickJsNativeHostDispatcher(
         dispatchTimer = ::dispatchTimerOnRuntimeThread,
@@ -72,6 +83,21 @@ class OperitQuickJsEngine : Closeable {
         runtimeRef.get()?.interrupt()
     }
 
+    /** 运行线程的内核 tid；线程尚未启动或已关闭时返回 -1。 */
+    fun getRuntimeTid(): Long {
+        return runtimeTid.get()
+    }
+
+    fun getMemoryUsage(): QuickJsMemoryUsage {
+        check(!closed.get()) { "QuickJS engine already closed" }
+        return runOnRuntimeThread { runtime.getMemoryUsage() }
+    }
+
+    fun resetMemoryPeak() {
+        check(!closed.get()) { "QuickJS engine already closed" }
+        runOnRuntimeThread { runtime.resetMemoryPeak() }
+    }
+
     override fun close() {
         if (!closed.compareAndSet(false, true)) {
             return
@@ -116,6 +142,9 @@ class OperitQuickJsEngine : Closeable {
     }
 
     private fun <T> runOnRuntimeThread(block: () -> T): T {
+        if (Thread.currentThread() === runtimeThread.get()) {
+            return block()
+        }
         val future = runtimeExecutor.submit<T> { block() }
         try {
             return future.get()

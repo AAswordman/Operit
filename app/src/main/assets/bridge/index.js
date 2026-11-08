@@ -361,6 +361,13 @@ class McpBridge {
             this.serviceExitSignals.delete(serviceName); // 清理
             this.serviceHelpers.delete(serviceName);
             this.serviceReadyMap.set(serviceName, false);
+            // 握手完成前辅助进程退出时，立即携带已收集的原因终止等待。
+            if (this.pendingSpawnRequests.has(serviceName)) {
+                const reason = this.mcpErrors.get(serviceName)
+                    || this.getServiceLogText(serviceName).trim()
+                    || `helper process exited with code ${code ?? 'unknown'} signal ${signal ?? 'none'}`;
+                this.rejectPendingSpawn(serviceName, `Service '${serviceName}' failed to start: ${reason}`);
+            }
             // Dont unregister, allow reconnection logic to handle it
             if (this.serviceRegistry.has(serviceName)) {
                 this.handleServiceClosure(serviceName, exitSignal);
@@ -428,6 +435,10 @@ class McpBridge {
                 if (this.fatalServices.has(params.serviceName)) {
                     const errorMessage = this.mcpErrors.get(params.serviceName) || params.error || 'Fatal startup error';
                     this.rejectPendingSpawn(params.serviceName, `Service '${params.serviceName}' failed to start: ${errorMessage}`);
+                }
+                else if (params.error && this.pendingSpawnRequests.has(params.serviceName)) {
+                    // 辅助进程已提供握手失败原因时立即回报，避免等待启动超时。
+                    this.rejectPendingSpawn(params.serviceName, `Service '${params.serviceName}' failed to start: ${params.error}`);
                 }
                 // The 'exit' event on the helper process will trigger handleServiceClosure
                 break;
@@ -1250,7 +1261,7 @@ module.exports = require("path");
 /************************************************************************/
 /******/ 	// The module cache
 /******/ 	var __webpack_module_cache__ = {};
-/******/ 	
+/******/
 /******/ 	// The require function
 /******/ 	function __nccwpck_require__(moduleId) {
 /******/ 		// Check if module is in cache
@@ -1264,7 +1275,7 @@ module.exports = require("path");
 /******/ 			// no module.loaded needed
 /******/ 			exports: {}
 /******/ 		};
-/******/ 	
+/******/
 /******/ 		// Execute the module function
 /******/ 		var threw = true;
 /******/ 		try {
@@ -1273,23 +1284,23 @@ module.exports = require("path");
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
 /******/ 		}
-/******/ 	
+/******/
 /******/ 		// Return the exports of the module
 /******/ 		return module.exports;
 /******/ 	}
-/******/ 	
+/******/
 /************************************************************************/
 /******/ 	/* webpack/runtime/compat */
-/******/ 	
+/******/
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
-/******/ 	
+/******/
 /************************************************************************/
-/******/ 	
+/******/
 /******/ 	// startup
 /******/ 	// Load entry module and return exports
 /******/ 	// This entry module is referenced by other modules so it can't be inlined
 /******/ 	var __webpack_exports__ = __nccwpck_require__(545);
 /******/ 	module.exports = __webpack_exports__;
-/******/ 	
+/******/
 /******/ })()
 ;

@@ -4,7 +4,7 @@ import android.app.Notification
 import android.app.Service
 import android.content.pm.ServiceInfo
 import android.os.Build
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 object ForegroundServiceCompat {
     fun buildTypes(

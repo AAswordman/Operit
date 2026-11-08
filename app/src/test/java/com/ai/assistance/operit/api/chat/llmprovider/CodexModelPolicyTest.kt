@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
-import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelOption
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

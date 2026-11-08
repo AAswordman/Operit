@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">コピー中...</string>
+    <string name="workspace_transfer_moving">移動中...</string>
+    <string name="workspace_transfer_scanning">ファイルを集計中...</string>
+    <string name="workspace_transfer_processing">処理中...</string>
+    <string name="workspace_transfer_finishing">コピー元を削除中...</string>
+    <string name="workspace_transfer_name">名前</string>
+    <string name="workspace_transfer_source">コピー元</string>
+    <string name="workspace_transfer_destination">コピー先</string>
+    <string name="workspace_transfer_copied">コピー済み</string>
+    <string name="workspace_transfer_remaining">残り</string>
+    <string name="workspace_transfer_speed">速度</string>
+    <string name="workspace_transfer_item">%1$d / %2$d 項目 · 現在の項目の進捗</string>
+    <string name="workspace_transfer_files">ファイル：%1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">キャンセル中...</string>
+    <string name="workspace_transfer_deleting">削除中...</string>
+    <string name="workspace_transfer_deleted_items">%1$d / %2$d 項目を削除済み</string>
+    <string name="workspace_transfer_delete_scope">進捗は選択した項目数です。各フォルダー内の進捗は不明です。</string>
+    <string name="workspace_transfer_delete_cancel_note">キャンセルすると現在の削除処理が戻った後に次の項目を停止します。削除済みの内容は復元されません。</string>
+</resources>

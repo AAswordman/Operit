@@ -31,7 +31,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,7 +46,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.ui.features.chat.components.PackageSelectorDialog
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.PackageSelectorDialog
 
 /**
  * 专为浮动窗口设计的简化附件选择面板

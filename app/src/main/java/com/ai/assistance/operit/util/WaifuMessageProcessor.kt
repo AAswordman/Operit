@@ -3,10 +3,12 @@ package com.ai.assistance.operit.util
 import android.content.Context
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import com.ai.assistance.operit.util.streamnative.nativeMarkdownSplitByBlock
+import com.ai.assistance.operit.util.streamnative.NativeMarkdownSplitter
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -14,6 +16,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import com.ai.assistance.operit.core.chat.context.ChatUtils
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.util.logging.AppLogger
 
 /**
  * Waifu模式消息处理器
@@ -24,14 +29,31 @@ object WaifuMessageProcessor {
     private const val ENTITY_PLACEHOLDER_PREFIX = "{WAIFUENTITY:"
     private const val ENTITY_PLACEHOLDER_SUFFIX = "}"
     private const val MAX_TYPING_DELAY_MS = 3000L
-    private val FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*?```")
-    private val UNCLOSED_FENCED_CODE_BLOCK_REGEX = Regex("```[^\\r\\n`]*[\\r\\n]?[\\s\\S]*$")
+    private val FENCED_CODE_BLOCK_REGEX =
+        Regex(
+            "^ {0,3}(`{3,})[^\\r\\n`]*\\r?\\n[\\s\\S]*?^ {0,3}\\1`*[ \\t]*(?=\\r?$)",
+            RegexOption.MULTILINE,
+        )
+    private val UNCLOSED_FENCED_CODE_BLOCK_REGEX =
+        Regex(
+            "^ {0,3}`{3,}[^\\r\\n`]*(?:\\r?\\n[\\s\\S]*)?\\z",
+            RegexOption.MULTILINE,
+        )
     private val SENTENCE_SPLIT_REGEX =
         Regex("(?<=[。！？~～])(?![\"'”’」』])|(?<=[!?])(?![\"'”’」』])|(?<=\\.)(?![.\\d\"'”’」』])|(?<=\\.)$|(?<=\\.{3})|(?<=[…](?![…]))")
     private val SENTENCE_END_REGEX =
         Regex("(?:[。！？~～.!?…]|\\.{3})\\s*$")
     private val HORIZONTAL_RULE_REGEX = Regex("^[-_*]{3,}$")
     private val MARKDOWN_ENTITY_REGEX = Regex("""!?\[[^\]]*?\]\([^)]*?\)""")
+    private val INLINE_LATEX_REGEX =
+        Regex("""(?<![\\$])\$(?![\s$])[^$\r\n]+?(?<!\s)\$(?![\d$])|\\\([\s\S]*?\\\)""")
+    private val ORDERED_LIST_DOT_REGEX =
+        Regex("""(?m)(?<![\p{L}\p{N}_])(\d+)\.(?=[ \t]|$)""")
+    private val XML_TOKEN_REGEX = Regex(
+        """<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?]]>|</?([A-Za-z][A-Za-z0-9_]*)(?=\s|/?>)(?:[^<>"']|"[^"]*"|'[^']*')*>"""
+    )
+    private val UNTERMINATED_MARKDOWN_LINE_REGEX =
+        Regex("""^[ \t]{0,3}(?:\d+\.[ \t]*|[-*+](?:[ \t]+|$)|>[ \t]?|#{1,6}[ \t]+).*$""")
     private val BARE_URL_REGEX = Regex("""https?://$URL_CHARS+""")
     private val EMAIL_ADDRESS_REGEX = Regex("""[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}""")
     private val DOMAIN_URL_REGEX =
@@ -46,6 +68,16 @@ object WaifuMessageProcessor {
         private val removePunctuation: Boolean = false
     ) {
         private val emittedSegments = mutableListOf<String>()
+
+        /** 首句尚未稳定时提供可渲染正文，隐藏的 XML 仍由相同清理器过滤。 */
+        fun collectFirstSegmentPreview(content: String): String? {
+            if (emittedSegments.isNotEmpty()) return null
+            return splitMessageBySentencesInternal(
+                content = buildRenderableContentForWaifu(content),
+                removePunctuation = removePunctuation,
+                includeTrailingIncomplete = true,
+            ).firstOrNull()?.takeIf { it.isNotBlank() }
+        }
 
         fun collectStableSegments(content: String): List<String> {
             return collectSegments(
@@ -101,6 +133,7 @@ object WaifuMessageProcessor {
     fun streamSegments(
         sourceStream: Stream<String>,
         removePunctuation: Boolean = false,
+        onFirstSegmentPreview: (suspend (String) -> Unit)? = null,
     ): Stream<String> = stream {
         val session = StreamingSession(removePunctuation = removePunctuation)
         val renderableBuffer = StringBuilder()
@@ -110,16 +143,34 @@ object WaifuMessageProcessor {
                 return
             }
             renderableBuffer.append(text)
-            session.collectStableSegments(renderableBuffer.toString()).forEach { emit(it) }
+            val snapshot = renderableBuffer.toString()
+            session.collectStableSegments(snapshot).forEach { emit(it) }
+            if (onFirstSegmentPreview != null) {
+                session.collectFirstSegmentPreview(snapshot)?.let { onFirstSegmentPreview(it) }
+            }
         }
 
         sourceStream.nativeMarkdownSplitByBlock().collect { blockGroup ->
             val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
             when (blockType) {
                 MarkdownProcessorType.XML_BLOCK -> {
-                    blockGroup.stream.collect { }
+                    val blockBuilder = StringBuilder()
+                    blockGroup.stream.collect { blockBuilder.append(it) }
+                    val block = blockBuilder.toString()
+                    if (shouldPreserveXmlBlockForWaifu(block)) {
+                        appendRenderableText(block)
+                    }
                 }
-
+                MarkdownProcessorType.BLOCK_QUOTE,
+                MarkdownProcessorType.UNORDERED_LIST -> {
+                    val marker =
+                        if (blockType == MarkdownProcessorType.BLOCK_QUOTE) "> " else "- "
+                    val restorer = MarkdownBlockMarkerRestorer(marker)
+                    blockGroup.stream.collect { piece ->
+                        appendRenderableText(restorer.append(piece))
+                    }
+                    appendRenderableText(restorer.finish())
+                }
                 MarkdownProcessorType.CODE_BLOCK,
                 MarkdownProcessorType.TABLE,
                 MarkdownProcessorType.IMAGE -> {
@@ -127,14 +178,11 @@ object WaifuMessageProcessor {
                     blockGroup.stream.collect { blockBuilder.append(it) }
                     appendRenderableText(blockBuilder.toString())
                 }
-
                 MarkdownProcessorType.BLOCK_LATEX -> {
                     val blockBuilder = StringBuilder()
                     blockGroup.stream.collect { blockBuilder.append(it) }
-                    // The `$$…$$` block plugin strips its delimiters; the paren/bracket variant
-                    // keeps them. Re-attach `$$` when missing so the accumulated buffer still
-                    // parses as BLOCK_LATEX on the second pass and the chat bubble renderer
-                    // recognizes the segment as a LaTeX block.
+                    // 原生 $$ 公式块会剥离分隔符，括号公式块会保留分隔符。
+                    // 补回缺失的 $$，让二次分块和气泡渲染继续识别为块公式。
                     appendRenderableText(ensureBlockLatexDelimiters(blockBuilder.toString()))
                 }
 
@@ -195,14 +243,21 @@ object WaifuMessageProcessor {
         sourceStream: Stream<String>,
         removePunctuation: Boolean = false,
         charDelayMs: Int,
+        onFirstSegmentPreview: (suspend (String) -> Unit)? = null,
     ): Stream<String> = stream {
         coroutineScope {
-            val segmentQueue = Channel<String>(Channel.UNLIMITED)
+            // 预览和定稿共用有序队列，打字等待只影响展示，不阻塞上游读取。
+            data class QueuedSegment(val content: String, val isPreview: Boolean)
+            val segmentQueue = Channel<QueuedSegment>(Channel.UNLIMITED)
+            val previewConsumer: (suspend (String) -> Unit)? = if (onFirstSegmentPreview != null) {
+                { preview: String -> segmentQueue.send(QueuedSegment(preview, isPreview = true)) }
+            } else null
             val producerJob = launch {
                 try {
                     streamSegments(
                         sourceStream = sourceStream,
                         removePunctuation = false,
+                        onFirstSegmentPreview = previewConsumer,
                     ).collect { segment ->
                         val queuedSegment =
                             if (removePunctuation) {
@@ -211,7 +266,7 @@ object WaifuMessageProcessor {
                                 segment
                             }
                         if (queuedSegment.isNotBlank()) {
-                            segmentQueue.send(queuedSegment)
+                            segmentQueue.send(QueuedSegment(queuedSegment, isPreview = false))
                         }
                     }
                 } finally {
@@ -220,7 +275,13 @@ object WaifuMessageProcessor {
             }
 
             var isFirstSegment = true
-            for (segment in segmentQueue) {
+            for (queued in segmentQueue) {
+                if (queued.isPreview) {
+                    val preview = if (removePunctuation) removeSentenceEndPunctuation(queued.content) else queued.content
+                    if (preview.isNotBlank()) onFirstSegmentPreview?.invoke(preview)
+                    continue
+                }
+                val segment = queued.content
                 val waitMs =
                     calculateTypingDelayMs(
                         segmentLength = segment.length,
@@ -237,6 +298,92 @@ object WaifuMessageProcessor {
 
             producerJob.join()
         }
+    }
+
+    internal fun streamSegmentUpdatesWithTypingQueue(
+        sourceStream: Stream<String>,
+        removePunctuation: Boolean = false,
+        charDelayMs: Int,
+    ): Stream<WaifuSegmentUpdate> = streamWaifuUpdates(
+        sourceStream = sourceStream,
+        splitSnapshot = { content, final ->
+            val session = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, final, session.push(content))
+            } finally {
+                session.destroy()
+            }
+            val segments = if (final) {
+                splitMessageBySentences(renderable)
+            } else {
+                splitStableMessageSegments(renderable)
+            }
+            if (removePunctuation) {
+                segments.map(::removeSentenceEndPunctuation).filter { it.isNotBlank() }
+            } else {
+                segments
+            }
+        },
+        typingDelayMs = { length, first -> calculateTypingDelayMs(length, charDelayMs, first) },
+        firstSegmentPreview = { content ->
+            // 首句继续即时预览；代码、公式和 XML 仍先经过相同的可见块过滤。
+            val nativeSession = NativeMarkdownSplitter.createBlockSession()
+            val renderable = try {
+                buildRenderableSnapshot(content, false, nativeSession.push(content))
+            } finally {
+                nativeSession.destroy()
+            }
+            StreamingSession(removePunctuation).collectFirstSegmentPreview(renderable)
+        },
+    )
+
+    internal fun buildRenderableSnapshot(
+        content: String,
+        final: Boolean,
+        nativeSegments: IntArray,
+    ): String {
+        val renderable = StringBuilder()
+        val block = StringBuilder()
+        var activeType: MarkdownProcessorType? = null
+
+        fun closeBlock() {
+            when (activeType) {
+                MarkdownProcessorType.XML_BLOCK -> {
+                    val xml = block.toString()
+                    if (shouldPreserveXmlBlockForWaifu(xml)) renderable.append(xml)
+                }
+                MarkdownProcessorType.BLOCK_LATEX ->
+                    renderable.append(ensureBlockLatexDelimiters(block.toString()))
+                else -> renderable.append(block)
+            }
+            block.setLength(0)
+            activeType = null
+        }
+
+        require(nativeSegments.size % 3 == 0)
+        for (index in nativeSegments.indices step 3) {
+            val ordinal = nativeSegments[index]
+            if (ordinal < 0) {
+                closeBlock()
+                continue
+            }
+            val type = MarkdownProcessorType.entries[ordinal]
+            if (type != activeType) {
+                closeBlock()
+                activeType = type
+            }
+            val piece = content.substring(nativeSegments[index + 1], nativeSegments[index + 2])
+            when (type) {
+                MarkdownProcessorType.XML_BLOCK,
+                MarkdownProcessorType.CODE_BLOCK,
+                MarkdownProcessorType.TABLE,
+                MarkdownProcessorType.IMAGE,
+                MarkdownProcessorType.BLOCK_LATEX -> block.append(piece)
+                else -> renderable.append(piece)
+            }
+        }
+        if (final) closeBlock()
+        return renderable.toString()
     }
 
     fun streamTtsText(sourceStream: Stream<String>): Stream<Char> = stream {
@@ -327,9 +474,10 @@ object WaifuMessageProcessor {
         if (content.isBlank()) return emptyList()
 
         val entities = mutableListOf<String>()
+        val entityPrefix = unusedPlaceholderPrefix(content, ENTITY_PLACEHOLDER_PREFIX)
 
         fun createPlaceholder(value: String): String {
-            val placeholder = "$ENTITY_PLACEHOLDER_PREFIX${entities.size}$ENTITY_PLACEHOLDER_SUFFIX"
+            val placeholder = "$entityPrefix${entities.size}$ENTITY_PLACEHOLDER_SUFFIX"
             entities.add(value)
             return placeholder
         }
@@ -349,6 +497,8 @@ object WaifuMessageProcessor {
         // 1. 将Markdown实体、URL和邮箱替换为占位符，以保护它们不被错误分割
         var contentWithPlaceholders =
             MARKDOWN_ENTITY_REGEX.replace(content) { createPlaceholder(it.value) }
+        contentWithPlaceholders =
+            INLINE_LATEX_REGEX.replace(contentWithPlaceholders) { createPlaceholder(it.value) }
         contentWithPlaceholders = protectMatches(contentWithPlaceholders, BARE_URL_REGEX)
         contentWithPlaceholders = protectMatches(contentWithPlaceholders, EMAIL_ADDRESS_REGEX)
         contentWithPlaceholders = protectMatches(contentWithPlaceholders, DOMAIN_URL_REGEX)
@@ -393,7 +543,7 @@ object WaifuMessageProcessor {
                 }
 
                 // 对于文本内容，进行正常的清理和分句处理
-                val cleanedContent = cleanContentForWaifu(item)
+                val cleanedContent = cleanContentForWaifuDisplay(item)
 
                 if (cleanedContent.isBlank()) continue
 
@@ -407,7 +557,7 @@ object WaifuMessageProcessor {
                     val unclosedInlineMarkdownStart = findLastUnclosedInlineMarkdownStart(item)
                     if (unclosedInlineMarkdownStart != null) {
                         val stableRawContent = item.substring(0, unclosedInlineMarkdownStart)
-                        val stableCleanedContent = cleanContentForWaifu(stableRawContent)
+                        val stableCleanedContent = cleanContentForWaifuDisplay(stableRawContent)
                         sentences =
                             splitStableSentencesForRawContent(
                                 rawContent = stableRawContent,
@@ -430,7 +580,9 @@ object WaifuMessageProcessor {
                     }
                 }
 
-                resultWithPlaceholders.addAll(sentences)
+                resultWithPlaceholders.addAll(
+                    sentences.map { restoreMarkdownBlockMarkers(it, segment.blockType) }
+                )
             }
         }
         
@@ -442,7 +594,7 @@ object WaifuMessageProcessor {
             var currentSentence = sentence
             val placeholderRegex =
                 Regex(
-                    "${Regex.escape(ENTITY_PLACEHOLDER_PREFIX)}(\\d+)${Regex.escape(ENTITY_PLACEHOLDER_SUFFIX)}"
+                    "${Regex.escape(entityPrefix)}(\\d+)${Regex.escape(ENTITY_PLACEHOLDER_SUFFIX)}"
                 )
             
             // 循环替换，以处理一个句子中可能存在的多个占位符
@@ -450,11 +602,8 @@ object WaifuMessageProcessor {
                 currentSentence = placeholderRegex.replace(currentSentence) { matchResult ->
                     val index = matchResult.groupValues[1].toInt()
                     
-                    if (index < entities.size) {
-                        entities[index]
-                    } else {
-                        matchResult.value // 理论上不会发生，作为安全回退
-                    }
+                    // 前缀已避开原文，匹配到的索引均由本次分句生成。
+                    entities[index]
                 }
             }
             currentSentence
@@ -476,7 +625,58 @@ object WaifuMessageProcessor {
         return value.substring(0, splitIndex) to value.substring(splitIndex)
     }
 
-    private fun splitPlainTextIntoSentences(
+    private fun unusedPlaceholderPrefix(content: String, initialPrefix: String): String {
+        var prefix = initialPrefix
+        while (content.contains(prefix)) prefix = "{$prefix"
+        return prefix
+    }
+
+    /** 每行只恢复一次结构标记，并缓冲跨 chunk 的标记前缀。 */
+    internal class MarkdownBlockMarkerRestorer(private val marker: String) {
+        private var atLineStart = true
+        private val pendingPrefix = StringBuilder()
+
+        fun append(piece: String): String = buildString {
+            piece.forEach { char ->
+                if (!atLineStart) {
+                    append(char)
+                    atLineStart = char == '\n'
+                    return@forEach
+                }
+                pendingPrefix.append(char)
+                val prefix = pendingPrefix.toString()
+                if (marker.startsWith(prefix)) {
+                    if (prefix == marker) {
+                        append(prefix)
+                        pendingPrefix.clear()
+                        atLineStart = false
+                    }
+                } else {
+                    if (prefix != "\n" && prefix != "\r") append(marker)
+                    append(prefix)
+                    pendingPrefix.clear()
+                    atLineStart = char == '\n'
+                }
+            }
+        }
+
+        fun finish(): String = pendingPrefix.toString().also { pendingPrefix.clear() }
+    }
+
+    internal fun restoreMarkdownBlockMarkers(
+        content: String,
+        blockType: MarkdownProcessorType,
+    ): String {
+        val marker = when (blockType) {
+            MarkdownProcessorType.BLOCK_QUOTE -> "> "
+            MarkdownProcessorType.UNORDERED_LIST -> "- "
+            else -> return content
+        }
+        val restorer = MarkdownBlockMarkerRestorer(marker)
+        return restorer.append(content) + restorer.finish()
+    }
+
+    internal fun splitPlainTextIntoSentences(
         cleanedContent: String,
         removePunctuation: Boolean,
     ): List<String> {
@@ -484,8 +684,17 @@ object WaifuMessageProcessor {
             return emptyList()
         }
 
+        // 只替换序号后的点，并选取原文未使用的前缀，避免重复序号和字面量冲突。
+        val listDotPrefix = unusedPlaceholderPrefix(cleanedContent, "{WAIFULISTDOT:")
+        var markerIndex = 0
+        val contentWithProtectedListDots =
+            ORDERED_LIST_DOT_REGEX.replace(cleanedContent) { match ->
+                "${match.groupValues[1]}$listDotPrefix${markerIndex++}}"
+            }
+        // Android ICU 要求转义字面右花括号，否则普通非空消息也会在编译该正则时崩溃。
+        val listDotPlaceholderRegex = Regex("${Regex.escape(listDotPrefix)}\\d+\\}")
         var sentences =
-            cleanedContent.split(SENTENCE_SPLIT_REGEX)
+            contentWithProtectedListDots.split(SENTENCE_SPLIT_REGEX)
                 .filter { it.isNotBlank() }
                 .map { it.trim() }
 
@@ -502,7 +711,9 @@ object WaifuMessageProcessor {
                     .filter { it.isNotBlank() }
         }
 
-        return sentences
+        return sentences.map { sentence ->
+            listDotPlaceholderRegex.replace(sentence, ".")
+        }
     }
 
     private fun mergePunctuationOnlySegments(segments: List<String>): MutableList<String> {
@@ -571,23 +782,14 @@ object WaifuMessageProcessor {
                 return@forEach
             }
 
-            val lineContent = cleanContentForWaifu(cleanedLine)
+            val lineContent = cleanContentForWaifuDisplay(cleanedLine)
             results.addAll(splitPlainTextIntoSentences(lineContent, removePunctuation))
         }
 
         return mergePunctuationOnlySegments(results)
     }
 
-    private fun cleanStructuredMarkdownLine(line: String): String =
-        line
-            .trim()
-            .replace(Regex("^#+\\s*"), "")
-            .replace(Regex("^>\\s*"), "")
-            .replace(Regex("^(?:[\\-*+]\\s+|\\d+\\.\\s+)"), "")
-            .replace(Regex("^\\*\\*(.+)\\*\\*$"), "$1")
-            .replace(Regex("^__(.+)__$"), "$1")
-            .replace(Regex("^~~(.+)~~$"), "$1")
-            .trim()
+    private fun cleanStructuredMarkdownLine(line: String): String = line.trim()
 
     private fun getLastVisibleLine(content: String): String =
         content.lineSequence()
@@ -626,8 +828,13 @@ object WaifuMessageProcessor {
             ENTITY_PLACEHOLDER_REGEX.containsMatchIn(trimmedLine)
     }
 
-    private fun hasStableSentenceEnding(content: String): Boolean {
-        return SENTENCE_END_REGEX.containsMatchIn(content.trimEnd())
+    internal fun hasStableSentenceEnding(content: String): Boolean {
+        val trimmed = content.trimEnd()
+        // 流式尾部的 1. 仍是待完成的序号，不能因点号把它单独提交。
+        if (ORDERED_LIST_DOT_REGEX.findAll(trimmed).any { it.range.last == trimmed.lastIndex }) {
+            return false
+        }
+        return SENTENCE_END_REGEX.containsMatchIn(trimmed)
     }
 
     private fun splitStableSentencesForRawContent(
@@ -670,6 +877,17 @@ object WaifuMessageProcessor {
         segment: Segment,
         hasFollowingStableBoundarySegment: Boolean,
     ): Boolean {
+        val lastRawLine = rawContent.substringAfterLast('\n')
+        // 行首结构行在换行到达前仍可能增长，不能把当前快照作为稳定前缀提交。
+        if (
+            !rawContent.endsWith('\n') &&
+            !segment.content.endsWith('\n') &&
+            !hasFollowingStableBoundarySegment &&
+            UNTERMINATED_MARKDOWN_LINE_REGEX.matches(lastRawLine)
+        ) {
+            return true
+        }
+
         return !hasStableSentenceEnding(cleanedContent) &&
             !lineAllowsStableWithoutSentenceEnding(getLastVisibleLine(rawContent)) &&
             !segment.canUseBlockBoundaryAsStableEnding(
@@ -677,15 +895,75 @@ object WaifuMessageProcessor {
             )
     }
 
-    private fun findLastUnclosedInlineMarkdownStart(content: String): Int? {
+    internal fun findLastUnclosedInlineMarkdownStart(content: String): Int? {
         val trimmedContent = content.trimEnd()
         if (trimmedContent.isEmpty()) {
             return null
         }
 
-        return listOf("**", "__", "~~", "`")
-            .mapNotNull { delimiter -> findLastUnclosedDelimiterStart(trimmedContent, delimiter) }
-            .maxOrNull()
+        val unclosedDelimiterStart =
+            listOf("**", "__", "~~", "`")
+                .mapNotNull { delimiter -> findLastUnclosedDelimiterStart(trimmedContent, delimiter) }
+                .maxOrNull()
+        val unclosedLatexStart = findLastUnclosedParenLatexStart(trimmedContent)
+        val unclosedLinkStart = findLastUnclosedMarkdownLinkStart(trimmedContent)
+        val unclosedDollarLatexStart = findLastUnclosedDollarLatexStart(trimmedContent)
+        return listOfNotNull(
+            unclosedDelimiterStart, unclosedLatexStart, unclosedLinkStart, unclosedDollarLatexStart
+        ).maxOrNull()
+    }
+
+    private fun findLastUnclosedDollarLatexStart(content: String): Int? {
+        val closedFormulas = INLINE_LATEX_REGEX.findAll(content).iterator()
+        var closedFormula = if (closedFormulas.hasNext()) closedFormulas.next() else null
+        var opening: Int? = null
+        content.forEachIndexed { index, char ->
+            if (char != '$' || isEscaped(content, index)) return@forEachIndexed
+            while (closedFormula != null && index > closedFormula!!.range.last) {
+                closedFormula = if (closedFormulas.hasNext()) closedFormulas.next() else null
+            }
+            if (closedFormula?.range?.contains(index) == true) return@forEachIndexed
+            val previous = content.getOrNull(index - 1)
+            val next = content.getOrNull(index + 1)
+            if (previous == '$' || next == '$') return@forEachIndexed
+            if (opening == null) {
+                // 数字紧跟单个美元符号时按金额处理；完整数字公式由行内匹配保护。
+                if (next == null || (!next.isWhitespace() && !next.isDigit())) opening = index
+            } else if (previous?.isWhitespace() == false && next?.isDigit() != true) {
+                opening = null
+            }
+        }
+        return opening
+    }
+
+    private fun findLastUnclosedParenLatexStart(content: String): Int? {
+        val unmatchedOpeners = mutableListOf<Int>()
+        Regex("""(?<!\\)\\[()]""").findAll(content).forEach { match ->
+            if (match.value.endsWith('(')) {
+                unmatchedOpeners.add(match.range.first)
+            } else if (unmatchedOpeners.isNotEmpty()) {
+                unmatchedOpeners.removeAt(unmatchedOpeners.lastIndex)
+            }
+        }
+        return unmatchedOpeners.lastOrNull()
+    }
+
+    private fun findLastUnclosedMarkdownLinkStart(content: String): Int? {
+        val openingBracket = content.lastIndexOf('[')
+        if (openingBracket < 0) {
+            return null
+        }
+        val closingBracket = content.indexOf(']', openingBracket)
+        if (closingBracket < 0) {
+            return if (openingBracket > 0 && content[openingBracket - 1] == '!') openingBracket - 1 else openingBracket
+        }
+        if (content.getOrNull(closingBracket + 1) != '(') {
+            return null
+        }
+        if (content.indexOf(')', closingBracket + 2) >= 0) {
+            return null
+        }
+        return if (openingBracket > 0 && content[openingBracket - 1] == '!') openingBracket - 1 else openingBracket
     }
 
     private fun findLastUnclosedDelimiterStart(content: String, delimiter: String): Int? {
@@ -732,34 +1010,64 @@ object WaifuMessageProcessor {
         }
 
         return separateEmotionAndText(contentWithoutThinking).any { item ->
-            item.startsWith("![") || cleanContentForWaifu(item).isNotBlank()
+            item.startsWith("![") || cleanContentForWaifuDisplay(item).isNotBlank()
         }
     }
 
-    fun buildRenderableContentForWaifu(content: String): String {
-        if (content.isBlank()) {
-            return ""
-        }
+    fun buildRenderableContentForWaifu(content: String): String =
+        buildContentForWaifu(content, preservePluginXml = true)
 
-        val blocks = StructuredAssistantContentParser.parse(content)
-        if (blocks.isEmpty()) {
-            return content
-        }
-
-        val builder = StringBuilder()
-        blocks.forEach { block ->
-            when (block.kind) {
-                StructuredAssistantContentParser.BlockKind.TEXT -> {
-                    builder.append(block.rawContent)
-                }
-
-                StructuredAssistantContentParser.BlockKind.XML -> Unit
+    private fun buildContentForWaifu(content: String, preservePluginXml: Boolean): String {
+        if (content.isBlank()) return ""
+        val builder = StringBuilder(content.length)
+        var cursor = 0
+        XML_TOKEN_REGEX.findAll(content).forEach { match ->
+            if (match.range.first < cursor) return@forEach
+            builder.append(content, cursor, match.range.first)
+            val rawTagName = match.groupValues[1]
+            if (rawTagName.isEmpty() || match.value.startsWith("</")) {
+                cursor = match.range.last + 1
+                return@forEach
             }
+            val blockEnd = findXmlBlockEnd(content, match.range.first)
+            val tagName = ChatMarkupRegex.normalizeToolLikeTagName(rawTagName) ?: rawTagName
+            if (preservePluginXml && blockEnd != null && isRenderablePluginXmlTag(tagName)) {
+                builder.append(content, match.range.first, blockEnd)
+            }
+            // 未闭合 XML 仍属于该块，不能把内部内容当作普通回复输出。
+            cursor = blockEnd ?: content.length
         }
-
+        builder.append(content, cursor, content.length)
         return builder.toString()
     }
-    
+
+    /** 同名标签按深度配对；属性、注释和 CDATA 中的伪结束标签不参与配对。 */
+    private fun findXmlBlockEnd(content: String, start: Int): Int? {
+        val opening = XML_TOKEN_REGEX.find(content, start)
+            ?.takeIf { it.range.first == start && !it.value.startsWith("</") }
+            ?: return null
+        val rawTagName = opening.groupValues[1]
+        if (rawTagName.isEmpty()) return null
+        if (opening.value.endsWith("/>")) return opening.range.last + 1
+        var depth = 1
+        XML_TOKEN_REGEX.findAll(content, opening.range.last + 1).forEach { match ->
+            if (match.groupValues[1] != rawTagName) return@forEach
+            if (match.value.startsWith("</")) {
+                depth--
+                if (depth == 0) return match.range.last + 1
+            } else if (!match.value.endsWith("/>")) {
+                depth++
+            }
+        }
+        return null
+    }
+
+    // 只过滤从行首合法开启的代码块，避免讲解反引号时丢失后续正文。
+    internal fun removeFencedCodeBlocks(content: String): String =
+        content
+            .replace(FENCED_CODE_BLOCK_REGEX, " ")
+            .replace(UNCLOSED_FENCED_CODE_BLOCK_REGEX, " ")
+
     /**
      * 清理内容中的状态标签和XML标签，只保留纯文本
      */
@@ -767,13 +1075,11 @@ object WaifuMessageProcessor {
         val sanitizedContent =
             ChatUtils.removeThinkingContent(
                 ChatUtils.stripGeminiThoughtSignatureMeta(
-                    buildRenderableContentForWaifu(content)
+                    buildContentForWaifu(content, preservePluginXml = false)
                 )
             )
 
-        return sanitizedContent
-            .replace(FENCED_CODE_BLOCK_REGEX, " ")
-            .replace(UNCLOSED_FENCED_CODE_BLOCK_REGEX, " ")
+        return removeFencedCodeBlocks(sanitizedContent)
             // 移除状态标签
             .replace(ChatMarkupRegex.statusTag, "")
             .replace(ChatMarkupRegex.statusSelfClosingTag, "")
@@ -785,7 +1091,7 @@ object WaifuMessageProcessor {
             .replace(ChatMarkupRegex.toolResultSelfClosingTag, "")
             // 移除emotion标签（因为已经在processEmotionTags中处理过了）
             .replace(ChatMarkupRegex.emotionTag, "")
-            
+
             // --- 新增：移除Markdown相关标记 ---
             // 1. 移除图片和链接，保留替代文本或链接文本
             .replace(Regex("!?\\[(.*?)\\]\\(.*?\\)"), "$1")
@@ -796,23 +1102,45 @@ object WaifuMessageProcessor {
             // 4. 移除列表标记
             .replace(Regex("^[\\*\\-\\+]\\s+", RegexOption.MULTILINE), "")
             .replace(Regex("^\\d+\\.\\s+", RegexOption.MULTILINE), "")
-            // 5. 移除代码块标记
-            .replace(Regex("```[a-zA-Z]*\\n?|\\n?```"), "")
-            // 6. 移除加粗、斜体、删除线 (注意顺序和互斥)
+            // 5. 移除加粗、斜体、删除线 (注意顺序和互斥)
             .replace(Regex("(\\*\\*\\*|___)(.+?)\\1"), "$2") // 加粗斜体
             .replace(Regex("(\\*\\*|__(?!MD_ENTITY__))(.+?)\\1"), "$2") // 加粗 (避免匹配占位符)
             .replace(Regex("(\\*|_)(.+?)\\1"), "$2")        // 斜体
             .replace(Regex("~~(.+?)~~"), "$1")              // 删除线
-            // 7. 移除行内代码
+            // 6. 移除行内代码
             .replace(Regex("`(.+?)`"), "$1")
-            // 8. 移除水平线
+            // 7. 移除水平线
             .replace(Regex("^[-_*]{3,}\\s*$", RegexOption.MULTILINE), "")
             // --- Markdown移除结束 ---
-            
+
             // 移除其他常见的XML标签
             .replace(ChatMarkupRegex.anyXmlTag, "")
             // 清理多余的空白
             .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+
+
+    /** 展示保留 Markdown 和已注册插件 XML；TTS 与通知仍使用纯文本清理。 */
+    fun cleanContentForWaifuDisplay(content: String): String {
+        val sanitizedContent =
+            ChatUtils.removeThinkingContent(
+                ChatUtils.stripGeminiThoughtSignatureMeta(
+                    buildRenderableContentForWaifu(content)
+                )
+            )
+
+        return sanitizedContent
+            .replace(FENCED_CODE_BLOCK_REGEX, " ")
+            .replace(UNCLOSED_FENCED_CODE_BLOCK_REGEX, " ")
+            .replace(ChatMarkupRegex.statusTag, "")
+            .replace(ChatMarkupRegex.statusSelfClosingTag, "")
+            .replace(ChatMarkupRegex.toolTag, "")
+            .replace(ChatMarkupRegex.toolSelfClosingTag, "")
+            .replace(ChatMarkupRegex.toolResultTag, "")
+            .replace(ChatMarkupRegex.toolResultSelfClosingTag, "")
+            .let(::removeUnsupportedXmlTags)
             .trim()
     }
     
@@ -826,6 +1154,58 @@ object WaifuMessageProcessor {
         fun canUseBlockBoundaryAsStableEnding(hasFollowingStableBoundarySegment: Boolean): Boolean {
             return hasFollowingStableBoundarySegment || blockType.canCloseStableTextAtBlockBoundary()
         }
+    }
+
+    internal fun shouldPreserveXmlBlockForWaifu(rawContent: String): Boolean {
+        val trimmed = rawContent.trim()
+        val rawTagName = ChatMarkupRegex.extractOpeningTagName(trimmed) ?: return false
+        val tagName = ChatMarkupRegex.normalizeToolLikeTagName(rawTagName) ?: rawTagName
+        if (!isRenderablePluginXmlTag(tagName)) {
+            return false
+        }
+        return findXmlBlockEnd(trimmed, 0) == trimmed.length
+    }
+
+    private fun isRenderablePluginXmlTag(tagName: String): Boolean {
+        val normalizedTagName = tagName.trim()
+        if (normalizedTagName.isBlank() || isInternalWaifuXmlTag(normalizedTagName)) {
+            return false
+        }
+        return XmlRenderPluginRegistry.supports(normalizedTagName)
+    }
+
+    private fun isInternalWaifuXmlTag(tagName: String): Boolean = tagName in setOf(
+        "think", "thinking", "tool", "tool_result", "status", "search", "meta",
+        "emotion", "memory", "attachment", "workspace_attachment", "proxy_sender",
+        "reply_to", "content", "error", "param",
+    )
+
+    private fun removeUnsupportedXmlTags(content: String): String {
+        if (!content.contains('<')) {
+            return content
+        }
+        val preservedRanges = mutableListOf<IntRange>()
+        ChatMarkupRegex.anyXmlTag.findAll(content).forEach { match ->
+            val rawTagName = ChatMarkupRegex.extractOpeningTagName(match.value) ?: return@forEach
+            val tagName = ChatMarkupRegex.normalizeToolLikeTagName(rawTagName) ?: rawTagName
+            if (!isRenderablePluginXmlTag(tagName)) {
+                return@forEach
+            }
+            val blockEnd = findXmlBlockEnd(content, match.range.first) ?: return@forEach
+            preservedRanges += match.range.first until blockEnd
+        }
+
+        val builder = StringBuilder(content.length)
+        var index = 0
+        ChatMarkupRegex.anyXmlTag.findAll(content).forEach { match ->
+            if (preservedRanges.any { match.range.first in it }) {
+                return@forEach
+            }
+            builder.append(content, index, match.range.first)
+            index = match.range.last + 1
+        }
+        builder.append(content, index, content.length)
+        return builder.toString()
     }
 
     private fun MarkdownProcessorType.canCloseStableTextAtBlockBoundary(): Boolean =
@@ -868,41 +1248,50 @@ object WaifuMessageProcessor {
 
         val segments = mutableListOf<Segment>()
 
-        runBlocking {
-            content.stream()
-                .nativeMarkdownSplitByBlock()
-                .collect { blockGroup ->
-                    val blockType = blockGroup.tag ?: MarkdownProcessorType.PLAIN_TEXT
-                    val sb = StringBuilder()
-                    blockGroup.stream.collect { sb.append(it) }
-                    val block = sb.toString()
-                    if (block.isEmpty()) return@collect
-
-                    val isProtected =
-                        when (blockType) {
-                            MarkdownProcessorType.CODE_BLOCK,
-                            MarkdownProcessorType.TABLE,
-                            MarkdownProcessorType.BLOCK_LATEX -> true
-                            else -> false
-                        }
-
-                    // BLOCK_LATEX from `$$…$$` reaches us stripped of delimiters. Re-attach
-                    // them so the emitted segment renders as LaTeX in the chat bubble.
-                    val normalizedBlock =
-                        if (blockType == MarkdownProcessorType.BLOCK_LATEX) {
-                            ensureBlockLatexDelimiters(block)
-                        } else {
-                            block
-                        }
-
-                    segments.add(
-                        Segment(
-                            content = normalizedBlock,
-                            isProtected = isProtected,
-                            blockType = blockType,
-                        )
-                    )
+        // 快照一次送入原生解析器，避免每个增量都为整个历史逐字创建协程和 JNI 调用。
+        val session = NativeMarkdownSplitter.createBlockSession()
+        try {
+            val parts = session.push(content)
+            val blockBuilder = StringBuilder()
+            var activeType: MarkdownProcessorType? = null
+            fun flushBlock() {
+                val blockType = activeType ?: return
+                val block = blockBuilder.toString()
+                blockBuilder.clear()
+                activeType = null
+                if (block.isEmpty()) return
+                val isProtected = when (blockType) {
+                    MarkdownProcessorType.CODE_BLOCK,
+                    MarkdownProcessorType.TABLE,
+                    MarkdownProcessorType.BLOCK_LATEX -> true
+                    MarkdownProcessorType.XML_BLOCK -> shouldPreserveXmlBlockForWaifu(block)
+                    else -> false
                 }
+                val normalizedBlock = if (blockType == MarkdownProcessorType.BLOCK_LATEX) {
+                    ensureBlockLatexDelimiters(block)
+                } else {
+                    restoreMarkdownBlockMarkers(block, blockType)
+                }
+                segments.add(Segment(normalizedBlock, isProtected, blockType))
+            }
+            var index = 0
+            while (index + 2 < parts.size) {
+                val ordinal = parts[index]
+                val start = parts[index + 1]
+                val end = parts[index + 2]
+                index += 3
+                if (ordinal < 0) {
+                    flushBlock()
+                    continue
+                }
+                val type = MarkdownProcessorType.entries[ordinal]
+                if (activeType != type) flushBlock()
+                activeType = type
+                blockBuilder.append(content, start, end)
+            }
+            flushBlock()
+        } finally {
+            session.destroy()
         }
 
         return segments
@@ -1011,7 +1400,7 @@ object WaifuMessageProcessor {
                 customEmojiRepository?.let { repo ->
                     runBlocking {
                         val activePrompt = activePromptManager?.getActivePrompt() ?: return@runBlocking null
-                        repo.initializeBuiltinEmojis(activePrompt)
+                        repo.initializeStorage()
                         val emojis = repo.getEmojisForCategory(activePrompt, emotion).first()
                         if (emojis.isNotEmpty()) {
                             val randomEmoji = emojis.random()
@@ -1024,7 +1413,7 @@ object WaifuMessageProcessor {
                     }
                 }
             } catch (e: Exception) {
-                com.ai.assistance.operit.util.AppLogger.e("WaifuMessageProcessor", "查询自定义表情失败", e)
+                com.ai.assistance.operit.util.logging.AppLogger.e("WaifuMessageProcessor", "查询自定义表情失败", e)
                 null
             }
             
@@ -1034,11 +1423,11 @@ object WaifuMessageProcessor {
             }
             
             // 如果自定义表情中没有找到，则直接返回null
-            com.ai.assistance.operit.util.AppLogger.w("WaifuMessageProcessor", "在自定义表情中未找到对于情绪 '$emotion' 的表情")
+            com.ai.assistance.operit.util.logging.AppLogger.w("WaifuMessageProcessor", "在自定义表情中未找到对于情绪 '$emotion' 的表情")
             return null
             
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("WaifuMessageProcessor", "获取表情图片失败: $emotion", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("WaifuMessageProcessor", "获取表情图片失败: $emotion", e)
             return null
         }
     }

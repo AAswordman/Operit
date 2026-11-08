@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">În pauză temporară: au rămas %1$d secunde</string>
+    <string name="api_key_pool_cooling_summary">%1$d chei în pauză; timpul minim rămas: %2$d secunde</string>
+    <string name="api_key_pool_states_cleared">Marcajul de testare și timpul de răcire temporar au fost șters</string>
+    <string name="api_key_pool_no_available_marks">Configurația „%1$s” nu testează cheile marcate ca disponibile. Vă rugăm să ștergeți mai întâi marcajul și apoi să testați din nou.</string>
+    <string name="api_key_pool_all_cooling">Cheile candidate din „%1$s” sunt în pauză temporară. Poți reîncerca peste %2$d secunde.</string>
+    <string name="api_key_pool_already_tried">Toate cheile candidate pentru configurația „%1$s” au fost încercate în această solicitare, vă rugăm să încercați din nou mai târziu.</string>
+    <string name="api_key_pool_no_enabled_keys">Configurația „%1$s” nu are chei activate disponibile, vă rugăm să verificați configurația pool-ului de chei.</string>
+    <string name="api_key_pool_endpoint_error">Adresa sau metoda de solicitare nu există, vă rugăm să verificați tipul furnizorului de servicii și să completați calea API. Căile personalizate (cum ar fi /v2) sunt folosite ca atare, interfețele compatibile cu OpenAI trebuie de obicei completate în /chat/completions. Eroare originală: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Modelul „%1$s” este în pauză: au rămas %2$d secunde</string>
+</resources>

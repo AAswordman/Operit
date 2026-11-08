@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">多选文件</string>
+    <string name="workspace_selection_count">已选择 %1$d 项</string>
+    <string name="workspace_delete_selected_title">删除所选项目</string>
+    <string name="workspace_delete_selected_message">将删除所选的 %1$d 个文件或文件夹及文件夹内的内容。此操作无法撤销。</string>
+    <string name="voice_message_expired">音频文件已过期或已删除</string>
+    <string name="chat_media_file_missing">文件已不存在</string>
+    <string name="chat_media_preview_failed">无法预览此媒体文件</string>
+</resources>

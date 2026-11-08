@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">En espera temporal: quedan %1$d segundos</string>
+    <string name="api_key_pool_cooling_summary">%1$d claves en espera; tiempo mínimo restante: %2$d segundos</string>
+    <string name="api_key_pool_states_cleared">Marca de prueba y tiempo de reutilización temporal eliminados.</string>
+    <string name="api_key_pool_no_available_marks">La configuración \"%1$s\" no prueba las claves marcadas como disponibles. Primero borre la marca y luego vuelva a realizar la prueba.</string>
+    <string name="api_key_pool_all_cooling">Las claves disponibles de «%1$s» están en espera temporal. Podrás reintentar dentro de %2$d segundos.</string>
+    <string name="api_key_pool_already_tried">Se han probado todas las claves candidatas para la configuración \"%1$s\" en esta solicitud; inténtelo de nuevo más tarde.</string>
+    <string name="api_key_pool_no_enabled_keys">La configuración \'%1$s\' no tiene claves habilitadas disponibles; verifique la configuración del grupo de claves.</string>
+    <string name="api_key_pool_endpoint_error">La dirección o el método de solicitud no existe, verifique el tipo de proveedor de servicios y complete la ruta API. Las rutas personalizadas (como /v2) se utilizan tal cual, las interfaces compatibles con OpenAI generalmente deben completarse en /chat/completions. Error original: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Modelo «%1$s» en espera: quedan %2$d segundos</string>
+</resources>

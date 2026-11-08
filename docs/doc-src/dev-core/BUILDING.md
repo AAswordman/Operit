@@ -119,7 +119,7 @@ Operit 项目依赖于 android-34 平台和 34.0.0 构建工具。
 sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 ```
 3. 安装项目指定的 NDK 版本:  
-本项目要求使用 NDK 25.1.8937393。  
+本项目要求使用 NDK 25.1.8937393。根目录 `build.gradle.kts` 为应用和 Android 库模块统一固定此版本，与 CI 预装工具链及原生 ripgrep 构建保持一致。
 ```bash
 sdkmanager "ndk;25.1.8937393"
 ```
@@ -171,7 +171,7 @@ git submodule update --init --recursive terminal
 ```bash
 git submodule update --init --recursive terminal
 ```  
-其中 DragonBonesCPP、`ufbx`、`Bullet3`、`Saba`、`ncnn`、`sherpa-ncnn`、WAMR、`llama.cpp`、QuickJS、MNN 和 MNN 使用的 KleidiAI 由 CMake 通过 `FetchContent` 获取。CMake 会先解析远端 ref 的 commit，再下载对应 GitHub archive，因此不会拉取完整 Git 历史；默认跟随各自上游主分支、固定提交或上游工程声明的 tag。如需覆盖某个 ref，可在 CMake 参数中设置 `OPERIT_DRAGONBONES_CPP_GIT_REF`、`OPERIT_UFBX_GIT_REF`、`OPERIT_BULLET3_GIT_REF`、`OPERIT_SABA_GIT_REF`、`OPERIT_NCNN_GIT_REF`、`OPERIT_SHERPA_NCNN_GIT_REF`、`OPERIT_WAMR_GIT_REF`、`OPERIT_LLAMA_CPP_GIT_REF`、`OPERIT_QUICKJS_GIT_REF`、`OPERIT_MNN_GIT_REF` 或 `OPERIT_KLEIDIAI_GIT_REF`。
+其中 `ncnn`、`sherpa-ncnn`、WAMR、`llama.cpp`、QuickJS、MNN 和 MNN 使用的 KleidiAI 由 CMake 通过 `FetchContent` 获取。CMake 会先解析远端 ref 的 commit，再下载对应 GitHub archive，因此不会拉取完整 Git 历史；默认跟随各自上游主分支、固定提交或上游工程声明的 tag。如需覆盖某个 ref，可在 CMake 参数中设置 `OPERIT_NCNN_GIT_REF`、`OPERIT_SHERPA_NCNN_GIT_REF`、`OPERIT_WAMR_GIT_REF`、`OPERIT_LLAMA_CPP_GIT_REF`、`OPERIT_QUICKJS_GIT_REF`、`OPERIT_MNN_GIT_REF` 或 `OPERIT_KLEIDIAI_GIT_REF`。
 
 MNN 的 Android CMake 配置会在加入 MNN 子项目前，使用 MNN 自带的 FlatBuffers 源码编译一个宿主机 `flatc`，并从同一份 `schema/default/*.fbs` 重新生成 `schema/current/*.h`。因此构建机除了 Android NDK 和 CMake，还必须提供可用的宿主机 C/C++ 编译器；Linux 构建明确使用 `gcc` 和 `g++`，生成器不会使用 Android ABI 编译，也不会依赖工作区外的预生成头文件。
 

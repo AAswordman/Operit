@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File

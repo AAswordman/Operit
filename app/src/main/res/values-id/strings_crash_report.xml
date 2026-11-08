@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">Jalankan laporan</string>
+    <string name="crash_report_interrupted">Aplikasi terputus secara tidak terduga</string>
+    <string name="crash_report_restart_hint">Mulai ulang aplikasi untuk terus menggunakannya.</string>
+    <string name="crash_report_this_error">kesalahan ini</string>
+    <string name="crash_report_keep_hint">Anda juga dapat menyimpan laporan kesalahan terlebih dahulu.</string>
+    <string name="crash_report_restart_compact">Mulai ulang aplikasi</string>
+    <string name="crash_report_app_logs">Catatan aplikasi</string>
+    <string name="crash_report_app_logs_hint">Berisi catatan yang berjalan sebelum dan sesudah kesalahan ini</string>
+    <string name="crash_report_export_logs_compact">Ekspor log</string>
+    <string name="crash_report_local_only">Laporan kesalahan hanya disimpan secara lokal</string>
+    <string name="crash_report_no_stack">Tidak ada tumpukan kesalahan yang tersedia.</string>
+    <string name="crash_report_unknown_exception">Pengecualian tidak dikenal</string>
+    <string name="crash_report_more_actions">Lebih banyak operasi pelaporan</string>
+    <string name="crash_report_save_report">Simpan laporan kesalahan</string>
+    <string name="crash_report_collapse_stack">Ciutkan tumpukan</string>
+    <string name="crash_report_expand_stack">memperluas tumpukan</string>
+    <string name="crash_report_expand_hint">Klik panah di sudut kanan atas untuk memperluas tumpukan penuh</string>
+    <string name="crash_report_stack_lines">Baris %1$d · tumpukan</string>
+    <string name="crash_report_wrap_stack">Pembungkusan garis otomatis</string>
+    <string name="crash_reason_memory">Kehabisan ingatan</string>
+    <string name="crash_reason_stack">panggilan tumpukan meluap</string>
+    <string name="crash_reason_storage">Ruang penyimpanan tidak cukup</string>
+    <string name="crash_reason_permission">Izin terbatas</string>
+    <string name="crash_reason_network">Kelainan koneksi jaringan</string>
+    <string name="crash_reason_database">Pengecualian basis data</string>
+    <string name="crash_reason_file">Pengecualian membaca dan menulis file</string>
+    <string name="crash_reason_component">Pengecualian pemuatan komponen</string>
+    <string name="crash_reason_remote">Pengecualian komunikasi proses</string>
+    <string name="crash_reason_null">Objek tidak diinisialisasi</string>
+    <string name="crash_reason_state">Status pengoperasian tidak normal</string>
+    <string name="crash_reason_unknown">Pengecualian tidak dikenal</string>
+</resources>

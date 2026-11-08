@@ -75,7 +75,7 @@ FILE: app\src\main\java\com\ai\assistance\operit\ui\features\packages\market\Plu
   L63:20 (36 chars) "为了方便二次开发，打包需要把 ts 部分和 tsconfig 打包进去。"
   L64:20 (3 chars) "需求:"
 
-FILE: app\src\main\java\com\ai\assistance\operit\ui\features\toolbox\screens\autoglm\AutoGlmViewModel.kt
+FILE: app\src\main\java\com\ai\assistance\operit\ui\features\automation\autoglm\AutoGlmViewModel.kt
   remaining=11 total=11 excluded_logs=0 excluded_long=0
   L172:37 (36 chars) "✅ 任务完成: ${finalLines.first().trim()}"
   L205:44 (11 chars) "yyyy年MM月dd日"
@@ -138,7 +138,7 @@ FILE: app\src\main\java\com\ai\assistance\operit\api\chat\library\MemoryLibrary.
   L911:31 (30 chars) "(职业|Occupation)[:：\\s]+([^;]+)"
   L912:28 (83 chars) "(AI风格|期待的AI风格|偏好的AI风格|AI Style|Expected AI Style|Preferred AI Style)[:：\\s]+([^;]+)"
 
-FILE: app\src\main\java\com\ai\assistance\operit\ui\features\toolbox\screens\logcat\LogModels.kt
+FILE: app\src\main\java\com\ai\assistance\operit\ui\features\management\databackup\logcat\LogModels.kt
   remaining=8 total=8 excluded_logs=0 excluded_long=0
   L20:13 (2 chars) "详细"
   L21:11 (2 chars) "调试"

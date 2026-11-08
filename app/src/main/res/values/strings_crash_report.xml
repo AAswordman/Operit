@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crash_report_running_report">运行报告</string>
+    <string name="crash_report_interrupted">应用意外中断</string>
+    <string name="crash_report_restart_hint">重启应用以继续使用。</string>
+    <string name="crash_report_this_error">本次错误</string>
+    <string name="crash_report_keep_hint">也可以先保留错误报告。</string>
+    <string name="crash_report_restart_compact">重启应用</string>
+    <string name="crash_report_app_logs">应用日志</string>
+    <string name="crash_report_app_logs_hint">包含本次错误前后的运行记录</string>
+    <string name="crash_report_export_logs_compact">导出日志</string>
+    <string name="crash_report_local_only">错误报告仅保存在本机</string>
+    <string name="crash_report_no_stack">没有可用的错误堆栈。</string>
+    <string name="crash_report_unknown_exception">未识别的异常</string>
+    <string name="crash_report_more_actions">更多报告操作</string>
+    <string name="crash_report_save_report">保存错误报告</string>
+    <string name="crash_report_collapse_stack">收起堆栈</string>
+    <string name="crash_report_expand_stack">展开堆栈</string>
+    <string name="crash_report_expand_hint">点击右上角箭头展开完整堆栈</string>
+    <string name="crash_report_stack_lines">%1$d 行 · 堆栈</string>
+    <string name="crash_report_wrap_stack">自动换行</string>
+    <string name="crash_reason_memory">内存不足</string>
+    <string name="crash_reason_stack">调用栈溢出</string>
+    <string name="crash_reason_storage">存储空间不足</string>
+    <string name="crash_reason_permission">权限受限</string>
+    <string name="crash_reason_network">网络连接异常</string>
+    <string name="crash_reason_database">数据库异常</string>
+    <string name="crash_reason_file">文件读写异常</string>
+    <string name="crash_reason_component">组件加载异常</string>
+    <string name="crash_reason_remote">进程通信异常</string>
+    <string name="crash_reason_null">对象未初始化</string>
+    <string name="crash_reason_state">运行状态异常</string>
+    <string name="crash_reason_unknown">未识别异常</string>
+</resources>

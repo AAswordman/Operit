@@ -1,0 +1,12 @@
+
+$/items = [{name:"设计",hours:8,row:["设计",8]},{name:"开发",hours:20,row:["开发",20]},{name:"测试",hours:12,row:["测试",12]}]
+$/filter = {minimum:10}
+$/date = "2026-10-12"
+root = Column(gap="md",children=[
+ Header(text="工时筛选",status="演示数据"),
+ Slider(label="最低工时",min=0,max=24,steps=23,number=$/filter/minimum),
+ Table(columns=["任务","工时"],rows=arrayMap(items=arrayFilter(items=$/items,field="hours",operator="gte",value=$/filter/minimum),field="row")),
+ Display(label="全部任务工时",text=formatNumber(value=arraySum(items=$/items,field="hours"),decimals=0)),
+ InfoRow(label="一周后",text=dateAddDays(date=$/date,days=7)),
+ Text(text=arrayJoin(items=arrayMap(items=$/items,field="name"),separator=" · "),variant="caption")
+])

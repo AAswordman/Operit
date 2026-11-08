@@ -4,6 +4,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.chat.serialization.MessageSectionStorage
 
 /** 消息实体类，用于Room数据库存储聊天消息 */
 @Entity(
@@ -22,7 +24,8 @@ data class MessageEntity(
         @PrimaryKey(autoGenerate = true) val messageId: Long = 0,
         val chatId: String,
         val sender: String,
-        val content: String,
+        val sections: String,
+        val searchText: String,
         val timestamp: Long = System.currentTimeMillis(),
         val orderIndex: Int, // 保持消息顺序
         val roleName: String = "", // 角色名字段
@@ -41,9 +44,11 @@ data class MessageEntity(
 ) {
     /** 转换为ChatMessage对象（供UI层使用） */
     fun toChatMessage(): ChatMessage {
+        val parsed = MessageSectionStorage.decode(sections, searchText)
         return ChatMessage(
-            sender = sender, 
-            content = content, 
+            sender = sender,
+            content = MessageSectionCodec.render(parsed),
+            sections = parsed,
             timestamp = timestamp,
             roleName = roleName,
             selectedVariantIndex = selectedVariantIndex,
@@ -71,11 +76,13 @@ data class MessageEntity(
             orderIndex: Int,
             messageId: Long = 0
         ): MessageEntity {
+            val sections = message.resolvedSections()
             return MessageEntity(
                     messageId = messageId,
                     chatId = chatId,
                     sender = message.sender,
-                    content = message.content,
+                    sections = MessageSectionStorage.encode(sections),
+                    searchText = MessageSectionCodec.searchText(sections),
                     timestamp = message.timestamp,
                     orderIndex = orderIndex,
                     roleName = message.roleName,

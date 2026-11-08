@@ -1,14 +1,14 @@
 package com.ai.assistance.operit.core.tools.javascript
 
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_REGISTRATION_CHAT_MESSAGE_MENU_ITEM
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_REGISTRATION_CHAT_RUNTIME_HOOK
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOrigin
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgMarketOriginCodec
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_REGISTRATION_CHAT_MESSAGE_MENU_ITEM
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_REGISTRATION_CHAT_RUNTIME_HOOK
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOrigin
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOriginCodec
 import org.json.JSONObject
 import org.json.JSONTokener
 
 internal data class ToolPkgMainRegistrationCapture(
-    val toolboxUiModules: List<String>,
+    val uiModules: List<String>,
     val uiRoutes: List<String>,
     val navigationEntries: List<String>,
     val desktopWidgets: List<String>,
@@ -37,7 +37,7 @@ internal data class ToolPkgMainRegistrationCapture(
 private enum class RegistrationBucket(
     val nativeRegistrationName: String? = null
 ) {
-    TOOLBOX_UI,
+    UI_MODULE,
     UI_ROUTE,
     NAVIGATION_ENTRY,
     DESKTOP_WIDGET,
@@ -79,7 +79,7 @@ internal class JsToolPkgRegistrationSession {
         }
     }
 
-    fun appendToolboxUiModule(specJson: String) = append(RegistrationBucket.TOOLBOX_UI, specJson)
+    fun appendUiModule(specJson: String) = append(RegistrationBucket.UI_MODULE, specJson)
     fun appendUiRoute(specJson: String) = append(RegistrationBucket.UI_ROUTE, specJson)
     fun appendNavigationEntry(specJson: String) = append(RegistrationBucket.NAVIGATION_ENTRY, specJson)
     fun appendDesktopWidget(specJson: String) = append(RegistrationBucket.DESKTOP_WIDGET, specJson)
@@ -150,7 +150,7 @@ internal class JsToolPkgRegistrationSession {
             val current = capture.orEmpty()
             fun read(bucket: RegistrationBucket): List<String> = current[bucket]?.toList().orEmpty()
             return ToolPkgMainRegistrationCapture(
-                toolboxUiModules = read(RegistrationBucket.TOOLBOX_UI),
+                uiModules = read(RegistrationBucket.UI_MODULE),
                 uiRoutes = read(RegistrationBucket.UI_ROUTE),
                 navigationEntries = read(RegistrationBucket.NAVIGATION_ENTRY),
                 desktopWidgets = read(RegistrationBucket.DESKTOP_WIDGET),
@@ -590,11 +590,20 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
             var toolPkgApi = requireToolPkgApiRuntime();
             var api = toolPkgApi.namespace('ToolPkg', {
                 _m: captureMarketOrigin,
+                // 旧插件的配置模块接入插件详情，废弃工具箱导航不再创建。
                 registerToolboxUiModule: function(definition) {
                     registerWithNative(
                         definition,
                         'registerToolPkgToolboxUiModule',
-                        'registerToolPkgToolboxUiModule',
+                        'registerToolPkgUiModule',
+                        ''
+                    );
+                },
+                registerUiModule: function(definition) {
+                    registerWithNative(
+                        definition,
+                        'registerToolPkgUiModule',
+                        'registerToolPkgUiModule',
                         ''
                     );
                 },
@@ -664,6 +673,8 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
             };
 
             installGlobal('ToolPkg', api);
+            installGlobal('registerToolPkgUiModule', api.registerUiModule);
+            installGlobal('registerToolPkgToolboxUiModule', api.registerToolboxUiModule);
         })();
     """.trimIndent()
 }

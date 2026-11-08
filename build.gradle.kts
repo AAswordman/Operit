@@ -19,6 +19,21 @@ plugins {
     alias(libs.plugins.kotlin.parcelize) apply false
 }
 
+// 与 CI 和构建文档使用同一 NDK，避免 AGP 按默认版本另行下载工具链。
+val androidNdkVersion = "25.1.8937393"
+subprojects {
+    plugins.withId("com.android.application") {
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension> {
+            ndkVersion = androidNdkVersion
+        }
+    }
+    plugins.withId("com.android.library") {
+        extensions.configure<com.android.build.api.dsl.LibraryExtension> {
+            ndkVersion = androidNdkVersion
+        }
+    }
+}
+
 tasks.register("clean", Delete::class) {
     delete(rootProject.buildDir)
 }

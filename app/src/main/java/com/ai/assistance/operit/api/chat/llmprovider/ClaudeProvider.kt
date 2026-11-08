@@ -1,21 +1,32 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.api.chat.error.RequestFailure
+import com.ai.assistance.operit.api.chat.error.RequestFailureTrace
+import com.ai.assistance.operit.api.chat.error.RequestFailureCode
+import com.ai.assistance.operit.api.chat.error.RequestFailureException
+import com.ai.assistance.operit.api.chat.error.ResponseJson
+import com.ai.assistance.operit.api.chat.error.ProviderResponseErrors
+import com.ai.assistance.operit.api.chat.error.FirstTokenTimeoutException
+import com.ai.assistance.operit.api.chat.keypool.*
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.hooks.toPromptTurns
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
-import com.ai.assistance.operit.util.ChatUtils
-import com.ai.assistance.operit.util.HttpLogSanitizer
-import com.ai.assistance.operit.util.StreamingJsonXmlConverter
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.TokenCacheManager
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.api.chat.transport.EndpointCompleter
+import com.ai.assistance.operit.core.chat.context.ChatUtils
+import com.ai.assistance.operit.util.logging.HttpLogSanitizer
+import com.ai.assistance.operit.util.logging.RequestBodyLogFormatter
+import com.ai.assistance.operit.core.chat.protocol.StreamingJsonXmlConverter
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.ThinkingMarkup
+import com.ai.assistance.operit.core.chat.context.TokenCacheManager
 import com.ai.assistance.operit.util.exceptions.UserCancellationException
 import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.SharedStream
@@ -25,7 +36,7 @@ import com.ai.assistance.operit.util.stream.TextStreamEvent
 import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.stream
-import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
+import com.ai.assistance.operit.core.chat.media.MediaLinkParser
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -36,6 +47,20 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.error.HttpStatusCodeException
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAttemptReport
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyErrorClass
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyRequestElement
+import com.ai.assistance.operit.api.chat.keypool.FirstTokenWatchdog
+import com.ai.assistance.operit.api.chat.keypool.currentApiKeySession
+import com.ai.assistance.operit.api.chat.keypool.handleKeyAwareRetry
+import com.ai.assistance.operit.api.chat.keypool.parseRetryAfterMs
+import com.ai.assistance.operit.api.chat.keypool.reportKeyAwareFailure
+import com.ai.assistance.operit.api.chat.model.ModelListFetcher
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
 
 /** Anthropic Claude API的实现，处理Claude特有的API格式 */
 internal fun shouldPropagateClaudeCancellation(isManuallyCancelled: Boolean): Boolean =
@@ -58,7 +83,7 @@ open class ClaudeProvider(
     private val JSON = "application/json".toMediaType()
     private val ANTHROPIC_VERSION = "2023-06-01" // Claude API版本
     private val PROMPT_CACHE_CONTROL_TYPE = "ephemeral"
-    private val DEFAULT_MAX_TOKENS = 4096
+    private val DEFAULT_MAX_TOKENS = 16384
     private val EMPTY_MESSAGE_TEXT = "[Empty]"
 
     // 当前活跃的Call对象，用于取消流式传输
@@ -72,6 +97,7 @@ open class ClaudeProvider(
     class HttpStatusException(
         message: String,
         override val statusCode: Int,
+        override val retryAfterMs: Long? = null,
         cause: Throwable? = null
     ) : IOException(message, cause), HttpStatusCodeException
 
@@ -93,6 +119,21 @@ open class ClaudeProvider(
     // 重置token计数
     override fun resetTokenCounts() {
         tokenCacheManager.resetTokenCounts()
+    }
+
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun markOutputLimit(reason: String) {
+        val normalized = reason.trim()
+        if (normalized.equals("max_tokens", ignoreCase = true) ||
+            normalized.equals("length", ignoreCase = true)
+        ) {
+            outputStoppedByLimit = true
+        }
     }
 
     private fun logLargeString(tag: String, message: String, prefix: String = "") {
@@ -409,12 +450,7 @@ open class ClaudeProvider(
         var textContent = content
         matches.forEach { match ->
             val fullContent = match.groupValues[2].trim()
-            val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
-            val resultContent = if (contentMatch != null) {
-                contentMatch.groupValues[1].trim()
-            } else {
-                fullContent
-            }
+            val resultContent = ToolResultMarkup.contentFromBody(fullContent).trim()
             
             val openingTag = match.value.substringBefore('>')
             val resultName =
@@ -457,7 +493,7 @@ open class ClaudeProvider(
     /**
      * 从结构化参数构建JSON Schema（Claude格式）
      */
-    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.data.model.ToolParameterSchema>): JSONObject {
+    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema>): JSONObject {
         val schema = JSONObject().apply {
             put("type", "object")
         }
@@ -551,49 +587,6 @@ open class ClaudeProvider(
         for (index in 0 until blocks.length()) {
             target.put(blocks.get(index))
         }
-    }
-
-    private fun sanitizeImageDataForLogging(json: JSONObject): JSONObject {
-        fun sanitizeObject(obj: JSONObject) {
-            fun sanitizeArray(arr: JSONArray) {
-                for (index in 0 until arr.length()) {
-                    when (val value = arr.get(index)) {
-                        is JSONObject -> sanitizeObject(value)
-                        is JSONArray -> sanitizeArray(value)
-                        is String -> {
-                            if (value.startsWith("data:") && value.contains(";base64,")) {
-                                arr.put(index, "[image base64 omitted, length=${value.length}]")
-                            }
-                        }
-                    }
-                }
-            }
-
-            val mediaType = obj.optString("media_type", obj.optString("mime_type", ""))
-            if (mediaType.startsWith("image/", ignoreCase = true) && obj.has("data")) {
-                val dataValue = obj.opt("data")
-                if (dataValue is String) {
-                    obj.put("data", "[image base64 omitted, length=${dataValue.length}]")
-                }
-            }
-
-            val keys = obj.keys()
-            while (keys.hasNext()) {
-                val key = keys.next()
-                when (val value = obj.get(key)) {
-                    is JSONObject -> sanitizeObject(value)
-                    is JSONArray -> sanitizeArray(value)
-                    is String -> {
-                        if (value.startsWith("data:") && value.contains(";base64,")) {
-                            obj.put(key, "[image base64 omitted, length=${value.length}]")
-                        }
-                    }
-                }
-            }
-        }
-
-        sanitizeObject(json)
-        return json
     }
 
     private data class ClaudeSerializedHistory(
@@ -809,20 +802,26 @@ open class ClaudeProvider(
             queuedOpenToolUses.clear()
         }
 
-        fun appendCancelledOpenToolUses(target: JSONArray, reason: String): Boolean {
+        fun appendUnmatchedOpenToolUses(target: JSONArray, reason: String): Boolean {
             emitQueuedToolUsesIfNeeded()
             if (openToolUses.isEmpty()) return false
 
             AppLogger.w(
                 "AIService",
-                "发现未完成的tool_use，按取消处理: count=${openToolUses.size}, reason=$reason"
+                "发现未匹配的tool_use，按工具结果未匹配处理: count=${openToolUses.size}, reason=$reason"
             )
             for (openToolUse in openToolUses) {
                 target.put(
                     JSONObject().apply {
                         put("type", "tool_result")
                         put("tool_use_id", openToolUse.id)
-                        put("content", "User cancelled")
+                        put(
+                            "content",
+                            StructuredToolCallBridge.unmatchedToolResultContent(
+                                reason,
+                                openToolUse.matchingName
+                            )
+                        )
                     }
                 )
             }
@@ -830,9 +829,9 @@ open class ClaudeProvider(
             return true
         }
 
-        fun flushOpenToolUsesAsCancelled(reason: String) {
+        fun flushOpenToolUsesAsUnmatched(reason: String) {
             val contentArray = JSONArray()
-            if (!appendCancelledOpenToolUses(contentArray, reason)) return
+            if (!appendUnmatchedOpenToolUses(contentArray, reason)) return
             messagesArray.put(
                 JSONObject().apply {
                     put("role", "user")
@@ -858,11 +857,11 @@ open class ClaudeProvider(
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
                             if (openToolUses.isNotEmpty()) {
-                                flushOpenToolUsesAsCancelled("assistant_tool_use_before_result")
+                                flushOpenToolUsesAsUnmatched("assistant_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
                         } else {
-                            flushOpenToolUsesAsCancelled("assistant_boundary")
+                            flushOpenToolUsesAsUnmatched("assistant_boundary")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "assistant")
@@ -876,11 +875,11 @@ open class ClaudeProvider(
                         val (textContent, toolUses) = parseXmlToolCalls(content)
                         if (toolUses != null && toolUses.length() > 0) {
                             if (openToolUses.isNotEmpty()) {
-                                flushOpenToolUsesAsCancelled("typed_tool_use_before_result")
+                                flushOpenToolUsesAsUnmatched("typed_tool_use_before_result")
                             }
                             queueToolUses(textContent, toolUses)
                         } else {
-                            flushOpenToolUsesAsCancelled("typed_tool_call_without_payload")
+                            flushOpenToolUsesAsUnmatched("typed_tool_call_without_payload")
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "assistant")
@@ -893,7 +892,7 @@ open class ClaudeProvider(
                     PromptTurnKind.USER,
                     PromptTurnKind.SUMMARY -> {
                         val contentArray = JSONArray()
-                        appendCancelledOpenToolUses(contentArray, "user_boundary")
+                        appendUnmatchedOpenToolUses(contentArray, "user_boundary")
                         appendContentBlocks(
                             contentArray,
                             buildContentArray(
@@ -943,7 +942,7 @@ open class ClaudeProvider(
                                 )
                             }
 
-                            appendCancelledOpenToolUses(contentArray, "tool_result_partial_batch")
+                            appendUnmatchedOpenToolUses(contentArray, "tool_result_partial_batch")
 
                             if (textContent.isNotEmpty()) {
                                 appendContentBlocks(contentArray, buildContentArray(textContent))
@@ -957,7 +956,7 @@ open class ClaudeProvider(
                             )
                         } else {
                             val contentArray = JSONArray()
-                            appendCancelledOpenToolUses(contentArray, "tool_result_without_structured_match")
+                            appendUnmatchedOpenToolUses(contentArray, "tool_result_without_structured_match")
                             if (textContent.isNotEmpty()) {
                                 appendContentBlocks(contentArray, buildContentArray(textContent))
                             }
@@ -987,7 +986,7 @@ open class ClaudeProvider(
             }
         }
 
-        flushOpenToolUsesAsCancelled("history_end")
+        flushOpenToolUsesAsUnmatched("history_end")
 
         return ClaudeSerializedHistory(
             messagesArray = messagesArray,
@@ -1063,6 +1062,7 @@ open class ClaudeProvider(
             chatHistory: List<PromptTurn>,
             modelParameters: List<ModelParameter<*>> = emptyList(),
             enableThinking: Boolean,
+            thinkingOptionId: String? = null,
             stream: Boolean = true,
             availableTools: List<ToolPrompt>? = null,
             preserveThinkInHistory: Boolean = false
@@ -1113,17 +1113,11 @@ open class ClaudeProvider(
             apiEndpoint = apiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
 
         // 日志输出时省略过长的tools字段
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        sanitizeImageDataForLogging(logJson)
-        AppLogger.d("AIService", "Claude请求体: ${logJson.toString(4)}")
+        AppLogger.d("AIService", "Claude请求体: ${RequestBodyLogFormatter.format(jsonObject)}")
         return jsonObject.toString().toByteArray(Charsets.UTF_8).toRequestBody(JSON)
     }
 
@@ -1180,15 +1174,15 @@ open class ClaudeProvider(
                     else -> {
                         // 添加其他Claude特定参数
                         when (param.valueType) {
-                            com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                            com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                                     jsonObject.put(param.apiName, param.currentValue as Int)
-                            com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                            com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                                     jsonObject.put(param.apiName, param.currentValue as Float)
-                            com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                            com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                                     jsonObject.put(param.apiName, param.currentValue as String)
-                            com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                            com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                                     jsonObject.put(param.apiName, param.currentValue as Boolean)
-                            com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                            com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                                 val raw = param.currentValue.toString().trim()
                                 val parsed: Any? = try {
                                     when {
@@ -1254,7 +1248,10 @@ open class ClaudeProvider(
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        buildRetryMessage: (String, Int, Long) -> String,
+        attemptNumber: Int,
+        watchdog: FirstTokenWatchdog? = null,
+        stream: Boolean = true,
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
@@ -1263,31 +1260,24 @@ open class ClaudeProvider(
             AppLogger.d("AIService", "【Claude】请求被用户取消，停止重试。")
             throw UserCancellationException(context.getString(R.string.openai_error_request_cancelled), exception)
         }
-
-        val errorText = resolveRetryErrorText(context, exception)
-
-        if (!enableRetry) {
-            throw IOException(errorText, exception)
-        }
-
-        val newRetryCount = retryCount + 1
-        if (newRetryCount > maxRetries) {
-            AppLogger.e("AIService", "【Claude】$errorText 且达到最大重试次数($maxRetries)", exception)
-            throw IOException(
-                context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
-                exception
-            )
-        }
-
-        // A terminal failure must retain its streamed text; only a replacement request discards it.
-        onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
-        AppLogger.w("AIService", "【Claude】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
-        delay(retryDelayMs)
-        return newRetryCount
+        watchdog?.cancel()
+        reportKeyAwareFailure(
+            exception = exception,
+            model = modelName,
+            stream = stream,
+            attemptNumber = attemptNumber,
+        )
+        handleKeyAwareRetry(
+            context = context,
+            exception = exception,
+            enableRetry = enableRetry,
+            onNonFatalError = onNonFatalError,
+            onRetryAccepted = onRetryAccepted,
+            buildRetryMessage = buildRetryMessage,
+            logTag = "AIService",
+            attemptNumber = attemptNumber,
+        )
+        return retryCount + 1
     }
 
     override suspend fun sendMessage(
@@ -1295,6 +1285,7 @@ open class ClaudeProvider(
             chatHistory: List<PromptTurn>,
             modelParameters: List<ModelParameter<*>>,
             enableThinking: Boolean,
+            thinkingOptionId: String?,
             stream: Boolean,
             availableTools: List<ToolPrompt>?,
             preserveThinkInHistory: Boolean,
@@ -1308,27 +1299,56 @@ open class ClaudeProvider(
         val eventChannel = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val responseStream = stream {
         isManuallyCancelled = false
+        outputStoppedByLimit = false
         tokenCacheManager.setOutputTokens(0)
 
-        val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+        val session = apiKeyProvider.createRequestSession(modelName, stream)
+        val maxRetries = (session.maxAttempts() - 1).coerceAtLeast(0)
         var retryCount = 0
         var lastException: Exception? = null
+        val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
+        withContext(ApiKeyRequestElement(session)) {
         val receivedContent = StringBuilder()
+        val savepointLengths = mutableMapOf<String, Int>()
+        val savepointRawOffsets = mutableMapOf<String, Int>()
+        var discardedTotal = 0
         val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
         var outboundAttempt = 0
 
         suspend fun emitSavepoint(id: String) {
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            val rawOffset = receivedContent.length + discardedTotal
+            savepointLengths[id] = receivedContent.length
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         suspend fun emitRollback(id: String) {
-            if (receivedContent.isNotEmpty()) {
-                receivedContent.setLength(0)
+            val retainedLength = savepointLengths[id] ?: return
+            val rawOffset = savepointRawOffsets[id] ?: return
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
         }
 
         fun parseAnthropicNonStreaming(jsonResponse: JSONObject): String {
+            markOutputLimit(jsonResponse.optString("stop_reason", ""))
             val content = jsonResponse.optJSONArray("content") ?: return ""
             if (content.length() <= 0) return ""
             val fullText = StringBuilder()
@@ -1339,14 +1359,13 @@ open class ClaudeProvider(
                         val text = block.optString("text", "")
                         if (text.isNotEmpty()) fullText.append(text)
                     }
-                    // A provider endpoint can still send thinking blocks when thinking is disabled. Do not
-                    // expose those blocks or turn them into visible <think> markup in that mode.
+                    // 思考关闭时忽略提供商仍然返回的思考块，避免它进入可见消息。
                     "thinking" -> if (enableThinking) {
                         val thinking = block.optString("thinking", "")
                         if (thinking.isNotEmpty()) {
-                            fullText.append("\n<think>")
-                            fullText.append(thinking)
-                            fullText.append("</think>\n")
+                            fullText.append("\n")
+                            fullText.append(ThinkingMarkup.wrap(thinking))
+                            fullText.append("\n")
                         }
                     }
                     "redacted_thinking" -> {
@@ -1388,6 +1407,7 @@ open class ClaudeProvider(
             val choices = jsonResponse.optJSONArray("choices") ?: return ""
             if (choices.length() <= 0) return ""
             val first = choices.optJSONObject(0) ?: return ""
+            markOutputLimit(first.optString("finish_reason", ""))
             val messageObj = first.optJSONObject("message")
             return messageObj?.optString("content", "") ?: ""
         }
@@ -1404,6 +1424,7 @@ open class ClaudeProvider(
             val currentAttempt = ++outboundAttempt
             var streamCompletionConfirmed = !stream
             val call = try {
+                outputStoppedByLimit = false
                 if (retryCount > 0) {
                     AppLogger.d(
                         "AIService",
@@ -1416,6 +1437,7 @@ open class ClaudeProvider(
                     chatHistory,
                     modelParameters,
                     enableThinking,
+                    thinkingOptionId,
                     stream,
                     availableTools,
                     preserveThinkInHistory
@@ -1426,7 +1448,7 @@ open class ClaudeProvider(
                     tokenCacheManager.outputTokenCount
                 )
                 val request = createRequest(requestBody)
-                client.newCall(request)
+                client.newCall(RequestFailureTrace.attach(request)).also { watchdog.start(it) }
             } catch (e: Exception) {
                 throw e
             }
@@ -1441,17 +1463,15 @@ open class ClaudeProvider(
                         if (!response.isSuccessful) {
                             val errorBody = response.body?.string() ?: context.getString(R.string.openai_error_no_error_details)
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
-                            if (response.code in 400..499) {
-                                throw HttpStatusException(
-                                    context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
-                                    statusCode = response.code
-                                )
-                            }
-                            throw IOException(context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody))
+                            throw HttpStatusException(
+                                context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
+                                statusCode = response.code,
+                                retryAfterMs = parseRetryAfterMs(response),
+                            )
                         }
 
                         AppLogger.d("AIService", "连接成功，等待响应...")
-                        val responseBody = response.body ?: throw IOException(context.getString(R.string.provider_error_response_empty))
+                        val responseBody = response.body ?: throw RequestFailureException(RequestFailureCode.RESPONSE_BODY_MISSING, context.getString(R.string.provider_error_response_empty))
 
                         val contentType = response.header("Content-Type") ?: ""
                         AppLogger.d(
@@ -1485,6 +1505,7 @@ open class ClaudeProvider(
                                         tokenCacheManager.cachedInputTokenCount,
                                         tokenCacheManager.outputTokenCount,
                                     )
+                                    if (content.isNotEmpty()) watchdog.markFirstToken()
                                     emit(content)
                                     receivedContent.append(content)
                                 }
@@ -1499,6 +1520,7 @@ open class ClaudeProvider(
                                         !finishReason.equals("null", ignoreCase = true) &&
                                         !finishReason.equals("none", ignoreCase = true)
                                 ) {
+                                    markOutputLimit(finishReason)
                                     streamCompletionConfirmed = true
                                 }
                                 applyAnthropicUsage(
@@ -1529,7 +1551,7 @@ open class ClaudeProvider(
                                 processOpenAiCompatibleJsonLines(responseText)
                                 return@withContext
                             }
-                            val json = JSONObject(responseText)
+                            val json = ProviderResponseErrors.check("claude", ResponseJson.parseObject(responseText, streaming = false))
                             val resultText = parseAnthropicNonStreaming(json).ifBlank { parseOpenAiNonStreaming(json) }
                             if (resultText.isNotBlank()) {
                                 emit(resultText)
@@ -1547,7 +1569,7 @@ open class ClaudeProvider(
                                 openAiCompatible = json.has("choices"),
                             )
                             if (resultText.isBlank() && !usageApplied) {
-                                throw IOException(context.getString(R.string.provider_error_parsing_failed))
+                                throw RequestFailureException(RequestFailureCode.RESPONSE_SHAPE_INVALID, context.getString(R.string.provider_error_parsing_failed))
                             }
                             if (resultText.isNotBlank() && !usageApplied) {
                                 onTokensUpdated(
@@ -1567,7 +1589,7 @@ open class ClaudeProvider(
 
                         if (!stream) {
                             val responseText = responseBody.string().trim()
-                            val json = JSONObject(responseText)
+                            val json = ProviderResponseErrors.check("claude", ResponseJson.parseObject(responseText, streaming = false))
                             val resultText = parseAnthropicNonStreaming(json).ifBlank { parseOpenAiNonStreaming(json) }
                             if (resultText.isNotBlank()) {
                                 emit(resultText)
@@ -1599,6 +1621,7 @@ open class ClaudeProvider(
                         var currentToolTagName: String? = null
                         var isInToolCall = false
                         var isInThinkingBlock = false
+                        var thinkingToken: String? = null
                         var emittedAny = false
                         val nonSseJsonLinesBuffer = StringBuilder()
 
@@ -1625,7 +1648,7 @@ open class ClaudeProvider(
                             }
                             if (data.isBlank()) continue
 
-                            val jsonResponse = runCatching { JSONObject(data) }.getOrNull() ?: continue
+                            val jsonResponse = ProviderResponseErrors.check("claude", ResponseJson.parseObject(data, streaming = true))
                             val type = jsonResponse.optString("type", "")
 
                             // OpenAI-style chunk (no `type`)
@@ -1642,6 +1665,7 @@ open class ClaudeProvider(
                                         tokenCacheManager.cachedInputTokenCount,
                                         tokenCacheManager.outputTokenCount
                                     )
+                                    if (content.isNotEmpty()) watchdog.markFirstToken()
                                     emit(content)
                                     receivedContent.append(content)
                                 }
@@ -1656,6 +1680,7 @@ open class ClaudeProvider(
                                         !finishReason.equals("null", ignoreCase = true) &&
                                         !finishReason.equals("none", ignoreCase = true)
                                 ) {
+                                    markOutputLimit(finishReason)
                                     streamCompletionConfirmed = true
                                 }
                                 applyAnthropicUsage(
@@ -1721,10 +1746,11 @@ open class ClaudeProvider(
                                                     }
                                                 }
                                             }
-                                            // Keep response parsing aligned with the request flag;
-                                            // otherwise an unsolicited thinking block leaks to the UI.
+                                            // 与请求中的思考开关保持一致，防止未请求的思考内容漏到界面。
                                             "thinking" -> if (enableThinking) {
-                                                val thinkingStartTag = "\n<think>"
+                                                val token = ThinkingMarkup.newToken()
+                                                thinkingToken = token
+                                                val thinkingStartTag = "\n" + ThinkingMarkup.openTag(token)
                                                 emittedAny = true
                                                 emit(thinkingStartTag)
                                                 receivedContent.append(thinkingStartTag)
@@ -1822,13 +1848,19 @@ open class ClaudeProvider(
                                         currentToolParser = null
                                         currentToolTagName = null
                                     } else if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = ThinkingMarkup.closeTag(requireNotNull(thinkingToken)) + "\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false
+                                        thinkingToken = null
                                     }
                                 }
                                 "message_delta" -> {
+                                    markOutputLimit(
+                                        jsonResponse.optJSONObject("delta")
+                                            ?.optString("stop_reason", "")
+                                            .orEmpty()
+                                    )
                                     applyAnthropicUsage(
                                         usage = jsonResponse.optJSONObject("usage"),
                                         onTokensUpdated = onTokensUpdated,
@@ -1863,10 +1895,11 @@ open class ClaudeProvider(
                                         currentToolTagName = null
                                     }
                                     if (isInThinkingBlock) {
-                                        val thinkingEndTag = "</think>\n"
+                                        val thinkingEndTag = ThinkingMarkup.closeTag(requireNotNull(thinkingToken)) + "\n"
                                         emit(thinkingEndTag)
                                         receivedContent.append(thinkingEndTag)
                                         isInThinkingBlock = false
+                                        thinkingToken = null
                                     }
                                     streamCompletionConfirmed = true
                                     break
@@ -1916,7 +1949,7 @@ open class ClaudeProvider(
                                     )
                                 }
                                 if (resultText.isBlank() && !usageApplied) {
-                                    throw IOException(context.getString(R.string.provider_error_parsing_failed))
+                                    throw RequestFailureException(RequestFailureCode.RESPONSE_SHAPE_INVALID, context.getString(R.string.provider_error_parsing_failed))
                                 }
                                 streamCompletionConfirmed = true
                             } else {
@@ -1951,6 +1984,7 @@ open class ClaudeProvider(
                                             !finishReason.equals("null", ignoreCase = true) &&
                                             !finishReason.equals("none", ignoreCase = true)
                                     ) {
+                                        markOutputLimit(finishReason)
                                         streamCompletionConfirmed = true
                                     }
                                     applyAnthropicUsage(
@@ -1984,26 +2018,52 @@ open class ClaudeProvider(
                     )
                 }
                 if (stream && !streamCompletionConfirmed) {
-                    throw IOException(context.getString(R.string.provider_error_network_interrupted))
+                    throw RequestFailureException(RequestFailureCode.STREAM_COMPLETION_MISSING, context.getString(R.string.provider_error_network_interrupted))
                 }
+                watchdog.cancel()
+                currentApiKeySession()?.reportOutcome(
+                    ApiKeyAttemptReport(
+                        success = true,
+                        errorClass = ApiKeyErrorClass.NONE,
+                        ttftMs = watchdog.ttftMs(),
+                        tokensPerSec = watchdog.tokensPerSec(tokenCacheManager.outputTokenCount),
+                        inputTokens = tokenCacheManager.totalInputTokenCount,
+                        outputTokens = tokenCacheManager.outputTokenCount,
+                        cachedInputTokens = tokenCacheManager.cachedInputTokenCount,
+                        model = modelName,
+                        stream = stream,
+                        attemptIndex = currentAttempt,
+                    )
+                )
                 onUsageFinalized?.invoke(currentAttempt)
                 AppLogger.d("AIService", "【Claude】请求成功完成")
                 logFinalOutput(receivedContent, "Claude final output summary: ")
-                return@stream
+                return@withContext
             } catch (e: Exception) {
                 lastException = e
 
                 retryCount = handleRetryableError(
                         context = context,
-                        exception = e,
+                        exception = RequestFailure.capture(
+                            if (watchdog.timedOut) FirstTokenTimeoutException(e.message ?: "", e) else ResponseJson.schemaFailure(e),
+                            call,
+                        ),
                         retryCount = retryCount,
                         maxRetries = maxRetries,
                         enableRetry = enableRetry,
                         onNonFatalError = onNonFatalError,
                         onRetryAccepted = { emitRollback(requestSavepointId) },
-                        buildRetryMessage = { errorText, retryNumber ->
-                            context.getString(R.string.provider_error_retry_message, errorText, retryNumber)
+                        buildRetryMessage = { errorText, retryNumber, delayMs ->
+                            context.getString(
+                                R.string.provider_error_retry_message,
+                                errorText,
+                                retryNumber,
+                                (delayMs + 999L) / 1000L,
+                            )
                         },
+                        attemptNumber = currentAttempt,
+                        watchdog = watchdog,
+                        stream = stream,
                     )
             } finally {
                 activeCall = null
@@ -2022,6 +2082,7 @@ open class ClaudeProvider(
             ),
             lastException
         )
+        }
         }
         return responseStream.withEventChannel(eventChannel)
     }

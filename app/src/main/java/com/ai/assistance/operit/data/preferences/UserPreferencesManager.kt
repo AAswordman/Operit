@@ -1,6 +1,13 @@
 package com.ai.assistance.operit.data.preferences
 
+import com.ai.assistance.operit.data.preferences.layout.ChatLayoutSettings
+import com.ai.assistance.operit.data.preferences.transparency.ThemeTransparencyPreferences
+import com.ai.assistance.operit.data.preferences.glass.GlassThemePreferences
+
 import android.content.Context
+import com.ai.assistance.operit.data.resources.ManagedResourceFiles
+import com.ai.assistance.operit.data.resources.PrivateResourceCleanup
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
@@ -10,10 +17,10 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.LegacyUserProfile
-import com.ai.assistance.operit.data.model.MemorySpace
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.memory.profile.LegacyUserProfile
+import com.ai.assistance.operit.data.memory.profile.MemorySpace
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -25,7 +32,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.ai.assistance.operit.data.db.ObjectBoxManager
-import com.ai.assistance.operit.util.LocaleUtils.LanguageCodes
+import com.ai.assistance.operit.util.android.LocaleUtils.LanguageCodes
 
 private val Context.userPreferencesDataStore: DataStore<Preferences> by
         preferencesDataStore(name = "user_preferences")
@@ -94,6 +101,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val USE_SYSTEM_THEME = booleanPreferencesKey("use_system_theme")
         private val CUSTOM_PRIMARY_COLOR = intPreferencesKey("custom_primary_color")
         private val CUSTOM_SECONDARY_COLOR = intPreferencesKey("custom_secondary_color")
+        private val THINKING_PARTICLE_COLOR = intPreferencesKey("thinking_particle_color")
         private val USE_CUSTOM_COLORS = booleanPreferencesKey("use_custom_colors")
         private val CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED =
             booleanPreferencesKey("character_theme_default_migration_completed")
@@ -105,9 +113,6 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val BACKGROUND_MEDIA_TYPE = stringPreferencesKey("background_media_type")
         private val VIDEO_BACKGROUND_MUTED = booleanPreferencesKey("video_background_muted")
         private val VIDEO_BACKGROUND_LOOP = booleanPreferencesKey("video_background_loop")
-
-        // 工具栏透明度设置
-        private val TOOLBAR_TRANSPARENT = booleanPreferencesKey("toolbar_transparent")
 
         // 侧滑菜单玻璃效果设置
         private val NAVIGATION_DRAWER_WATER_GLASS =
@@ -127,28 +132,15 @@ class UserPreferencesManager private constructor(private val context: Context) {
         private val CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR =
             intPreferencesKey("custom_navigation_drawer_accent_color")
         
-        // AppBar 自定义颜色设置
-        private val USE_CUSTOM_APP_BAR_COLOR = booleanPreferencesKey("use_custom_app_bar_color")
-        private val CUSTOM_APP_BAR_COLOR = intPreferencesKey("custom_app_bar_color")
 
-        // 状态栏颜色设置
-        private val USE_CUSTOM_STATUS_BAR_COLOR = booleanPreferencesKey("use_custom_status_bar_color")
-        private val CUSTOM_STATUS_BAR_COLOR = intPreferencesKey("custom_status_bar_color")
-        private val STATUS_BAR_TRANSPARENT = booleanPreferencesKey("status_bar_transparent")
-        private val STATUS_BAR_HIDDEN = booleanPreferencesKey("status_bar_hidden")
         private val CHAT_HEADER_TRANSPARENT = booleanPreferencesKey("chat_header_transparent")
         private val CHAT_INPUT_TRANSPARENT = booleanPreferencesKey("chat_input_transparent")
         private val CHAT_INPUT_FLOATING = booleanPreferencesKey("chat_input_floating")
         private val CHAT_INPUT_LIQUID_GLASS = booleanPreferencesKey("chat_input_liquid_glass")
         private val CHAT_INPUT_WATER_GLASS = booleanPreferencesKey("chat_input_water_glass")
 
-        // AppBar 内容颜色设置
-        private val FORCE_APP_BAR_CONTENT_COLOR_ENABLED = booleanPreferencesKey("force_app_bar_content_color_enabled")
-        private val APP_BAR_CONTENT_COLOR_MODE = stringPreferencesKey("app_bar_content_color_mode")
 
-        // ChatHeader 图标颜色设置
-        private val CHAT_HEADER_HISTORY_ICON_COLOR = intPreferencesKey("chat_header_history_icon_color")
-        private val CHAT_HEADER_PIP_ICON_COLOR = intPreferencesKey("chat_header_pip_icon_color")
+        // 既有 HTTP 主题响应仍读取聊天顶栏覆盖字段。
         private val CHAT_HEADER_OVERLAY_MODE = booleanPreferencesKey("chat_header_overlay_mode")
 
         // 背景模糊设置
@@ -164,6 +156,8 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
         // Chat style preference
         private val CHAT_STYLE = stringPreferencesKey("chat_style")
+        private val USER_CHAT_STYLE = stringPreferencesKey("user_chat_style")
+        private val AI_CHAT_STYLE = stringPreferencesKey("ai_chat_style")
         private val INPUT_STYLE = stringPreferencesKey("input_style")
 
         private val BUBBLE_SHOW_AVATAR = booleanPreferencesKey("bubble_show_avatar")
@@ -255,10 +249,6 @@ class UserPreferencesManager private constructor(private val context: Context) {
         // 主题模式常量
         const val THEME_MODE_LIGHT = "light"
         const val THEME_MODE_DARK = "dark"
-
-        // AppBar 内容颜色模式常量
-        const val APP_BAR_CONTENT_COLOR_MODE_LIGHT = "light"
-        const val APP_BAR_CONTENT_COLOR_MODE_DARK = "dark"
 
         // 背景媒体类型常量
         const val MEDIA_TYPE_IMAGE = "image"
@@ -602,6 +592,18 @@ class UserPreferencesManager private constructor(private val context: Context) {
             preferences[KEY_SOFTWARE_IDENTITY] ?: SOFTWARE_IDENTITY_OPERIT
         }
 
+    // 全局布局聚合读取与原五项 Flow 使用同一份偏好，已有配置无需迁移。
+    val chatLayoutSettings: Flow<ChatLayoutSettings> =
+        context.userPreferencesDataStore.data.map { preferences ->
+            ChatLayoutSettings(
+                chatSettingsButtonEndPadding = preferences[CHAT_SETTINGS_BUTTON_END_PADDING] ?: 2f,
+                chatAreaHorizontalPadding = preferences[CHAT_AREA_HORIZONTAL_PADDING] ?: 16f,
+                aiMarkdownLineHeightMultiplier = preferences[AI_MARKDOWN_LINE_HEIGHT_MULTIPLIER] ?: 1f,
+                aiMarkdownLetterSpacing = preferences[AI_MARKDOWN_LETTER_SPACING] ?: 0f,
+                aiMarkdownParagraphSpacing = preferences[AI_MARKDOWN_PARAGRAPH_SPACING] ?: 12f,
+            )
+        }
+
     // 布局调整设置
     val chatSettingsButtonEndPadding: Flow<Float> =
         context.userPreferencesDataStore.data.map { preferences ->
@@ -673,6 +675,18 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
+    /** 五项布局在同一次 DataStore 编辑中落盘，避免预览参数只保存一部分。 */
+    suspend fun saveChatLayoutSettings(settings: ChatLayoutSettings) {
+        settings.validate()
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[CHAT_SETTINGS_BUTTON_END_PADDING] = settings.chatSettingsButtonEndPadding
+            preferences[CHAT_AREA_HORIZONTAL_PADDING] = settings.chatAreaHorizontalPadding
+            preferences[AI_MARKDOWN_LINE_HEIGHT_MULTIPLIER] = settings.aiMarkdownLineHeightMultiplier
+            preferences[AI_MARKDOWN_LETTER_SPACING] = settings.aiMarkdownLetterSpacing
+            preferences[AI_MARKDOWN_PARAGRAPH_SPACING] = settings.aiMarkdownParagraphSpacing
+        }
+    }
+
     // 保存聊天设置按钮右边距
     suspend fun saveChatSettingsButtonEndPadding(padding: Float) {
         context.userPreferencesDataStore.edit { preferences ->
@@ -737,7 +751,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
     
     suspend fun saveAiAvatarForCharacterCard(characterCardId: String, avatarUri: String?) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = getCharacterCardThemePrefix(characterCardId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
@@ -757,7 +771,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     suspend fun saveAiAvatarForCharacterGroup(characterGroupId: String, avatarUri: String?) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = getCharacterGroupThemePrefix(characterGroupId)
             val key = stringPreferencesKey("${prefix}${KEY_CUSTOM_AI_AVATAR_URI.name}")
             if (avatarUri != null) {
@@ -802,28 +816,27 @@ class UserPreferencesManager private constructor(private val context: Context) {
 
     private fun getAllStringThemeKeys(): List<Preferences.Key<String>> {
         return listOf(
-            THEME_MODE, BACKGROUND_IMAGE_URI, BACKGROUND_MEDIA_TYPE, APP_BAR_CONTENT_COLOR_MODE,
-            CHAT_STYLE, KEY_CUSTOM_USER_AVATAR_URI, KEY_CUSTOM_AI_AVATAR_URI, KEY_AVATAR_SHAPE,
+            THEME_MODE, BACKGROUND_IMAGE_URI, BACKGROUND_MEDIA_TYPE,
+            CHAT_STYLE, USER_CHAT_STYLE, AI_CHAT_STYLE, KEY_CUSTOM_USER_AVATAR_URI, KEY_CUSTOM_AI_AVATAR_URI, KEY_AVATAR_SHAPE,
             KEY_ON_COLOR_MODE, KEY_CUSTOM_CHAT_TITLE, INPUT_STYLE, FONT_TYPE, SYSTEM_FONT_NAME,
             CUSTOM_FONT_PATH, BUBBLE_USER_FONT_TYPE, BUBBLE_USER_SYSTEM_FONT_NAME,
             BUBBLE_USER_CUSTOM_FONT_PATH, BUBBLE_AI_FONT_TYPE, BUBBLE_AI_SYSTEM_FONT_NAME,
             BUBBLE_AI_CUSTOM_FONT_PATH, BUBBLE_USER_IMAGE_URI, BUBBLE_AI_IMAGE_URI,
-            BUBBLE_IMAGE_RENDER_MODE
+            BUBBLE_IMAGE_RENDER_MODE, stringPreferencesKey(ThemePreferenceValues.SCRIPT_URI_KEY)
         )
     }
 
     private fun getAllBooleanThemeKeys(): List<Preferences.Key<Boolean>> {
         return listOf(
             USE_SYSTEM_THEME, USE_CUSTOM_COLORS, USE_BACKGROUND_IMAGE, VIDEO_BACKGROUND_MUTED,
-            VIDEO_BACKGROUND_LOOP, TOOLBAR_TRANSPARENT, NAVIGATION_DRAWER_WATER_GLASS,
+            VIDEO_BACKGROUND_LOOP, NAVIGATION_DRAWER_WATER_GLASS,
             NAVIGATION_DRAWER_BUTTON_LIQUID_GLASS,
             USE_CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
             USE_CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR,
-            USE_CUSTOM_APP_BAR_COLOR, USE_CUSTOM_STATUS_BAR_COLOR,
-            STATUS_BAR_TRANSPARENT, STATUS_BAR_HIDDEN, CHAT_HEADER_TRANSPARENT, CHAT_INPUT_TRANSPARENT, CHAT_INPUT_FLOATING,
+            CHAT_HEADER_TRANSPARENT, CHAT_INPUT_TRANSPARENT, CHAT_INPUT_FLOATING,
             CHAT_INPUT_LIQUID_GLASS,
             CHAT_INPUT_WATER_GLASS,
-            FORCE_APP_BAR_CONTENT_COLOR_ENABLED, CHAT_HEADER_OVERLAY_MODE, USE_BACKGROUND_BLUR,
+            CHAT_HEADER_OVERLAY_MODE, USE_BACKGROUND_BLUR,
             BUBBLE_SHOW_AVATAR, BUBBLE_WIDE_LAYOUT_ENABLED, CURSOR_USER_BUBBLE_FOLLOW_THEME, CURSOR_USER_BUBBLE_LIQUID_GLASS,
             CURSOR_USER_BUBBLE_WATER_GLASS, BUBBLE_USER_BUBBLE_LIQUID_GLASS, BUBBLE_USER_BUBBLE_WATER_GLASS,
             BUBBLE_AI_BUBBLE_LIQUID_GLASS, BUBBLE_AI_BUBBLE_WATER_GLASS, BUBBLE_USER_USE_IMAGE,
@@ -833,17 +846,16 @@ class UserPreferencesManager private constructor(private val context: Context) {
             KEY_SHOW_MODEL_NAME, KEY_SHOW_ROLE_NAME, KEY_SHOW_USER_NAME,
             KEY_SHOW_MESSAGE_TOKEN_STATS, KEY_SHOW_MESSAGE_TIMING_STATS, KEY_SHOW_MESSAGE_TOKEN_SPEED,
             KEY_SHOW_MESSAGE_TIMESTAMP
-        )
+        ) + GlassThemePreferences.booleanKeys
     }
 
     private fun getAllIntThemeKeys(): List<Preferences.Key<Int>> {
         return listOf(
-            CUSTOM_PRIMARY_COLOR, CUSTOM_SECONDARY_COLOR, CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
-            CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR, CUSTOM_APP_BAR_COLOR,
-            CUSTOM_STATUS_BAR_COLOR, CHAT_HEADER_HISTORY_ICON_COLOR, CHAT_HEADER_PIP_ICON_COLOR,
+            CUSTOM_PRIMARY_COLOR, CUSTOM_SECONDARY_COLOR, THINKING_PARTICLE_COLOR, CUSTOM_NAVIGATION_DRAWER_BACKGROUND_COLOR,
+            CUSTOM_NAVIGATION_DRAWER_ACCENT_COLOR,
             CURSOR_USER_BUBBLE_COLOR, BUBBLE_USER_BUBBLE_COLOR, BUBBLE_AI_BUBBLE_COLOR,
             BUBBLE_USER_TEXT_COLOR, BUBBLE_AI_TEXT_COLOR
-        )
+        ) + GlassThemePreferences.intKeys
     }
 
     private fun getAllFloatThemeKeys(): List<Preferences.Key<Float>> {
@@ -857,7 +869,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
             BUBBLE_AI_IMAGE_REPEAT_Y_START, BUBBLE_AI_IMAGE_REPEAT_Y_END, BUBBLE_AI_IMAGE_SCALE,
             BUBBLE_USER_CONTENT_PADDING_LEFT, BUBBLE_USER_CONTENT_PADDING_RIGHT,
             BUBBLE_AI_CONTENT_PADDING_LEFT, BUBBLE_AI_CONTENT_PADDING_RIGHT
-        )
+        ) + GlassThemePreferences.floatKeys + ThemeTransparencyPreferences.floatKeys
     }
 
     private fun copyThemeValues(
@@ -866,6 +878,14 @@ class UserPreferencesManager private constructor(private val context: Context) {
         targetPrefix: String,
         clearMissingTargetValues: Boolean,
     ) {
+        val styleNames = com.ai.assistance.operit.data.preferences.messagestyle.MessageStylePreferences
+        val sourceStyles = buildMap {
+            listOf(styleNames.LEGACY, styleNames.USER, styleNames.AI).forEach { name ->
+                val key = stringPreferencesKey((sourcePrefix ?: "") + name)
+                preferences[key]?.let { put(name, it) }
+            }
+        }
+        val expandedStyles = styleNames.expandLegacy(sourceStyles)
         getAllStringThemeKeys().forEach { key ->
             val sourceKey = sourcePrefix?.let { stringPreferencesKey("${it}${key.name}") } ?: key
             val targetKey = stringPreferencesKey("${targetPrefix}${key.name}")
@@ -901,6 +921,10 @@ class UserPreferencesManager private constructor(private val context: Context) {
             } else if (clearMissingTargetValues) {
                 preferences.remove(targetKey)
             }
+        }
+        // 复制旧主题时展开双方风格，避免残留目标主题以前的选择。
+        styleNames.sideKeys.forEach { name ->
+            preferences[stringPreferencesKey(targetPrefix + name)] = expandedStyles.getValue(name)
         }
     }
 
@@ -946,10 +970,13 @@ class UserPreferencesManager private constructor(private val context: Context) {
         val ints = defaults.ints.toMutableMap()
         val floats = defaults.floats.toMutableMap()
 
-        getAllStringThemeKeys().forEach { key ->
-            val sourceKey = stringPreferencesKey("${prefix}${key.name}")
-            preferences[sourceKey]?.let { strings[key.name] = it }
+        val storedStrings = buildMap {
+            getAllStringThemeKeys().forEach { key ->
+                val sourceKey = stringPreferencesKey("${prefix}${key.name}")
+                preferences[sourceKey]?.let { put(key.name, it) }
+            }
         }
+        strings.putAll(com.ai.assistance.operit.data.preferences.messagestyle.MessageStylePreferences.expandLegacy(storedStrings))
         getAllBooleanThemeKeys().forEach { key ->
             val sourceKey = booleanPreferencesKey("${prefix}${key.name}")
             preferences[sourceKey]?.let { booleans[key.name] = it }
@@ -1052,7 +1079,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         target: ActivePrompt,
         values: ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             writeVisualThemeValues(preferences, prefix, values)
             writeThemeTargetMetadata(preferences, prefix, values)
@@ -1063,7 +1090,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         target: ActivePrompt,
         transform: (ThemePreferenceValues) -> ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             val values = transform(readThemePreferenceValues(preferences, prefix))
             writeVisualThemeValues(preferences, prefix, values)
@@ -1071,11 +1098,31 @@ class UserPreferencesManager private constructor(private val context: Context) {
         }
     }
 
+    /** 主题导入按目标角色写入；全局聊天布局与角色主题在同一笔事务中保存。 */
+    internal suspend fun mutateThemeAndLayoutForCharacterCard(
+        characterCardId: String,
+        layout: ChatLayoutSettings,
+        transform: (ThemePreferenceValues) -> ThemePreferenceValues,
+    ) {
+        layout.validate()
+        editResourcePreferences { preferences ->
+            val prefix = getCharacterCardThemePrefix(characterCardId)
+            val values = transform(readThemePreferenceValues(preferences, prefix))
+            writeVisualThemeValues(preferences, prefix, values)
+            writeThemeTargetMetadata(preferences, prefix, values)
+            preferences[CHAT_SETTINGS_BUTTON_END_PADDING] = layout.chatSettingsButtonEndPadding
+            preferences[CHAT_AREA_HORIZONTAL_PADDING] = layout.chatAreaHorizontalPadding
+            preferences[AI_MARKDOWN_LINE_HEIGHT_MULTIPLIER] = layout.aiMarkdownLineHeightMultiplier
+            preferences[AI_MARKDOWN_LETTER_SPACING] = layout.aiMarkdownLetterSpacing
+            preferences[AI_MARKDOWN_PARAGRAPH_SPACING] = layout.aiMarkdownParagraphSpacing
+        }
+    }
+
     suspend fun resetVisualThemeForPrompt(
         target: ActivePrompt,
         values: ThemePreferenceValues,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val prefix = themePrefixForPrompt(target)
             clearVisualThemeValues(preferences, prefix)
             writeThemeTargetMetadata(preferences, prefix, values)
@@ -1083,7 +1130,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private suspend fun cloneThemeBetweenPrefixes(sourcePrefix: String, targetPrefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             copyThemeValues(
                 preferences,
                 sourcePrefix,
@@ -1094,7 +1141,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
     }
 
     private suspend fun deleteThemeByPrefix(prefix: String) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             getAllStringThemeKeys().forEach { key ->
                 preferences.remove(stringPreferencesKey("${prefix}${key.name}"))
             }
@@ -1151,7 +1198,7 @@ class UserPreferencesManager private constructor(private val context: Context) {
         activeCharacterCardId: String?,
         defaultCharacterWasCreated: Boolean,
     ) {
-        context.userPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             val defaultPrefix = getCharacterCardThemePrefix(CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
             val shouldMigrate = ThemeScopeMigrationPolicy.shouldCopyLegacyThemeToDefaultCharacter(
                 migrationCompleted = preferences[CHARACTER_THEME_DEFAULT_MIGRATION_COMPLETED] ?: false,
@@ -1178,6 +1225,28 @@ class UserPreferencesManager private constructor(private val context: Context) {
             getCharacterCardThemePrefix(sourceCharacterCardId),
             getCharacterCardThemePrefix(targetCharacterCardId)
         )
+    }
+
+    /**
+     * Overwrite the visual theme of every listed character card.
+     * Background, fonts, and user avatars are part of that visual set and
+     * are copied with it. Character-card identity keys stay on each card.
+     */
+    suspend fun applyVisualThemeToCharacterCards(
+        values: ThemePreferenceValues,
+        characterCardIds: Collection<String>,
+    ) {
+        val targetIds = characterCardIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (targetIds.isEmpty()) return
+        context.userPreferencesDataStore.edit { preferences ->
+            targetIds.forEach { characterCardId ->
+                writeVisualThemeValues(
+                    preferences,
+                    getCharacterCardThemePrefix(characterCardId),
+                    values,
+                )
+            }
+        }
     }
 
     suspend fun deleteCharacterCardTheme(characterCardId: String) {
@@ -1244,4 +1313,22 @@ class UserPreferencesManager private constructor(private val context: Context) {
             characterGroupId = characterGroupId,
         ).first()
     }
+
+    internal suspend fun storedResourceReferences(): Set<String> {
+        val preferences = context.userPreferencesDataStore.data.first()
+        return ManagedResourceFiles.references(preferences.asMap().mapKeys { it.key.name })
+    }
+
+    private suspend fun editResourcePreferences(
+        transform: suspend (MutablePreferences) -> Unit,
+    ): Preferences = PrivateResourceCleanup.update(
+        filesDir = context.filesDir,
+        readReferences = { storedResourceReferences() },
+        persist = { context.userPreferencesDataStore.edit(transform) },
+        readAllReferences = {
+            storedResourceReferences() +
+                DisplayPreferencesManager.getInstance(context).storedResourceReferences()
+        },
+        onCleanupFailure = { AppLogger.w("PrivateResourceCleanup", "清理已替换的私有资源失败", it) },
+    )
 }

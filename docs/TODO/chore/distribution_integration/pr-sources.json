@@ -1,0 +1,418 @@
+[
+  {
+    "number": 1104,
+    "title": "feat(backup): 导入快照自动应用主题媒体并整理导出资源",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/snapshot-resources",
+    "source_sha": "dd8365848fed2601d5cbe14d3e3ed424fe32ebdd",
+    "url": "https://github.com/AAswordman/Operit/pull/1104"
+  },
+  {
+    "number": 1110,
+    "title": "feat(tokenstats): 增加月度与年度统计并按周期刷新图表",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/tokenstats-period-refresh",
+    "source_sha": "6db9aa2523365f818bdcb6d50255504da11946b4",
+    "url": "https://github.com/AAswordman/Operit/pull/1110"
+  },
+  {
+    "number": 1111,
+    "title": "fix(shell): 按命令位置识别危险操作，避免误拦正常参数",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/shell-safety-check",
+    "source_sha": "3c5c76e83b6c0790196a9789abd73ef649417601",
+    "url": "https://github.com/AAswordman/Operit/pull/1111"
+  },
+  {
+    "number": 1113,
+    "title": "feat(deepseek): 接入 Files API 并复用图片上传结果",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/deepseek-files-api",
+    "source_sha": "62b78739876408fab595af35a55674aa1fce1421",
+    "url": "https://github.com/AAswordman/Operit/pull/1113"
+  },
+  {
+    "number": 1121,
+    "title": "fix(settings): 改善模型列表获取反馈与超时取消处理",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/model-list-error-feedback",
+    "source_sha": "02588055b7bf2c463f4b30a4e276c5dc989dc062",
+    "url": "https://github.com/AAswordman/Operit/pull/1121"
+  },
+  {
+    "number": 1126,
+    "title": "fix(tools): 修复 MCP 与插件参数转换并减少输入框卡顿",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/tools-param-and-input-perf",
+    "source_sha": "f0bffa78e3f280cc3c3b170ab4d8897acc025c48",
+    "url": "https://github.com/AAswordman/Operit/pull/1126"
+  },
+  {
+    "number": 1130,
+    "title": "feat(logcat): 支持日志导出过滤与敏感内容隐藏",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/logcat-export-presets",
+    "source_sha": "59129ab263100262e0bf890141a1a6199b6ab0d2",
+    "url": "https://github.com/AAswordman/Operit/pull/1130"
+  },
+  {
+    "number": 1134,
+    "title": "fix(extended_chat): 修复会话查找、角色校验与错误处理",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/extended-chat-error-semantics",
+    "source_sha": "5ff8c9ea1e28f2a875911d7c9a7e9accb459307e",
+    "url": "https://github.com/AAswordman/Operit/pull/1134"
+  },
+  {
+    "number": 1142,
+    "title": "fix(qqbot): 修复监听开关超时与停机状态无法保存",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/qqbot-lifecycle-timeout-deadlock",
+    "source_sha": "a3eb31a3de5e1d22d4f9e6ef797084581dbbd61d",
+    "url": "https://github.com/AAswordman/Operit/pull/1142"
+  },
+  {
+    "number": 1152,
+    "title": "feat(summary): 为总结功能提供独立的思考开关与档位",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/summary-thinking-option",
+    "source_sha": "58a8aa22360ccb21cc5e43b87e7f17381d46c4c3",
+    "url": "https://github.com/AAswordman/Operit/pull/1152"
+  },
+  {
+    "number": 1156,
+    "title": "feat(settings): 支持将当前角色卡主题应用到全部角色卡",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/theme-apply-to-all-character-cards",
+    "source_sha": "a8040fcaec57e6555a87af312ab9a40206cf5993",
+    "url": "https://github.com/AAswordman/Operit/pull/1156"
+  },
+  {
+    "number": 1157,
+    "title": "fix(chat): 异步处理长历史上下文，减少消息操作卡顿",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/long-history-main-thread-anr",
+    "source_sha": "d0fdd163cbd6cf7b5fa5f25c7c1a425f99e6ecf2",
+    "url": "https://github.com/AAswordman/Operit/pull/1157"
+  },
+  {
+    "number": 1168,
+    "title": "fix(markdown): 修复表格宽度测量与横向拖动失效",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/table-scroll-constraints",
+    "source_sha": "67e992a3e51660dfbbeaf31ba0b3e3bdfb070249",
+    "url": "https://github.com/AAswordman/Operit/pull/1168"
+  },
+  {
+    "number": 1178,
+    "title": "fix(shell): 修复 Shizuku 命令执行中的管道阻塞与资源清理",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/shizuku-shell-process",
+    "source_sha": "d47cb7c9d79dfb8567be3124e27d19115c3e2b07",
+    "url": "https://github.com/AAswordman/Operit/pull/1178"
+  },
+  {
+    "number": 1189,
+    "title": "feat(settings): 增加模型配置分组、排序与分组筛选",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/model-config-groups-and-order",
+    "source_sha": "0234da6f1dc30344e6bf498fc0fd4e9d6c08e3ba",
+    "url": "https://github.com/AAswordman/Operit/pull/1189"
+  },
+  {
+    "number": 1205,
+    "title": "feat(settings): 增加数据占用总览与分类清理入口",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/data-storage-management",
+    "source_sha": "d4c8a9368b1af0dd05dc0651236630587d35cc7b",
+    "url": "https://github.com/AAswordman/Operit/pull/1205"
+  },
+  {
+    "number": 1211,
+    "title": "refactor(key-pool): 重构密钥池调度与管理界面",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/api-key-pool-failover",
+    "source_sha": "3d936738c48b8e0db5b64cedb576db4e990788a2",
+    "url": "https://github.com/AAswordman/Operit/pull/1211"
+  },
+  {
+    "number": 1218,
+    "title": "fix(repo): 保留附加仓库子目录路径并完善文件操作",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1199-repo-subdir-flatten",
+    "source_sha": "92dd0fa40bba278a1f8a12c592080d6d8107d27e",
+    "url": "https://github.com/AAswordman/Operit/pull/1218"
+  },
+  {
+    "number": 1231,
+    "title": "fix(deepseek): 保留纯思考续写历史与未完成工具上下文",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/pure-thinking-preserve-history",
+    "source_sha": "51fe8f1f12703f5d648d1469a01e560478a4db76",
+    "url": "https://github.com/AAswordman/Operit/pull/1231"
+  },
+  {
+    "number": 1235,
+    "title": "fix(attachment): 将屏幕内容作为图片附件发送",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/screen-content-as-image",
+    "source_sha": "ab0efc7b1abac5b7f5acf47346a21fc6419cc696",
+    "url": "https://github.com/AAswordman/Operit/pull/1235"
+  },
+  {
+    "number": 1236,
+    "title": "feat(tokenstats): 支持删除配置统计与清理失效配置记录",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/token-stats-delete-orphaned-configs",
+    "source_sha": "dc522c71f31d46c582e1bfa5c6dd3531518cd947",
+    "url": "https://github.com/AAswordman/Operit/pull/1236"
+  },
+  {
+    "number": 1247,
+    "title": "feat(operit_editor): 支持查询和设置全局工具权限模式",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/operit-editor-tool-permission-mode",
+    "source_sha": "41a2af8c0d52841f281e0dedb475660fcdbd6615",
+    "url": "https://github.com/AAswordman/Operit/pull/1247"
+  },
+  {
+    "number": 1254,
+    "title": "fix(storage): 排除开发目录媒体扫描，保护 TypeScript 源文件",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1253-dev-package-nomedia",
+    "source_sha": "1f1c4be3585bd76e6053862b08b9c23d17048416",
+    "url": "https://github.com/AAswordman/Operit/pull/1254"
+  },
+  {
+    "number": 1255,
+    "title": "fix(codex): 复用会话标识与缓存键以保持请求缓存亲和",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1251-codex-cache-affinity",
+    "source_sha": "a80f9ab99367a8b8edb41a62ad6204f9fbbc198f",
+    "url": "https://github.com/AAswordman/Operit/pull/1255"
+  },
+  {
+    "number": 1256,
+    "title": "fix(stream): 在重试回滚时清除总结、翻译和工具描述的重复内容",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1241-summary-retry-rollback",
+    "source_sha": "bd04cc9678129529a994c22da898f0cbf719ae3c",
+    "url": "https://github.com/AAswordman/Operit/pull/1256"
+  },
+  {
+    "number": 1260,
+    "title": "fix(chat): 避免超长思考引导线触发尺寸约束崩溃",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1259-think-guide-constraints",
+    "source_sha": "89d85c75131f20bfddd86e1ca6b6d64e2a92f655",
+    "url": "https://github.com/AAswordman/Operit/pull/1260"
+  },
+  {
+    "number": 1261,
+    "title": "feat(summary): 支持在新摘要中单独压缩上一轮摘要",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/summary-previous-review",
+    "source_sha": "86f771e08216fcacc6290a4a2127f94c61c12a81",
+    "url": "https://github.com/AAswordman/Operit/pull/1261"
+  },
+  {
+    "number": 1262,
+    "title": "feat(config): 将默认日常与最大上下文调整为 200K 和 1000K",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/context-length-defaults",
+    "source_sha": "d9350eca466b6d615b8be5fb9ca99c1880162935",
+    "url": "https://github.com/AAswordman/Operit/pull/1262"
+  },
+  {
+    "number": 1267,
+    "title": "fix(tokenstats): 恢复用量重置入口并增加延时确认",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1265-reset-token-usage",
+    "source_sha": "55d052c8368d12cf489f0a2ecd144ce7a767cfaf",
+    "url": "https://github.com/AAswordman/Operit/pull/1267"
+  },
+  {
+    "number": 1269,
+    "title": "fix(deepseek): 移除已停用的内置联网搜索配置与请求字段",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/remove-deepseek-web-search",
+    "source_sha": "c41ca2a3f98efae196e02cb343276726229c0e15",
+    "url": "https://github.com/AAswordman/Operit/pull/1269"
+  },
+  {
+    "number": 1270,
+    "title": "fix(chat): 提高默认生成上限并区分正文缺失与输出截断",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/max-tokens-thinking-warning",
+    "source_sha": "294889b22c13b41e15ff1e8ca306e61960e53a00",
+    "url": "https://github.com/AAswordman/Operit/pull/1270"
+  },
+  {
+    "number": 1278,
+    "title": "feat(chat): 持久化结构化消息并完善工具与思考渲染",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/thinking-tag-meta-display",
+    "source_sha": "ff6d83b4cd0a5054e18e2de40ebedbf3580df933",
+    "url": "https://github.com/AAswordman/Operit/pull/1278"
+  },
+  {
+    "number": 1284,
+    "title": "feat(tokenstats): 支持峰谷定价与长上下文差异化计费",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/token-stats-advanced-pricing",
+    "source_sha": "29bc3cc146e8e891e5829177177a1205897c1f68",
+    "url": "https://github.com/AAswordman/Operit/pull/1284"
+  },
+  {
+    "number": 1290,
+    "title": "fix(deepseek): 兼容两种思考分片字段并保留续写上下文",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/deepseek-reasoning-field",
+    "source_sha": "4067212991a549a6f265bafc16d2e24e3c081883",
+    "url": "https://github.com/AAswordman/Operit/pull/1290"
+  },
+  {
+    "number": 1296,
+    "title": "fix(files): 修复 Linux 文本搜索的路径映射",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1291-linux-grep-path",
+    "source_sha": "94b57556eb638f8244918a5980f608139779f7d7",
+    "url": "https://github.com/AAswordman/Operit/pull/1296"
+  },
+  {
+    "number": 1298,
+    "title": "fix(attachment): 修复厂商图片选择器临时 URI 导致的附件读取失败",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1289-picker-uri",
+    "source_sha": "c848f2c4ffdd4d51bd3e5972fa2cc4490bcd1b99",
+    "url": "https://github.com/AAswordman/Operit/pull/1298"
+  },
+  {
+    "number": 1299,
+    "title": "feat(chat): 将思考控制改为常驻动态滑块",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/thinking-slider-control",
+    "source_sha": "b8d9383eeb8cd53c667b1873765c667806cb0478",
+    "url": "https://github.com/AAswordman/Operit/pull/1299"
+  },
+  {
+    "number": 1308,
+    "title": "fix(code-runner): 限制隐藏执行时长并回收异常 shell",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/issue-1301-hidden-exec-timeout",
+    "source_sha": "f308ecd7825e21171ef1265f19f373b4125e5bcf",
+    "url": "https://github.com/AAswordman/Operit/pull/1308"
+  },
+  {
+    "number": 1311,
+    "title": "feat(operit_editor): 支持查询应用与插件性能指标",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/performance-metrics-api",
+    "source_sha": "56e01b03d00cf43c0d582b41f2cc59d5ece18155",
+    "url": "https://github.com/AAswordman/Operit/pull/1311"
+  },
+  {
+    "number": 1313,
+    "title": "refactor(permissions): 简化权限模式并按实际授权降级工具后端",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/permission-capability-routing",
+    "source_sha": "512f02c07de0eefccd6ca4c78705b19fa7184cdf",
+    "url": "https://github.com/AAswordman/Operit/pull/1313"
+  },
+  {
+    "number": 1314,
+    "title": "feat(chat): 流式导入导出聊天备份，降低大记录内存占用",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/chat-export-streaming-import",
+    "source_sha": "5f8cef5c857d5285ecbcb5c654723725cbeee09a",
+    "url": "https://github.com/AAswordman/Operit/pull/1314"
+  },
+  {
+    "number": 1321,
+    "title": "feat(display): 支持配置横竖屏切换后的页面重载策略",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/issue-1317-orientation-reload",
+    "source_sha": "a29314371a74b0bc9c54950d1e46d46c59660b0a",
+    "url": "https://github.com/AAswordman/Operit/pull/1321"
+  },
+  {
+    "number": 1326,
+    "title": "fix(i18n): 按应用语言显示聊天处理状态并补齐日语文案",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/localize-chat-status-strings",
+    "source_sha": "3df6c1ca061ca74d8d60e8a9e04fd3b90215d33f",
+    "url": "https://github.com/AAswordman/Operit/pull/1326"
+  },
+  {
+    "number": 1334,
+    "title": "fix(markdown): 修复行内反引号误触发代码围栏",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/markdown-inline-fence-1333",
+    "source_sha": "59defadfd81a97849152a8fb26170bce5b3ffaa1",
+    "url": "https://github.com/AAswordman/Operit/pull/1334"
+  },
+  {
+    "number": 1338,
+    "title": "fix(waifu): 修复流式分句截断 Markdown 与后续内容",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/waifu-markdown-rendering-1280",
+    "source_sha": "39a0abaaf23446e5122f7951b5350f4f40b9d52d",
+    "url": "https://github.com/AAswordman/Operit/pull/1338"
+  },
+  {
+    "number": 1340,
+    "title": "fix(pc-agent): 修复配置接口凭据泄露与未授权修改 (#1322)",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/pc-agent-config-auth-1322",
+    "source_sha": "fd85521e89631d51dae39c14b8a1fb9f1ad30869",
+    "url": "https://github.com/AAswordman/Operit/pull/1340"
+  },
+  {
+    "number": 1344,
+    "title": "refactor(workspace): 统一文件管理入口并重构浏览与编辑界面",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/linux-file-preview",
+    "source_sha": "122925d487bcae86f10b359de9efca350f87c15f",
+    "url": "https://github.com/AAswordman/Operit/pull/1344"
+  },
+  {
+    "number": 1356,
+    "title": "feat(settings): 自动清理替换后的图片与字体资源",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "feat/replaced-resource-cleanup",
+    "source_sha": "39fb3dbc750857c1ba957d167a7e665a8237c257",
+    "url": "https://github.com/AAswordman/Operit/pull/1356"
+  },
+  {
+    "number": 1360,
+    "title": "fix(chat): 修复旧会话累计 Token 统计归零与覆盖",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/chat-token-stat-restoration",
+    "source_sha": "03a5ecc62ece45fa5ee9316140a0b62d8189b616",
+    "url": "https://github.com/AAswordman/Operit/pull/1360"
+  },
+  {
+    "number": 1361,
+    "title": "fix(memory): 收紧语义检索并补齐查询评分诊断",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/memory-search-relevance-1320",
+    "source_sha": "15369feca98b59f73cf7f7fe9cf41ada02c5a8d3",
+    "url": "https://github.com/AAswordman/Operit/pull/1361"
+  },
+  {
+    "number": 1362,
+    "title": "fix(chat): 修复长回复末尾工具卡片点击并统一聊天滚动",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/single-scroll-chat-cards",
+    "source_sha": "eb90bfdb634b285b25f36e7b91a958d47ebd2c58",
+    "url": "https://github.com/AAswordman/Operit/pull/1362"
+  },
+  {
+    "number": 1365,
+    "title": "fix(chat): 降低长历史发送前的重复读取和请求构建开销",
+    "source_repo": "3316891527/Operit",
+    "source_branch": "fix/long-history-send-cost",
+    "source_sha": "4740da86fe5d0c4a5aa581d69ee3ac21cca441a4",
+    "url": "https://github.com/AAswordman/Operit/pull/1365"
+  }
+]

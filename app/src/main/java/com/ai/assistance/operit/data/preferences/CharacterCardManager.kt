@@ -5,20 +5,20 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
 import com.ai.assistance.operit.data.backup.OperitBackupDirs
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardToolAccessConfig
 import com.ai.assistance.operit.data.model.PromptTag
 import com.ai.assistance.operit.data.model.TagType
-import com.ai.assistance.operit.data.model.TavernCharacterCard
-import com.ai.assistance.operit.data.model.TavernCharacterData
+import com.ai.assistance.operit.data.character.TavernCharacterCard
+import com.ai.assistance.operit.data.character.TavernCharacterData
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.TavernExtensions
-import com.ai.assistance.operit.data.model.OperitTavernExtension
-import com.ai.assistance.operit.data.model.OperitAttachedTagPayload
-import com.ai.assistance.operit.data.model.OperitCharacterCardPayload
-import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.TavernExtensions
+import com.ai.assistance.operit.data.character.OperitTavernExtension
+import com.ai.assistance.operit.data.character.OperitAttachedTagPayload
+import com.ai.assistance.operit.data.character.OperitCharacterCardPayload
+import com.ai.assistance.operit.core.config.PromptFunctionType
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.google.gson.Gson
@@ -34,7 +34,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 import java.util.UUID
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.util.Base64
 import java.io.InputStream
 import java.io.File
@@ -233,7 +233,9 @@ class CharacterCardManager private constructor(private val context: Context) {
                 if (!legacyValue.isNullOrBlank() && preferences[chatKey].isNullOrBlank()) {
                     preferences[chatKey] = legacyValue
                 }
-                if (preferences[voiceKey].isNullOrBlank() && cardId == DEFAULT_CHARACTER_CARD_ID) {
+                // Only seed the default voice prompt when the field has never been written.
+                // An explicit empty string means the user cleared it and must be kept.
+                if (!preferences.contains(voiceKey) && cardId == DEFAULT_CHARACTER_CARD_ID) {
                     preferences[voiceKey] = CharacterCardBilingualData.getDefaultOtherContentVoice(context)
                 }
                 preferences.remove(legacyKey)

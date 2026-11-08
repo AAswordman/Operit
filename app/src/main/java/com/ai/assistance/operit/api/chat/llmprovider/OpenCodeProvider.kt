@@ -3,21 +3,25 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.data.stats.ProviderUsageSnapshot
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ModelListFetcher
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
 
 /** Routes OpenCode Zen/Go models to the protocol-specific provider already used by Operit. */
 class OpenCodeProvider private constructor(
@@ -46,6 +50,7 @@ class OpenCodeProvider private constructor(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -62,7 +67,7 @@ class OpenCodeProvider private constructor(
             apiEndpoint = baseEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
             protocol = protocol,
         )
         val thinkingEnabled = enableThinking || thinkingMapping.reasoningRequired
@@ -244,6 +249,7 @@ internal class OpenCodeChatProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -323,6 +329,7 @@ internal class OpenCodeResponsesProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean

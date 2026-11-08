@@ -1,46 +1,95 @@
 package com.ai.assistance.operit.data.db
 
+import com.ai.assistance.operit.data.dao.MessageTranslationDao
+import com.ai.assistance.operit.data.model.MessageTranslationEntity
 import android.content.Context
+import android.database.sqlite.SQLiteDatabase
+import com.ai.assistance.operit.data.chat.folders.ChatFolder
+import com.ai.assistance.operit.data.chat.folders.ChatFolderDao
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.ai.assistance.operit.data.dao.ApiKeyAttemptDao
 import com.ai.assistance.operit.data.dao.ChatContentDao
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
+import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
+import com.ai.assistance.operit.util.logging.AppLogger
+import java.io.File
+import java.util.UUID
+
+private const val APP_DATABASE_VERSION = 29
+
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
     entities = [
         ChatEntity::class,
+        ChatFolder::class,
         MessageEntity::class,
         MessageVariantEntity::class,
+        MessageTranslationEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
+        ApiKeyAttemptRecordEntity::class,
     ],
-    version = 21,
+    version = APP_DATABASE_VERSION,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     /** 获取聊天DAO */
     abstract fun chatDao(): ChatDao
+    abstract fun chatFolderDao(): ChatFolderDao
 
     /** 获取消息DAO */
     abstract fun messageDao(): MessageDao
     abstract fun messageVariantDao(): MessageVariantDao
+    abstract fun messageTranslationDao(): MessageTranslationDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
+    abstract fun apiKeyAttemptDao(): ApiKeyAttemptDao
 
     companion object {
+        const val DATABASE_VERSION = APP_DATABASE_VERSION
+
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        internal val MIGRATION_27_28 = com.ai.assistance.operit.data.chat.archive.ChatArchiveMigration
+        internal val MIGRATION_28_29 = com.ai.assistance.operit.data.chat.usage.ChatTokenUsageMigration
+
+        /** v26 → v27：新增消息翻译缓存，保留已有聊天及统计数据。 */
+        internal val MIGRATION_26_27 =
+            object : Migration(26, 27) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                            CREATE TABLE IF NOT EXISTS `message_translations` (
+                                `chatId` TEXT NOT NULL,
+                                `messageTimestamp` INTEGER NOT NULL,
+                                `targetLanguageCode` TEXT NOT NULL,
+                                `sourceTextHash` TEXT NOT NULL,
+                                `translatedText` TEXT NOT NULL,
+                                `updatedAt` INTEGER NOT NULL,
+                                PRIMARY KEY(`chatId`, `messageTimestamp`, `targetLanguageCode`),
+                                FOREIGN KEY(`chatId`) REFERENCES `chats`(`id`) ON DELETE CASCADE
+                            )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_message_translations_chatId` " +
+                            "ON `message_translations` (`chatId`)"
+                    )
+                }
+            }
 
         // 定义从版本1到2的迁移
         private val MIGRATION_1_2 =
@@ -227,7 +276,80 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        /** v20 -> v21: token statistics schema and Room-declared message indexes. */
+        /** 将已发布的单层组名转换为稳定 ID，保留全部对话及原显示顺序。 */
+        internal val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                runSql { db.execSQL(it) }
+            }
+
+            override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                runSql { sql ->
+                    val statement = connection.prepare(sql)
+                    try { statement.step() } finally { statement.close() }
+                }
+            }
+
+            private fun runSql(exec: (String) -> Unit) {
+                exec("""
+                    CREATE TABLE `chat_folders` (
+                        `id` TEXT NOT NULL PRIMARY KEY, `name` TEXT NOT NULL,
+                        `parentId` TEXT, `displayOrder` INTEGER NOT NULL,
+                        `characterCardName` TEXT, `characterGroupId` TEXT
+                    )
+                """.trimIndent())
+                exec("CREATE INDEX `index_chat_folders_parentId` ON `chat_folders` (`parentId`)")
+                exec("ALTER TABLE `chats` ADD COLUMN `folderId` TEXT")
+                exec("ALTER TABLE `chats` ADD COLUMN `lastUsedAt` INTEGER NOT NULL DEFAULT 0")
+                exec("""
+                    INSERT INTO `chat_folders` (`id`, `name`, `parentId`, `displayOrder`, `characterCardName`, `characterGroupId`)
+                    SELECT 'legacy:' || hex(`group`), `group`, NULL, MIN(displayOrder), NULL, NULL
+                    FROM `chats` WHERE `group` IS NOT NULL GROUP BY `group`
+                """.trimIndent())
+                exec("UPDATE `chats` SET `folderId` = 'legacy:' || hex(`group`) WHERE `group` IS NOT NULL")
+                exec("""
+                    UPDATE `chats` SET `lastUsedAt` = MAX(createdAt, COALESCE(
+                        (SELECT MAX(timestamp) FROM messages WHERE messages.chatId = chats.id AND sender = 'user'), 0))
+                """.trimIndent())
+            }
+        }
+
+        /** v23 -> v24: 将消息正文与候选变体迁移为结构化片段。 */
+        internal val MIGRATION_23_24 = MessageSectionsMigration
+
+        /** v24 -> v25: 为模型价格增加峰谷和长上下文倍率配置。 */
+        internal val MIGRATION_24_25 =
+            object : Migration(24, 25) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakPricingEnabled` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakScheduleJson` TEXT")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakCachedInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakCacheWriteMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakOutputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextPricingEnabled` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextThreshold` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextCachedInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextCacheWriteMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextOutputMultiplier` REAL")
+                }
+            }
+
+        /** v25 -> v26: 为峰谷规则增加周末和法定节假日低谷开关。 */
+        internal val MIGRATION_25_26 =
+            object : Migration(25, 26) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE token_stats_models " +
+                            "ADD COLUMN `weekendOffPeakPricingEnabled` INTEGER"
+                    )
+                    db.execSQL(
+                        "ALTER TABLE token_stats_models " +
+                            "ADD COLUMN `holidayOffPeakPricingEnabled` INTEGER"
+                    )
+                }
+            }
+
         internal val MIGRATION_20_21 =
             object : Migration(20, 21) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -342,6 +464,60 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
+
+        /** v22 -> v23: 增加密钥池请求尝试日志，接在基点文件夹迁移之后。 */
+        internal val MIGRATION_22_23 =
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    runSql { db.execSQL(it) }
+                }
+
+                override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                    runSql { sql ->
+                        val stmt = connection.prepare(sql)
+                        try {
+                            stmt.step()
+                        } finally {
+                            stmt.close()
+                        }
+                    }
+                }
+
+                private fun runSql(exec: (String) -> Unit) {
+                    exec(
+                        """
+                        CREATE TABLE IF NOT EXISTS `api_key_attempt_records` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `occurredAtMs` INTEGER NOT NULL,
+                            `configId` TEXT NOT NULL,
+                            `keyId` TEXT NOT NULL,
+                            `model` TEXT NOT NULL,
+                            `success` INTEGER NOT NULL,
+                            `errorClass` TEXT NOT NULL,
+                            `httpStatus` INTEGER,
+                            `ttftMs` INTEGER,
+                            `tokensPerSec` REAL,
+                            `inputTokens` INTEGER,
+                            `outputTokens` INTEGER,
+                            `cachedInputTokens` INTEGER,
+                            `attemptIndex` INTEGER NOT NULL,
+                            `stickyHit` INTEGER NOT NULL DEFAULT 0,
+                            `stream` INTEGER NOT NULL DEFAULT 1
+                        )
+                        """.trimIndent()
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_api_key_attempt_records_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`occurredAtMs`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS " +
+                            "`index_api_key_attempt_records_configId_keyId_model_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`configId`, `keyId`, `model`, `occurredAtMs`)"
+                    )
+                }
+            }
+
         // 定义从版本2到3的迁移
         private val MIGRATION_2_3 =
             object : Migration(2, 3) {
@@ -433,39 +609,116 @@ abstract class AppDatabase : RoomDatabase() {
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE
                 ?: synchronized(this) {
-                    val instance =
-                        Room.databaseBuilder(
-                            context.applicationContext,
-                            AppDatabase::class.java,
-                            "app_database"
-                        )
-                            .addMigrations(
-                                MIGRATION_1_2,
-                                MIGRATION_2_3,
-                                MIGRATION_3_4,
-                                MIGRATION_4_5,
-                                MIGRATION_5_6,
-                                MIGRATION_6_7,
-                                MIGRATION_7_8,
-                                MIGRATION_8_9,
-                                MIGRATION_9_10,
-                                MIGRATION_10_11,
-                                MIGRATION_11_12,
-                                MIGRATION_12_13,
-                                MIGRATION_13_14,
-                                MIGRATION_14_15,
-                                MIGRATION_15_16,
-                                MIGRATION_16_17,
-                                MIGRATION_17_18,
-                                MIGRATION_18_19,
-                                MIGRATION_19_20,
-                                MIGRATION_20_21
-                            ) // 添加新的迁移
-                            .build()
+                    val instance = buildDatabase(context.applicationContext, "app_database")
                     INSTANCE = instance
                     instance
                 }
         }
+
+        /**
+         * Opens a private copy through Room so the recovery UI can validate the complete schema
+         * and migration chain without modifying the live database.
+         */
+        internal fun validateRecoveryCopy(context: Context, sourceDatabase: File): Boolean {
+            if (!sourceDatabase.isFile) return false
+            val appContext = context.applicationContext
+            val validationName =
+                "room_health_validation_${UUID.randomUUID().toString().replace("-", "")}"
+            val validationDatabase = appContext.getDatabasePath(validationName)
+            validationDatabase.parentFile?.mkdirs()
+
+            return try {
+                sourceDatabase.copyTo(validationDatabase, overwrite = false)
+                databaseFiles(sourceDatabase).drop(1).forEach { sourceSidecar ->
+                    if (sourceSidecar.exists()) {
+                        check(sourceSidecar.isFile) {
+                            "Room validation sidecar is not a file: ${sourceSidecar.name}"
+                        }
+                        val suffix = sourceSidecar.name.removePrefix(sourceDatabase.name)
+                        sourceSidecar.copyTo(
+                            File(validationDatabase.absolutePath + suffix),
+                            overwrite = false
+                        )
+                    }
+                }
+
+                // Removing the identity table from the isolated copy forces Room to compare the
+                // actual tables, columns, foreign keys, and indexes instead of trusting one hash.
+                SQLiteDatabase.openDatabase(
+                    validationDatabase.absolutePath,
+                    null,
+                    SQLiteDatabase.OPEN_READWRITE
+                ).use { database ->
+                    database.execSQL("DROP TABLE IF EXISTS `room_master_table`")
+                }
+
+                val database = buildDatabase(appContext, validationName)
+                try {
+                    database.openHelper.writableDatabase
+                    true
+                } finally {
+                    database.close()
+                }
+            } catch (e: Exception) {
+                AppLogger.e("AppDatabase", "Room recovery copy validation failed", e)
+                false
+            } finally {
+                databaseFiles(validationDatabase).forEach { file ->
+                    if (file.exists() && !file.deleteRecursively()) {
+                        AppLogger.w(
+                            "AppDatabase",
+                            "Failed to delete Room validation file: ${file.name}"
+                        )
+                    }
+                }
+            }
+        }
+
+        private fun buildDatabase(context: Context, databaseName: String): AppDatabase =
+            Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                databaseName
+            )
+                .addMigrations(
+                    MIGRATION_1_2,
+                    MIGRATION_2_3,
+                    MIGRATION_3_4,
+                    MIGRATION_4_5,
+                    MIGRATION_5_6,
+                    MIGRATION_6_7,
+                    MIGRATION_7_8,
+                    MIGRATION_8_9,
+                    MIGRATION_9_10,
+                    MIGRATION_10_11,
+                    MIGRATION_11_12,
+                    MIGRATION_12_13,
+                    MIGRATION_13_14,
+                    MIGRATION_14_15,
+                    MIGRATION_15_16,
+                    MIGRATION_16_17,
+                    MIGRATION_17_18,
+                    MIGRATION_18_19,
+                    MIGRATION_19_20,
+                    MIGRATION_20_21,
+                    MIGRATION_21_22,
+                    MIGRATION_22_23,
+                    MIGRATION_23_24,
+                    MIGRATION_24_25,
+                    MIGRATION_25_26,
+                    MIGRATION_26_27,
+                    MIGRATION_27_28,
+                    MIGRATION_28_29
+                )
+                .build()
+
+        private fun databaseFiles(databaseFile: File): List<File> =
+            listOf(
+                databaseFile,
+                File(databaseFile.absolutePath + "-wal"),
+                File(databaseFile.absolutePath + "-shm"),
+                File(databaseFile.absolutePath + "-journal")
+            )
 
         fun closeDatabase() {
             synchronized(this) {

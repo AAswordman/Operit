@@ -1,0 +1,16 @@
+
+$/form={date:"2026-10-12",notes:"",code:"",busy:false,step:0,formula:"\\frac{1}{2}"}
+root=Column(children=[
+ Header(text="原生控件演示",label="所有输入与切换均在本地"),
+ Stepper(label="准备步骤",labels=["填写","检查","完成"],current=$/form/step),
+ DatePicker(label="日期",value=$/form/date,minDate="2026-10-01",maxDate="2026-10-31",clearable=true),
+ TextField(label="数字编号",value=$/form/code,mask="digits",error=if(condition=equals(a=$/form/code,b=""),then="请输入数字编号",else="")),
+ TextArea(label="备注",value=$/form/notes,minLines=2,maxLines=5),
+ Switch(label="预览按钮忙碌状态",checked=$/form/busy),
+ Button(child=Text(text="保存"),loading=$/form/busy,action=Event(name="local_action",context={op:"save"})),
+ Tooltip(label="为什么按钮不能点？",text="忙碌时会显示进度圈并禁止点击。关闭上方开关后即可使用。"),
+ RichText(runs=[{text:"旧值 ",strike:true},{text:"重要信息 ",highlight:true},{text:"1234.56",tabular:true}]),
+ TextField(label="公式源码",value=$/form/formula),
+ Formula(label="公式预览",text=$/form/formula),
+ Table(columns=["项目","数量"],rows=[["甲",12],["乙",24],["丙",36],["丁",48],["戊",60],["己",72]],columnWidths=[160,100],maxHeight=160)
+])

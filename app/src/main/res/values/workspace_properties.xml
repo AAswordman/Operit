@@ -1,0 +1,31 @@
+<resources>
+    <string name="workspace_properties_title">属性</string>
+    <string name="workspace_properties_name">名称</string>
+    <string name="workspace_properties_directory">目录</string>
+    <string name="workspace_properties_type">类型</string>
+    <string name="workspace_properties_size">大小</string>
+    <string name="workspace_properties_modified">修改时间</string>
+    <string name="workspace_properties_file_count">文件数</string>
+    <string name="workspace_properties_folder_count">文件夹数</string>
+    <string name="workspace_properties_file">文件</string>
+    <string name="workspace_properties_folder">文件夹</string>
+    <string name="workspace_properties_symlink">符号链接</string>
+    <string name="workspace_properties_extension_type">%1$s 文件</string>
+    <string name="workspace_properties_recursive_hint">包含所有层级的子项，不包含当前文件夹；不展开符号链接。</string>
+    <string name="workspace_properties_unknown">未知</string>
+    <string name="workspace_properties_calculating">正在统计…</string>
+    <string name="workspace_properties_incomplete">统计未完整：%1$d 个目录无法读取，%2$d 个文件未提供大小。</string>
+    <string name="workspace_properties_more">更多</string>
+    <string name="workspace_properties_change_time">修改时间</string>
+    <string name="workspace_properties_time_format">格式：年-月-日 时:分:秒，例如 2026-10-28 21:30:00</string>
+    <string name="workspace_properties_now">使用当前时间</string>
+    <string name="workspace_properties_apply_children">同时应用到所有子文件和子文件夹</string>
+    <string name="workspace_properties_time_result">已更新 %1$d 项，失败 %2$d 项。</string>
+    <string name="workspace_properties_time_unsupported">此文件来源不支持修改时间。</string>
+    <string name="workspace_properties_copied">已复制</string>
+    <string name="workspace_properties_retry">重试</string>
+    <string name="workspace_properties_read_failed">无法读取文件信息，请检查目录授权。</string>
+    <string name="workspace_properties_entry_missing">文件或文件夹不存在，或已无法访问。</string>
+    <string name="workspace_properties_source_missing">目录授权已失效，请重新授权后再试。</string>
+    <string name="workspace_properties_source_unsupported">当前工作区文件来源不支持属性读取。</string>
+</resources>

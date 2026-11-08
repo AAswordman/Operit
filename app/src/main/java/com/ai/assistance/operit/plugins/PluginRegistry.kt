@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.plugins
 
-import com.ai.assistance.operit.plugins.toolbox.ToolboxPlugin
+import com.ai.assistance.operit.plugins.toolpkg.ToolPkgLifecyclePlugin
 import com.ai.assistance.operit.plugins.toolpkg.ToolPkgCommonBridgePlugin
 import com.ai.assistance.operit.plugins.workflow.WorkflowLifecyclePlugin
 import java.util.concurrent.CopyOnWriteArrayList
@@ -30,7 +30,7 @@ object PluginRegistry {
         if (builtinsInitialized) return
         builtinsInitialized = true
 
-        register(ToolboxPlugin)
+        register(ToolPkgLifecyclePlugin)
         register(ToolPkgCommonBridgePlugin)
         register(WorkflowLifecyclePlugin)
         installAll()

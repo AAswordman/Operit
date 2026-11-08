@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">Configure primeiro um modelo de reconhecimento com suporte a imagens em Modelos de função.</string>
+</resources>

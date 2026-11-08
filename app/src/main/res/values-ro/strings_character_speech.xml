@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="character_card_tab_speech">vorbește</string>
+    <string name="character_speech_scope">Configurați numai rolul care este editat</string>
+    <string name="character_speech_draft_hint">Setările de vorbire sunt salvate cu cardul caracterului; anularea nu va salva, iar dezactivarea modului Waifu nu va șterge conținutul configurat.</string>
+    <string name="character_speech_load_failed">Nu se pot citi setările de vorbire pentru acest personaj, încercați din nou.</string>
+    <string name="character_speech_save_before_emoji">Salvați mai întâi cartea de caractere, apoi gestionați-i expresiile personalizate.</string>
+    <string name="character_speech_emoji_hint">Gestionați biblioteca de expresii a acestui personaj; adăugările și ștergerile de grupuri și imagini vor fi salvate imediat.</string>
+</resources>

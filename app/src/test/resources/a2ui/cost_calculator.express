@@ -1,0 +1,9 @@
+
+$/form = {years:4,discount:false}
+root = Card(child=Column(children=[
+ Header(text="费用试算",status="演示数据"),
+ Display(label="预计费用",text=formatNumber(value=multiply(a=multiply(a=$/form/years,b=11.622222),b=if(condition=$/form/discount,then=0.9,else=1)))),
+ Slider(label="购买年限",min=1,max=10,steps=8,number=$/form/years),
+ CheckBox(label="模拟九折优惠",value=$/form/discount),
+ Text(text="拖动滑块或勾选优惠即可本地重新计算，不会下单或付款。",variant="caption")
+]))

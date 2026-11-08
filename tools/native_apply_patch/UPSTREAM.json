@@ -1,0 +1,546 @@
+{
+  "project": "https://github.com/openai/codex",
+  "sourceSnapshot": "由维护者提供的 codex-main 源码归档；归档不包含 Git 提交元数据，以下列逐文件哈希固定来源",
+  "source": "codex-rs/apply-patch",
+  "license": "Apache-2.0",
+  "files": [
+    {
+      "source": "exec-server/src/local_file_system_read.rs",
+      "target": "compat/fs/src/local_file_system_read.rs",
+      "sourceSha256": "d7ec29392fade077756cfd1312ae9d8fbeb61dcbd9d7e3ecbd386f30c4d10072",
+      "sha256": "bf4ff048d8089e6e7f1053239360d145f1c2d951038d505ab640bad3f1696b58",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "exec-server/src/no_follow/unix.rs",
+      "target": "compat/fs/src/no_follow/unix.rs",
+      "sourceSha256": "cf001c0e5cfb655611e23e49b81f8e0b94447d0b48cb441c340b11ef6b195435",
+      "sha256": "8b19c74d98b511f4b6d9f0eefc1d5ccadcdb7d7e8faf4d3ec0582459659c1c5a",
+      "codeTokensEqual": false,
+      "adaptation": "Unix 文件描述符写入增加可选 O_EXCL 独占创建；默认写入及链接限制保留"
+    },
+    {
+      "source": "exec-server/src/regular_file.rs",
+      "target": "compat/fs/src/regular_file.rs",
+      "sourceSha256": "3eaa7b73c662d142f37e4e40787d5f03c2b715dc5c30b3a73c5d32b681957ceb",
+      "sha256": "969774150778b50440f4f824ab0486ae95dfa5798bc267a129cb332f6285ab10",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/file_update.rs",
+      "target": "src/file_update.rs",
+      "sourceSha256": "9a2e4f4ccef98e34709bec522554729bfdfd188bb92b7db87ddc7bab87f866e6",
+      "sha256": "8332610ac29983db3767e53cfe65da9b97335a6e1ebf2831654c46b2ce1ce22d",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/file_update_tests.rs",
+      "target": "src/file_update_tests.rs",
+      "sourceSha256": "59fc1e6db897fd61be7ee865a741dc7fdb709501426c4f9603ef8a532fe08282",
+      "sha256": "13021592adcc6857bc4e62910565e1c427cb584a379a7e70b95b55de5a00660d",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/lib.rs",
+      "target": "src/lib.rs",
+      "sourceSha256": "81eeac02181ffb6b1c8e1bdb18457372f11ef800f18675f77f0e10f3ee5dd9f2",
+      "sha256": "1a67c435bfbd3ec0733450987bb4276588a8b17e8d706e17c2666a41df68363c",
+      "codeTokensEqual": false,
+      "adaptation": "独立 CLI 注册与可选 no_overwrite 写入策略；新增/移动目标使用独占创建，默认补丁语义保留"
+    },
+    {
+      "source": "apply-patch/src/main.rs",
+      "target": "src/main.rs",
+      "sourceSha256": "31de3e573a13c50c81af81d262a11fdb758540408cbab3fafb5e638c66a50117",
+      "sha256": "43355018a7d005afb33fe8339dc78298401c35c594a4d6c07f7c7583c8bf251b",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/parser.rs",
+      "target": "src/parser.rs",
+      "sourceSha256": "6b8086467d0500f4fc9aa9a35cd33a0bce53c01bcb74b915b9efc6fcf187f7ce",
+      "sha256": "a3ec8280a1e37305d39c3d735bb13ef54bafcbfd4b36cd290eb4c6098a2182f4",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/seek_sequence.rs",
+      "target": "src/seek_sequence.rs",
+      "sourceSha256": "a6d0d35b628a4f1e6f8ba77c533046c27e585a8bdd94ee6cd21d2585b39e34e0",
+      "sha256": "b872203860dfc1010aaa21f00a43e3b26e617c076f3a2375b264a82ea8deebed",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/standalone_executable.rs",
+      "target": "src/standalone_executable.rs",
+      "sourceSha256": "b3dd54dc2125bfc8862402255cd67bc102ab9acf73e350b36ef330f52f4a713a",
+      "sha256": "7537a0b18e50e49622c4589fad1f478b21eae46ccf26b032d87903b867a2c9e5",
+      "codeTokensEqual": false,
+      "adaptation": "独立 CLI 扩展注册或入口转发；补丁引擎仍由来源实现执行"
+    },
+    {
+      "source": "apply-patch/src/streaming_parser.rs",
+      "target": "src/streaming_parser.rs",
+      "sourceSha256": "5f4b8e60fd24ada7c1b6a696155de3da2b946f7b5436da90e377c9de04b1e578",
+      "sha256": "b6644aa470491b87b8a36050e3c78a79767f512f0a57c8804f1ba6196e52fe92",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "apply-patch/src/text_file.rs",
+      "target": "src/text_file.rs",
+      "sourceSha256": "35cbbdeb91e86780d99fccd097a5dba2772f048730556b73d685e94658ddc6e3",
+      "sha256": "67204ba3fb35da93c60a5400c9e3f4853a8e50539222a9dce70cfee940ede9ea",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/absolute-path/src/absolutize.rs",
+      "target": "vendor/absolute-path/src/absolutize.rs",
+      "sourceSha256": "7a2c95d410b8503c2a26e37715bc403bd31496fcead7cdc4d95dc8e96ced77a7",
+      "sha256": "e1d7bd343ba3dd69f002a3d406d2b7669c3cbd9f58f3d30a7a2fa7c54a255700",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/absolute-path/src/lib.rs",
+      "target": "vendor/absolute-path/src/lib.rs",
+      "sourceSha256": "2cbf2d041a71f31bcb476f8936b87c6d33b63e21baa899b29c85e0108fa5c998",
+      "sha256": "49b06048b1b00c21ea8c6344388a824f15c1250e512f73a38aabfc809ebac711",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/absolute-path/src/system_aliases.rs",
+      "target": "vendor/absolute-path/src/system_aliases.rs",
+      "sourceSha256": "f059187768473ff49b909f5dea007c5e8bdeb8b3bec6702529f13850a603c6cc",
+      "sha256": "1d66b5238fa41bb4ebf3bf97bf57019fb24f0df3823009ea2c460ebfa10e1df5",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/absolute-path/src/system_aliases_tests.rs",
+      "target": "vendor/absolute-path/src/system_aliases_tests.rs",
+      "sourceSha256": "45de8b3149e0dae7c85eadaf61ffbec03f834f826456677007789fbc26dac0cc",
+      "sha256": "82b843eaf9ccd20e79eb1f5f77c338cde570ffbe5a9c17da80a7541fa7a55c77",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/absolute_path_normalization.rs",
+      "target": "vendor/path-uri/src/absolute_path_normalization.rs",
+      "sourceSha256": "e050e7bee691b2696ef8ebbdcfa5805f695b94a903b1a9b584f8724f37dd7ea3",
+      "sha256": "7eada85c12762fba01927a6b145a6ed03469c91ed4c651e5c7932320d3c64bed",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/api_path_string.rs",
+      "target": "vendor/path-uri/src/api_path_string.rs",
+      "sourceSha256": "0a8bc2820cdaa6fc80ea7aead233d0a76a4808a529b1c003922c0a0b88fe4924",
+      "sha256": "f2c8b1405fb17281c69f8455d7712db26050c895e3103248a3eec79ee03a9c4a",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/api_path_string_tests.rs",
+      "target": "vendor/path-uri/src/api_path_string_tests.rs",
+      "sourceSha256": "83e6e365ad53c2cc16ec73433bff57b71512afbef35a5941081d94491a90d506",
+      "sha256": "211469e02c3471fcd025df5a1a2ee854f3835224b3013601570d36185292734a",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/config_path.rs",
+      "target": "vendor/path-uri/src/config_path.rs",
+      "sourceSha256": "ac76d6611b0991e616d759f934e79a57c34ddfb84cf707999c75b10a4e08b5cc",
+      "sha256": "5fa97ccf628ba9c3754c5eeb0e37750d219764799d8085c1b6c356d504f1e5a4",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/config_path_tests.rs",
+      "target": "vendor/path-uri/src/config_path_tests.rs",
+      "sourceSha256": "31be58e5c3349e9ff78659a17d4f9d4b038ce7ac4322da026b985feaeaa272b8",
+      "sha256": "6f3c1bcc839841df09c92f8ee37897ba64013c5280c6b152b26fe1648412a023",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/lib.rs",
+      "target": "vendor/path-uri/src/lib.rs",
+      "sourceSha256": "6337866e5f19ad36bf605e9da03970c83b1e9c8c5766804db5b90b106467231a",
+      "sha256": "e8aaca7f76b895dffc975523647f2cfad1265541d87d0afa2383ea4366813db5",
+      "codeTokensEqual": false,
+      "adaptation": "本地原生路径含制表符或换行字节时使用显式字节编码，避免 URL 分段解析丢失文件名字节"
+    },
+    {
+      "source": "utils/path-uri/src/native_path_bytes.rs",
+      "target": "vendor/path-uri/src/native_path_bytes.rs",
+      "sourceSha256": "6295f7e680d774d38cd6d6c5ad9245e58b8e0321d6f5a248260b14cc941411d1",
+      "sha256": "ad66e45c96b71fd3577bb70193a336b72ebb650f1a86080211c9b11cabe752d3",
+      "codeTokensEqual": false,
+      "adaptation": "UTF-8 原生路径若含 URL 会忽略的字节，则直接编码；其余既有路径处理保留"
+    },
+    {
+      "source": "utils/path-uri/src/platform.rs",
+      "target": "vendor/path-uri/src/platform.rs",
+      "sourceSha256": "001d49fc42996a908dd4bd777013be8854b8449988ccc4cd5f15b2f4bee57a4b",
+      "sha256": "5ef6ae6c888b5a2b18f765c62638b78e828d9ae4f800605f791dc791635aa5a8",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/platform_tests.rs",
+      "target": "vendor/path-uri/src/platform_tests.rs",
+      "sourceSha256": "2382f00b8501b597dabba6f2fc1d1fe651459b1ca413be2ed055256257aa66df",
+      "sha256": "419020558bc15d39a92a391dea47a07a30e3450d7009b9b30847ad8fac963f53",
+      "codeTokensEqual": true
+    },
+    {
+      "source": "utils/path-uri/src/tests.rs",
+      "target": "vendor/path-uri/src/tests.rs",
+      "sourceSha256": "e9a5bfb74d03fb699264843437be9da77364ca483a71dadad4ae39cc1e8bc571",
+      "sha256": "54120f1ef0553ef15b6df509165f21dd87182d968535b36ea288951429f58a38",
+      "codeTokensEqual": true
+    }
+  ],
+  "fixtures": [
+    {
+      "path": "scenarios/.gitattributes",
+      "sha256": "ef13f8bdcd38dc117a6b547edffe61c437da4e821443528705e85e9fc900f15b"
+    },
+    {
+      "path": "scenarios/001_add_file/expected/bar.md",
+      "sha256": "dd96989d943734993ecd4dfc86a3b6809640f9690690ae5579044525316d03ef"
+    },
+    {
+      "path": "scenarios/001_add_file/patch.txt",
+      "sha256": "aa18ebd5e858578e491321489cd17515e03da90c169eda64bbcdce7599c5261b"
+    },
+    {
+      "path": "scenarios/002_multiple_operations/expected/modify.txt",
+      "sha256": "7c3bb4651da2a3024085602195a360e4e084aee735e236bb455f3b2687edf876"
+    },
+    {
+      "path": "scenarios/002_multiple_operations/expected/nested/new.txt",
+      "sha256": "59134a4054b27a3fc30e1ac81d9b9168dc0561f65982151324a021fe8ce88d06"
+    },
+    {
+      "path": "scenarios/002_multiple_operations/input/delete.txt",
+      "sha256": "abdcccf4a6a5fae3da2c8232d6fbf33b61d5db886742c35218e724b8e5c6b0e0"
+    },
+    {
+      "path": "scenarios/002_multiple_operations/input/modify.txt",
+      "sha256": "2751a3a2f303ad21752038085e2b8c5f98ecff61a2e4ebbd43506a941725be80"
+    },
+    {
+      "path": "scenarios/002_multiple_operations/patch.txt",
+      "sha256": "d3477a702074b84a8aa62fed091b40c5f8f5b4a86bb6f49894d3f9bdd12f1084"
+    },
+    {
+      "path": "scenarios/003_multiple_chunks/expected/multi.txt",
+      "sha256": "e32d16d64119533b3fd1521cb84c1850b15ed961381fc0dfe1d7cd9f3475e5b8"
+    },
+    {
+      "path": "scenarios/003_multiple_chunks/input/multi.txt",
+      "sha256": "9a1fd5560147da610cde03a9e0cf1db3d4f93b53f46ac67e754cb42fb7fb911a"
+    },
+    {
+      "path": "scenarios/003_multiple_chunks/patch.txt",
+      "sha256": "b8fb2de70747f6316cec64bb3e13d5799c4ec5c4db760ff9016a28ec1acd5e97"
+    },
+    {
+      "path": "scenarios/004_move_to_new_directory/expected/old/other.txt",
+      "sha256": "6b48d86f459d6cab2a77f0cfccce4232d80d4047f3b5f11139a6b37fb9873a6e"
+    },
+    {
+      "path": "scenarios/004_move_to_new_directory/expected/renamed/dir/name.txt",
+      "sha256": "1c3ef9a7c817b4642bcb3cb1456fbce92a6f992df2e1d6ad9d8a2dfb4fdf42f6"
+    },
+    {
+      "path": "scenarios/004_move_to_new_directory/input/old/name.txt",
+      "sha256": "40eda80edfc38b36bdcdc408aa6ff2cc40b708e46ece9dfd2b2801a05a18a5fc"
+    },
+    {
+      "path": "scenarios/004_move_to_new_directory/input/old/other.txt",
+      "sha256": "6b48d86f459d6cab2a77f0cfccce4232d80d4047f3b5f11139a6b37fb9873a6e"
+    },
+    {
+      "path": "scenarios/004_move_to_new_directory/patch.txt",
+      "sha256": "3a3982b7bed7fe95be34c697a5b1b9d99bab69bf0387b8b5adfb10953494d730"
+    },
+    {
+      "path": "scenarios/005_rejects_empty_patch/expected/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/005_rejects_empty_patch/input/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/005_rejects_empty_patch/patch.txt",
+      "sha256": "20f1032ab87728c78fe8c6428c853427441ba4297dd0efac72ab470ae76e9610"
+    },
+    {
+      "path": "scenarios/006_rejects_missing_context/expected/modify.txt",
+      "sha256": "2751a3a2f303ad21752038085e2b8c5f98ecff61a2e4ebbd43506a941725be80"
+    },
+    {
+      "path": "scenarios/006_rejects_missing_context/input/modify.txt",
+      "sha256": "2751a3a2f303ad21752038085e2b8c5f98ecff61a2e4ebbd43506a941725be80"
+    },
+    {
+      "path": "scenarios/006_rejects_missing_context/patch.txt",
+      "sha256": "1f00db0e051d695801cc8607e1905d4c78b6e871bd91fad704585eaec14f2d5e"
+    },
+    {
+      "path": "scenarios/007_rejects_missing_file_delete/expected/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/007_rejects_missing_file_delete/input/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/007_rejects_missing_file_delete/patch.txt",
+      "sha256": "fe9d2c5f1f4ffff1c077bb857609abafc08b83cac3f1633843daaa6704ceb8df"
+    },
+    {
+      "path": "scenarios/008_rejects_empty_update_hunk/expected/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/008_rejects_empty_update_hunk/input/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/008_rejects_empty_update_hunk/patch.txt",
+      "sha256": "d47d0fd818c62fcf0b9d751e7e5db78353885b6a86e6b5622a1dbe1cba23c60a"
+    },
+    {
+      "path": "scenarios/009_requires_existing_file_for_update/expected/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/009_requires_existing_file_for_update/input/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/009_requires_existing_file_for_update/patch.txt",
+      "sha256": "454e38dc74d6b1943f464155c4e3c5705896941fa0f2c3116e8ccd23601387bb"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/expected/old/other.txt",
+      "sha256": "6b48d86f459d6cab2a77f0cfccce4232d80d4047f3b5f11139a6b37fb9873a6e"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/expected/renamed/dir/name.txt",
+      "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/input/old/name.txt",
+      "sha256": "c85090422a84ecc24a6a47260e9fd590257f6e0e02dd774ccdcfb6a9d5e798b4"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/input/old/other.txt",
+      "sha256": "6b48d86f459d6cab2a77f0cfccce4232d80d4047f3b5f11139a6b37fb9873a6e"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/input/renamed/dir/name.txt",
+      "sha256": "d32cf044872a37e6439d9055f90a0da11f1e0b07fa4e79d6ec710764ce1e206a"
+    },
+    {
+      "path": "scenarios/010_move_overwrites_existing_destination/patch.txt",
+      "sha256": "9328b30823e578f20d2db55d35a15a1522eade17b5970ef5c76498f3aee00a96"
+    },
+    {
+      "path": "scenarios/011_add_overwrites_existing_file/expected/duplicate.txt",
+      "sha256": "1c3ef9a7c817b4642bcb3cb1456fbce92a6f992df2e1d6ad9d8a2dfb4fdf42f6"
+    },
+    {
+      "path": "scenarios/011_add_overwrites_existing_file/input/duplicate.txt",
+      "sha256": "40eda80edfc38b36bdcdc408aa6ff2cc40b708e46ece9dfd2b2801a05a18a5fc"
+    },
+    {
+      "path": "scenarios/011_add_overwrites_existing_file/patch.txt",
+      "sha256": "6d6e6470a4368781be27f651176d9d7aefddadba6fbe62faa793e662cd7ac310"
+    },
+    {
+      "path": "scenarios/012_delete_directory_fails/expected/dir/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/012_delete_directory_fails/input/dir/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/012_delete_directory_fails/patch.txt",
+      "sha256": "d09813e03aaa691a3a0b225edba50674b536701425e3cb5a44d4d22c8a4a9c28"
+    },
+    {
+      "path": "scenarios/013_rejects_invalid_hunk_header/expected/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/013_rejects_invalid_hunk_header/input/foo.txt",
+      "sha256": "2b92ea252be0fbc26f70317cdaa7b6411ea634b50d55338cd8c495e4dbf25d1d"
+    },
+    {
+      "path": "scenarios/013_rejects_invalid_hunk_header/patch.txt",
+      "sha256": "c25c2ecd7e20f5e6dd846ee8f6596de766b443e9d9bdc8f0e0c391660826cc92"
+    },
+    {
+      "path": "scenarios/014_update_file_appends_trailing_newline/expected/no_newline.txt",
+      "sha256": "c2097f55f01fc297fc7f4acf21438123e06e4d409a818524428534e850642f4f"
+    },
+    {
+      "path": "scenarios/014_update_file_appends_trailing_newline/input/no_newline.txt",
+      "sha256": "4575dfcd1eb57fd3cf77e78f18f5bb0659ca38ace8564d5f53e42527c603629a"
+    },
+    {
+      "path": "scenarios/014_update_file_appends_trailing_newline/patch.txt",
+      "sha256": "832ebaa947ae0cd9b328be202adcd59da66c5fcf2f0a3ba624dc466e30287cac"
+    },
+    {
+      "path": "scenarios/015_failure_after_partial_success_leaves_changes/expected/created.txt",
+      "sha256": "5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03"
+    },
+    {
+      "path": "scenarios/015_failure_after_partial_success_leaves_changes/patch.txt",
+      "sha256": "65ca3527c31b486bd893f0a323507a65ce698507e6c33db31c6d9ffd401f6ad0"
+    },
+    {
+      "path": "scenarios/016_pure_addition_update_chunk/expected/input.txt",
+      "sha256": "013834138420c9775178b8fcbcd6b03488b704fed7d44bf37dc385d53e443913"
+    },
+    {
+      "path": "scenarios/016_pure_addition_update_chunk/input/input.txt",
+      "sha256": "2751a3a2f303ad21752038085e2b8c5f98ecff61a2e4ebbd43506a941725be80"
+    },
+    {
+      "path": "scenarios/016_pure_addition_update_chunk/patch.txt",
+      "sha256": "888228c23cf6db16ad3194af46d2b6b7567dac7691053c0b67be1f5df179acd9"
+    },
+    {
+      "path": "scenarios/017_whitespace_padded_hunk_header/expected/foo.txt",
+      "sha256": "7aa7a5359173d05b63cfd682e3c38487f3cb4f7f1d60659fe59fab1505977d4c"
+    },
+    {
+      "path": "scenarios/017_whitespace_padded_hunk_header/input/foo.txt",
+      "sha256": "01d09d19c2139a46aebfb577780d123d7396e97201bc7ead210a2ebff8239dee"
+    },
+    {
+      "path": "scenarios/017_whitespace_padded_hunk_header/patch.txt",
+      "sha256": "49a76c72c335007415680f75399e2f74c5bccd6b4c4b34a7d4c3174bffbfee48"
+    },
+    {
+      "path": "scenarios/018_whitespace_padded_patch_markers/expected/file.txt",
+      "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a"
+    },
+    {
+      "path": "scenarios/018_whitespace_padded_patch_markers/input/file.txt",
+      "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806"
+    },
+    {
+      "path": "scenarios/018_whitespace_padded_patch_markers/patch.txt",
+      "sha256": "2307c079befb8bccd3dd81d9f31b6fc2352a91c37a96a5117f5a5375312f78c4"
+    },
+    {
+      "path": "scenarios/019_unicode_simple/expected/foo.txt",
+      "sha256": "e9014b085eebfaaf1ff77d8e6017f9ca544e21667e2a8516563eaab2fdb1262f"
+    },
+    {
+      "path": "scenarios/019_unicode_simple/input/foo.txt",
+      "sha256": "6bc89526aeb4d8014b8e8afac4e7f1814bbab23e45ae6f8e37ef626da9f285ec"
+    },
+    {
+      "path": "scenarios/019_unicode_simple/patch.txt",
+      "sha256": "950630eb84c42a5c347636fcc49678e34667dd7976e19d70a7c0ed03d61fa8b4"
+    },
+    {
+      "path": "scenarios/020_delete_file_success/expected/keep.txt",
+      "sha256": "f660a7996deacfbc7560e4240054a8ad82eb02fe25a95064257e07084bcacb85"
+    },
+    {
+      "path": "scenarios/020_delete_file_success/input/keep.txt",
+      "sha256": "f660a7996deacfbc7560e4240054a8ad82eb02fe25a95064257e07084bcacb85"
+    },
+    {
+      "path": "scenarios/020_delete_file_success/input/obsolete.txt",
+      "sha256": "abdcccf4a6a5fae3da2c8232d6fbf33b61d5db886742c35218e724b8e5c6b0e0"
+    },
+    {
+      "path": "scenarios/020_delete_file_success/patch.txt",
+      "sha256": "b80ae683dfd6e0cebe67997c81561a3d9ef9f55ef74673e327928677e7628b4f"
+    },
+    {
+      "path": "scenarios/020_whitespace_padded_patch_marker_lines/expected/file.txt",
+      "sha256": "27dd8ed44a83ff94d557f9fd0412ed5a8cbca69ea04922d88c01184a07300a5a"
+    },
+    {
+      "path": "scenarios/020_whitespace_padded_patch_marker_lines/input/file.txt",
+      "sha256": "2c8b08da5ce60398e1f19af0e5dccc744df274b826abe585eaba68c525434806"
+    },
+    {
+      "path": "scenarios/020_whitespace_padded_patch_marker_lines/patch.txt",
+      "sha256": "9ef1cc2e027d30b90db84ee02ff23bcb16382d490e554125d5fee89b272c2a31"
+    },
+    {
+      "path": "scenarios/021_update_file_deletion_only/expected/lines.txt",
+      "sha256": "28387b210ad33ee091c9bc2b099fe33db9be20ef6c8de8427cec615cd87f775c"
+    },
+    {
+      "path": "scenarios/021_update_file_deletion_only/input/lines.txt",
+      "sha256": "66663af9c7aa341431a8ee2ff27b72abd06c9218f517bb6fef948e4803c19e03"
+    },
+    {
+      "path": "scenarios/021_update_file_deletion_only/patch.txt",
+      "sha256": "19bec424380bc552ab1149500047502e9e6dd06952c6615553600df01e50d4b3"
+    },
+    {
+      "path": "scenarios/022_update_file_end_of_file_marker/expected/tail.txt",
+      "sha256": "b8074f984c9d414b623d1ea91f01912de5972a208a962cd66bf7ae0b467f6cd5"
+    },
+    {
+      "path": "scenarios/022_update_file_end_of_file_marker/input/tail.txt",
+      "sha256": "dbea9325179efe46ea2add94f7b6b745ca983fabb208dc6d34aa064623d7ee23"
+    },
+    {
+      "path": "scenarios/022_update_file_end_of_file_marker/patch.txt",
+      "sha256": "350b3b8a57211b8bf0d2a09a573b4bb69e3765979c94cb4fca00307ed7192f3c"
+    },
+    {
+      "path": "scenarios/023_preserves_crlf_line_endings/expected/lines.txt",
+      "sha256": "0847510cfb20fcb37de9401eba3e8c713ff1917a8007ac5861f7dd4ccaaeff10"
+    },
+    {
+      "path": "scenarios/023_preserves_crlf_line_endings/input/lines.txt",
+      "sha256": "9fc4c6bdc7e5374b75e38fa9e1097577399bb74f1ccc33b1712d53a26d02c09a"
+    },
+    {
+      "path": "scenarios/023_preserves_crlf_line_endings/patch.txt",
+      "sha256": "d8b35b612e3c7ca94af39ceea7512e5682432b9b83d8704890cfff65fa11c441"
+    },
+    {
+      "path": "scenarios/024_preserves_mixed_line_endings/expected/lines.txt",
+      "sha256": "915a2863bd4f19cfbf67805353bd92575b0615cd2f6d2efe47936986620f4981"
+    },
+    {
+      "path": "scenarios/024_preserves_mixed_line_endings/input/lines.txt",
+      "sha256": "92c50a656c2cff73369c78e3f770a652f8744db7074beb76a357135bcc35a811"
+    },
+    {
+      "path": "scenarios/024_preserves_mixed_line_endings/patch.txt",
+      "sha256": "d2c9ac73cf59eb8536aaa3dc7b28b824328033a72a6950fb03cb269c8164cf51"
+    },
+    {
+      "path": "scenarios/README.md",
+      "sha256": "7f26cc800f206369db4d34a7b2fadf55a922e63c175120d94f6f23e2e910fa10"
+    }
+  ],
+  "changes": [
+    "移除原版注释，补充中文说明并运行 rustfmt；代码语句及字面量已静态逐项对比",
+    "lib.rs 移除不属于独立 CLI 的调用验证器类型，注册命令行扩展并增加默认关闭的 no_overwrite 标志；补丁解析、匹配与默认覆盖行为保留",
+    "独立文件系统门面只提供补丁引擎实际依赖的方法；沿用有界读取和 Unix 文件描述符操作，新增可选独占创建，禁止覆盖时叶子路径以原子方式判定",
+    "保留原版路径工具实现，移除不再使用的 Bazel 构建文件",
+    "CLI、tool 和 scenarios 测试仅调整 Cargo 产物/fixture 定位；no_follow 保留直接引擎测试，省略依赖 Codex 调用验证器的专用测试",
+    "新增 Android 资源安装、Linux 命令安装、打包、ARM64 执行验证和应用构建工作流集成",
+    "src/cli/ 提供参数、文件输入、内存检查、JSON、禁止覆盖策略、只读逐操作差异预览与静默摘要；帮助列出全部自定义规则和组合示例，默认补丁调用保持来源行为",
+    "原生路径拼接对 URL 会忽略的制表符、换行和回车先按字节编码；保留文件名原字节，避免预览或实际应用误指向去掉控制字符后的另一条路径"
+  ],
+  "operitExtensions": {
+    "src/cli/options.rs": "1995eaaa3bb1da7da7d2f149133aa5f861ccd65ea2bdf256c03f1f6ad4200780",
+    "src/cli/check.rs": "b3ad6b0c42dbde940cb816542c6f68c16ac8b11d5c02cad744e7d66c4904e264",
+    "src/cli/output.rs": "e9e4c6e016f0d41235a4676586c121eec40e45241881702cae2d5a7dca4e833c",
+    "src/cli/mod.rs": "3e9f10045475f5f52c7cdeda3d75144b36d8b38f1375297f57412346303236cd",
+    "src/cli/preview.rs": "6174c1861d21eb9e9203e840cd5c8284b63e65121020e77761babb09be5eb71a"
+  }
+}

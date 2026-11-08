@@ -3,13 +3,15 @@ package com.ai.assistance.operit.integrations.externalchat
 import android.content.Context
 import com.ai.assistance.operit.core.tools.ChatListResultData
 import com.ai.assistance.operit.core.tools.MessageSendResultData
-import com.ai.assistance.operit.core.tools.defaultTool.standard.MessageSendStreamSession
-import com.ai.assistance.operit.core.tools.defaultTool.standard.MessageSendStreamStartResult
-import com.ai.assistance.operit.core.tools.defaultTool.standard.StandardChatManagerTool
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamSession
+import com.ai.assistance.operit.core.tools.builtin.chat.MessageSendStreamStartResult
+import com.ai.assistance.operit.core.tools.builtin.chat.StandardChatManagerTool
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.runBlocking
@@ -127,6 +129,11 @@ class ExternalChatRequestExecutor(context: Context) {
         }
 
         val chatTool = StandardChatManagerTool(appContext)
+
+        AppLogger.d(
+            TAG,
+            "prepareRequest resolved=${requestId != null} ${ChatTrace.describe(message)}"
+        )
 
         if (request.showFloating) {
             val params = mutableListOf<ToolParameter>()

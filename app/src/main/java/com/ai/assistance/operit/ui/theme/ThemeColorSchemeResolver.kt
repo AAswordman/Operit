@@ -2,28 +2,12 @@ package com.ai.assistance.operit.ui.theme
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.preferences.ThemePreferenceSnapshot
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_AUTO
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_DARK
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager.Companion.ON_COLOR_MODE_LIGHT
-
-private val ResolvedDarkColorScheme =
-    darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
-
-private val ResolvedLightColorScheme =
-    lightColorScheme(
-        primary = Purple40,
-        secondary = PurpleGrey40,
-        tertiary = Pink40
-    )
 
 fun resolveThemeColorScheme(
     context: Context,
@@ -39,18 +23,15 @@ fun resolveThemeColorScheme(
             snapshot.themeMode == UserPreferencesManager.THEME_MODE_DARK
         }
 
-    var colorScheme =
-        when {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-                if (darkTheme) {
-                    dynamicDarkColorScheme(context)
-                } else {
-                    dynamicLightColorScheme(context)
-                }
+    return resolveThemeColorScheme(snapshot, darkTheme)
+}
 
-            darkTheme -> ResolvedDarkColorScheme
-            else -> ResolvedLightColorScheme
-        }
+// 主界面、主题预览与独立窗口共用解析入口，避免同一主题出现不同的底色。
+internal fun resolveThemeColorScheme(
+    snapshot: ThemePreferenceSnapshot,
+    darkTheme: Boolean
+): ColorScheme {
+    var colorScheme = if (darkTheme) OperitDarkColorScheme else OperitLightColorScheme
 
     if (snapshot.useCustomColors) {
         snapshot.customPrimaryColor?.let { primaryArgb ->
@@ -91,7 +72,7 @@ private fun generateResolvedLightColorScheme(
     val secondaryContainer = lightenResolvedColor(secondaryColor, 0.7f)
     val onSecondaryContainer = getResolvedContrastingTextColor(secondaryContainer)
 
-    return ResolvedLightColorScheme.copy(
+    return OperitLightColorScheme.copy(
         primary = primaryColor,
         onPrimary = onPrimary,
         primaryContainer = primaryContainer,
@@ -99,10 +80,7 @@ private fun generateResolvedLightColorScheme(
         secondary = secondaryColor,
         onSecondary = onSecondary,
         secondaryContainer = secondaryContainer,
-        onSecondaryContainer = onSecondaryContainer,
-        onSurface = Color.Black,
-        onSurfaceVariant = Color.Black.copy(alpha = 0.7f),
-        onBackground = Color.Black
+        onSecondaryContainer = onSecondaryContainer
     )
 }
 
@@ -133,7 +111,7 @@ private fun generateResolvedDarkColorScheme(
     val onSecondaryContainer =
         getResolvedContrastingTextColor(secondaryContainer, forceLight = true)
 
-    return ResolvedDarkColorScheme.copy(
+    return OperitDarkColorScheme.copy(
         primary = adjustedPrimaryColor,
         onPrimary = onPrimary,
         primaryContainer = primaryContainer,
@@ -141,10 +119,7 @@ private fun generateResolvedDarkColorScheme(
         secondary = adjustedSecondaryColor,
         onSecondary = onSecondary,
         secondaryContainer = secondaryContainer,
-        onSecondaryContainer = onSecondaryContainer,
-        onSurface = Color.White,
-        onSurfaceVariant = Color.White.copy(alpha = 0.7f),
-        onBackground = Color.White
+        onSecondaryContainer = onSecondaryContainer
     )
 }
 

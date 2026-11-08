@@ -1,0 +1,2038 @@
+{
+  "baseline": "9b9bb75d93b96b72204067fa576db30e5279d960",
+  "precedingMigration": "../conversation-workspace-layout/files.json",
+  "files": [
+    {
+      "source": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/chat/components/timeline/StreamingTimelineRefreshAndroidTest.kt",
+      "target": "app/src/androidTest/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/timeline/StreamingTimelineRefreshAndroidTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.timeline",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.timeline",
+      "symbols": []
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/archive/ChatArchiveFilter.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/ChatArchiveFilter.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.archive",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history",
+      "symbols": [
+        "ChatArchiveFilter"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/AttachmentUtils.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/AttachmentUtils.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "AttachmentUtils"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/MediaFileGuard.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/MediaFileGuard.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "MediaFileGuard",
+        "MediaFileUnavailableTag",
+        "mediaPreviewUri",
+        "rememberMediaFileMissing",
+        "rememberMediaPreviewRevision"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/AttachmentImagePreviewDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/AttachmentImagePreviewDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "AttachmentImagePreviewDialog",
+        "AttachmentPreviewImage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/ChatImagePickerDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/ChatImagePickerDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "ChatImagePickerDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/ExpiredImageGroupTag.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/ExpiredImageGroupTag.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "ExpiredImageGroupTag"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/GalleryDragSelection.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/GalleryDragSelection.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "GalleryDragSelection",
+        "galleryDragSelectionModifier"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/ImagePreviewTransform.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/ImagePreviewTransform.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "ImagePreviewTransform",
+        "transformImagePreview"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/MediaStoreImageRepository.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/MediaStoreImageRepository.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "GalleryImage",
+        "ImageLibraryAccess",
+        "imageLibraryAccess",
+        "imageLibraryPermissions",
+        "loadGalleryImages"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/SentImageGroup.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/SentImageGroup.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "SentImageGroup",
+        "SentMessageImage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/SentImageSources.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/SentImageSources.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": [
+        "sentImageSources"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchController.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/history/ChatBatchController.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history",
+      "symbols": [
+        "ChatBatchController"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchControls.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/batch/ChatBatchControls.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.batch",
+      "symbols": [
+        "ChatBatchActionBar",
+        "ChatBatchDeleteDialog",
+        "ChatBatchSelectionHeader"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchMoveDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/batch/ChatBatchMoveDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.batch",
+      "symbols": [
+        "ChatBatchMoveDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/AttachmentChip.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/AttachmentChip.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "AttachmentChip"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/AttachmentPreview.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/AttachmentPreview.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "AttachmentPreview"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/AttachmentSelector.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/AttachmentSelector.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "AttachmentSelectorPanel",
+        "AttachmentSelectorPopupPanel",
+        "PackageSelectorDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/CharacterSelectorPanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/characters/CharacterSelectorPanel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.characters",
+      "symbols": [
+        "CharacterGroupItem",
+        "CharacterItem",
+        "CharacterSelectorPanel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatArea.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/ChatArea.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages",
+      "symbols": [
+        "ChatArea",
+        "MessageCopyContent",
+        "buildMessageCopyContent",
+        "buildSelectedMessagesPlainText",
+        "cleanMessageContentForCopy",
+        "cleanMessageContentForXmlCopy"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatHeader.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/screens/ChatHeader.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.screens",
+      "symbols": [
+        "ChatHeader"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatHistorySelector.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/ChatHistorySelector.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history",
+      "symbols": [
+        "ChatHistorySelector"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatMessageHeightMemory.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/list/ChatMessageHeightMemory.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.list",
+      "symbols": [
+        "ChatMessageHeightMemory",
+        "rememberChatMessageHeightMemory"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatScreenContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/screens/ChatScreenContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.screens",
+      "symbols": [
+        "ChatHistorySelectorPanel",
+        "ChatScreenContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatScreenHeader.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/screens/ChatScreenHeader.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.screens",
+      "symbols": [
+        "ChatScreenHeader",
+        "StatItem",
+        "useFloatingWindowLauncher"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatScrollExtensions.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/list/ChatScrollExtensions.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.list",
+      "symbols": [
+        "animateScrollToEnd"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatScrollNavigator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/navigation/ChatScrollNavigator.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.navigation",
+      "symbols": [
+        "ChatScrollNavigator"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/CompactDialogLayout.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/layout/CompactDialogLayout.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.layout",
+      "symbols": [
+        "CompactDialogMetrics",
+        "compactDialogHeight",
+        "compactDialogHeightOrWrapContent",
+        "compactDialogHeightWhenShort",
+        "rememberCompactDialogMetrics",
+        "rememberCompactDialogScrollState",
+        "verticalScrollWhenCompact",
+        "verticalScrollWhenShort"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ExportDialogs.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/export/ExportDialogs.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.export",
+      "symbols": [
+        "AndroidExportDialog",
+        "ExportCompleteDialog",
+        "ExportPlatformDialog",
+        "ExportProgressDialog",
+        "WindowsExportDialog",
+        "exportAndroidApp",
+        "exportWindowsApp"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/FullscreenInputDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/FullscreenInputDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input",
+      "symbols": [
+        "FullscreenInputDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/LinkPreviewDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/links/LinkPreviewDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.links",
+      "symbols": [
+        "LinkPreviewDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MemoryFolderSelectionDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/memory/MemoryFolderSelectionDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.memory",
+      "symbols": [
+        "FolderNode",
+        "MemoryFolderSelectionDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageEditor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/editor/MessageEditor.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.editor",
+      "symbols": [
+        "MessageEditor"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageEditorContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/editor/MessageEditorContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.editor",
+      "symbols": [
+        "ParsedMessagePart",
+        "PartType",
+        "createMessageEditorXmlPart",
+        "parseMessageContentForEditor",
+        "recomposeMessageFromParts"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageInfoDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/details/MessageInfoDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details",
+      "symbols": [
+        "MessageInfoDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageTranslationDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/translation/MessageTranslationDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.translation",
+      "symbols": [
+        "MessageTranslationDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/PastedTextAttachment.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/PastedTextAttachment.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": [
+        "extractClipboardPastedText",
+        "extractInsertedText"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ReferencesDisplay.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/references/ReferencesDisplay.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.references",
+      "symbols": [
+        "ReferencesDisplay"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/RevisableTextStreamRemember.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/stream/RevisableTextStreamRemember.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.stream",
+      "symbols": [
+        "rememberRevisableTextStream"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ScrollToBottomButton.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/navigation/ScrollToBottomButton.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.navigation",
+      "symbols": [
+        "ScrollToBottomButton"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ShareImagePreviewDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sharing/ShareImagePreviewDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sharing",
+      "symbols": [
+        "ShareImagePreviewDialog",
+        "saveShareImageToGallery"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/SharedFileTargetDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/imports/SharedFileTargetDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.imports",
+      "symbols": [
+        "SharedFileTargetDialog",
+        "SharedIncomingContentHandler"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/SharedPackageImportChoiceDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/imports/SharedPackageImportChoiceDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.imports",
+      "symbols": [
+        "SharedPackageImportChoiceDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/SimpleLinearProgressIndicator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/progress/SimpleLinearProgressIndicator.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.progress",
+      "symbols": [
+        "SimpleLinearProgressIndicator"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/TokenHitRateFormat.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/format/TokenHitRateFormat.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.format",
+      "symbols": [
+        "formatCacheHitRate"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/WorkspaceChangeConfirmDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/actions/WorkspaceChangeConfirmDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.actions",
+      "symbols": [
+        "WorkspaceChangeConfirmDialog",
+        "WorkspaceChangeConfirmMode"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/attachments/AttachmentViewerDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/preview/AttachmentViewerDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.attachments",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.preview",
+      "symbols": [
+        "AttachmentViewerDialog",
+        "ChatAttachment"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/attachments/AudioAttachmentPlayer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/preview/AudioAttachmentPlayer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.attachments",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.preview",
+      "symbols": [
+        "AudioAttachmentPlayer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/attachments/VideoAttachmentPlayer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/preview/VideoAttachmentPlayer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.attachments",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.preview",
+      "symbols": [
+        "VideoAttachmentPlayer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/config/TokenInfoDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/TokenInfoDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.config",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "TokenInfoDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/context/ChatContextUsageDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/ChatContextUsageDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.context",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "ChatContextUsageDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/context/ChatContextUsageEntry.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/ChatContextUsageEntry.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.context",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "ChatContextUsageEntry"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/context/ContextUsageFormat.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/ContextUsageFormat.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.context",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "formatUsagePercent",
+        "formatUsageTokens"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/context/ContextWindowUsageContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/ContextWindowUsageContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.context",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "ContextUsageTotalRow",
+        "ContextWindowCategoryColors",
+        "ContextWindowUsageContent",
+        "rememberContextWindowCategoryColors"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/context/CumulativeUsageContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/usage/CumulativeUsageContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.context",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.usage",
+      "symbols": [
+        "CumulativeUsageContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/details/MessageGenerationDetails.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/details/MessageGenerationDetails.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.details",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details",
+      "symbols": [
+        "MessageGenerationDetails",
+        "hasDisplayableMessageTimestamp",
+        "hasDisplayableTimingStats",
+        "hasDisplayableTokenSpeedStats",
+        "hasDisplayableTokenStats",
+        "messageTokenBreakdownText"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/details/MessageStatsFormatting.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/details/MessageStatsFormatting.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.details",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details",
+      "symbols": [
+        "calculateMessageTokenSpeed",
+        "formatCompactMessageTokens",
+        "formatMessageCompletionTime",
+        "formatMessageDuration",
+        "formatMessageNumber",
+        "formatMessageTokenSpeed"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/AwaitFirstLayoutModifier.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/AwaitFirstLayoutModifier.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "AwaitFirstLayoutModifier"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/CacheWindowLogic.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/CacheWindowLogic.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "CacheWindowLogic",
+        "CacheWindowScope",
+        "CachedItem",
+        "InvalidIndex",
+        "forEachVisibleItem"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/IntervalList.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/IntervalList.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "IntervalList",
+        "MutableIntervalList"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyItemScope.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyItemScope.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyItemScope"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyItemScopeImpl.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyItemScopeImpl.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyItemScopeImpl"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayout.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayout.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayout"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutBeyondBoundsInfo.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutBeyondBoundsInfo.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutBeyondBoundsInfo"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutBeyondBoundsModifierLocal.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutBeyondBoundsModifierLocal.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutBeyondBoundsProviderModifierNode",
+        "lazyLayoutBeyondBoundsModifier"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutBeyondBoundsState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutBeyondBoundsState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutBeyondBoundsState",
+        "calculateLazyLayoutPinnedIndices"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutCacheWindow.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutCacheWindow.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutCacheWindow"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutIntervalContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutIntervalContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutIntervalContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutItemAnimation.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutItemAnimation.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutAnimateItemElement",
+        "LazyLayoutAnimationSpecsNode",
+        "LazyLayoutItemAnimation"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutItemAnimator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutItemAnimator.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutItemAnimator"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutItemContentFactory.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutItemContentFactory.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutItemContentFactory"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutItemProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutItemProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutItemProvider",
+        "findIndexByKey"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutKeyIndexMap.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutKeyIndexMap.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutKeyIndexMap",
+        "NearestRangeKeyIndexMap"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutMeasurePolicy.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutMeasurePolicy.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutMeasurePolicy"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutMeasureScope.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutMeasureScope.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutMeasureScope",
+        "LazyLayoutMeasureScopeImpl"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutMeasuredItem.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutMeasuredItem.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutMeasuredItem",
+        "LazyLayoutMeasuredItemProvider",
+        "updatedVisibleItems"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutNearestRangeState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutNearestRangeState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutNearestRangeState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutPinnableItem.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutPinnableItem.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutPinnableItem",
+        "LazyLayoutPinnedItemList"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutPlatform.android.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutPlatform.android.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "getDefaultLazyLayoutKey"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutPrefetchState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutPrefetchState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "Averages",
+        "LazyLayoutPrefetchState",
+        "NestedPrefetchScope",
+        "PrefetchHandleProvider",
+        "PrefetchMetrics",
+        "UnspecifiedNestedPrefetchCount",
+        "traversablePrefetchState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutScrollDeltaBetweenPasses.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutScrollDeltaBetweenPasses.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutScrollDeltaBetweenPasses"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutScrollScope.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutScrollScope.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutScrollScope",
+        "animateScrollToItem",
+        "isItemVisible"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutSemanticState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutSemanticState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutSemanticState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutSemantics.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutSemantics.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutSemanticState",
+        "estimatedLazyMaxScrollOffset",
+        "estimatedLazyScrollOffset",
+        "lazyLayoutSemantics"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyLayoutStickyItems.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyLayoutStickyItems.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "StickyItemsPlacement",
+        "applyStickyItems"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyList.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyList.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyList",
+        "defaultLazyListBeyondBoundsItemCount"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListBeyondBoundsModifier.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListBeyondBoundsModifier.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListBeyondBoundsState",
+        "rememberLazyListBeyondBoundsState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListCacheWindowStrategy.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListCacheWindowStrategy.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListCacheWindowScope",
+        "LazyListCacheWindowStrategy"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListIntervalContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListIntervalContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListInterval",
+        "LazyListIntervalContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListItemInfo.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListItemInfo.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListItemInfo"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListItemProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListItemProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListItemProvider",
+        "rememberLazyListItemProviderLambda"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListLayoutInfo.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListLayoutInfo.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListLayoutInfo",
+        "calculateContentSize",
+        "singleAxisViewportSize",
+        "visibleItemsAverageSize"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListMeasure.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListMeasure.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "measureLazyList"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListMeasureResult.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListMeasureResult.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListMeasureResult"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListMeasuredItem.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListMeasuredItem.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListMeasuredItem"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListMeasuredItemProvider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListMeasuredItemProvider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListMeasuredItemProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListPrefetchStrategy.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListPrefetchStrategy.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListPrefetchResultScope",
+        "LazyListPrefetchResultScopeImpl",
+        "LazyListPrefetchScope",
+        "LazyListPrefetchStrategy"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListScrollPosition.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListScrollPosition.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListScrollPosition",
+        "NearestItemsExtraItemCount",
+        "NearestItemsSlidingWindowSize"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListScrollScope.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListScrollScope.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyLayoutScrollScope"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListSemantics.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListSemantics.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "rememberLazyListSemanticState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyListState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyListState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListState",
+        "rememberLazyListState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazySaveableStateHolder.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazySaveableStateHolder.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazySaveableStateHolderProvider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/LazyScopeMarker.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/LazyScopeMarker.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyScopeMarker"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/ObservableScopeInvalidator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/ObservableScopeInvalidator.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "ObservableScopeInvalidator"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/PrefetchScheduler.android.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/PrefetchScheduler.android.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "AndroidPrefetchScheduler",
+        "PriorityTask",
+        "rememberDefaultPrefetchScheduler"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/PrefetchScheduler.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/PrefetchScheduler.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "PrefetchRequest",
+        "PrefetchRequestScope",
+        "PrefetchScheduler",
+        "PriorityPrefetchScheduler"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/README.md",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/README.md",
+      "oldPackage": null,
+      "newPackage": null,
+      "symbols": []
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/lazy/RecyclerLazyColumn.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/lazy/RecyclerLazyColumn.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.lazy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.lazy",
+      "symbols": [
+        "LazyListScope",
+        "LazyRow",
+        "RecyclerLazyColumn",
+        "items",
+        "itemsIndexed"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/mentions/MentionSuggestionPanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/mentions/MentionSuggestionPanel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.mentions",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.mentions",
+      "symbols": [
+        "MentionSuggestionPanel",
+        "MentionSuggestionPanelStyle"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ChatNodeVisibility.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ChatNodeVisibility.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "isVisibleChatMarkdownNode",
+        "isVisibleChatXmlContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/CustomXmlRenderer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/CustomXmlRenderer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "CustomXmlRenderer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/DetailsTagRenderer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/DetailsTagRenderer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "DetailsTagRenderer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/DialogComponents.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/DialogComponents.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "ContentDetailDialog",
+        "DiffContentLazyColumn"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/FileDiffDisplay.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/FileDiffDisplay.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "FileDiff",
+        "FileDiffDisplay"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/FontTagRenderer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/FontTagRenderer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "FontTagRenderer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ParamVisualizer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ParamVisualizer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "ParamItem",
+        "ParamVisualizer"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/StatusCardHtmlDocument.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/StatusCardHtmlDocument.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "StatusCardHtmlDocument"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ThinkToolsRows.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ThinkToolsRows.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "ThinkToolsGroupInfo",
+        "ThinkToolsRow",
+        "buildThinkToolsRows",
+        "thinkToolsGroupTitle"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ThinkToolsXmlNodeGrouper.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ThinkToolsXmlNodeGrouper.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "ThinkToolsXmlNodeGrouper"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ThinkingMarkdownStream.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ThinkingMarkdownStream.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "createThinkMarkdownCharStream"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ToolDisplayComponents.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ToolDisplayComponents.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "CodeContentWithLineNumbers",
+        "CompactToolDisplay",
+        "DetailedToolDisplay",
+        "FormattedXmlText"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ToolResultDisplay.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ToolResultDisplay.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "ToolResultDisplay"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/XmlCanvasBlockComponents.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/XmlCanvasBlockComponents.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "CanvasExpandableHeaderRow",
+        "CanvasFontTextBlock",
+        "CanvasPillLabel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/XmlCanvasSummaryComponents.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/XmlCanvasSummaryComponents.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": [
+        "CanvasStatusCard",
+        "CanvasToolResultRow",
+        "CanvasToolSummaryRow",
+        "CanvasWarningStatusRow"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/tooltiming/ToolTimingIndex.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/tooltiming/ToolTimingIndex.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part.tooltiming",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.tooltiming",
+      "symbols": [
+        "ToolCallTiming",
+        "ToolTimingIndex",
+        "ToolTimingSummary",
+        "elapsedUnion"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/tooltiming/ToolTimingTitle.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/tooltiming/ToolTimingTitle.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part.tooltiming",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.tooltiming",
+      "symbols": [
+        "LocalInsideToolGroup",
+        "LocalToolTimingIndex",
+        "rememberMessageToolExecutions",
+        "toolTimingTitle"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleAiMessageComposable.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleAiMessageComposable.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "BubbleAiMessageComposable"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleImageBackgroundSurface.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleImageBackgroundSurface.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "BubbleImageBackgroundSurface"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleImageLayout.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleImageLayout.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "BubbleDstSliceLayout",
+        "BubbleImageRenderMode",
+        "BubbleImageStyleConfig",
+        "BubbleSliceLayout",
+        "bubbleTileExtent",
+        "buildSliceLayout",
+        "computeDstSliceLayout",
+        "forMessageBlock"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleImageTiling.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleImageTiling.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "BubbleImageTile",
+        "BubbleImageTiles",
+        "rememberBubbleImageTiles"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleStyleChatMessage.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleStyleChatMessage.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "BubbleStyleChatMessage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleUserMessageComposable.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleUserMessageComposable.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": [
+        "AttachmentData",
+        "BubbleUserMessageComposable",
+        "ImageLinkData",
+        "MessageParseResult",
+        "ReplyInfo"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/common/HiddenUserMessagePlaceholderContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/common/HiddenUserMessagePlaceholderContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.common",
+      "symbols": [
+        "HiddenUserMessagePlaceholderContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/cursor/AiMessageComposable.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/cursor/AiMessageComposable.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor",
+      "symbols": [
+        "AiMessageComposable"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/cursor/CursorStyleChatMessage.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/cursor/CursorStyleChatMessage.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor",
+      "symbols": [
+        "CursorStyleChatMessage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/cursor/SummaryMessageComposable.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/cursor/SummaryMessageComposable.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor",
+      "symbols": [
+        "SummaryMessageComposable"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/cursor/UserMessageComposable.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/cursor/UserMessageComposable.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.cursor",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.cursor",
+      "symbols": [
+        "AttachmentData",
+        "ImageLinkData",
+        "MessageParseResult",
+        "ReplyInfo",
+        "UserMessageComposable"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/agent/AgentChatInputSection.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/agent/AgentChatInputSection.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.agent",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.agent",
+      "symbols": [
+        "AgentChatInputSection"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/classic/ClassicChatInputSection.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/classic/ClassicChatInputSection.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.classic",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.classic",
+      "symbols": [
+        "ClassicChatInputSection"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/classic/ClassicChatSettingsBar.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/classic/ClassicChatSettingsBar.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.classic",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.classic",
+      "symbols": [
+        "ClassicChatSettingsBar"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/CharacterCardMemoryBindingSwitchConfirmDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/CharacterCardMemoryBindingSwitchConfirmDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "CharacterCardMemoryBindingSwitchConfirmDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/CharacterCardModelBindingSwitchConfirmDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/CharacterCardModelBindingSwitchConfirmDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "CharacterCardModelBindingSwitchConfirmDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/ChatInputHookRegistry.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/ChatInputHookRegistry.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "ChatInputEvents",
+        "ChatInputHook",
+        "ChatInputHookContext",
+        "ChatInputHookRegistry",
+        "ChatInputHookResult",
+        "ChatInputSubmitActions"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/InputMenuTogglePluginRegistry.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/InputMenuTogglePluginRegistry.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "InputMenuToggleDefinition",
+        "InputMenuToggleHookParams",
+        "InputMenuTogglePlugin",
+        "InputMenuTogglePluginRegistry",
+        "InputMenuToggleSlots"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/MentionVisualTransformation.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/MentionVisualTransformation.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "rememberMentionVisualTransformation"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/PendingMessageQueuePanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/PendingMessageQueuePanel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "PendingMessageQueuePanel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/ThinkingQualitySlider.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/ThinkingQualitySlider.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "ThinkingQualitySlider"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/ToolPromptManagerDialog.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/input/common/ToolPromptManagerDialog.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.input.common",
+      "symbols": [
+        "ToolPromptManagerDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/timeline/ChatTimelineEntries.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/timeline/ChatTimelineEntries.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.timeline",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.timeline",
+      "symbols": [
+        "ChatMessageAppearance",
+        "ChatMessageSlice",
+        "ChatTimelineEntry",
+        "LocalChatMessageSlice",
+        "rememberChatTimelineEntries",
+        "shouldSplitChatMessage"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/copy/MessageCopyTextField.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/copy/MessageCopyTextField.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.copy",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.copy",
+      "symbols": [
+        "MessageCopyTextField"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/export/htmlpackager/HtmlPackagerScreen.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/export/htmlpackager/HtmlPackagerScreen.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.export.htmlpackager",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.export.htmlpackager",
+      "symbols": [
+        "HtmlPackagerScreen"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/export/htmlpackager/PackagerResources.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/export/htmlpackager/PackagerResources.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.export.htmlpackager",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.export.htmlpackager",
+      "symbols": [
+        "PackagerPlatformDialog",
+        "PackagerResourceGate",
+        "PackagerResourceState",
+        "PackagerResourceSummary",
+        "packagerResourceGroups",
+        "rememberPackagerResources"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/ChatFolderTree.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/ChatFolderTree.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "ChatFolderRow",
+        "ChatHistorySortMode",
+        "FolderDropZone",
+        "buildChatFolderTree",
+        "folderKey",
+        "node",
+        "resolveFolderDrop"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/FolderChatHistoryPanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/FolderChatHistoryPanel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "FolderChatHistoryPanel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/FolderHistoryDialogs.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/FolderHistoryDialogs.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "FolderHistorySettingsDialog",
+        "FolderNameDialog",
+        "HistoryAction",
+        "HistoryActionsDialog",
+        "HistoryBindingOption",
+        "HistoryChatEditDialog"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/FolderTreeList.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/FolderTreeList.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "FolderTreeList"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/HistoryCreateCapsule.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/HistoryCreateCapsule.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "HistoryCreateCapsule"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/HistoryQuickScroller.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/HistoryQuickScroller.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": [
+        "HistoryQuickScroller"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/motion/ChatListMotionState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/history/ChatListMotionState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.motion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history",
+      "symbols": [
+        "ChatListMotionState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/motion/DissolvingChatTitle.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/motion/DissolvingChatTitle.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.motion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.motion",
+      "symbols": [
+        "DissolvingChatTitle"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/motion/NewChatIntro.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/motion/NewChatIntro.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.motion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.motion",
+      "symbols": [
+        "NewChatIntro"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/sidebar/ChatSidebarContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sidebar/ChatSidebarContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.sidebar",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar",
+      "symbols": [
+        "ChatSidebarContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/sidebar/ChatSidebarState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sidebar/ChatSidebarState.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.sidebar",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar",
+      "symbols": [
+        "ChatSidebarState",
+        "LocalMainChatSidebarState",
+        "LocalMainChatViewModel",
+        "LocalOpenMainChatSidebar",
+        "LocalRunMainChatAction",
+        "rememberChatSidebarState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/sidebar/MainChatControls.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sidebar/MainChatControls.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.sidebar",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar",
+      "symbols": [
+        "MainChatControls"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/sidebar/SidebarButtonSurface.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sidebar/SidebarButtonSurface.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.sidebar",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar",
+      "symbols": [
+        "SidebarButtonSurface"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/sidebar/SidebarPluginSection.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sidebar/SidebarPluginSection.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.sidebar",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar",
+      "symbols": [
+        "SidebarPluginSection"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/util/MentionTokenUtils.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/mentions/MentionTokenUtils.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.util",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.mentions",
+      "symbols": [
+        "MentionTokenRange",
+        "findCommittedMentionTokens",
+        "findMentionTokenEndingAtCursor",
+        "findMentionTokens",
+        "isMentionContinuation"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/util/MessageImageGenerator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/sharing/MessageImageGenerator.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.util",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.sharing",
+      "symbols": [
+        "MessageImageGenerator"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/ExpiredVoiceMessageTag.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/ExpiredVoiceMessageTag.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "ExpiredVoiceMessageTag"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceMessagePlayer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceMessagePlayer.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceMessagePlayer",
+        "voiceDurationLabel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceMessageSession.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceMessageSession.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceMessagePhase",
+        "VoiceMessageSession",
+        "VoiceMessageState"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceMessageSheet.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceMessageSheet.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceMessageSheet"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceMessageSheetContent.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceMessageSheetContent.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceMessageSheetContent"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceMessageXmlPlugin.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceMessageXmlPlugin.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceMessageXmlPlugin"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/voicemessages/VoiceWaveform.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/voice/VoiceWaveform.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.voicemessages",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.voice",
+      "symbols": [
+        "VoiceWaveform"
+      ]
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/GalleryDragSelectionTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/GalleryDragSelectionTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/ImagePreviewTransformTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/ImagePreviewTransformTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/attachments/images/SentImageSourcesTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/images/SentImageSourcesTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.attachments.images",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.images",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchControllerTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/history/ChatBatchControllerTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatAreaTokenSpeedTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/ChatAreaTokenSpeedTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageCopyTextTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/MessageCopyTextTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/MessageEditorContentTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/editor/MessageEditorContentTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.editor",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/PastedTextAttachmentTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/attachments/PastedTextAttachmentTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/TokenHitRateFormatTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/format/TokenHitRateFormatTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.format",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/details/MessageStatsFormattingTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/details/MessageStatsFormattingTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.details",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.details",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/StatusCardHtmlDocumentTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/StatusCardHtmlDocumentTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ThinkToolsRowsTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ThinkToolsRowsTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/ThinkingMarkdownStreamTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/ThinkingMarkdownStreamTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/part/tooltiming/ToolTimingIndexTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/rendering/tooltiming/ToolTimingIndexTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.part.tooltiming",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.rendering.tooltiming",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/bubble/BubbleImageLayoutTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/messages/style/bubble/BubbleImageLayoutTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.bubble",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.messages.style.bubble",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/folders/FolderChatHistoryTreeTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/modules/history/folders/FolderChatHistoryTreeTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.folders",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.modules.history.folders",
+      "symbols": []
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/motion/ChatListMotionStateTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/history/ChatListMotionStateTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.motion",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.history",
+      "symbols": []
+    }
+  ],
+  "retainedFiles": [
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/screens/AIChatScreen.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/screens/AIChatScreen.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.screens",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.screens",
+      "symbols": [
+        "AIChatScreen"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/ChatViewModel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/ChatViewModel.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "symbols": [
+        "ChatViewModel"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/FloatingWindowDelegate.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/FloatingWindowDelegate.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "symbols": [
+        "FloatingWindowDelegate"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/PendingMessageQueueStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/PendingMessageQueueStore.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "symbols": [
+        "PendingMessageQueueState",
+        "PendingMessageQueueStore"
+      ]
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/UiStateDelegate.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/UiStateDelegate.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "symbols": [
+        "UiStateDelegate"
+      ]
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/PendingMessageQueueStoreTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/PendingMessageQueueStoreTest.kt",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "symbols": []
+    }
+  ],
+  "extractions": [
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/ChatArea.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatStyle.kt",
+      "symbol": "ChatStyle",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 10161,
+      "end": 10210,
+      "declaration": "enum class ChatStyle {\n    CURSOR,\n    BUBBLE\n}"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/CharacterSelectorPanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/CharacterSelectorTarget.kt",
+      "symbol": "CharacterSelectorTarget",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 2463,
+      "end": 2664,
+      "declaration": "sealed interface CharacterSelectorTarget {\n    data class CharacterCardTarget(val id: String) : CharacterSelectorTarget\n    data class CharacterGroupTarget(val id: String) : CharacterSelectorTarget\n}"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/components/style/input/common/PendingMessageQueuePanel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/PendingQueueMessageItem.kt",
+      "symbol": "PendingQueueMessageItem",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.components.style.input.common",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 1663,
+      "end": 1741,
+      "declaration": "data class PendingQueueMessageItem(\n    val id: Long,\n    val text: String\n)"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/ChatViewModel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatHistoryDisplayMode.kt",
+      "symbol": "ChatHistoryDisplayMode",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 7316,
+      "end": 7420,
+      "declaration": "enum class ChatHistoryDisplayMode {\n    BY_CHARACTER_CARD,\n    BY_FOLDER,\n    CURRENT_CHARACTER_ONLY\n}"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/viewmodel/ChatViewModel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/TranslationUiState.kt",
+      "symbol": "TranslationUiState",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.viewmodel",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 7420,
+      "end": 7606,
+      "declaration": "data class TranslationUiState(\n    val isLoading: Boolean = false,\n    val translatedText: String? = null,\n    val errorMessage: String? = null,\n    val isFromCache: Boolean = false,\n)"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchController.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatBatchModels.kt",
+      "symbol": "ChatBatchAction",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 284,
+      "end": 374,
+      "declaration": "enum class ChatBatchAction { SUMMARIZE_TITLES, ARCHIVE, UNARCHIVE, LOCK, UNLOCK, DELETE }"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchController.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatBatchModels.kt",
+      "symbol": "ChatBatchItemResult",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 374,
+      "end": 437,
+      "declaration": "enum class ChatBatchItemResult { SUCCEEDED, SKIPPED, FAILED }"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchController.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatBatchModels.kt",
+      "symbol": "ChatBatchProgress",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 437,
+      "end": 531,
+      "declaration": "data class ChatBatchProgress(val action: ChatBatchAction, val completed: Int, val total: Int)"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/batch/ChatBatchController.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/foundation/model/ChatBatchModels.kt",
+      "symbol": "ChatBatchSummary",
+      "oldPackage": "com.ai.assistance.operit.ui.features.conversation.chat.batch",
+      "newPackage": "com.ai.assistance.operit.ui.features.conversation.chat.foundation.model",
+      "start": 531,
+      "end": 615,
+      "declaration": "data class ChatBatchSummary(val succeeded: Int, val skipped: Int, val failed: Int)"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_timing_simple">%1$s • %2$d panggilan%3$s</string>
+    <string name="tool_timing_combined">%1$s%2$s • %3$d penalaran • %4$d panggilan</string>
+    <string name="tool_timing_elapsed"> (%1$ddtk)</string>
+    <string name="tool_timing_completed">Selesai</string>
+    <string name="tool_timing_running">Sedang berjalan</string>
+    <string name="tool_timing_stopped">Dihentikan</string>
+    <string name="tool_timing_searches">%1$d pencarian</string>
+    <string name="tool_timing_elapsed_millis"> (%1$d ms)</string>
+</resources>

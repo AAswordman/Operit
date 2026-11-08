@@ -1,0 +1,15 @@
+
+root = Column(children=[
+ Vector(label="输入经过本地处理，产生结果",width=320,height=150,shapes=[
+ {type:"rect",x:5,y:40,width:85,height:65,tone:"info",filled:true},
+ {type:"rect",x:120,y:40,width:85,height:65,tone:"success"},
+ {type:"circle",cx:275,cy:72,r:34,tone:"accent"},
+ {type:"line",x1:90,y1:72,x2:120,y2:72},
+ {type:"polyline",points:[[110,65],[120,72],[110,79]]},
+ {type:"line",x1:205,y1:72,x2:240,y2:72},
+ {type:"text",x:18,y:58,text:"输入",size:18},
+ {type:"text",x:129,y:58,text:"处理",size:18},
+ {type:"text",x:254,y:58,text:"结果",size:18}
+ ]),
+ Text(text="矢量图用于解释关系；真实统计数据请使用图表。",variant="caption")
+])

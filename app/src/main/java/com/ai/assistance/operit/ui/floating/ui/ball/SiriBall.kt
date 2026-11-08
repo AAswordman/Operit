@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,7 +29,7 @@ import kotlin.math.*
 import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.ui.floating.voice.SpeechInteractionManager
 import kotlinx.coroutines.launch
 

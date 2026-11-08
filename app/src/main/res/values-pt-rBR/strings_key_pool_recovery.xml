@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">Em espera temporária: faltam %1$d segundos</string>
+    <string name="api_key_pool_cooling_summary">%1$d chaves em espera; menor tempo restante: %2$d segundos</string>
+    <string name="api_key_pool_states_cleared">Marca de teste e cooldown temporário apagados</string>
+    <string name="api_key_pool_no_available_marks">A configuração “%1$s” não testa as chaves marcadas como disponíveis. Limpe a marca primeiro e depois teste novamente.</string>
+    <string name="api_key_pool_all_cooling">As chaves candidatas de «%1$s» estão em espera temporária. Tente novamente em %2$d segundos.</string>
+    <string name="api_key_pool_already_tried">Todas as chaves candidatas para configuração \"%1$s\" foram tentadas nesta solicitação. Tente novamente mais tarde.</string>
+    <string name="api_key_pool_no_enabled_keys">A configuração \'%1$s\' não possui chaves habilitadas disponíveis, verifique a configuração do pool de chaves.</string>
+    <string name="api_key_pool_endpoint_error">O endereço ou método de solicitação não existe, verifique o tipo de provedor de serviços e complete o caminho API. Caminhos personalizados (como /v2) são usados ​​como estão. Interfaces compatíveis com OpenAI geralmente precisam ser preenchidas em /chat/completions. Erro original: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Modelo «%1$s» em espera: faltam %2$d segundos</string>
+</resources>

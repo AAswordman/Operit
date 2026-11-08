@@ -251,7 +251,7 @@ async function simple_greeter_tool(params) {
     我们可以通过 `return` 语句，有选择性地将需要公开的函数暴露出来。
 */
 // 使用IIFE模式重构我们的问候工具
-const greeterToolBox = (function () {
+const greeterModule = (function () {
     // --- 这里是私有作用域 ---
     // `version` 和 `logWithTimestamp` 在IIFE外部无法被访问，是我们的内部实现细节。
     const version = "2.0";
@@ -282,9 +282,9 @@ const greeterToolBox = (function () {
         // 如果有其他工具，可以继续在这里暴露: anotherTool: someInternalFunction
     };
 })(); // 注意这里，函数被立即执行了
-// 现在，IIFE已经执行完毕，`greeterToolBox` 变量包含了我们返回的对象。
+// 现在，IIFE已经执行完毕，`greeterModule` 变量包含了我们返回的对象。
 // 我们可以这样导出它：
-// `exports.greet = greeterToolBox.greet;`
+// `exports.greet = greeterModule.greet;`
 // =================================================================
 // Part 5: Wrapper模式 - 终极形态，让代码更健壮、更简洁
 // =================================================================

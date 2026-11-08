@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">Ejecutar informe</string>
+    <string name="crash_report_interrupted">La aplicación se interrumpió inesperadamente</string>
+    <string name="crash_report_restart_hint">Reinicie la aplicación para continuar usándola.</string>
+    <string name="crash_report_this_error">este error</string>
+    <string name="crash_report_keep_hint">También puede guardar primero el informe de errores.</string>
+    <string name="crash_report_restart_compact">Reiniciar la aplicación</string>
+    <string name="crash_report_app_logs">Registro de aplicaciones</string>
+    <string name="crash_report_app_logs_hint">Contiene registros en ejecución antes y después de este error.</string>
+    <string name="crash_report_export_logs_compact">Exportar registro</string>
+    <string name="crash_report_local_only">Los informes de errores solo se guardan localmente</string>
+    <string name="crash_report_no_stack">No hay pila de errores disponible.</string>
+    <string name="crash_report_unknown_exception">Excepción no reconocida</string>
+    <string name="crash_report_more_actions">Más operaciones de informes</string>
+    <string name="crash_report_save_report">Guardar informe de errores</string>
+    <string name="crash_report_collapse_stack">Contraer pila</string>
+    <string name="crash_report_expand_stack">expandir pila</string>
+    <string name="crash_report_expand_hint">Haga clic en la flecha en la esquina superior derecha para expandir la pila completa</string>
+    <string name="crash_report_stack_lines">%1$d fila · pila</string>
+    <string name="crash_report_wrap_stack">Ajuste automático de línea</string>
+    <string name="crash_reason_memory">Sin memoria</string>
+    <string name="crash_reason_stack">desbordamiento de la pila de llamadas</string>
+    <string name="crash_reason_storage">No hay suficiente espacio de almacenamiento</string>
+    <string name="crash_reason_permission">Permisos restringidos</string>
+    <string name="crash_reason_network">Anormalidad en la conexión de red</string>
+    <string name="crash_reason_database">Excepción de base de datos</string>
+    <string name="crash_reason_file">Excepción de lectura y escritura de archivos</string>
+    <string name="crash_reason_component">Excepción de carga de componentes</string>
+    <string name="crash_reason_remote">Excepción de comunicación de proceso</string>
+    <string name="crash_reason_null">Objeto no inicializado</string>
+    <string name="crash_reason_state">Estado de funcionamiento anormal</string>
+    <string name="crash_reason_unknown">Excepción no reconocida</string>
+</resources>

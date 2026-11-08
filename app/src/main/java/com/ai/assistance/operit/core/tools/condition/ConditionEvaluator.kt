@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.condition
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 object ConditionEvaluator {
     private const val TAG = "ConditionEvaluator"

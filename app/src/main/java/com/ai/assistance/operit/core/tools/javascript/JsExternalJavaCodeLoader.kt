@@ -2,7 +2,7 @@ package com.ai.assistance.operit.core.tools.javascript
 
 import android.content.Context
 import android.os.Build
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import dalvik.system.DexClassLoader
 import java.io.File
 import java.io.FileOutputStream

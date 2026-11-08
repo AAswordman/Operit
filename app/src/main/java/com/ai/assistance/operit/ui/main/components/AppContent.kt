@@ -1,5 +1,15 @@
 package com.ai.assistance.operit.ui.main.components
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIconButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptIcon
+import com.ai.assistance.operit.ui.theme.script.themeScriptShape
+import com.ai.assistance.operit.ui.theme.script.themeScriptDecoration
+import com.ai.assistance.operit.ui.theme.script.themeScriptFill
+import com.ai.assistance.operit.ui.theme.script.themeScriptContentColor
+import com.ai.assistance.operit.ui.theme.script.themeSurface
+import androidx.compose.foundation.background
+import com.ai.assistance.operit.ui.features.conversation.workspace.hub.WorkspaceHubPage
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -9,7 +19,6 @@ import android.view.WindowManager
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,16 +28,17 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.MainChatControls
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,13 +50,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
-import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.ui.common.NavItem
 import com.ai.assistance.operit.ui.common.displays.FpsCounter
 import com.ai.assistance.operit.ui.main.NavigationTransitionSource
@@ -65,7 +73,6 @@ import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -78,6 +85,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.zIndex
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
@@ -85,7 +99,6 @@ import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.runtime.setValue
-import com.ai.assistance.operit.ui.components.CustomScaffold
 import androidx.compose.foundation.layout.ime
 import androidx.compose.ui.platform.LocalDensity
 import com.ai.assistance.operit.api.chat.AIForegroundService
@@ -161,13 +174,17 @@ fun AppContent(
         /** 当前导航栈中仍存活的路由 screenKey（路由级 ViewModelStore 清理依据）。 */
         aliveScreenKeys: Set<String>
 ) {
+    val workspaceVisible = if (currentScreen is Screen.AiChat) {
+        val workspacePage by LocalMainChatViewModel.current.workspaceHubPage.collectAsState()
+        workspacePage != WorkspaceHubPage.CHAT
+    } else false
     // Get background image state
     val context = LocalContext.current
     val hostActivity = remember(context) { context.findActivity() }
     val manifestSoftInputMode = remember(hostActivity) { hostActivity?.manifestSoftInputMode() }
     val density = LocalDensity.current
-    val pageTransitionDurationMillis = if (enableNavigationAnimation) 280 else 400
-    val drawerRelayTransitionDurationMillis = 320
+    val pageTransitionDurationMillis = if (enableNavigationAnimation) 280 else 0
+    val drawerRelayTransitionDurationMillis = if (enableNavigationAnimation) 320 else 0
     val pageTransitionOffsetPx =
         with(density) { if (useTabletLayout) 28.dp.toPx() else 20.dp.toPx() }
     val drawerNavigationOffsetPx =
@@ -177,45 +194,15 @@ fun AppContent(
     val useBackgroundImage = themeSnapshot.useBackgroundImage
     val backgroundImageUri = themeSnapshot.backgroundImageUri
     val hasBackgroundImage = useBackgroundImage && backgroundImageUri != null
+    val backgroundDecoration = themeSurface("background")
+    // 工作室背景与媒体背景共用底层画布，内容底色不能盖住已声明的填色或图层。
+    val hasBackgroundDecoration = backgroundDecoration != null &&
+        (backgroundDecoration.fillColor != null || backgroundDecoration.layers.isNotEmpty())
 
-    // Get toolbar transparency setting
-    val toolbarTransparent = themeSnapshot.toolbarTransparent
-    
-    // Get AppBar custom color settings
-    val useCustomAppBarColor = themeSnapshot.useCustomAppBarColor
-    val customAppBarColor = themeSnapshot.customAppBarColor
+    // 标准页面顶栏连同状态栏统一使用主题底色，避免聊天壁纸透出。
+    val appBarContainerColor = MaterialTheme.colorScheme.background.copy(alpha = 1f)
+    val appBarContentColor = MaterialTheme.colorScheme.onBackground
 
-    // Get AppBar content color settings
-    val forceAppBarContentColor = themeSnapshot.forceAppBarContentColor
-    val appBarContentColorMode = themeSnapshot.appBarContentColorMode
-
-    val appBarContentColor =
-            if (forceAppBarContentColor) {
-                when (appBarContentColorMode) {
-                    UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT -> Color.White
-                    UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_DARK -> Color.Black
-                    else -> MaterialTheme.colorScheme.onPrimary
-                }
-            } else {
-                MaterialTheme.colorScheme.onPrimary
-            }
-
-    // 获取聊天历史管理器
-    val chatHistoryManager = ChatHistoryManager.getInstance(context)
-    val currentChatId = chatHistoryManager.currentChatIdFlow.collectAsState(initial = null).value
-    val chatHistories =
-            chatHistoryManager.chatHistoriesFlow.collectAsState(initial = emptyList()).value
-
-    val customChatTitle = themeSnapshot.customChatTitle
-
-
-    // 当前聊天标题
-    val currentChatTitle =
-            if (currentChatId != null) {
-                chatHistories.find { it.id == currentChatId }?.title ?: ""
-            } else {
-                ""
-            }
     // 屏幕缓存 Map - 保存已访问过的屏幕，使其状态得以保留
     val screenCache = remember { mutableStateMapOf<String, @Composable () -> Unit>() }
     val screenKeepAliveCache = remember { mutableStateMapOf<String, Boolean>() }
@@ -268,101 +255,82 @@ fun AppContent(
         Scaffold(
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
-                // 单一工具栏 - 使用小型化的设计
-                // 使用 windowInsets 参数让 TopAppBar 自己处理状态栏的 insets
-                TopAppBar(
-                    windowInsets = WindowInsets.statusBars,
-                    title = {
-                        if (titleContent != null) {
-                            titleContent.content()
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                // 使用Screen的标题或导航项的标题
+                if (currentScreen !is Screen.AiChat && currentScreen !is Screen.GlobalDisplaySettings) {
+                    // 单一工具栏 - 使用小型化的设计
+                    // 使用 windowInsets 参数让 TopAppBar 自己处理状态栏的 insets
+                    TopAppBar(
+                        modifier = Modifier.clip(themeScriptShape("appBar", androidx.compose.ui.graphics.RectangleShape))
+                            .background(themeScriptFill("appBar", appBarContainerColor))
+                            .themeScriptDecoration("appBar", drawFill = false),
+                        expandedHeight = 48.dp,
+                        windowInsets = WindowInsets.statusBars,
+                        title = {
+                            if (titleContent != null) {
+                                titleContent.content()
+                            } else {
                                 Text(
-                                    text =
-                                    when {
-                                        // 如果是AI对话界面且有自定义标题，则优先显示
-                                        currentScreen is Screen.AiChat && !customChatTitle.isNullOrEmpty() ->
-                                            customChatTitle!!
-                                        // 优先使用Screen的标题
-                                        currentScreen.getTitle().isNotBlank() ->
-                                            currentScreen.getTitle()
-                                        // 回退到导航项的标题资源
-                                        selectedItem?.titleResId != null &&
-                                            selectedItem.titleResId != 0 ->
-                                            stringResource(id = selectedItem.titleResId)
-                                        // 最后的默认值
+                                    text = when {
+                                        currentScreen.getTitle().isNotBlank() -> currentScreen.getTitle()
+                                        selectedItem?.titleResId != null && selectedItem.titleResId != 0 ->
+                                            stringResource(selectedItem.titleResId)
                                         else -> ""
                                     },
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp,
                                     color = appBarContentColor
                                 )
-
-                                // 显示当前聊天标题（仅在AI对话页面)
-                                if (currentScreen is Screen.AiChat && currentChatTitle.isNotBlank()) {
-                                    Text(
-                                        text = "- $currentChatTitle",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = appBarContentColor.copy(alpha = 0.8f),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
                             }
-                        }
-                    },
-                    navigationIcon = {
-                        // 导航按钮逻辑
-                        IconButton(
-                            onClick = {
-                                if (canGoBack) {
-                                    onGoBack()
-                                } else {
-                                    // 平板模式下切换侧边栏展开/收起状态
-                                    if (useTabletLayout) {
-                                        onToggleSidebar()
-                                    } else {
-                                        // 手机模式下打开抽屉
-                                        scope.launch { drawerState.open() }
-                                    }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                if (canGoBack) Icons.Default.ArrowBack
-                                else if (useTabletLayout)
-                                // 平板模式下使用开关图标表示收起/展开
-                                    if (isTabletSidebarExpanded) Icons.Filled.ChevronLeft
-                                    else Icons.Default.Menu
-                                else Icons.Default.Menu,
-                                contentDescription =
-                                when {
-                                    canGoBack -> stringResource(R.string.app_content_navigate_back)
-                                    useTabletLayout ->
-                                        if (isTabletSidebarExpanded) stringResource(R.string.app_content_collapse_sidebar)
-                                        else stringResource(R.string.app_content_expand_sidebar)
-                                    else -> stringResource(id = R.string.menu)
-                                },
-                                tint = appBarContentColor
-                            )
-                        }
-                    },
-                    actions = actions,
-                    colors =
-                    TopAppBarDefaults.topAppBarColors(
-                        containerColor =
-                        when {
-                            toolbarTransparent -> Color.Transparent
-                            useCustomAppBarColor && customAppBarColor != null -> Color(customAppBarColor)
-                            else -> MaterialTheme.colorScheme.primary
                         },
-                        titleContentColor = appBarContentColor,
-                        navigationIconContentColor = appBarContentColor,
-                        actionIconContentColor = appBarContentColor
-                    ),
-                    // Scaffold会处理 insets, 这里不再需要手动添加 modifier
-                )
+                        navigationIcon = {
+                            // 导航按钮逻辑
+                            ThemeScriptIconButton(
+                                actionId = if (canGoBack) "appBar.back" else "appBar.menu",
+                                onClick = {
+                                    if (canGoBack) {
+                                        onGoBack()
+                                    } else {
+                                        // 平板模式下切换侧边栏展开/收起状态
+                                        if (useTabletLayout) {
+                                            onToggleSidebar()
+                                        } else {
+                                            // 手机模式下打开抽屉
+                                            scope.launch { drawerState.open() }
+                                        }
+                                    }
+                                },
+                            ) {
+                                ThemeScriptIcon(
+                                    id = if (canGoBack) "appBar.back" else "appBar.menu",
+                                    imageVector = if (canGoBack) Icons.Default.ArrowBack
+                                    else if (useTabletLayout)
+                                    // 平板模式下使用开关图标表示收起/展开
+                                        if (isTabletSidebarExpanded) Icons.Filled.ChevronLeft
+                                        else Icons.Default.Menu
+                                    else Icons.Default.Menu,
+                                    contentDescription =
+                                    when {
+                                        canGoBack -> stringResource(R.string.app_content_navigate_back)
+                                        useTabletLayout ->
+                                            if (isTabletSidebarExpanded) stringResource(R.string.app_content_collapse_sidebar)
+                                            else stringResource(R.string.app_content_expand_sidebar)
+                                        else -> stringResource(id = R.string.menu)
+                                    },
+                                    tint = appBarContentColor
+                                )
+                            }
+                        },
+                        actions = actions,
+                        colors =
+                        TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                            scrolledContainerColor = Color.Transparent,
+                            titleContentColor = appBarContentColor,
+                            navigationIconContentColor = appBarContentColor,
+                            actionIconContentColor = appBarContentColor
+                        ),
+                        // Scaffold会处理 insets, 这里不再需要手动添加 modifier
+                    )
+                }
             },
             containerColor = Color.Transparent
         ) { innerPadding ->
@@ -371,6 +339,9 @@ fun AppContent(
             Surface(
                 modifier = Modifier
                     .padding(innerPadding)
+                    // 背景先于状态栏留白绘制，透明系统栏下也有完整的主题底色。
+                    .then(if (workspaceVisible) Modifier.background(MaterialTheme.colorScheme.surface.copy(alpha = 1f)) else Modifier)
+                    .then(if (currentScreen is Screen.AiChat) Modifier.statusBarsPadding() else Modifier)
                     .consumeWindowInsets(innerPadding)
                     .navigationBarsPadding()
                     .then(
@@ -382,7 +353,8 @@ fun AppContent(
                     )
                     .fillMaxSize(),
                 color =
-                if (hasBackgroundImage) Color.Transparent
+                if (workspaceVisible) MaterialTheme.colorScheme.surface.copy(alpha = 1f)
+                else if (hasBackgroundImage || hasBackgroundDecoration) Color.Transparent
                 else MaterialTheme.colorScheme.background
             ) {
                 if (isLoading) {
@@ -482,7 +454,8 @@ fun AppContent(
                         val allowCrossfadeForActiveTransition =
                             when {
                                 currentScreenKey != lastObservedCurrentKey ->
-                                    lastObservedScreen.participatesInCrossfadeTransition &&
+                                    enableNavigationAnimation &&
+                                        lastObservedScreen.participatesInCrossfadeTransition &&
                                         currentScreen.participatesInCrossfadeTransition
                                 isTransitioning -> transitionAllowsCrossfade
                                 else -> true
@@ -508,7 +481,8 @@ fun AppContent(
                             if (currentScreenKey == fromKey) return@LaunchedEffect
 
                             val canCrossfade =
-                                lastObservedScreen.participatesInCrossfadeTransition &&
+                                enableNavigationAnimation &&
+                                    lastObservedScreen.participatesInCrossfadeTransition &&
                                     currentScreen.participatesInCrossfadeTransition
                             val removalKey = if (isNavigatingBack) fromKey else null
 
@@ -620,7 +594,7 @@ fun AppContent(
                                     label = "ScreenAlphaAnimation"
                                 ) { currentVisibility ->
                                     if (!allowCrossfadeForActiveTransition) {
-                                        1f
+                                        if (isCurrentScreen) 1f else 0f
                                     } else if (currentVisibility == ScreenVisibility.VISIBLE) {
                                         1f
                                     } else {
@@ -696,12 +670,37 @@ fun AppContent(
                                 Box(
                                     modifier =
                                         Modifier.fillMaxSize()
+                                            .clipToBounds()
+                                            // 保留页面组合状态，但隐藏页不放置，也不参与触摸命中。
+                                            .layout { measurable, constraints ->
+                                                val placeable = measurable.measure(constraints)
+                                                layout(placeable.width, placeable.height) {
+                                                    if (isCurrentScreen || screenKey == effectivePreviousKey) {
+                                                        placeable.placeRelative(0, 0)
+                                                    }
+                                                }
+                                            }
+                                            .then(
+                                                if (isCurrentScreen) Modifier else Modifier
+                                                    .clearAndSetSemantics {}
+                                                    .focusProperties { canFocus = false }
+                                                    .pointerInput(Unit) {
+                                                        awaitPointerEventScope {
+                                                            while (true) {
+                                                                awaitPointerEvent(PointerEventPass.Initial)
+                                                                    .changes.forEach { it.consume() }
+                                                            }
+                                                        }
+                                                    }
+                                            )
                                             .zIndex(if (isCurrentScreen) 1f else 0f)
                                             .graphicsLayer {
-                                                this.alpha = alpha
-                                                this.translationX = translationX
-                                                scaleX = scale
-                                                scaleY = scale
+                                                // 没有跨页转场时直接呈现当前页，避免复用页面沿用上次的透明度。
+                                                val crossfading = effectivePreviousKey != null
+                                                this.alpha = if (crossfading) alpha else if (isCurrentScreen) 1f else 0f
+                                                this.translationX = if (crossfading) translationX else 0f
+                                                scaleX = if (crossfading) scale else 1f
+                                                scaleY = if (crossfading) scale else 1f
                                             }
                                 ) {
                                     Box(modifier = Modifier.fillMaxSize()) {
@@ -726,6 +725,13 @@ fun AppContent(
                                     }
                                 }
                             }
+                        }
+
+                        // 主聊天页使用透明控件行，标题和三个操作不再占用应用工具栏。
+                        if (currentScreen is Screen.AiChat) {
+                            MainChatControls(
+                                modifier = Modifier.align(Alignment.TopStart).padding(horizontal = 6.dp, vertical = 4.dp).zIndex(3f)
+                            )
                         }
 
                         // 帧率计数器 - 放在所有屏幕之上

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的日语译文。 -->
+    <string name="character_card_tab_speech">発言</string>
+    <string name="character_speech_scope">編集中のキャラクターのみ設定</string>
+    <string name="character_speech_draft_hint">発言設定はキャラクターカードと一緒に保存されます。キャンセルすると保存されません。Waifu モードをオフにしても、設定済みの内容は消去されません。</string>
+    <string name="character_speech_load_failed">このキャラクターの発言設定を読み込めませんでした。もう一度お試しください。</string>
+    <string name="character_speech_save_before_emoji">カスタム絵文字を管理する前に、キャラクターカードを保存してください。</string>
+    <string name="character_speech_emoji_hint">このキャラクターの絵文字ライブラリを管理します。グループや画像の追加・削除はすぐに保存されます。</string>
+</resources>

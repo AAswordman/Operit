@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="model_workspace_single_key_hint">クリックして単一のキーを入力します。右側のボタンでキープールが開きます</string>
+    <string name="model_workspace_open_key_pool">キープールの設定</string>
+    <string name="patch_update_no_matching_chain">現在のインストール パッケージをターゲット バージョンに接続する完全なデルタ パスはありません。完全な APK アップデートを使用してください。</string>
+    <string name="patch_update_base_changed">現在のインストール パッケージは、この増分パッケージに必要な基本パッケージと矛盾しています。完全な APK アップデートを使用してください。</string>
+    <string name="workflow_run_details">実行の詳細と履歴</string>
+    <string name="workflow_run_load_failed">実行記録を読み取れません。ワークフローディレクトリのアクセス権限を確認してください。</string>
+    <string name="workflow_run_older">以前に録音した</string>
+    <string name="workflow_run_newer">新しい記録</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">%1$.2f 秒かかりました</string>
+    <string name="workflow_run_legacy">ノードの詳細はこのレコードに保存されていません。更新後の新しい実行では完全な結果が記録されます。</string>
+    <string name="workflow_run_node_success">正常に実行されました</string>
+    <string name="workflow_run_node_failed">実行に失敗しました</string>
+    <string name="workflow_run_node_skipped">条件が満たされないためスキップされました</string>
+    <string name="workflow_run_node_not_run">未実行</string>
+    <string name="workflow_run_node_cancelled">キャンセルされました</string>
+    <string name="workflow_run_queued">キューに登録し、他のスケジュールされたタスクが完了するのを待っています</string>
+    <string name="workflow_issue_timeout">応答待機中にタイムアウトが発生しました。サービスまたはノードの待機時間を確認してください。</string>
+    <string name="workflow_issue_network">ネットワーク接続に失敗しました。ネットワークとサービスのアドレスを確認してください。</string>
+    <string name="workflow_issue_auth">サービス認証に失敗しました。キーまたはアカウントのステータスを確認してください。</string>
+    <string name="workflow_issue_quota">サービス割り当てが不十分であるか、リクエストが制限されています。残高と通話頻度を確認してください。</string>
+    <string name="workflow_issue_permission">実行権限がありません。ツールに必要なシステム権限を確認してください。</string>
+    <string name="workflow_issue_tool_missing">必要なツールが利用できません。ツール パッケージがインストールされ有効になっているかどうかを確認してください。</string>
+    <string name="workflow_issue_input">ノード入力または操作構成が無効です。パラメータの入力を確認してください。</string>
+    <string name="workflow_issue_reference">引用ノードの結果は利用できません。接続と引用元を確認してください。</string>
+    <string name="workflow_issue_busy">実行環境がビジー状態です。現在のタスクが終了するまで待ってから実行してください。</string>
+    <string name="workflow_issue_cancelled">この実行はキャンセルされました。</string>
+    <string name="workflow_issue_cycle">ノード接続に循環依存関係があります。接続を調整して再試行してください。</string>
+    <string name="workflow_issue_trigger">使用可能なトリガー ノードがありません。トリガー メソッドを確認してください。</string>
+    <string name="workflow_issue_runtime">実行環境の初期化が完了していません。しばらくしてからもう一度お試しください。</string>
+    <string name="workflow_issue_unknown">ノードは操作を完了できませんでした。ノードの入力とツールの構成を確認してください。</string>
+    <string name="sent_image_count">%1$d チャン</string>
+    <string name="sent_image_expired_count">%1$d 枚の画像が期限切れです</string>
+    <string name="workflow_run_failed_nodes">障害が発生したノード: %1$s</string>
+</resources>

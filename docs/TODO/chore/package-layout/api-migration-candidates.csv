@@ -1,0 +1,118 @@
+原始路径,实施目标路径,实际职责与理由,类名调整,实施动作,当前状态
+api/chat/AIForegroundService.kt,api/chat/AIForegroundService.kt,首轮保留 Android Service 组件名；后续单独决定服务归属,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/ChatRuntimeHolder.kt,core/chat/runtime/ChatRuntimeHolder.kt,聊天运行时及槽位，实施前核对外部引用,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/ChatRuntimeSlot.kt,core/chat/runtime/ChatRuntimeSlot.kt,聊天运行时及槽位，实施前核对外部引用,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/EnhancedAIService.kt,api/chat/EnhancedAIService.kt,首轮保留完整类名；已发现 Java 桥插件调用,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/enhance/ConversationMarkupManager.kt,core/chat/protocol/ConversationMarkupManager.kt,对话与工具结果标记,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/ConversationRoundManager.kt,core/chat/runtime/ConversationRoundManager.kt,多轮输出状态,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/ConversationService.kt,core/chat/context/ConversationService.kt,历史准备、摘要与标题，当前文件整体移动,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/FileBindingService.kt,core/chat/filebinding/FileBindingService.kt,文件绑定编辑与差异处理,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/InputProcessor.kt,core/chat/hooks/InputProcessor.kt,用户输入 Hook 编排,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/MultiServiceManager.kt,api/chat/runtime/MultiServiceManager.kt,功能模型服务装配与生命周期,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/OrderedToolResults.kt,core/chat/tools/OrderedToolResults.kt,对话工具执行结果汇总,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/ReferenceManager.kt,core/chat/protocol/ReferenceManager.kt,引用标记提取,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/ToolExecutionManager.kt,core/chat/tools/ToolExecutionManager.kt,对话中的工具调用编排,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/TranslationModelNotConfiguredException.kt,api/chat/runtime/TranslationModelNotConfiguredException.kt,功能模型配置缺失,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/streaming/ConfiguredStreamingAIService.kt,api/chat/decorator/ConfiguredStreamingAIService.kt,流式配置装饰,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/enhance/thinking/FunctionalThinkingAIService.kt,api/chat/decorator/FunctionalThinkingAIService.kt,思考参数装饰,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/error/NativeRequestFailure.kt,api/chat/error/NativeRequestFailure.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/ProviderResponseErrors.kt,api/chat/error/ProviderResponseErrors.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/RequestFailure.kt,api/chat/error/RequestFailure.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/RequestFailureCode.kt,api/chat/error/RequestFailureCode.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/RequestFailureException.kt,api/chat/error/RequestFailureException.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/RequestFailureTrace.kt,api/chat/error/RequestFailureTrace.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/error/ResponseJson.kt,api/chat/error/ResponseJson.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyCooldownRecovery.kt,api/chat/keypool/ApiKeyCooldownRecovery.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyCooldownStore.kt,api/chat/keypool/ApiKeyCooldownStore.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyErrorClass.kt,api/chat/keypool/ApiKeyErrorClass.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyFailureClassifier.kt,api/chat/keypool/ApiKeyFailureClassifier.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyPoolSelector.kt,api/chat/keypool/ApiKeyPoolSelector.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyRequestSupport.kt,api/chat/keypool/ApiKeyRequestSupport.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyRetryPlanner.kt,api/chat/keypool/ApiKeyRetryPlanner.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyScoreCalculator.kt,api/chat/keypool/ApiKeyScoreCalculator.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyStickyStore.kt,api/chat/keypool/ApiKeyStickyStore.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiKeyWindowStore.kt,api/chat/keypool/ApiKeyWindowStore.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/keypool/ApiRequestRetryPolicy.kt,api/chat/keypool/ApiRequestRetryPolicy.kt,已有明确职责包，暂保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/library/ChatMemoryRebuildManager.kt,core/memory/extraction/ChatMemoryRebuildManager.kt,对话记忆提取、重建与调度,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/library/ChatMemoryRebuildTimeScope.kt,core/memory/extraction/ChatMemoryRebuildTimeScope.kt,对话记忆提取、重建与调度,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/library/ChatMemoryWindowPlanner.kt,core/memory/extraction/ChatMemoryWindowPlanner.kt,对话记忆提取、重建与调度,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/library/MemoryAutoSaveScheduler.kt,core/memory/extraction/MemoryAutoSaveScheduler.kt,对话记忆提取、重建与调度,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/library/MemoryLibrary.kt,core/memory/extraction/ConversationMemoryExtractor.kt,对话记忆提取、重建与调度,MemoryLibrary → ConversationMemoryExtractor,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/AIService.kt,api/chat/AIService.kt,模型访问接口,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/AIServiceFactory.kt,api/chat/AIServiceFactory.kt,模型服务装配入口，文件内部声明暂不拆分,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/AntigravityProvider.kt,api/chat/llmprovider/AntigravityProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ApiKeyPoolAvailabilityTester.kt,api/chat/keypool/ApiKeyPoolAvailabilityTester.kt,密钥池可用性检查,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ApiKeyProvider.kt,api/chat/keypool/ApiKeyProvider.kt,密钥获取与请求会话,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ClaudeProvider.kt,api/chat/llmprovider/ClaudeProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/CodexProvider.kt,api/chat/llmprovider/CodexProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/DeepseekFileUploader.kt,api/chat/llmprovider/DeepseekFileUploader.kt,提供方专用文件协议支持，可保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/DeepseekProvider.kt,api/chat/llmprovider/DeepseekProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/DoubaoAIProvider.kt,api/chat/llmprovider/DoubaoAIProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/EndpointCompleter.kt,api/chat/transport/EndpointCompleter.kt,请求地址构造,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/FourRouterProvider.kt,api/chat/llmprovider/FourRouterProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/GeminiProvider.kt,api/chat/llmprovider/GeminiProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/HttpStatusCodeException.kt,api/chat/error/HttpStatusCodeException.kt,HTTP 状态错误及同文件辅助声明,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/KimiProvider.kt,api/chat/llmprovider/KimiProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/LlamaProvider.kt,api/chat/llmprovider/LlamaProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/LlmRetryPolicy.kt,api/chat/request/LlmRetryPolicy.kt,请求重试与首字等待参数,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/LocalGenerationEnd.kt,api/chat/llmprovider/LocalGenerationEnd.kt,本地提供方生成结束及用量支持，可保留,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MNNProvider.kt,api/chat/llmprovider/MNNProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MediaCapabilityProbe.kt,api/chat/model/MediaCapabilityProbe.kt,模型媒体能力探测,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MediaLinkBuilder.kt,core/chat/media/MediaLinkBuilder.kt,聊天媒体标记构造,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MediaLinkParser.kt,core/chat/media/MediaLinkParser.kt,聊天媒体标记解析,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MimoProvider.kt,api/chat/llmprovider/MimoProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/MistralProvider.kt,api/chat/llmprovider/MistralProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ModelConfigConnectionTester.kt,api/chat/model/ModelConfigConnectionTester.kt,模型配置连接与能力检查,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ModelFetchErrorHelper.kt,api/chat/model/ModelFetchErrorHelper.kt,模型目录请求的错误说明,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ModelListFetcher.kt,api/chat/model/ModelListFetcher.kt,模型目录读取,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/NousPortalProvider.kt,api/chat/llmprovider/NousPortalProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/NvidiaAIProvider.kt,api/chat/llmprovider/NvidiaAIProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/OllamaProvider.kt,api/chat/llmprovider/OllamaProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/OpenAIProvider.kt,api/chat/llmprovider/OpenAIProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/OpenAIResponsesProvider.kt,api/chat/llmprovider/OpenAIResponsesProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/OpenCodeProvider.kt,api/chat/llmprovider/OpenCodeProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/OpenRouterProvider.kt,api/chat/llmprovider/OpenRouterProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/QwenAIProvider.kt,api/chat/llmprovider/QwenAIProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/RateLimitedAIService.kt,api/chat/decorator/RateLimitedAIService.kt,模型服务限流装饰,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/RateLimiterRegistry.kt,api/chat/request/RateLimiterRegistry.kt,请求速率限制实例管理,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/RequestConcurrencyRegistry.kt,api/chat/request/RequestConcurrencyRegistry.kt,请求并发限制实例管理,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/SlidingWindowRateLimiter.kt,api/chat/request/SlidingWindowRateLimiter.kt,请求速率限制实现,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/StructuredToolCallBridge.kt,api/chat/protocol/StructuredToolCallBridge.kt,多个模型协议共用的工具调用转换,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ThinkingQualityMapping.kt,api/chat/model/ThinkingQualityMapping.kt,模型思考选项及参数映射,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/TokenTrackingAIService.kt,api/chat/decorator/TokenTrackingAIService.kt,模型服务用量跟踪装饰,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/ToolPkgJsAiProviderService.kt,plugins/toolpkg/ai/ToolPkgJsAiProviderService.kt,ToolPkg JavaScript 模型提供方桥接,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/UnsafeModelSsl.kt,api/chat/transport/UnsafeModelSsl.kt,模型请求 TLS 配置，保持现有行为,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/chat/llmprovider/XaiProvider.kt,api/chat/llmprovider/XaiProvider.kt,现有提供方适配实现，暂保留类名,保留类名,保留位置,源码实施完成，仓库验证待执行结果
+api/chat/voice/VoiceAudioRequest.kt,core/chat/voice/VoiceAudioRequest.kt,聊天音频输入协调，保持原执行顺序,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/local/speech/SherpaModelSession.kt,api/speech/runtime/SherpaModelSession.kt,STT/TTS 共用的 Sherpa 会话,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/local/speech/SherpaOnnxSpeechProvider.kt,api/speech/stt/SherpaOnnxSpeechProvider.kt,本地语音识别实现,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/local/speech/SherpaOnnxVoiceProvider.kt,api/speech/tts/SherpaOnnxVoiceProvider.kt,本地语音合成实现,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/DeepgramSttProvider.kt,api/speech/stt/DeepgramSttProvider.kt,语音识别及录音转写,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/OnnxSileroVad.kt,api/speech/audio/OnnxSileroVad.kt,录音、音频活动检测与缓冲,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/OpenAISttProvider.kt,api/speech/stt/OpenAISttProvider.kt,语音识别及录音转写,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/PersonalWakeEnrollment.kt,api/speech/wake/PersonalWakeEnrollment.kt,语音唤醒及声纹支持,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/PersonalWakeFeatureExtractor.kt,api/speech/wake/PersonalWakeFeatureExtractor.kt,语音唤醒及声纹支持,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/PersonalWakeListener.kt,api/speech/wake/PersonalWakeListener.kt,语音唤醒及声纹支持,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/SherpaMnnSpeechProvider.kt,api/speech/stt/SherpaMnnSpeechProvider.kt,语音识别及录音转写,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/SherpaSpeechProvider.kt,api/speech/stt/SherpaSpeechProvider.kt,语音识别及录音转写,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/SpeechPrerollStore.kt,api/speech/audio/SpeechPrerollStore.kt,录音、音频活动检测与缓冲,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/SpeechService.kt,api/speech/stt/SttService.kt,语音识别及录音转写,SpeechService → SttService,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/SpeechServiceFactory.kt,api/speech/stt/SttServiceFactory.kt,语音识别及录音转写,SpeechServiceFactory → SttServiceFactory,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/http/SttHttpRequest.kt,api/speech/stt/http/SttHttpRequest.kt,识别 HTTP 请求,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/voicemessage/VoiceMessageRecorder.kt,api/speech/audio/VoiceMessageRecorder.kt,录音、音频活动检测与缓冲,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/speech/voicemessage/VoiceMessageTranscriber.kt,api/speech/stt/VoiceMessageTranscriber.kt,语音识别及录音转写,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/AccessibilityVoiceProvider.kt,api/speech/tts/AccessibilityVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/DoubaoVoiceProvider.kt,api/speech/tts/DoubaoVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/HttpTtsResponsePipelineStep.kt,api/speech/tts/HttpTtsResponsePipelineStep.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/HttpVoiceProvider.kt,api/speech/tts/HttpVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/MimoVoiceProvider.kt,api/speech/tts/MimoVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/MiniMaxVoiceProvider.kt,api/speech/tts/MiniMaxVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/OpenAIRealtimeVoiceProvider.kt,api/speech/tts/OpenAIRealtimeVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/OpenAIVoiceProvider.kt,api/speech/tts/OpenAIVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/QueuedTtsPlayback.kt,api/speech/tts/QueuedTtsPlayback.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/SiliconFlowVoiceProvider.kt,api/speech/tts/SiliconFlowVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/TtsException.kt,api/speech/tts/TtsException.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/VitsVoiceProvider.kt,api/speech/tts/VitsVoiceProvider.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/VoiceListFetcher.kt,api/speech/tts/VoiceListFetcher.kt,语音合成、音色与播放,保留类名,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/VoiceService.kt,api/speech/tts/TtsService.kt,语音合成、音色与播放,VoiceService → TtsService,已迁移,源码实施完成，仓库验证待执行结果
+api/voice/VoiceServiceFactory.kt,api/speech/tts/TtsServiceFactory.kt,语音合成、音色与播放,VoiceServiceFactory → TtsServiceFactory,已迁移,源码实施完成，仓库验证待执行结果

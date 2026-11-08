@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.model
 
-import com.ai.assistance.operit.util.LocalDateTimeSerializer
+import com.ai.assistance.operit.data.serialization.LocalDateTimeSerializer
 import java.util.UUID
 import java.time.LocalDateTime
 import kotlinx.serialization.Serializable
@@ -25,5 +25,9 @@ data class ChatHistory(
     val characterCardName: String? = null,
     val characterGroupId: String? = null,
     val locked: Boolean = false,
-    val pinned: Boolean = false
+    val folderId: String? = null,
+    val lastUsedAt: Long = 0L,
+    val pinned: Boolean = false,
+    val archived: Boolean = false,
+    val usageBreakdownJson: String? = null
 )

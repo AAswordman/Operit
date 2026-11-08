@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">Konfigurasikan model pengenalan gambar yang mendukung input gambar di Model Fungsi terlebih dahulu.</string>
+</resources>

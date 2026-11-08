@@ -7,8 +7,10 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.skill.SkillManager
 import com.ai.assistance.operit.core.tools.skill.SkillPackage
 import com.ai.assistance.operit.data.preferences.SkillVisibilityPreferences
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.SkillRepoZipPoolManager
+import com.ai.assistance.operit.data.transfer.DownloadTransferProgress
+import com.ai.assistance.operit.data.transfer.copyWithTransferProgress
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.data.skill.SkillRepoZipPoolManager
 import com.google.gson.JsonParser
 import java.io.BufferedInputStream
 import java.io.File
@@ -81,10 +83,10 @@ class SkillRepository private constructor(private val context: Context) {
         return ok
     }
 
-    suspend fun importSkillFromZip(zipFile: File): String {
-        return withContext(Dispatchers.IO) {
-            skillManager.importSkillFromZip(zipFile)
-        }
+    suspend fun importSkillFromZip(zipFile: File): String = importSkillFromZipDetailed(zipFile).message
+    suspend fun importSkillFromZipDetailed(zipFile: File): SkillRepoImportResult = withContext(Dispatchers.IO) {
+        val result = skillManager.importSkillFromZipDetailed(zipFile, null)
+        SkillRepoImportResult(result.message, result.installedDir)
     }
 
     suspend fun importSkillFromGitHubRepo(repoUrl: String): String {
@@ -96,7 +98,11 @@ class SkillRepository private constructor(private val context: Context) {
         val installedDir: File?
     )
 
-    suspend fun importSkillFromGitHubRepoDetailed(repoUrl: String): SkillRepoImportResult {
+    suspend fun importSkillFromGitHubRepoDetailed(
+        repoUrl: String,
+        onDownloadProgress: (DownloadTransferProgress) -> Unit = {},
+        onImportStarted: () -> Unit = {},
+    ): SkillRepoImportResult {
         return withContext(Dispatchers.IO) {
             val target = parseGitHubSkillTarget(repoUrl)
                 ?: return@withContext SkillRepoImportResult(context.getString(R.string.skill_invalid_github_url), null)
@@ -122,7 +128,7 @@ class SkillRepository private constructor(private val context: Context) {
                 key = repoRefKey,
                 forceRefresh = commitSha.isNullOrBlank()
             ) { outFile ->
-                downloadFromUrl(zipUrl, outFile)
+                downloadFromUrl(zipUrl, outFile, onDownloadProgress)
             }
 
             val suffix = (target.subDir ?: "repo")
@@ -137,7 +143,7 @@ class SkillRepository private constructor(private val context: Context) {
                 val zipFile = if (pooledZip != null) {
                     pooledZip
                 } else {
-                    val downloaded = downloadFromUrl(zipUrl, fallbackTempFile)
+                    val downloaded = downloadFromUrl(zipUrl, fallbackTempFile, onDownloadProgress)
                     if (!downloaded || !fallbackTempFile.exists() || fallbackTempFile.length() <= 0L) {
                         if (fallbackTempFile.exists()) fallbackTempFile.delete()
                         return@withContext SkillRepoImportResult(context.getString(R.string.skill_download_zip_failed), null)
@@ -145,6 +151,7 @@ class SkillRepository private constructor(private val context: Context) {
                     fallbackTempFile
                 }
 
+                onImportStarted()
                 val result = skillManager.importSkillFromZipDetailed(zipFile, target.subDir)
                 if (result.installedDir != null) {
                     runCatching { writeGithubZipKey(result.installedDir, repoRefKey) }
@@ -164,43 +171,45 @@ class SkillRepository private constructor(private val context: Context) {
     }
 
     suspend fun importSkillFromDirectInput(
+        skillId: String, description: String, content: String, attachmentUris: List<Uri> = emptyList()
+    ): String = importSkillFromDirectInputDetailed(skillId, description, content, attachmentUris).message
+
+    suspend fun importSkillFromDirectInputDetailed(
         skillId: String,
         description: String,
         content: String,
         attachmentUris: List<Uri> = emptyList()
-    ): String {
+    ): SkillRepoImportResult {
         return withContext(Dispatchers.IO) {
             val trimmedId = skillId.trim()
             val trimmedDescription = description.trim()
             val trimmedContent = content.trim()
 
             if (trimmedId.isBlank()) {
-                return@withContext context.getString(R.string.skillmgr_direct_skill_id_required)
+                return@withContext SkillRepoImportResult(context.getString(R.string.skillmgr_direct_skill_id_required), null)
             }
             if (!isValidSkillId(trimmedId)) {
-                return@withContext context.getString(R.string.skillmgr_direct_skill_id_invalid)
+                return@withContext SkillRepoImportResult(context.getString(R.string.skillmgr_direct_skill_id_invalid), null)
             }
             if (trimmedContent.isBlank()) {
-                return@withContext context.getString(R.string.skillmgr_direct_content_required)
+                return@withContext SkillRepoImportResult(context.getString(R.string.skillmgr_direct_content_required), null)
             }
 
             val skillsRootDir = File(getSkillsDirectoryPath())
             if (!skillsRootDir.exists() && !skillsRootDir.mkdirs()) {
-                return@withContext context.getString(
-                    R.string.skillmgr_direct_create_dir_failed,
-                    skillsRootDir.absolutePath
-                )
+                return@withContext SkillRepoImportResult(context.getString(
+                    R.string.skillmgr_direct_create_dir_failed, skillsRootDir.absolutePath
+                ), null)
             }
 
             val finalDir = File(skillsRootDir, trimmedId)
             if (finalDir.exists()) {
-                return@withContext context.getString(R.string.skill_error_import_duplicate_name, finalDir.name)
+                return@withContext SkillRepoImportResult(context.getString(R.string.skill_error_import_duplicate_name, finalDir.name), null)
             }
             if (!finalDir.mkdirs()) {
-                return@withContext context.getString(
-                    R.string.skillmgr_direct_create_dir_failed,
-                    finalDir.absolutePath
-                )
+                return@withContext SkillRepoImportResult(context.getString(
+                    R.string.skillmgr_direct_create_dir_failed, finalDir.absolutePath
+                ), null)
             }
 
             try {
@@ -243,15 +252,16 @@ class SkillRepository private constructor(private val context: Context) {
 
                 skillManager.refreshAvailableSkills()
 
-                if (trimmedDescription.isNotBlank()) {
+                val message = if (trimmedDescription.isNotBlank()) {
                     context.getString(R.string.skill_imported_with_desc, finalDir.name, trimmedDescription)
                 } else {
                     context.getString(R.string.skill_imported, finalDir.name)
                 }
+                SkillRepoImportResult(message, finalDir)
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to import skill from direct input", e)
                 runCatching { finalDir.deleteRecursively() }
-                context.getString(R.string.skill_import_failed, e.message ?: "Unknown error")
+                SkillRepoImportResult(context.getString(R.string.skill_import_failed, e.message ?: "Unknown error"), null)
             }
         }
     }
@@ -400,7 +410,11 @@ class SkillRepository private constructor(private val context: Context) {
         }
     }
 
-    private fun downloadFromUrl(zipUrl: String, outFile: File): Boolean {
+    private fun downloadFromUrl(
+        zipUrl: String,
+        outFile: File,
+        onProgress: (DownloadTransferProgress) -> Unit,
+    ): Boolean {
         val url = URL(zipUrl)
         val connection = (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = CONNECT_TIMEOUT
@@ -412,25 +426,22 @@ class SkillRepository private constructor(private val context: Context) {
             )
         }
 
-        connection.connect()
-        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-            AppLogger.e(TAG, "Download failed, HTTP ${connection.responseCode}")
-            return false
-        }
-
-        BufferedInputStream(connection.inputStream).use { input ->
-            FileOutputStream(outFile).use { output ->
-                val buffer = ByteArray(BUFFER_SIZE)
-                while (true) {
-                    val read = input.read(buffer)
-                    if (read <= 0) break
-                    output.write(buffer, 0, read)
-                }
-                output.flush()
+        try {
+            connection.connect()
+            if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+                AppLogger.e(TAG, "Download failed, HTTP ${connection.responseCode}")
+                return false
             }
+            BufferedInputStream(connection.inputStream).use { input ->
+                FileOutputStream(outFile).use { output ->
+                    input.copyWithTransferProgress(output, connection.contentLengthLong, onProgress, BUFFER_SIZE)
+                    output.flush()
+                }
+            }
+            return true
+        } finally {
+            connection.disconnect()
         }
-
-        return true
     }
 
     private fun isFullCommitSha(value: String): Boolean {

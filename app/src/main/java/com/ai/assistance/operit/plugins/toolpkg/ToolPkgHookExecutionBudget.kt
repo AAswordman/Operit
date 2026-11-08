@@ -3,7 +3,7 @@ package com.ai.assistance.operit.plugins.toolpkg
 import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.core.tools.javascript.extractJsExecutionErrorMessage
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.TimeUnit
 
 /**

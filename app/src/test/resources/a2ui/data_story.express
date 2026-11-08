@@ -1,0 +1,6 @@
+
+root = Column(gap="md",children=[
+ Grid(minItemWidth=100,children=[Display(label="本周总量",text="9.0M"),Display(label="缓存命中",text="94%"),Display(label="较上周",text="+12%")]),
+ Chart(label="每日用量（百万 Token，演示数据）",type="bar",labels=["周一","周二","周三","周四","周五"],series=[{label:"用量",values:[1.2,1.8,1.5,2.1,2.4]}]),
+ Table(columns=["模型","占比","平均耗时"],rows=[["主对话","72%","14 秒"],["子代理","21%","38 秒"],["预测","7%","1.2 秒"]])
+])

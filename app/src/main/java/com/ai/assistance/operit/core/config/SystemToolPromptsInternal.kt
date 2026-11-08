@@ -1,10 +1,39 @@
 package com.ai.assistance.operit.core.config
 
-import com.ai.assistance.operit.data.model.SystemToolPromptCategory
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.data.model.ToolParameterSchema
+import com.ai.assistance.operit.core.tools.prompt.SystemToolPromptCategory
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
 
 object SystemToolPromptsInternal {
+
+    private fun managedTerminalTaskPrompts(english: Boolean): List<ToolPrompt> {
+        fun text(en: String, zh: String) = if (english) en else zh
+        val runId = ToolParameterSchema("run_id", "string",
+            text("ID returned by start_terminal_task", "start_terminal_task 返回的任务 ID"), true)
+        val yieldMs = ToolParameterSchema("yield_ms", "integer",
+            text("Wait 0..30000 ms without cancelling the task", "单次等待 0～30000 毫秒，等待结束不取消任务"), false, default = "10000")
+        return listOf(
+            ToolPrompt(
+                name = "start_terminal_task",
+                description = text(
+                    "Start a managed terminal command and return a runId. Poll the same ID; never restart a running command. Output and screen are replacement snapshots.",
+                    "启动托管终端命令并返回 runId；后续查询同一 ID，不要重复启动。output 和 screen 均为替换快照。"),
+                parametersStructured = listOf(
+                    ToolParameterSchema("session_id", "string", text("Terminal session ID", "终端会话 ID"), true),
+                    ToolParameterSchema("command", "string", text("Command to execute", "要执行的命令"), true),
+                    ToolParameterSchema("timeout_ms", "integer",
+                        text("Execution deadline including queue time; at least 3000 ms", "包含排队时间的执行期限，至少 3000 毫秒"), false, default = "1800000"),
+                    yieldMs,
+                ),
+            ),
+            ToolPrompt("poll_terminal_task", text(
+                "Query the same managed task without submitting a probe command or interrupting execution.",
+                "查询同一托管任务，不排入探测命令，也不中断正在运行的命令。"), parametersStructured = listOf(runId, yieldMs)),
+            ToolPrompt("cancel_terminal_task", text(
+                "Cancel exactly one managed task. Check status and cancellationOutcome for the cleanup result.",
+                "精确取消一个托管任务，通过 status 和 cancellationOutcome 查看清理结果。"), parametersStructured = listOf(runId)),
+        )
+    }
 
     val internalToolCategoriesEn: List<SystemToolPromptCategory> =
         listOf(
@@ -93,6 +122,7 @@ object SystemToolPromptsInternal {
                                     )
                                 )
                         ),
+                        *managedTerminalTaskPrompts(true).toTypedArray(),
                         ToolPrompt(
                             name = "execute_hidden_terminal_command",
                             description = "Execute a command in a hidden non-PTY terminal executor. Commands using the same executor_key reuse the same hidden login context and are not shown in the visible terminal UI.",
@@ -1766,6 +1796,24 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
+                            name = "get_tool_permission_mode",
+                            description = "Read the global tool permission mode: ALLOW, ASK, or FORBID.",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "set_tool_permission_mode",
+                            description = "Set the global tool permission mode. Only ALLOW, ASK, or FORBID are accepted; after FORBID, the user must restore it from Settings.",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(
+                                        name = "permission_level",
+                                        type = "string",
+                                        description = "permission mode: ALLOW, ASK, or FORBID",
+                                        required = true
+                                    )
+                                )
+                        ),
+                        ToolPrompt(
                             name = "write_environment_variable",
                             description = "Write an environment variable by key; empty value clears it.",
                             parametersStructured =
@@ -1835,7 +1883,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_service_type",
                                         type = "string",
-                                        description = "optional, SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS",
+                                        description = "optional, SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS/SHERPA_ONNX_TTS",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -1899,6 +1947,12 @@ object SystemToolPromptsInternal {
                                         required = false
                                     ),
                                     ToolParameterSchema(
+                                        name = "tts_local_model_key",
+                                        type = "string",
+                                        description = "可选，离线资源中已安装模型的 id@version",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
                                         name = "tts_vits_package_path",
                                         type = "string",
                                         description = "optional, local VITS/Piper TTS package path; accepts a .zip file or extracted package directory",
@@ -1937,7 +1991,13 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "stt_service_type",
                                         type = "string",
-                                        description = "optional, SHERPA_NCNN/OPENAI_STT/DEEPGRAM_STT",
+                                        description = "optional, SHERPA_NCNN/SHERPA_ONNX/OPENAI_STT/DEEPGRAM_STT",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "stt_local_model_key",
+                                        type = "string",
+                                        description = "可选，离线资源中已安装模型的 id@version",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -2721,6 +2781,12 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "notification body",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "chat_id",
+                                        type = "string",
+                                        description = "optional, chat session id to open when the notification is tapped",
+                                        required = false
                                     )
                                 )
                         ),
@@ -3085,6 +3151,7 @@ object SystemToolPromptsInternal {
                                     )
                                 )
                         ),
+                        *managedTerminalTaskPrompts(false).toTypedArray(),
                         ToolPrompt(
                             name = "execute_hidden_terminal_command",
                             description = "在隐藏的非 PTY 终端执行器中执行命令。使用相同 executor_key 的命令会复用同一个后台登录上下文，且不会显示在可见终端 UI 中。",
@@ -4758,6 +4825,24 @@ object SystemToolPromptsInternal {
                                 )
                         ),
                         ToolPrompt(
+                            name = "get_tool_permission_mode",
+                            description = "读取全局工具权限模式：ALLOW、ASK 或 FORBID。",
+                            parametersStructured = listOf()
+                        ),
+                        ToolPrompt(
+                            name = "set_tool_permission_mode",
+                            description = "设置全局工具权限模式，只接受 ALLOW、ASK 或 FORBID；设置为 FORBID 后必须由用户从设置页恢复。",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(
+                                        name = "permission_level",
+                                        type = "string",
+                                        description = "权限模式：ALLOW、ASK 或 FORBID",
+                                        required = true
+                                    )
+                                )
+                        ),
+                        ToolPrompt(
                             name = "write_environment_variable",
                             description = "按 key 写入环境变量；value 为空时清除该变量。",
                             parametersStructured =
@@ -4827,7 +4912,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "tts_service_type",
                                         type = "string",
-                                        description = "可选，SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS",
+                                        description = "可选，SIMPLE_TTS/HTTP_TTS/OPENAI_WS_TTS/SILICONFLOW_TTS/MINIMAX_TTS/MIMO_TTS/DOUBAO_TTS/OPENAI_TTS/VITS_TTS/SHERPA_ONNX_TTS",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -4891,6 +4976,12 @@ object SystemToolPromptsInternal {
                                         required = false
                                     ),
                                     ToolParameterSchema(
+                                        name = "tts_local_model_key",
+                                        type = "string",
+                                        description = "可选，离线资源中已安装模型的 id@version",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
                                         name = "tts_vits_package_path",
                                         type = "string",
                                         description = "可选，本地 VITS/Piper TTS 模型包路径，支持 .zip 文件或已解压目录",
@@ -4929,7 +5020,13 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "stt_service_type",
                                         type = "string",
-                                        description = "可选，SHERPA_NCNN/OPENAI_STT/DEEPGRAM_STT",
+                                        description = "可选，SHERPA_NCNN/SHERPA_ONNX/OPENAI_STT/DEEPGRAM_STT",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "stt_local_model_key",
+                                        type = "string",
+                                        description = "可选，离线资源中已安装模型的 id@version",
                                         required = false
                                     ),
                                     ToolParameterSchema(
@@ -5713,6 +5810,12 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "通知内容",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "chat_id",
+                                        type = "string",
+                                        description = "可选，点击通知时打开的会话 ID",
+                                        required = false
                                     )
                                 )
                         ),

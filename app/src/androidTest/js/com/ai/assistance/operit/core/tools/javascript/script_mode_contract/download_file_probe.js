@@ -166,21 +166,21 @@ ensureDir(rootDir);
 const successCases = [
   {
     name: 'type_android.d.ts',
-    url: 'https://cdn.jsdelivr.net/gh/AAswordman/Operit@main/examples/types/android.d.ts',
+    url: 'https://cdn.jsdelivr.net/gh/3316891527/Operit@main/examples/types/android.d.ts',
   },
   {
     name: 'type_core.d.ts',
-    url: 'https://cdn.jsdelivr.net/gh/AAswordman/Operit@main/examples/types/core.d.ts',
+    url: 'https://cdn.jsdelivr.net/gh/3316891527/Operit@main/examples/types/core.d.ts',
   },
   {
     name: 'type_results.d.ts',
-    url: 'https://cdn.jsdelivr.net/gh/AAswordman/Operit@main/examples/types/results.d.ts',
+    url: 'https://cdn.jsdelivr.net/gh/3316891527/Operit@main/examples/types/results.d.ts',
   },
 ];
 
 const failureCase = {
   name: 'missing_file.d.ts',
-  url: 'https://cdn.jsdelivr.net/gh/AAswordman/Operit@main/examples/types/__definitely_missing_file__.d.ts',
+  url: 'https://cdn.jsdelivr.net/gh/3316891527/Operit@main/examples/types/__definitely_missing_file__.d.ts',
 };
 
 const sequential = [];

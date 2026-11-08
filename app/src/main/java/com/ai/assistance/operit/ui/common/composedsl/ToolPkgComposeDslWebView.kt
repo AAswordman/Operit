@@ -44,13 +44,14 @@ import androidx.webkit.WebViewFeature
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.core.tools.javascript.JsJavaBridgeDelegates
 import com.ai.assistance.operit.core.tools.javascript.extractJsExecutionErrorMessage
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
-import com.ai.assistance.operit.ui.features.token.webview.WebViewConfig
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
+import com.ai.assistance.operit.ui.features.models.token.webview.WebViewConfig
+import com.ai.assistance.operit.util.logging.AppLogger
 import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FilterInputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
@@ -1163,7 +1164,7 @@ private fun buildComposeDslWebResourceResponse(
     if (bodySourceCount != 1) {
         return null
     }
-    val bodyBytes =
+    val body: InputStream =
         when {
             spec.text != null -> {
                 val charset =
@@ -1176,9 +1177,9 @@ private fun buildComposeDslWebResourceResponse(
                     } else {
                         spec.text
                     }
-                textBody.toByteArray(charset)
+                ByteArrayInputStream(textBody.toByteArray(charset))
             }
-            spec.base64 != null -> Base64.decode(spec.base64, Base64.DEFAULT)
+            spec.base64 != null -> ByteArrayInputStream(Base64.decode(spec.base64, Base64.DEFAULT))
             spec.filePath != null -> {
                 val file = File(spec.filePath)
                 if (!file.exists() || !file.isFile) {
@@ -1189,23 +1190,32 @@ private fun buildComposeDslWebResourceResponse(
                         runCatching {
                             java.nio.charset.Charset.forName(spec.encoding)
                         }.getOrDefault(Charsets.UTF_8)
-                    val html = file.readBytes().toString(charset)
-                    injectComposeDslWebViewBridgeRuntimeIntoHtml(html).toByteArray(charset)
+                    val html = file.readText(charset)
+                    ByteArrayInputStream(
+                        injectComposeDslWebViewBridgeRuntimeIntoHtml(html).toByteArray(charset)
+                    )
                 } else {
-                    file.readBytes()
+                    // WAV 等二进制资源交给 WebView 按需读取，避免整文件驻留 Java 堆。
+                    file.inputStream()
                 }
             }
 
             else -> return null
         }
-    return WebResourceResponse(
-        spec.mimeType,
-        spec.encoding,
-        spec.statusCode,
-        spec.reasonPhrase,
-        spec.headers,
-        ByteArrayInputStream(bodyBytes)
-    )
+    return try {
+        // WebView 接管输入流的读取与关闭，不能在构造响应后提前关闭文件。
+        WebResourceResponse(
+            spec.mimeType,
+            spec.encoding,
+            spec.statusCode,
+            spec.reasonPhrase,
+            spec.headers,
+            body
+        )
+    } catch (error: Exception) {
+        body.close()
+        throw error
+    }
 }
 
 private fun fetchComposeDslRewrittenResource(
@@ -1215,51 +1225,67 @@ private fun fetchComposeDslRewrittenResource(
 ): WebResourceResponse? {
     return runCatching {
         val connection = URL(rewrittenUrl).openConnection() as? HttpURLConnection ?: return null
-        connection.instanceFollowRedirects = true
-        connection.connectTimeout = 10_000
-        connection.readTimeout = 10_000
-        connection.requestMethod = request.method.takeIf { method -> !method.isNullOrBlank() } ?: "GET"
-        request.requestHeaders.orEmpty().forEach { (key, value) ->
-            connection.setRequestProperty(key, value)
-        }
-        rewrittenHeaders.forEach { (key, value) ->
-            connection.setRequestProperty(key, value)
-        }
-        connection.connect()
-        val contentType = connection.contentType.orEmpty()
-        val mimeType =
-            contentType.substringBefore(';').trim().ifBlank {
-                "application/octet-stream"
+        try {
+            connection.instanceFollowRedirects = true
+            connection.connectTimeout = 10_000
+            connection.readTimeout = 10_000
+            connection.requestMethod = request.method.takeIf { method -> !method.isNullOrBlank() } ?: "GET"
+            request.requestHeaders.orEmpty().forEach { (key, value) ->
+                connection.setRequestProperty(key, value)
             }
-        val encoding =
-            contentType.substringAfter("charset=", "").substringBefore(';').trim().ifBlank {
-                connection.contentEncoding?.trim().orEmpty().ifBlank { "utf-8" }
+            rewrittenHeaders.forEach { (key, value) ->
+                connection.setRequestProperty(key, value)
             }
-        val responseHeaders =
-            connection.headerFields
-                .filterKeys { key -> key != null }
-                .mapValues { (_, values) ->
-                    values?.joinToString(", ").orEmpty()
+            connection.connect()
+            val contentType = connection.contentType.orEmpty()
+            val mimeType =
+                contentType.substringBefore(';').trim().ifBlank {
+                    "application/octet-stream"
                 }
-        val bodyBytes =
-            (
-                try {
+            val encoding =
+                contentType.substringAfter("charset=", "").substringBefore(';').trim().ifBlank {
+                    connection.contentEncoding?.trim().orEmpty().ifBlank { "utf-8" }
+                }
+            val responseHeaders =
+                connection.headerFields
+                    .filterKeys { key -> key != null }
+                    .mapValues { (_, values) ->
+                        values?.joinToString(", ").orEmpty()
+                    }
+            val statusCode = connection.responseCode
+            val reasonPhrase = connection.responseMessage ?: "OK"
+            val upstream =
+                if (statusCode >= 400) {
+                    connection.errorStream ?: ByteArrayInputStream(ByteArray(0))
+                } else {
                     connection.inputStream
-                } catch (_: Throwable) {
-                    connection.errorStream
                 }
-                    ?: ByteArrayInputStream(ByteArray(0))
+            // 网络音视频同样直接交付流；WebView 完成或取消读取时一起关闭连接。
+            val body = object : FilterInputStream(upstream) {
+                override fun close() {
+                    try {
+                        super.close()
+                    } finally {
+                        connection.disconnect()
+                    }
+                }
+            }
+            try {
+                WebResourceResponse(
+                    mimeType,
+                    encoding,
+                    statusCode,
+                    reasonPhrase,
+                    responseHeaders,
+                    body
                 )
-                .use(InputStream::readBytes)
-        WebResourceResponse(
-            mimeType,
-            encoding,
-            connection.responseCode,
-            connection.responseMessage ?: "OK",
-            responseHeaders,
-            ByteArrayInputStream(bodyBytes)
-        ).also {
+            } catch (error: Exception) {
+                body.close()
+                throw error
+            }
+        } catch (error: Exception) {
             connection.disconnect()
+            throw error
         }
     }.getOrElse { error ->
         AppLogger.e(TAG, "compose_dsl rewritten resource fetch failed: ${error.message}", error)
@@ -1493,15 +1519,13 @@ internal fun renderWebViewNode(
     }
 
     fun emitAction(
-        actionId: String?,
+        selectActionId: (ComposeDslWebViewCallbackIds) -> String?,
         payload: Any?
     ) {
-        val normalizedActionId = actionId?.trim().orEmpty()
-        if (normalizedActionId.isBlank()) {
-            return
-        }
         val dispatch = {
-            onActionRef.get().invoke(normalizedActionId, payload)
+            // 后台事件真正切回主线程后再取当前回调，避免派发已随旧界面回收的 ID。
+            val actionId = selectActionId(callbackIdsRef.get())?.trim().orEmpty()
+            if (actionId.isNotBlank()) onActionRef.get().invoke(actionId, payload)
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
             dispatch()
@@ -1538,7 +1562,7 @@ internal fun renderWebViewNode(
             )
         }
         if (forceEmit || snapshot != previous) {
-            emitAction(callbackIdsRef.get().onStateChanged, snapshot.toPayload())
+            emitAction({ it.onStateChanged }, snapshot.toPayload())
         }
         return snapshot
     }
@@ -1549,7 +1573,7 @@ internal fun renderWebViewNode(
         extras: Map<String, Any?> = emptyMap()
     ) {
         emitAction(
-            callbackIdsRef.get().onLifecycleEvent,
+            { it.onLifecycleEvent },
             buildComposeDslWebViewLifecyclePayload(
                 type = type,
                 state = state,
@@ -1568,7 +1592,7 @@ internal fun renderWebViewNode(
             return
         }
         emitAction(
-            callbackIdsRef.get().onUrlChanged,
+            { it.onUrlChanged },
             mapOf(
                 "url" to normalizedUrl,
                 "isMainFrame" to isMainFrame,
@@ -1856,7 +1880,7 @@ internal fun renderWebViewNode(
                                 urlOverride = url
                             )
                         emitAction(
-                            callbackIdsRef.get().onPageStarted,
+                            { it.onPageStarted },
                             mapOf(
                                 "url" to state.url,
                                 "title" to state.title,
@@ -1897,7 +1921,7 @@ internal fun renderWebViewNode(
                                 urlOverride = url
                             )
                         emitAction(
-                            callbackIdsRef.get().onPageFinished,
+                            { it.onPageFinished },
                             mapOf(
                                 "url" to state.url,
                                 "title" to state.title,
@@ -1918,7 +1942,7 @@ internal fun renderWebViewNode(
                             return
                         }
                         emitAction(
-                            callbackIdsRef.get().onReceivedError,
+                            { it.onReceivedError },
                             mapOf(
                                 "errorCode" to errorCode,
                                 "description" to description,
@@ -1944,7 +1968,7 @@ internal fun renderWebViewNode(
                             )
                         }
                         emitAction(
-                            callbackIdsRef.get().onReceivedError,
+                            { it.onReceivedError },
                             mapOf(
                                 "errorCode" to error?.errorCode,
                                 "description" to error?.description?.toString(),
@@ -1964,7 +1988,7 @@ internal fun renderWebViewNode(
                             return
                         }
                         emitAction(
-                            callbackIdsRef.get().onReceivedHttpError,
+                            { it.onReceivedHttpError },
                             mapOf(
                                 "statusCode" to errorResponse?.statusCode,
                                 "reasonPhrase" to errorResponse?.reasonPhrase,
@@ -1984,7 +2008,7 @@ internal fun renderWebViewNode(
                             return
                         }
                         emitAction(
-                            callbackIdsRef.get().onReceivedSslError,
+                            { it.onReceivedSslError },
                             mapOf(
                                 "primaryError" to error?.primaryError,
                                 "url" to error?.url
@@ -2032,7 +2056,7 @@ internal fun renderWebViewNode(
                     override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
                         if (!disposedRef.get() && consoleMessage != null) {
                             emitAction(
-                                callbackIdsRef.get().onConsoleMessage,
+                                { it.onConsoleMessage },
                                 mapOf(
                                     "message" to consoleMessage.message(),
                                     "sourceId" to consoleMessage.sourceId(),
@@ -2057,7 +2081,7 @@ internal fun renderWebViewNode(
                                 progress = newProgress
                             )
                         emitAction(
-                            callbackIdsRef.get().onProgressChanged,
+                            { it.onProgressChanged },
                             mapOf(
                                 "progress" to state.progress,
                                 "url" to state.url,
@@ -2147,7 +2171,7 @@ internal fun renderWebViewNode(
             setDownloadListener { url, userAgent, contentDisposition, mimeType, contentLength ->
                 if (!disposedRef.get() && !url.isNullOrBlank()) {
                     emitAction(
-                        callbackIdsRef.get().onDownloadStart,
+                        { it.onDownloadStart },
                         mapOf(
                             "url" to url,
                             "userAgent" to userAgent,
@@ -2194,9 +2218,8 @@ internal fun renderWebViewNode(
     }
 
     DisposableEffect(webView) {
-        webView.post {
-            webView.requestFocus()
-        }
+        // 聊天惰性列表中的 WebView 挂载时不要抢焦点，避免焦点搜索重入子组合测量。
+        // 保留原生可聚焦能力，网页输入仍可由用户交互或显式请求获得焦点。
         val createdState =
             updateStateSnapshot(
                 view = webView,

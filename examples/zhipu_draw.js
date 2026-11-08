@@ -1,3 +1,4 @@
+"use strict";
 /* METADATA
 {
   "name": "zhipu_draw",
@@ -6,8 +7,8 @@
     "en": "Zhipu Draw"
   },
   "description": {
-    "zh": "使用智谱AI图像生成API根据提示词画图，将图片保存到本地 /sdcard/Download/Operit/plugins/draw/zhipu_draw/draws/ 目录，并返回 Markdown 图片提示。",
-    "en": "Generate images via Zhipu AI image generation API from a prompt, save to /sdcard/Download/Operit/plugins/draw/zhipu_draw/draws/, and return a Markdown image reference."
+    "zh": "使用智谱AI图像生成API根据提示词画图（当前官方云端接口仅支持文生图，不支持传入参考图）。将图片保存到本地 /sdcard/Download/Operit/plugins/draw/zhipu_draw/draws/ 目录，并返回 Markdown 图片提示。",
+    "en": "Generate images via Zhipu AI image generation API from a prompt (the official cloud API currently supports text-to-image only, not image-to-image). Saves to /sdcard/Download/Operit/plugins/draw/zhipu_draw/draws/ and returns a Markdown image reference."
   },
   "env": [
     {
@@ -32,8 +33,8 @@
     {
       "name": "draw_image",
       "description": {
-        "zh": "根据提示词调用智谱AI图像生成接口生成图片，保存到本地并返回 Markdown 图片提示。",
-        "en": "Generate an image via Zhipu AI image generation API using a prompt, save it locally, and return a Markdown image reference."
+        "zh": "根据提示词调用智谱AI图像生成接口生成图片（仅文生图，官方云端接口暂不支持参考图）。保存到本地并返回 Markdown 图片提示。",
+        "en": "Generate an image via Zhipu AI image generation API using a prompt (text-to-image only; the official cloud API does not currently accept reference images). Saves locally and returns a Markdown image reference."
       },
       "parameters": [
         { "name": "prompt", "description": { "zh": "绘图提示词（中文或英文）", "en": "Prompt for image generation (Chinese or English)" }, "type": "string", "required": true },

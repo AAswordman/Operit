@@ -205,16 +205,23 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                             : null,
                     actionStore: {},
                     actionCounter: 0,
+                    actionContextId: 'compose_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+                    renderActionIds: {},
+                    renderSequence: 0,
+                    acknowledgedRenderSequence: 0,
                     stateChangeListeners: [],
                     stateChangeScheduled: false,
                     stateDirty: false,
                     pendingStateChangePromise: null
                 };
 
-                function registerAction(handler) {
+                function registerAction(handler, renderOwned) {
                     runtime.actionCounter += 1;
                     var actionId = '__action_' + runtime.actionCounter;
                     runtime.actionStore[actionId] = handler;
+                    if (renderOwned === true) {
+                        runtime.renderActionIds[actionId] = runtime.actionCounter;
+                    }
                     return actionId;
                 }
 
@@ -280,20 +287,20 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                     return Promise.resolve();
                 }
 
-                function normalizePropValue(value) {
+                function normalizePropValue(value, renderOwned) {
                     if (typeof value === 'function') {
-                        return { __actionId: registerAction(value) };
+                        return { __actionId: registerAction(value, renderOwned) };
                     }
                     if (Array.isArray(value)) {
                         return value.map(function(item) {
-                            return normalizePropValue(item);
+                            return normalizePropValue(item, renderOwned);
                         });
                     }
                     if (value && typeof value === 'object') {
                         var normalized = {};
                         for (var key in value) {
                             if (Object.prototype.hasOwnProperty.call(value, key)) {
-                                normalized[key] = normalizePropValue(value[key]);
+                                normalized[key] = normalizePropValue(value[key], renderOwned);
                             }
                         }
                         return normalized;
@@ -313,7 +320,7 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                                 normalizedSlots[key] = slotChildren;
                                 continue;
                             }
-                            normalizedProps[key] = normalizePropValue(rawValue);
+                            normalizedProps[key] = normalizePropValue(rawValue, true);
                         }
                     }
                     var normalizedChildren = normalizeChildren(children);
@@ -597,7 +604,7 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                             return function() {
                                 var args = [];
                                 for (var i = 0; i < arguments.length; i += 1) {
-                                    args.push(normalizePropValue(arguments[i]));
+                                    args.push(normalizePropValue(arguments[i], true));
                                 }
                                 var next = chain.slice();
                                 next.push({
@@ -887,6 +894,33 @@ internal fun buildComposeDslContextBridgeDefinition(): String {
                         if (nextCallRuntime && typeof nextCallRuntime === 'object') {
                             runtime.callRuntime = nextCallRuntime;
                         }
+                    },
+                    getActionSnapshot: function() {
+                        runtime.renderSequence += 1;
+                        return {
+                            contextId: runtime.actionContextId,
+                            generation: runtime.renderSequence,
+                            counter: runtime.actionCounter
+                        };
+                    },
+                    retainActions: function(snapshot, actionIds) {
+                        if (
+                            snapshot.contextId !== runtime.actionContextId ||
+                            snapshot.generation <= runtime.acknowledgedRenderSequence
+                        ) {
+                            return Object.keys(runtime.actionStore).length;
+                        }
+                        runtime.acknowledgedRenderSequence = snapshot.generation;
+                        var retained = Object.create(null);
+                        actionIds.forEach(function(id) { retained[id] = true; });
+                        // 界面确认提交后才释放旧树回调，尚未提交的新树及独立接口回调继续保留。
+                        Object.keys(runtime.renderActionIds).forEach(function(id) {
+                            if (runtime.renderActionIds[id] <= snapshot.counter && !retained[id]) {
+                                delete runtime.actionStore[id];
+                                delete runtime.renderActionIds[id];
+                            }
+                        });
+                        return Object.keys(runtime.actionStore).length;
                     },
                     invokeAction: function(actionId, payload) {
                         var id = String(actionId || '').trim();

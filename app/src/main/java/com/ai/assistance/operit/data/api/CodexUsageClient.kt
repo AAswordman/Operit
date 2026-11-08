@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.api
 
 import com.ai.assistance.operit.BuildConfig
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

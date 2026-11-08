@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.javascript
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 private const val TAG = "JsAssetLoader"
 

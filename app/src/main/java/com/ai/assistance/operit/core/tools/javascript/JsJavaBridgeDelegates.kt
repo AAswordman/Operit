@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.javascript
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
 import java.lang.reflect.Array as ReflectArray

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="market_transfer_percent">%1$d%%</string>
+    <string name="market_transfer_amount">%1$s / %2$s</string>
+    <string name="market_transfer_unknown_total">总量未知</string>
+    <string name="market_transfer_speed">%1$s/s</string>
+    <string name="market_transfer_measuring">正在测速</string>
+    <string name="market_transfer_elapsed">已用 %1$s</string>
+    <string name="market_transfer_remaining">剩余约 %1$s</string>
+    <string name="market_transfer_unknown_remaining">剩余时间待估算</string>
+</resources>

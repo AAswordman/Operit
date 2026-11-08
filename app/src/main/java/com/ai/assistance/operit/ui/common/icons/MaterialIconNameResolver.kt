@@ -1,6 +1,5 @@
 package com.ai.assistance.operit.ui.common.icons
 
-import androidx.compose.material.icons.Icons
 import androidx.compose.ui.graphics.vector.ImageVector
 import java.util.concurrent.ConcurrentHashMap
 
@@ -27,12 +26,8 @@ object MaterialIconNameResolver {
             require(pascalCaseName.isNotEmpty()) {
                 "icon name is invalid: $normalizedName"
             }
-            val iconKtClass =
-                Class.forName("androidx.compose.material.icons.filled.${pascalCaseName}Kt")
-            val getterMethod =
-                iconKtClass.getMethod("get$pascalCaseName", Icons.Default::class.java)
-            (getterMethod.invoke(null, Icons.Default) as ImageVector)
-                .also { iconCache[normalizedName] = it }
+            MaterialFilledIconCatalog.resolve(pascalCaseName)
+                ?.also { iconCache[normalizedName] = it }
         }.getOrNull()
     }
 

@@ -7,7 +7,7 @@ import com.ai.assistance.operit.data.db.AppDatabase
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
 import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
@@ -15,6 +15,7 @@ import kotlinx.coroutines.sync.withLock
 class TokenUsageRepository private constructor(context: Context) {
     companion object {
         private const val TAG = "TokenUsageRepository"
+        const val DETACHED_CONFIG_ID = "__operit_deleted_config__"
         @Volatile
         private var instance: TokenUsageRepository? = null
         private val databaseAccessMutex = Mutex()
@@ -102,5 +103,25 @@ class TokenUsageRepository private constructor(context: Context) {
 
     suspend fun record(record: TokenUsageRecordEntity) {
         withDao { dao -> dao.insertRecord(record) }
+    }
+    suspend fun detachUsageFromConfig(configId: String) {
+        val trimmedId = configId.trim()
+        if (trimmedId.isEmpty()) return
+        ensureInitialized()
+        withDatabaseAccess {
+            val database = AppDatabase.getDatabase(appContext)
+            database.withTransaction {
+                val dao = database.tokenUsageDao()
+                dao.detachRecordsFromConfig(
+                    configId = trimmedId,
+                    detachedConfigId = DETACHED_CONFIG_ID,
+                )
+                dao.deleteStatsModelsByConfigId(trimmedId)
+            }
+        }
+    }
+
+    suspend fun clearUsageRecords() {
+        withDao { dao -> dao.clearUsageRecords() }
     }
 }

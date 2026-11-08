@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingController
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.ConcurrentHashMap
 
 object ToolPkgMessageProcessingCancellationRegistry {

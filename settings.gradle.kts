@@ -19,16 +19,14 @@ dependencyResolutionManagement {
 
 rootProject.name = "Operit"
 include(":app")
-include(":dragonbones")
-project(":dragonbones").projectDir = file("avator/dragonbones")
 include(":terminal")
 include(":mnn")
 project(":mnn").projectDir = file("llm/mnn")
 include(":llama")
 project(":llama").projectDir = file("llm/llama")
-include(":mmd")
-project(":mmd").projectDir = file("avator/mmd")
-include(":fbx")
-project(":fbx").projectDir = file("avator/fbx")
 include(":showerclient")
 include(":quickjs")
+
+include(":a2ui-compat")
+
+include(":material-icons-subset")

@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.ui.main.layout
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.preferences.glass.GlassRegion
+
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -125,9 +128,9 @@ fun TabletLayout(
                                                 enabled = drawerAppearance.waterGlassEnabled,
                                                 shape = MaterialTheme.shapes.medium,
                                                 containerColor = drawerAppearance.containerColor,
-                                                shadowElevation = 4.dp,
-                                                borderWidth = 0.7.dp,
-                                                overlayAlphaBoost = 0.04f
+                                                // 侧栏保留已调整的低强度折射，聊天区域单独恢复原有效果。
+                                                subtleRefraction = true,
+                                            region = GlassRegion.SIDEBAR,
                                         )
                                         .zIndex(2f), // 确保侧边栏在主内容之上
                         shadowElevation = if (drawerAppearance.waterGlassEnabled) 0.dp else 4.dp,
@@ -135,38 +138,42 @@ fun TabletLayout(
                                 if (drawerAppearance.waterGlassEnabled) Color.Transparent
                                 else drawerAppearance.containerColor
                 ) {
-                        Crossfade(
-                                targetState = isSidebarContentExpanded,
-                                animationSpec = tween(durationMillis = sidebarContentFadeDurationMillis),
-                                label = "sidebarContent"
-                        ) { isContentExpanded ->
-                                if (isContentExpanded) {
-                                        DrawerContent(
-                                                navItems = navItems,
-                                                pluginEntries = pluginSidebarEntries,
-                                                selectedItem = selectedItem,
-                                                selectedRouteId = selectedRouteId,
-                                                isNetworkAvailable = isNetworkAvailable,
-                                                networkType = networkType,
-                                                appearance = drawerAppearance,
-                                                scope = scope,
-                                                drawerState = drawerState,
-                                                onScreenSelected = onDrawerItemSelected,
-                                                onNavigationEntrySelected = onNavigationEntrySelected
-                                        )
-                                } else {
-                                        CollapsedDrawerContent(
-                                                navItems = navItems,
-                                                pluginEntries = pluginSidebarEntries,
-                                                selectedItem = selectedItem,
-                                                selectedRouteId = selectedRouteId,
-                                                isNetworkAvailable = isNetworkAvailable,
-                                                appearance = drawerAppearance,
-                                                onScreenSelected = onDrawerItemSelected,
-                                                onNavigationEntrySelected = onNavigationEntrySelected
-                                        )
-                                }
-                        }
+                    ThemeScriptSurface("navigation") {
+                            Crossfade(
+                                    targetState = isSidebarContentExpanded,
+                                    animationSpec = tween(durationMillis = sidebarContentFadeDurationMillis),
+                                    label = "sidebarContent"
+                            ) { isContentExpanded ->
+                                    if (isContentExpanded) {
+                                            DrawerContent(
+                                                    navItems = navItems,
+                                                    pluginEntries = pluginSidebarEntries,
+                                                    selectedItem = selectedItem,
+                                                    selectedRouteId = selectedRouteId,
+                                                    isNetworkAvailable = isNetworkAvailable,
+                                                    networkType = networkType,
+                                                    appearance = drawerAppearance,
+                                                    scope = scope,
+                                                    drawerState = drawerState,
+                                                    onScreenSelected = onDrawerItemSelected,
+                                                    onNavigationEntrySelected = onNavigationEntrySelected,
+                                                    onCollapseSidebar = onToggleSidebar
+                                            )
+                                    } else {
+                                            CollapsedDrawerContent(
+                                                    navItems = navItems,
+                                                    pluginEntries = pluginSidebarEntries,
+                                                    selectedItem = selectedItem,
+                                                    selectedRouteId = selectedRouteId,
+                                                    isNetworkAvailable = isNetworkAvailable,
+                                                    appearance = drawerAppearance,
+                                                    onScreenSelected = onDrawerItemSelected,
+                                                    onExpandSidebar = onToggleSidebar,
+                                                    onNavigationEntrySelected = onNavigationEntrySelected
+                                            )
+                                    }
+                            }
+                    }
                 }
 
                 // 主内容区域 - 使用width+offset方式，保留稳定的布局

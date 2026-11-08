@@ -19,7 +19,6 @@ enum class NavigationSurface {
     MAIN_SIDEBAR_TOOLS,
     MAIN_SIDEBAR_PLUGINS,
     MAIN_SIDEBAR_SYSTEM,
-    TOOLBOX
 }
 
 enum class NavigationEntryKind {

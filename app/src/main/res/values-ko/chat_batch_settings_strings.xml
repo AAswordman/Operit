@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">일괄 작업</string>
+    <string name="chat_batch_exit">선택 종료</string>
+    <string name="chat_batch_summarize">제목 요약</string>
+    <string name="chat_batch_progress">처리 중 %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">잠긴 대화는 삭제되지 않습니다.</string>
+    <string name="chat_batch_delete_title">선택한 대화 삭제</string>
+    <string name="chat_batch_delete_message">대화 %1$d개를 삭제하고 잠긴 대화 %2$d개는 유지합니다. 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="chat_batch_result">일괄 작업 완료: 성공 %1$d개, 건너뜀 %2$d개, 실패 %3$d개</string>
+    <string name="language_follow_system">시스템 설정 따르기</string>
+    <string name="language_global_info">언어는 모든 캐릭터에 적용됩니다. 변경 후 앱이 다시 열립니다.</string>
+    <string name="language_change_failed">언어를 변경하지 못했습니다. 다시 시도해 주세요.</string>
+</resources>

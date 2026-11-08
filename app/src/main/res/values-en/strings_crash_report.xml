@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="crash_report_running_report">Incident report</string>
+    <string name="crash_report_interrupted">The app stopped unexpectedly</string>
+    <string name="crash_report_restart_hint">Restart the app to continue.</string>
+    <string name="crash_report_this_error">This incident</string>
+    <string name="crash_report_keep_hint">You can save the report first.</string>
+    <string name="crash_report_restart_compact">Restart app</string>
+    <string name="crash_report_app_logs">App logs</string>
+    <string name="crash_report_app_logs_hint">Activity around this incident</string>
+    <string name="crash_report_export_logs_compact">Export logs</string>
+    <string name="crash_report_local_only">Error reports are kept on this device</string>
+    <string name="crash_report_no_stack">No stack trace is available.</string>
+    <string name="crash_report_unknown_exception">Unrecognized exception</string>
+    <string name="crash_report_more_actions">More report actions</string>
+    <string name="crash_report_save_report">Save error report</string>
+    <string name="crash_report_collapse_stack">Collapse stack trace</string>
+    <string name="crash_report_expand_stack">Expand stack trace</string>
+    <string name="crash_report_expand_hint">Use the arrow to expand the stack trace</string>
+    <string name="crash_report_stack_lines">%1$d lines · Stack trace</string>
+    <string name="crash_report_wrap_stack">Wrap lines</string>
+    <string name="crash_reason_memory">Out of memory</string>
+    <string name="crash_reason_stack">Stack overflow</string>
+    <string name="crash_reason_storage">Storage full</string>
+    <string name="crash_reason_permission">Permission denied</string>
+    <string name="crash_reason_network">Network error</string>
+    <string name="crash_reason_database">Database error</string>
+    <string name="crash_reason_file">File access error</string>
+    <string name="crash_reason_component">Component loading error</string>
+    <string name="crash_reason_remote">Process communication error</string>
+    <string name="crash_reason_null">Object not initialized</string>
+    <string name="crash_reason_state">Invalid runtime state</string>
+    <string name="crash_reason_unknown">Unrecognized error</string>
+</resources>

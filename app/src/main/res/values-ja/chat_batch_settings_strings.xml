@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">一括操作</string>
+    <string name="chat_batch_exit">選択を終了</string>
+    <string name="chat_batch_summarize">タイトル要約</string>
+    <string name="chat_batch_progress">処理中 %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">ロックされた会話は削除されません。</string>
+    <string name="chat_batch_delete_title">会話を一括削除</string>
+    <string name="chat_batch_delete_message">%1$d 件の会話を削除し、ロックされた %2$d 件は保持します。この操作は取り消せません。</string>
+    <string name="chat_batch_result">一括操作完了：成功 %1$d 件、スキップ %2$d 件、失敗 %3$d 件</string>
+    <string name="language_follow_system">システムに従う</string>
+    <string name="language_global_info">言語はすべてのキャラクターに適用され、変更後にアプリが再起動します。</string>
+    <string name="language_change_failed">言語を変更できませんでした。もう一度お試しください。</string>
+    <string name="settings_theme_subtitle">色、背景、フォントと言語</string>
+</resources>

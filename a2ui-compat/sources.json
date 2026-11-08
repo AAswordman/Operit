@@ -1,0 +1,534 @@
+{
+  "version": "1.0.0-alpha01",
+  "sources": [
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/A2uiFunction.kt",
+      "sha256": "f5a2546bfaa037714f47d072637db8cbaf1d6ea3254696635ac9887260c69a08"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/A2uiFunctionCollection.kt",
+      "sha256": "5e2d3e0ccdabc02249294127f07131ae4c4e336139c16eb36ed9e228f4ad4724"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/A2uiFunctionDefinition.kt",
+      "sha256": "b29eed8c57b1b0859b26a093407893a0ac8caf701382b7d6bdcd6a3f40b8ec00"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/A2uiFunctionDefinitionSerializer.kt",
+      "sha256": "744c2c4465d687916ae47bcb72412bfb9a15895c6a420dc2f6489b24b97be827"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/basiccatalog/A2uiBasicCatalogFunctions.kt",
+      "sha256": "6cf950d63cda66a6a80caff2b58596e23f4fe28c68aa4d570a152eb14457d62d"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiAndFunction.kt",
+      "sha256": "09eaf7564203f249647592d36e8e760cc47598b8ccd499207512e2b734b564fb"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiEmailFunction.kt",
+      "sha256": "637b33686e8ac0285b3b6144fe97beca0d40a30222f199b31241c9ecc28905e5"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiFormatCurrencyFunction.kt",
+      "sha256": "a2357deb6d6979c5eb69beb5c042deaab7aac590c258f1b1e5663e91781a3e48"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiFormatDateFunction.kt",
+      "sha256": "c0cc915d9ac4a3ca82f6417ce82ff6423b5d1727bb745c82f7a25c6f830c9af3"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiFormatNumberFunction.kt",
+      "sha256": "91629d344e09dc36fe147eacd6a98a1316c5d5c11e95faa0a5fb47c180c6fb96"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiFormatStringFunction.kt",
+      "sha256": "6a6e42cc7cc6e03b55e1800013eaf6651b9ada8bfbcd8a9ce77ad8a707f544a0"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiFunctionArgParser.kt",
+      "sha256": "6d7d0cb85e78f9e9ab0b22340b35b1dc070fe90468c1761a4a2366135bc01769"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiLengthFunction.kt",
+      "sha256": "7f8dcf7517bc099de72978643ca762bd507569753bc5c69a5da2285532d5f6c2"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiLocaleProvider.kt",
+      "sha256": "853b42222d1e88dd0e5bf6bd954d862408d896d946232112fbf3d0a7eedcbd4b"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiNotFunction.kt",
+      "sha256": "4d0a526d03721d19e78d6fd712cd76a6530175f8b3a96e7951dfa00904761cd6"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiNumericFunction.kt",
+      "sha256": "c366a78e5e6b430cffbea251ed508f4612d426d78d808d931681b5b8265e2566"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiOpenUrlFunction.kt",
+      "sha256": "5d116f752cdebb9402f4b5f38782b4f1cd1a8e6b12e0a6cf011c79da45591c6a"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiOrFunction.kt",
+      "sha256": "f137b8c1c7c2467f9ed874105d3e6f0b37b48fde8e6e13887445e9f8fda1f598"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiPluralizeFunction.kt",
+      "sha256": "9e0f4ef22b38ff58258ecf1f16a61a12349308a192a605841a4c8caca47d40f6"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiRegexFunction.kt",
+      "sha256": "c99848166b7521ba51d5a9fdc97354403b827fa0b1f3a9efd76931fab81302be"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/catalog/functions/A2uiRequiredFunction.kt",
+      "sha256": "42d74d1ef70666b9863638b03b2f32c06550ffd12916b28ae5391d2d604481ef"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiActionInterceptor.kt",
+      "sha256": "c95a26d01a68cfcbed7ca6e9ece01ceae7b0f312aaaaace8f5e9b66d8c86bc45"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiJsonMessageParser.kt",
+      "sha256": "f60e2083a1696d5e8d6b6c1a59818e2cefaaa7bad99d424ee46308894222402b"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiJsonReader.kt",
+      "sha256": "e80600ce01a0d2d57682f749ce95bd97b0639e86c50a6284a90e30ea8318beae"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiMessageParser.kt",
+      "sha256": "d6a657adb76a209b8f19759503fce7c1ef0942cef054b5db4c69313e704260f2"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiMessageProcessor.kt",
+      "sha256": "e65a4627e419362036ec71cc25aca4f9951d0771453bdb257328b09c467c42da"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/processor/A2uiSurfaceModel.kt",
+      "sha256": "7db0cc3725b0f4e38c557175873fc5b53a42d15538867bae817c6f9f64f1ba4b"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiClientCapabilities.kt",
+      "sha256": "4054ba62d63bb63e0501c4565ab328af538103b9e91b69816d4e1784517d5952"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiClientDataModel.kt",
+      "sha256": "83b13a0680821ebe5b9c835025091703d56dfc8898a89db5f24732bbf56d0ed6"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiClientToServerMessage.kt",
+      "sha256": "446c1e1db623bfe8df4496574dd668f944ec6c69e602edd344b7fc67cd1d8a37"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiComponentPayload.kt",
+      "sha256": "f39f1cc15064818846b027d27a46783c220eb784e414a6d0d73ff854baab6a86"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiDataPath.kt",
+      "sha256": "a2ad9dead549d2b62ce5f0a7d7502b4cc75bd1704233ea6c67f10b3ce7ca1056"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiException.kt",
+      "sha256": "dc3a3c91d2933c48dc40222a29fad058c0fd131d195b0a107c411e788746dad7"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiExecutionContext.kt",
+      "sha256": "aa31988572bced5a84f798929d716d1375f2aa77e45aa7ff0d9537d9209dd572"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiInlineCatalog.kt",
+      "sha256": "a338ebe368a036f463b45359b89028432fa6c73d8626dae0cbb658f71819d048"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiProtocolConstants.kt",
+      "sha256": "a529ea44939312c8f982d18f99e99507e69c82433414e73c1becd8f892696222"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiServerToClientMessage.kt",
+      "sha256": "63ddccf0f6fbd31e75a76ce463beb3fc4bd3122d3e2f6f3f568e09513657ffb8"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/protocol/A2uiUserAction.kt",
+      "sha256": "9b04b1821499b8c6508188042f591ffc5b157f769c8e526d23629d5f24885d08"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiAnySchema.kt",
+      "sha256": "8600f60bcb56f3ab3456d3e291fad70fa5ea71e2dff61d0da043c5753acdf7d9"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiArraySchema.kt",
+      "sha256": "6d51e7f4a3337da80ae9dc6c9cc6cc05e6187c69185966a70fdadfcda86aac9a"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiBooleanSchema.kt",
+      "sha256": "518a75caeb13dc048794ee65138e2a7655fea2f75e38264ae2617122790d1645"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiCompositeSchema.kt",
+      "sha256": "2531794b99addb86106f387ca6081098194f9e98a7a51b39273a2a7601bcbabc"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiNumberSchema.kt",
+      "sha256": "20b8386e73109fbaea5aad7c4ee61e933875727c6c517d354852c442a15cfa4e"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiObjectSchema.kt",
+      "sha256": "a4eb30d009a209e89354cf6f79e931104d870f0842a6de26d1a1230c70a95264"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiRefSchema.kt",
+      "sha256": "f5596423416e17621c6c33c4cde3b46e59a0341fffad3f4faaf448a86b91b020"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiSchema.kt",
+      "sha256": "2ba179fd377072c76bd1365ce188f2bb226df9ac78bbb025dc877e53bfe70106"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiSchemaKeyword.kt",
+      "sha256": "f5568b28c24cc7044802876e28673ffac9a13887f309411330599ece84f5d164"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/A2uiStringSchema.kt",
+      "sha256": "211a594099510f2b72f55e6f695e2bff0abd47d8dada3458e8a8880afee49787"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/Constants.kt",
+      "sha256": "b30d30450895ffd525f38baed0f6946215de41ba4d54c0b4e3b1fc7c179d5e4d"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiAccessibilityAttributesSchema.kt",
+      "sha256": "d2b0c673a3ad76d747c46d9dd475136955336a1f3b87faa82e48d21add15cf3e"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiActionSchema.kt",
+      "sha256": "d9118da26e9b09f4795ecb8446771dcb6258fdcab2621106f71279095e9f8eab"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiCheckRuleSchema.kt",
+      "sha256": "7ac3d37a614cf73b18c01ec8cfd90f1fbd98649b586584c0a85e95f8b2efe7b1"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiCheckableSchema.kt",
+      "sha256": "99a0d3bd5ab3f4d143bc5fbc48233d50c2dcddbcab481c475478dc77ae4b702c"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiChildListSchema.kt",
+      "sha256": "324c6c71dd5f249e031896dcc745ef6d4de17a3d41c71932f07919b5a44691ed"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiComponentCommonSchema.kt",
+      "sha256": "2f193ba9f7ead8a1bd4644dfc88af4ad1f16962eac414d4420e71935a10e8cc6"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiComponentIdSchema.kt",
+      "sha256": "533cbd33923990ab2110cc008f1d574d932f6cf2d2ff4fc1ef3ec840441dff1c"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDataBindingSchema.kt",
+      "sha256": "4da6f1cbeedcbd329e3560ae52a1cea79f1bb80af80f5eca2c66f6e855ca29ee"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDynamicBooleanSchema.kt",
+      "sha256": "95c909948db554f980ef8b0e7b78eff40a3a8ac14b26f453e4a954dae45b6e9e"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDynamicNumberSchema.kt",
+      "sha256": "e3485046d33211085c692bab148346fd3e498dfd65593bfce323a681e0898da0"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDynamicStringListSchema.kt",
+      "sha256": "35968e8efd5d8ba94fef20a60f4d17866d0deb6885bd9523f3c4ff89c0ed4848"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDynamicStringSchema.kt",
+      "sha256": "6f2f2b4e00e5958ae02145be8784b2a8f32635b43e17f2dfc969ac13e1030ac6"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiDynamicValueSchema.kt",
+      "sha256": "25baf6df0147fb439eb5a5e50f42d3a2d7e4e9a9f567b356c04c999beaa54ff7"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/A2uiFunctionCallSchema.kt",
+      "sha256": "e64d96fbc3f05910eeb8000f7419d9476030618daa2e34dd23fedebda3ee8693"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/internal/Constants.kt",
+      "sha256": "25f4a642c012f30f0fe81501177222e65de2ec908ab6a5938b1fdf059d168378"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/commontypes/internal/CreateDynamicTypeSchema.kt",
+      "sha256": "3c308824ca8c3780faf3d12f6be5167ee0f6bf8bd1c77ed5572be4ac3062b21f"
+    },
+    {
+      "artifact": "a2ui-model",
+      "path": "androidx/a2ui/model/schema/internal/JsonUtils.kt",
+      "sha256": "99f0ec783d4108cf94c9d0418fb73fd42cb554756e60fd83e71b07247d94c3f4"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreCatalog.kt",
+      "sha256": "57a1aa3f2bfef8080c0c411b92f6d885eec34b612193768a68dc6c2afcfdfe49"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreCatalogAdapter.kt",
+      "sha256": "578a617e4f64c2b606fe455706f544f91bed2565fd11773e171d8425d10e2b80"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreCatalogSerializer.kt",
+      "sha256": "e89826aa44b2f246248360bf39e323438fe66ca05d996f9782d4576e5c6b02b4"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreComponentDefinition.kt",
+      "sha256": "9b2c32769cec9a41b1d8b9678225718e33ba334e13b4836687a09a9e8a6b91ee"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreComponentDefinitionCollection.kt",
+      "sha256": "a4c5e0596e834219ad102513de6161b8e107de081f06bfcd01e12fa6fcc9cd78"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/catalog/A2uiCoreComponentDefinitionSerializer.kt",
+      "sha256": "d7772a387e244ba07081f26cd6b313e226cfdc236a608ecffce75601fa460ace"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreCacheProvider.kt",
+      "sha256": "8e0f193c16a4868ff0bd41744ace518992ab8afdd701d2eb20dfa5e02afde119"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreDynamicEvaluator.kt",
+      "sha256": "3551efcf02f1f21aa2102e839f6e7afb70b372c81c5d5a7627046564beb94dc8"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreExecutionContext.kt",
+      "sha256": "3d6d154e2a674d459e761b2127aa18f7ce8983fd56f2b60a2d8b53677f007313"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreSurfaceGroupModel.kt",
+      "sha256": "fb2cdf53658e9acb4aa59d5451492da1b667e784d63cd65c90dfca3d1cff83ee"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreSurfaceModel.kt",
+      "sha256": "fab328dbe4104866cd52fb93fd1dfd4fb94cb8eccfd17f8ddad3ab7242a3e933"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/model/A2uiCoreValueResolver.kt",
+      "sha256": "dd1e16674d45d52c6bf87d6dab428ce43dfbfbf8d2e66b1fadd9726f884bd760"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/platform/A2uiCoreComponentRegistry.kt",
+      "sha256": "d150264c00783db043ab7c78226a65ee03ee24b7a4deda969e89c8de245659c1"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/platform/A2uiCoreDataModel.kt",
+      "sha256": "6c52824d191435fb49720d2694104373f67e9c022e2180bb9a17da99ac2a68ec"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/processor/A2uiActionHandler.kt",
+      "sha256": "796b357e4ca219261c73bd5b0b335fb5b2c85b8eecf5fe4023a17da7b411e548"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/processor/A2uiCoreMessageProcessor.kt",
+      "sha256": "7e1d509ef42cf495388f0344cf077a30d71f195eb41609e77b4d45106aeaa69c"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/processor/A2uiCoreSurfaceActor.kt",
+      "sha256": "aee483b559edd82e708ea59d162e3c4a5754ebd80640eefd41d001b3c010c484"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/processor/A2uiEngineMessage.kt",
+      "sha256": "f7f8240a5677a604770944f0ad0114ba88fd27785bca3bc7c8b10e09ce344688"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/processor/A2uiUserActionParser.kt",
+      "sha256": "6919d3a872b00778496fd297cbf62d235900c7fad1ff9ac5707b2cd932d67fe6"
+    },
+    {
+      "artifact": "a2ui-engine",
+      "path": "androidx/a2ui/engine/schema/A2uiCoreSchemaValidator.kt",
+      "sha256": "cb71ca598b94836000cdbbd85d56845a622c37c641b1f3994e9eb919dca60497"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentModel.kt",
+      "sha256": "2653c37b545df5e4924d31dd7b962d2a14734eef758b9999b789aa6b4a5f9b3f"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentProperties.kt",
+      "sha256": "f539900e9eb70a4a04ff4239b6b452c19c6355102d40499dd078f99d51b1b5b9"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentRecord.kt",
+      "sha256": "3a9d8e271cb6c7007aa90aa158519b7d99886ea27cb4caf2a173a804fa1f0a16"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentReference.kt",
+      "sha256": "7d7cd51e35296e9c0b2fd883624fa079abfc5b81516432571f7bfef34117af35"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentRegistry.kt",
+      "sha256": "f422ade5b692054796ef479f1870b566bab4bd3721db3c63962b63a9cb5c04bc"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentScope.kt",
+      "sha256": "2a25e7ef7889dd16b0f8493cf07e807c9aa177a27542fe22991efef064907ce4"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentScopeImpl.kt",
+      "sha256": "32c3ec54cbc895cf94728febad151a2990c41ec64510c689ae527c2301d1179c",
+      "adapted_sha256": "57c340d22537f6469809e1fb91ad4866ed687d9429e8c27e67fc4ed88724c20e",
+      "adaptation": "将带键 SideEffect 改为当前 Compose 支持的 LaunchedEffect，按键变化报告错误。"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiComponentState.kt",
+      "sha256": "63e75de182fa64f4fe2a8479506fe52184d8fb25a8457816ae0cb040da82545e"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiDataModel.kt",
+      "sha256": "1496ae1ab0b73e4fc761ec1384376910db7f4662f1606d02bcf2275e2c8518e1"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiMessageParser.kt",
+      "sha256": "0751e13c4bcdfcbf601dcd013ed903af07a3547fea3d08cfae37cd3341a0ed74"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiProperty.kt",
+      "sha256": "e9042bf99615fab4e3bbc9d2f23fbae961801ebe1f5918799dd0f50c870dfece"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiReadinessEvaluator.kt",
+      "sha256": "f4c32fba2826e8542f64a34a105569cc615e4ea89bca3b8f60115cc119c19c19"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiRuntimeCatalog.kt",
+      "sha256": "51816dc576cc890da56986176c3ef64ffd4d6ec8fd5f5778453a8683c1a278cb"
+    },
+    {
+      "artifact": "compose-runtime",
+      "path": "androidx/a2ui/compose/runtime/A2uiRuntimeMessageProcessor.kt",
+      "sha256": "8820c319ae493e716c61f19eeb8a4898c8952a5fcdc536714d7478266a4cf462"
+    },
+    {
+      "artifact": "compose-ui",
+      "path": "androidx/a2ui/compose/ui/A2uiCatalog.kt",
+      "sha256": "1f1ab755c0b76274252b9e28075d2204ad1de505cb1cfa8756b5a858b42233d5"
+    },
+    {
+      "artifact": "compose-ui",
+      "path": "androidx/a2ui/compose/ui/A2uiComponent.kt",
+      "sha256": "e88ad94425a6657d7abd40601819c146adf9ef6abf107253bd03ace7c5574b4a"
+    },
+    {
+      "artifact": "compose-ui",
+      "path": "androidx/a2ui/compose/ui/A2uiComponentCollection.kt",
+      "sha256": "b2b2a0433e7c833972b8def3367b926a31d8911b034521428f60998fab45791b"
+    },
+    {
+      "artifact": "compose-ui",
+      "path": "androidx/a2ui/compose/ui/A2uiMessageProcessor.kt",
+      "sha256": "26ff083ab4ebd053c1758e1919f418b71511013c5f871e7260aa75d535dd362f"
+    },
+    {
+      "artifact": "compose-ui",
+      "path": "androidx/a2ui/compose/ui/catalog/A2uiBasicCatalogV1.kt",
+      "sha256": "9ab8919202bca65293758e209ce711ae6e1f5503be24a1d4f27022f4799d160c",
+      "adapted_sha256": "563d3c44cfeaccf635bcecb8331a358f8bcdb2b861f2c175c8a692962e0912e9",
+      "adaptation": "将带键 SideEffect 改为当前 Compose 支持的 LaunchedEffect，按键变化报告错误。"
+    }
+  ]
+}

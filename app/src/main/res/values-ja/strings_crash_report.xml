@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_export_logs_compact">ログのエクスポート</string>
+    <string name="crash_report_wrap_stack">自動行折り返し</string>
+
+    <!-- 补齐此前缺少的日语译文。 -->
+    <string name="crash_report_running_report">動作レポート</string>
+    <string name="crash_report_interrupted">アプリが予期せず終了しました</string>
+    <string name="crash_report_restart_hint">アプリを再起動して続行してください。</string>
+    <string name="crash_report_this_error">今回のエラー</string>
+    <string name="crash_report_keep_hint">エラーレポートを保存しておくこともできます。</string>
+    <string name="crash_report_restart_compact">アプリを再起動</string>
+    <string name="crash_report_app_logs">アプリのログ</string>
+    <string name="crash_report_app_logs_hint">今回のエラーの前後に記録された動作ログを含みます</string>
+    <string name="crash_report_local_only">エラーレポートはこの端末にのみ保存されます</string>
+    <string name="crash_report_no_stack">利用可能なスタックトレースはありません。</string>
+    <string name="crash_report_unknown_exception">不明な例外</string>
+    <string name="crash_report_more_actions">レポートのその他の操作</string>
+    <string name="crash_report_save_report">エラーレポートを保存</string>
+    <string name="crash_report_collapse_stack">スタックトレースを折りたたむ</string>
+    <string name="crash_report_expand_stack">スタックトレースを展開</string>
+    <string name="crash_report_expand_hint">右上の矢印をタップしてスタックトレース全体を表示</string>
+    <string name="crash_report_stack_lines">%1$d 行 · スタックトレース</string>
+    <string name="crash_reason_memory">メモリ不足</string>
+    <string name="crash_reason_stack">スタックオーバーフロー</string>
+    <string name="crash_reason_storage">ストレージの空き容量不足</string>
+    <string name="crash_reason_permission">権限による制限</string>
+    <string name="crash_reason_network">ネットワーク接続の異常</string>
+    <string name="crash_reason_database">データベースの異常</string>
+    <string name="crash_reason_file">ファイルの読み書きの異常</string>
+    <string name="crash_reason_component">コンポーネントの読み込みの異常</string>
+    <string name="crash_reason_remote">プロセス間通信の異常</string>
+    <string name="crash_reason_null">オブジェクトが初期化されていません</string>
+    <string name="crash_reason_state">実行状態の異常</string>
+    <string name="crash_reason_unknown">不明な例外</string>
+</resources>

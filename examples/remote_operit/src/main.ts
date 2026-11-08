@@ -1,10 +1,10 @@
-import toolboxUI from "./ui/remote_operit_setup/index.ui.js";
+import packageUI from "./ui/remote_operit_setup/index.ui.js";
 
 export function registerToolPkg() {
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "remote_operit_setup",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     params: {},
     title: {
       zh: "远程 Operit 配置",

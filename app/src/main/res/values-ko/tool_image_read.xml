@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">먼저 기능 모델에서 이미지 입력을 지원하는 이미지 인식 모델을 설정하세요.</string>
+</resources>

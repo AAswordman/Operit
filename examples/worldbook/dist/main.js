@@ -7,6 +7,7 @@ exports.systemPromptHook = systemPromptHook;
 exports.finalizeHook = finalizeHook;
 exports.registerToolPkg = registerToolPkg;
 const index_ui_js_1 = __importDefault(require("./ui/worldbook_manager/index.ui.js"));
+const worldbook_rpc_js_1 = require("./shared/worldbook_rpc.js");
 const worldbook_storage_js_1 = require("./shared/worldbook_storage.js");
 const worldbook_variables_js_1 = require("./shared/worldbook_variables.js");
 const WORLDBOOK_ROUTE = "toolpkg:com.operit.worldbook:ui:worldbook_manager";
@@ -316,7 +317,7 @@ async function finalizeHook(event) {
     };
 }
 function registerToolPkg() {
-    void (0, worldbook_storage_js_1.ensureWorldBookStorage)();
+    (0, worldbook_rpc_js_1.registerWorldBookStorageService)();
     ToolPkg.registerUiRoute({
         id: "worldbook_manager",
         route: WORLDBOOK_ROUTE,
@@ -329,9 +330,9 @@ function registerToolPkg() {
         }
     });
     ToolPkg.registerNavigationEntry({
-        id: "worldbook_manager_toolbox",
+        id: "worldbook_manager_details",
         route: WORLDBOOK_ROUTE,
-        surface: "toolbox",
+        surface: "package_details",
         title: {
             zh: "世界书管理",
             en: "World Book Manager"

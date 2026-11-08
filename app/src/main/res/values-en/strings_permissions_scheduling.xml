@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tp_allow_hint">Run automatically</string>
+    <string name="tp_ask_hint">Confirm each time</string>
+    <string name="tp_forbid_hint">Block execution</string>
+    <string name="tp_all">All</string>
+    <string name="tp_search">Search tool names or descriptions</string>
+    <string name="tp_follow_default">Use default</string>
+    <string name="tp_follow_default_with_value">Use default · %1$s</string>
+    <string name="tp_selected_count">%1$d selected</string>
+    <string name="tp_select_visible">Select visible</string>
+    <string name="tp_no_matches">No matching tools. Try another keyword.</string>
+    <string name="tp_already_configured">Already uses this rule</string>
+    <string name="tp_apply_count">Apply to %1$d</string>
+    <string name="tp_default_title">Default execution rule</string>
+    <string name="tp_default_description">Used by tools without an individual rule. Changing the default does not override individual rules.</string>
+    <string name="tp_saved">Permission settings saved</string>
+    <string name="tp_save_failed">Could not save. Please try again.</string>
+    <string name="tp_rules_count">Individual rules · %1$d</string>
+    <string name="tp_batch">Manage</string>
+    <string name="tp_rules_description">Individual rules take priority. Choose Use default to remove a rule.</string>
+    <string name="tp_results_count">Showing %1$d</string>
+    <string name="tp_empty_rules">No individual rules. All tools use the default.</string>
+    <string name="tp_empty_filter">No individual rules in this category</string>
+    <string name="tp_change">Change rule</string>
+    <string name="tp_batch_title">Change %1$d rules</string>
+    <string name="tp_help">The default rule applies to tools without an individual rule. Allow runs automatically, Ask requests confirmation for each execution, and Forbid blocks execution.\n\nIndividual rules always take priority. Changing the default does not replace them. Allow, Ask, and Forbid can all be set individually. Only Use default removes an individual rule.\n\nSearch by name or description and filter by rule. Selections persist across searches and filters. Adding and batch editing affect only selected tools; cancelling saves nothing. Use Undo last change in the rules section to restore the last change made on this page. Save results use a brief toast.\n\nThese settings manage execution confirmation and do not replace Android system permissions.</string>
+    <string name="workflow_schedule_invalid">Check the configuration: intervals must be at least 15 minutes and fit the supported range; Cron must contain five valid fields; dates must exist; an enabled plan must have a future occurrence before its end time.</string>
+    <string name="workflow_repeat_daily_hint">When repeated, runs daily at this local time starting from the selected date. Otherwise runs once.</string>
+    <string name="workflow_repeat_hint">Repeat continues the interval or Cron rule. Turn it off to run only the next occurrence.</string>
+    <string name="workflow_end_time_label">End time (optional)</string>
+    <string name="workflow_end_time_hint">Leave blank for no deadline. Use local yyyy-MM-dd HH:mm:ss. No execution starts after this time.</string>
+    <string name="workflow_schedule_timing_hint">Intervals wait the full duration after enabling or changing the plan, with a 15-minute minimum. Cron matches clock times in the current system time zone. Android WorkManager, sleep, battery restrictions, background limits, and queued tasks may delay execution; exact timing is not guaranteed. Reopen the app after force stopping to restore scheduling.</string>
+    <string name="tp_undo_last">Undo last change</string>
+    <string name="tp_restored">Last change undone</string>
+</resources>

@@ -1,3 +1,4 @@
+"use strict";
 /* METADATA
 {
   "name": "siliconflow_draw",
@@ -6,8 +7,8 @@
     "en": "SiliconFlow Draw"
   },
   "description": {
-    "zh": "使用 SiliconFlow 官方图像与视频接口生成图片和视频。图片走 /v1/images/generations，视频走 /v1/video/submit + /v1/video/status；生成结果会立即下载到本地，避免官方临时链接过期。",
-    "en": "Generate images and videos with SiliconFlow official image and video APIs. Images use /v1/images/generations; videos use /v1/video/submit + /v1/video/status. Generated assets are downloaded locally immediately before temporary URLs expire."
+    "zh": "使用 SiliconFlow 官方图像与视频接口生成图片和视频。图片默认走 /v1/images/generations；传入 image_urls 或 image_paths 时走图生图（本地图转 data URI）。视频走 /v1/video/submit + /v1/video/status。生成结果会立即下载到本地。",
+    "en": "Generate images and videos with SiliconFlow official APIs. Images default to /v1/images/generations; image-to-image uses image_urls or local image_paths (local files become data URIs). Videos use /v1/video/submit + /v1/video/status. Generated assets are downloaded locally immediately."
   },
   "category": "Draw",
   "env": [
@@ -48,18 +49,20 @@
     {
       "name": "draw_image",
       "description": {
-        "zh": "调用 SiliconFlow 官方图片生成接口生图，下载到本地并返回 Markdown 图片提示。",
-        "en": "Generate images with SiliconFlow official image API, download locally, and return Markdown image hints."
+        "zh": "调用 SiliconFlow 官方图片接口生图或图生图。传入 image_urls 或 image_paths 时走参考图编辑；本地图转 data URI。下载到本地并返回 Markdown 图片提示。",
+        "en": "Generate or edit images with SiliconFlow. Pass image_urls or image_paths for image-to-image; local files are sent as data URIs. Downloads locally and returns Markdown image hints."
       },
       "parameters": [
-        { "name": "prompt", "description": { "zh": "生图提示词", "en": "Image prompt" }, "type": "string", "required": true },
-        { "name": "model", "description": { "zh": "模型名；不传则优先取 SILICONFLOW_IMAGE_MODEL，再取默认值 Kwai-Kolors/Kolors", "en": "Model name; falls back to SILICONFLOW_IMAGE_MODEL, then Kwai-Kolors/Kolors" }, "type": "string", "required": false },
-        { "name": "image_size", "description": { "zh": "图片尺寸，例如 1024x1024；未传时默认 1024x1024", "en": "Image size, e.g. 1024x1024; defaults to 1024x1024" }, "type": "string", "required": false },
+        { "name": "prompt", "description": { "zh": "生图或编辑提示词", "en": "Image prompt" }, "type": "string", "required": true },
+        { "name": "model", "description": { "zh": "模型名；不传则优先取 SILICONFLOW_IMAGE_MODEL。有参考图且未传 model 时默认 Qwen/Qwen-Image-Edit，否则 Kwai-Kolors/Kolors", "en": "Model name; falls back to SILICONFLOW_IMAGE_MODEL. With reference images and no model, defaults to Qwen/Qwen-Image-Edit, otherwise Kwai-Kolors/Kolors" }, "type": "string", "required": false },
+        { "name": "image_size", "description": { "zh": "图片尺寸，例如 1024x1024；未传时默认 1024x1024。Qwen 图像编辑模型不支持此参数", "en": "Image size, e.g. 1024x1024; defaults to 1024x1024. Qwen image-edit models do not support this parameter" }, "type": "string", "required": false },
         { "name": "negative_prompt", "description": { "zh": "负面提示词（可选）", "en": "Negative prompt (optional)" }, "type": "string", "required": false },
         { "name": "batch_size", "description": { "zh": "一次生成多少张图（可选）", "en": "Number of images to generate (optional)" }, "type": "number", "required": false },
         { "name": "num_inference_steps", "description": { "zh": "推理步数（可选）", "en": "Inference steps (optional)" }, "type": "number", "required": false },
         { "name": "guidance_scale", "description": { "zh": "提示词引导强度（可选）", "en": "Guidance scale (optional)" }, "type": "number", "required": false },
         { "name": "seed", "description": { "zh": "随机种子（可选）", "en": "Seed (optional)" }, "type": "number", "required": false },
+        { "name": "image_urls", "description": { "zh": "参考图公网 URL 数组（可选；图生图用）。支持字符串数组、JSON 字符串或逗号分隔字符串", "en": "Public reference image URLs for image-to-image (optional). Accepts a string array, JSON string, or comma-separated string." }, "type": "array", "required": false },
+        { "name": "image_paths", "description": { "zh": "参考图本地路径数组（可选；图生图用，会转成 data URI）", "en": "Local reference image paths for image-to-image (optional; converted to data URIs)" }, "type": "array", "required": false },
         { "name": "file_name", "description": { "zh": "本地保存文件名（不含扩展名）", "en": "Local output filename without extension" }, "type": "string", "required": false },
         { "name": "api_base_url", "description": { "zh": "自定义 API Base URL（可选）", "en": "Custom API base URL (optional)" }, "type": "string", "required": false }
       ]
@@ -96,6 +99,7 @@ const siliconflowDraw = (function () {
         .build();
     const DEFAULT_API_BASE_URL = "https://api.siliconflow.cn";
     const DEFAULT_IMAGE_MODEL = "Kwai-Kolors/Kolors";
+    const DEFAULT_IMAGE_EDIT_MODEL = "Qwen/Qwen-Image-Edit";
     const DEFAULT_IMAGE_SIZE = "1024x1024";
     const DEFAULT_VIDEO_TEXT_MODEL = "Wan-AI/Wan2.2-T2V-A14B";
     const DEFAULT_VIDEO_IMAGE_MODEL = "Wan-AI/Wan2.2-I2V-A14B";
@@ -228,6 +232,43 @@ const siliconflowDraw = (function () {
         }
         return Math.floor(numberValue);
     }
+    function parseStringList(value, fieldName) {
+        if (value === undefined || value === null || value === "") {
+            return [];
+        }
+        if (Array.isArray(value)) {
+            return value.map(item => String(item || "").trim()).filter(item => item.length > 0);
+        }
+        if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (!trimmed)
+                return [];
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.map(item => String(item || "").trim()).filter(item => item.length > 0);
+                }
+            }
+            catch {
+                // ignore and try comma-separated parsing
+            }
+            return trimmed.split(",").map(item => item.trim()).filter(item => item.length > 0);
+        }
+        throw new Error(`${fieldName} 必须是字符串数组、JSON 字符串或逗号分隔字符串。`);
+    }
+    async function resolveImageReferences(imageUrls, imagePaths) {
+        const resolvedUrls = parseStringList(imageUrls, "image_urls");
+        const resolvedPaths = parseStringList(imagePaths, "image_paths");
+        for (const url of resolvedUrls) {
+            if (!isProbablyUrl(url) && !String(url).toLowerCase().startsWith("data:image/")) {
+                throw new Error(`image_urls 中包含无效链接: ${url}`);
+            }
+        }
+        for (const filePath of resolvedPaths) {
+            resolvedUrls.push(await readLocalImageAsDataUrl(filePath));
+        }
+        return resolvedUrls;
+    }
     function normalizeImageSize(imageSize, model) {
         const trimmedModel = String(model || "").trim().toLowerCase();
         const rawSize = String(imageSize || "").trim();
@@ -330,13 +371,20 @@ const siliconflowDraw = (function () {
     async function callImageApi(params) {
         const apiBaseUrl = getApiBaseUrl(params.api_base_url);
         const endpoint = getImageEndpoint(apiBaseUrl);
+        const references = await resolveImageReferences(params.image_urls, params.image_paths);
         const modelFromParam = String(params.model || "").trim();
         const modelFromEnv = String(getEnv("SILICONFLOW_IMAGE_MODEL") || "").trim();
-        const effectiveModel = modelFromParam || modelFromEnv || DEFAULT_IMAGE_MODEL;
+        const effectiveModel = modelFromParam || modelFromEnv || (references.length > 0 ? DEFAULT_IMAGE_EDIT_MODEL : DEFAULT_IMAGE_MODEL);
         const body = {
             model: effectiveModel,
             prompt: String(params.prompt || "").trim()
         };
+        if (references.length === 1) {
+            body.image = references[0];
+        }
+        else if (references.length > 1) {
+            body.image = references;
+        }
         const imageSize = normalizeImageSize(params.image_size, effectiveModel);
         if (imageSize)
             body.image_size = imageSize;
@@ -366,7 +414,8 @@ const siliconflowDraw = (function () {
         return {
             effective_model: effectiveModel,
             image_urls: imageUrls,
-            seed: parsed && parsed.seed !== undefined ? parsed.seed : (seed !== undefined ? seed : null)
+            seed: parsed && parsed.seed !== undefined ? parsed.seed : (seed !== undefined ? seed : null),
+            reference_count: references.length
         };
     }
     async function createVideoTask(params, imageInput) {
@@ -450,6 +499,9 @@ const siliconflowDraw = (function () {
         const hintLines = [];
         hintLines.push(`图片已生成并下载到 ${DRAWS_DIR}。`);
         hintLines.push(`共生成 ${files.length} 张。`);
+        if (apiResult.reference_count > 0) {
+            hintLines.push(`本次使用了 ${apiResult.reference_count} 张参考图。`);
+        }
         hintLines.push("");
         hintLines.push("后续回答如果需要展示图片，请直接输出下面这些 Markdown：");
         hintLines.push("");
@@ -460,6 +512,7 @@ const siliconflowDraw = (function () {
             prompt,
             model: apiResult.effective_model,
             seed: apiResult.seed,
+            reference_count: apiResult.reference_count,
             file_path: files[0].file_path,
             file_uri: files[0].file_uri,
             markdown: files[0].markdown,

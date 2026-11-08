@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Garis luar teks</string>
+    <string name="studio_text_stroke_color">Warna garis luar teks</string>
+    <string name="studio_text_stroke_off">Mati</string>
+    <string name="studio_text_stroke_custom">Tersuai</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="character_card_tab_speech">发言</string>
+    <string name="character_speech_scope">仅配置正在编辑的角色</string>
+    <string name="character_speech_draft_hint">发言设置随角色卡一起保存；取消不保存，关闭 Waifu 模式不会清空已配置的内容。</string>
+    <string name="character_speech_load_failed">无法读取该角色的发言设置，请重试。</string>
+    <string name="character_speech_save_before_emoji">先保存角色卡，再管理它的自定义表情。</string>
+    <string name="character_speech_emoji_hint">管理此角色的表情库；分组与图片的增删会立即保存。</string>
+</resources>

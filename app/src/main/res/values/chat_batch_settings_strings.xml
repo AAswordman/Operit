@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">批量操作</string>
+    <string name="chat_batch_exit">退出多选</string>
+    <string name="chat_batch_summarize">总结标题</string>
+    <string name="chat_batch_progress">正在处理 %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">已锁定的对话会保留，不会被删除。</string>
+    <string name="chat_batch_delete_title">批量删除对话</string>
+    <string name="chat_batch_delete_message">将删除 %1$d 条对话，保留 %2$d 条已锁定对话。此操作无法撤销。</string>
+    <string name="chat_batch_result">批量操作完成：成功 %1$d，跳过 %2$d，失败 %3$d</string>
+    <string name="language_follow_system">跟随系统</string>
+    <string name="language_global_info">语言对所有角色生效，切换后将重新打开应用。</string>
+    <string name="language_change_failed">语言切换失败，请重试。</string>
+</resources>

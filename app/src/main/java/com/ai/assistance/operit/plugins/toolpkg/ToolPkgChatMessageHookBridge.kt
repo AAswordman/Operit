@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_MESSAGE
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_CHAT_MESSAGE
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +34,11 @@ internal object ToolPkgChatMessageHookBridge {
         syncToolPkgRegistrations(manager.getEnabledToolPkgContainerRuntimes())
     }
 
+    @Volatile
+    internal var onMessagePersistedDispatchedForTest: ((chatId: String, message: ChatMessage) -> Unit)? = null
+
     fun dispatchMessagePersisted(chatId: String, message: ChatMessage) {
+        onMessagePersistedDispatchedForTest?.invoke(chatId, message)
         val activeHooks = hooks
         if (activeHooks.isEmpty()) {
             return
@@ -83,7 +87,7 @@ internal object ToolPkgChatMessageHookBridge {
             )
     }
 
-    private fun buildChatMessageEventPayload(
+    internal fun buildChatMessageEventPayload(
         chatId: String,
         message: ChatMessage
     ): Map<String, Any?> =

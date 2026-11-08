@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">Copying...</string>
+    <string name="workspace_transfer_moving">Moving...</string>
+    <string name="workspace_transfer_scanning">Counting files...</string>
+    <string name="workspace_transfer_processing">Processing...</string>
+    <string name="workspace_transfer_finishing">Removing source...</string>
+    <string name="workspace_transfer_name">Name</string>
+    <string name="workspace_transfer_source">From</string>
+    <string name="workspace_transfer_destination">To</string>
+    <string name="workspace_transfer_copied">Copied</string>
+    <string name="workspace_transfer_remaining">Remaining</string>
+    <string name="workspace_transfer_speed">Speed</string>
+    <string name="workspace_transfer_item">Item %1$d / %2$d · Current item progress</string>
+    <string name="workspace_transfer_files">Files: %1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">Cancelling...</string>
+    <string name="workspace_transfer_deleting">Deleting...</string>
+    <string name="workspace_transfer_deleted_items">Deleted %1$d / %2$d items</string>
+    <string name="workspace_transfer_delete_scope">Progress counts selected items, not files inside each directory.</string>
+    <string name="workspace_transfer_delete_cancel_note">Cancel stops subsequent items after the current deletion returns. Deleted content is not restored.</string>
+</resources>

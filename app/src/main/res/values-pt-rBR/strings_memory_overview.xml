@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">Gerenciar memória</string>
+    <string name="memory_management_subtitle">Gerencie espaços de memória e vínculos de personagens</string>
+    <string name="memory_overview_global">Uso global</string>
+    <string name="memory_overview_current_global">Espaço de memória atual</string>
+    <string name="memory_overview_change">Alterar</string>
+    <string name="memory_overview_spaces">Espaços de memória</string>
+    <string name="memory_overview_roles">Uso dos personagens</string>
+    <string name="memory_overview_active_count">Espaço global · %1$d personagens usam</string>
+    <string name="memory_overview_bound_count">%1$d personagens vinculados</string>
+    <string name="memory_overview_fixed">Fixo · %1$s</string>
+    <string name="memory_overview_missing_space">Espaço vinculado ausente; escolha outro</string>
+    <string name="memory_overview_follow">Segue o global · %1$s</string>
+    <string name="memory_overview_choose_global">Alterar espaço global</string>
+    <string name="memory_overview_create">Criar espaço de memória</string>
+    <string name="memory_overview_rename">Renomear espaço</string>
+    <string name="memory_overview_name">Nome do espaço</string>
+    <string name="memory_overview_delete_title">Excluir espaço de memória</string>
+    <string name="memory_overview_delete_warning">Excluir “%1$s”, suas memórias e o perfil do usuário? Os personagens vinculados passarão a seguir o espaço global. Não é possível desfazer.</string>
+    <string name="memory_overview_binding_title">Espaço de memória de %1$s</string>
+    <string name="memory_overview_space_actions">Ações do espaço</string>
+    <string name="memory_action_select">Selecionar nós</string>
+    <string name="memory_action_delete_selected">Excluir nós selecionados</string>
+    <string name="memory_action_link">Vincular nós</string>
+    <string name="memory_action_add">Adicionar memória</string>
+    <string name="memory_action_create">Criar memória</string>
+    <string name="memory_action_import">Importar documento</string>
+</resources>

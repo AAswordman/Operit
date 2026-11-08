@@ -21,7 +21,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import com.ai.assistance.operit.ui.common.displays.LatexCache
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
 import com.ai.assistance.operit.util.streamnative.NativeMarkdownSplitter

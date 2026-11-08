@@ -3,10 +3,10 @@ package com.ai.assistance.operit.core.tools.javascript
 import android.content.Context
 import com.ai.assistance.operit.core.tools.ScriptExecutionTraceData
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -173,13 +173,24 @@ class JsToolManager private constructor(
 
         val converted = linkedMapOf<String, Any?>()
         tool.parameters.forEach { parameter ->
-            val type = parameterDefinitions[parameter.name]?.type?.lowercase() ?: "string"
-            converted[parameter.name] = convertToolParameterValue(
-                toolName = tool.name,
-                parameterName = parameter.name,
-                rawValue = parameter.value,
-                type = type
-            )
+            val definition = parameterDefinitions[parameter.name]
+            val isRequired = definition?.required ?: true
+            val type = definition?.type?.lowercase() ?: "string"
+            val rawValue = parameter.value
+            val isBlankOrNull = rawValue.isBlank() ||
+                rawValue.equals("null", ignoreCase = true) ||
+                rawValue.equals("undefined", ignoreCase = true)
+            if (!isRequired && type != "string" && isBlankOrNull) {
+                // 非必填的非字符串参数传入空值/空白时置为 null，避免数值/布尔/JSON解析异常；字符串类型原样保留
+                converted[parameter.name] = null
+            } else {
+                converted[parameter.name] = convertToolParameterValue(
+                    toolName = tool.name,
+                    parameterName = parameter.name,
+                    rawValue = rawValue,
+                    type = type
+                )
+            }
         }
 
         return buildRuntimeParams(packageName, converted)
@@ -316,10 +327,12 @@ class JsToolManager private constructor(
         )
     }
 
+
     fun executeScript(toolName: String, params: Map<String, String>): String {
         val parsed = parseDotCall(toolName)
             ?: return "Invalid tool name format: $toolName. Expected format: packageName.functionName"
         val (packageName, functionName) = parsed
+        packageManager.packageAvailabilityError(packageName)?.let { return it }
         val script = packageManager.getPackageScript(packageName)
             ?: return "Package not found: $packageName"
         val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
@@ -329,6 +342,11 @@ class JsToolManager private constructor(
             params = params.mapValues { it.value as Any? }
         )
         return withExecutionEngineForPackageBlocking(packageName) { engine ->
+            // Activation may change while this invocation waits for an execution engine.
+            packageManager.packageAvailabilityError(packageName)?.let {
+                return@withExecutionEngineForPackageBlocking it
+            }
+            packageManager.recordPluginUse(packageName)
             try {
                 engine.executeScriptFunction(
                     script = script,
@@ -356,6 +374,11 @@ class JsToolManager private constructor(
         }
 
         val (packageName, functionName) = parsed
+        // Check at collection time, including retained dialogs and previously registered executors.
+        packageManager.packageAvailabilityError(packageName)?.let {
+            send(failure(tool.name, it))
+            return@channelFlow
+        }
         val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
         val runtimeParams = try {
             convertToolParameters(tool, packageName, functionName)
@@ -364,6 +387,10 @@ class JsToolManager private constructor(
             return@channelFlow
         }
         withExecutionEngineForPackage(packageName) { engine ->
+            packageManager.packageAvailabilityError(packageName)?.let {
+                send(failure(tool.name, it))
+                return@withExecutionEngineForPackage
+            }
             val traceListener =
                 object : JsExecutionListener {
                     override fun onCallLog(callId: String, level: String, message: String) {
@@ -391,6 +418,7 @@ class JsToolManager private constructor(
                 }
             try {
                 withTimeout(JsTimeoutConfig.SCRIPT_TIMEOUT_MS) {
+                    packageManager.recordPluginUse(packageName)
                     val result = engine.executeScriptFunction(
                         script = script,
                         functionName = functionName,
@@ -430,6 +458,10 @@ class JsToolManager private constructor(
         moduleSpec: Map<String, Any?> = emptyMap(),
         envOverrides: Map<String, String> = emptyMap()
     ): String {
+        val updatingName = listOf(packageName, toolPkgId).firstOrNull {
+            com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.contains(it)
+        }
+        if (updatingName != null) return "package is unavailable: $updatingName"
         val runtimeOptions = mutableMapOf<String, Any?>()
         if (packageName.isNotBlank()) {
             runtimeOptions["packageName"] = packageName
@@ -457,6 +489,10 @@ class JsToolManager private constructor(
         }
 
         return withEngineBlocking { engine ->
+            val unavailable = listOf(packageName, toolPkgId).firstOrNull {
+                com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.contains(it)
+            }
+            if (unavailable != null) return@withEngineBlocking "package is unavailable: $unavailable"
             try {
                 engine.executeComposeDslScript(
                     script = script,

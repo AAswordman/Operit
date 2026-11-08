@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">文字描边</string>
+    <string name="studio_text_stroke_color">文字描边颜色</string>
+    <string name="studio_text_stroke_off">关闭</string>
+    <string name="studio_text_stroke_custom">自定义</string>
+</resources>

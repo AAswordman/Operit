@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">Gestión de memoria</string>
+    <string name="memory_management_subtitle">Gestionar espacios de memoria y personajes</string>
+    <string name="memory_overview_global">Uso global</string>
+    <string name="memory_overview_current_global">Espacio de memoria actual</string>
+    <string name="memory_overview_change">Cambiar</string>
+    <string name="memory_overview_spaces">Espacios de memoria</string>
+    <string name="memory_overview_roles">Personajes</string>
+    <string name="memory_overview_active_count">Espacio global · %1$d personajes lo usan</string>
+    <string name="memory_overview_bound_count">%1$d personajes vinculados</string>
+    <string name="memory_overview_fixed">Fijo · %1$s</string>
+    <string name="memory_overview_missing_space">El espacio vinculado ya no existe; elige otro</string>
+    <string name="memory_overview_follow">Sigue al global · %1$s</string>
+    <string name="memory_overview_choose_global">Cambiar espacio global</string>
+    <string name="memory_overview_create">Crear espacio de memoria</string>
+    <string name="memory_overview_rename">Renombrar espacio</string>
+    <string name="memory_overview_name">Nombre del espacio</string>
+    <string name="memory_overview_delete_title">Eliminar espacio</string>
+    <string name="memory_overview_delete_warning">¿Eliminar “%1$s”, sus memorias y el perfil de usuario? Los personajes vinculados seguirán el espacio global. No se puede deshacer.</string>
+    <string name="memory_overview_binding_title">Espacio de memoria de %1$s</string>
+    <string name="memory_overview_space_actions">Opciones del espacio</string>
+    <string name="memory_action_select">Seleccionar nodos</string>
+    <string name="memory_action_delete_selected">Eliminar nodos seleccionados</string>
+    <string name="memory_action_link">Enlazar nodos</string>
+    <string name="memory_action_add">Añadir memoria</string>
+    <string name="memory_action_create">Crear memoria</string>
+    <string name="memory_action_import">Importar documento</string>
+</resources>

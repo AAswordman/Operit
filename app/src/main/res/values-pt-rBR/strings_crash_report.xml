@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">Executar relatório</string>
+    <string name="crash_report_interrupted">Aplicativo interrompido inesperadamente</string>
+    <string name="crash_report_restart_hint">Reinicie o aplicativo para continuar usando-o.</string>
+    <string name="crash_report_this_error">Este erro</string>
+    <string name="crash_report_keep_hint">Você também pode salvar o relatório de erros primeiro.</string>
+    <string name="crash_report_restart_compact">Reinicie o aplicativo</string>
+    <string name="crash_report_app_logs">Registro do aplicativo</string>
+    <string name="crash_report_app_logs_hint">Contém registros de execução antes e depois deste erro</string>
+    <string name="crash_report_export_logs_compact">Exportar registro</string>
+    <string name="crash_report_local_only">Os relatórios de erros são salvos apenas localmente</string>
+    <string name="crash_report_no_stack">Nenhuma pilha de erros disponível.</string>
+    <string name="crash_report_unknown_exception">Exceção não reconhecida</string>
+    <string name="crash_report_more_actions">Mais operações de relatórios</string>
+    <string name="crash_report_save_report">Salvar relatório de erros</string>
+    <string name="crash_report_collapse_stack">Recolher pilha</string>
+    <string name="crash_report_expand_stack">expandir pilha</string>
+    <string name="crash_report_expand_hint">Clique na seta no canto superior direito para expandir a pilha completa</string>
+    <string name="crash_report_stack_lines">Linha %1$d · pilha</string>
+    <string name="crash_report_wrap_stack">Quebra automática de linha</string>
+    <string name="crash_reason_memory">Sem memória</string>
+    <string name="crash_reason_stack">estouro de pilha de chamadas</string>
+    <string name="crash_reason_storage">Espaço de armazenamento insuficiente</string>
+    <string name="crash_reason_permission">Permissões restritas</string>
+    <string name="crash_reason_network">Anormalidade na conexão de rede</string>
+    <string name="crash_reason_database">Exceção de banco de dados</string>
+    <string name="crash_reason_file">Exceção de leitura e gravação de arquivo</string>
+    <string name="crash_reason_component">Exceção de carregamento de componente</string>
+    <string name="crash_reason_remote">Exceção de comunicação de processo</string>
+    <string name="crash_reason_null">Objeto não inicializado</string>
+    <string name="crash_reason_state">Status operacional anormal</string>
+    <string name="crash_reason_unknown">Exceção não reconhecida</string>
+</resources>

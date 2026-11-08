@@ -5,7 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.annotation.WorkerThread
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -51,6 +51,7 @@ object OCRUtils {
     }
 
     /** 初始化识别器 */
+    @Synchronized
     private fun getRecognizer(language: Language): TextRecognizer {
         return when (language) {
             Language.LATIN -> {
@@ -216,18 +217,17 @@ object OCRUtils {
     }
 
     /** 处理图像并识别文本 */
-    private suspend fun processImage(image: InputImage, language: Language): Text =
-            suspendCancellableCoroutine { continuation ->
-                val recognizer = getRecognizer(language)
-                recognizer
-                        .process(image)
-                        .addOnSuccessListener { text -> continuation.resume(text) }
-                        .addOnFailureListener { e ->
-                            AppLogger.e(TAG, "Text recognition failed: ${e.message}", e)
-                            continuation.resumeWithException(e)
-                        }
-            }
-
+    private suspend fun processImage(image: InputImage, language: Language): Text = withContext(Dispatchers.IO) {
+        com.ai.assistance.operit.data.resources.ocr.OcrModelResources.requireAvailable(com.ai.assistance.operit.core.application.OperitApplication.instance)
+        suspendCancellableCoroutine { continuation ->
+            getRecognizer(language).process(image)
+                .addOnSuccessListener { text -> if (continuation.isActive) continuation.resume(text) }
+                .addOnFailureListener { failure ->
+                    AppLogger.e(TAG, "文字识别失败", failure)
+                    if (continuation.isActive) continuation.resumeWithException(failure)
+                }
+        }
+    }
     // --------- 高级API：简化的接口，直接返回文本字符串 ---------//
 
     /**
@@ -236,18 +236,26 @@ object OCRUtils {
      * @param context 上下文
      * @param bitmap 图像
      * @param quality 识别质量
-     * @return 识别到的文本，如果失败则返回空字符串
+     * @param failOnError 工具读取时启用，识别异常抛出而不伪装成空识别结果
+     * @return 识别到的文本
      */
     @WorkerThread
     suspend fun recognizeText(
             context: Context,
             bitmap: Bitmap,
-            quality: Quality = Quality.LOW
+            quality: Quality = Quality.LOW,
+            failOnError: Boolean = false,
     ): String {
+        withContext(Dispatchers.IO) { com.ai.assistance.operit.data.resources.ocr.OcrModelResources.requireAvailable(context) }
         // 同时进行拉丁文和中文识别
         val latinResult = recognizeTextFromBitmap(bitmap, Language.LATIN, quality)
         val chineseResult = recognizeTextFromBitmap(bitmap, Language.CHINESE, quality)
 
+        if (failOnError) {
+            val errors = listOf(latinResult, chineseResult).filterIsInstance<OCRResult.Error>()
+                .map { it.message }.distinct()
+            check(errors.isEmpty()) { errors.joinToString("\n") }
+        }
         val latinText = if (latinResult is OCRResult.Success) latinResult.getFullText() else ""
         val chineseText = if (chineseResult is OCRResult.Success) chineseResult.getFullText() else ""
 
@@ -276,6 +284,7 @@ object OCRUtils {
             language: Language,
             quality: Quality = Quality.LOW
     ): String {
+        withContext(Dispatchers.IO) { com.ai.assistance.operit.data.resources.ocr.OcrModelResources.requireAvailable(context) }
         val result = recognizeTextFromBitmap(bitmap, language, quality)
         return when (result) {
             is OCRResult.Success -> result.getFullText()
@@ -296,6 +305,7 @@ object OCRUtils {
      */
     @WorkerThread
     suspend fun recognizeText(context: Context, uri: Uri, quality: Quality = Quality.LOW): String {
+        withContext(Dispatchers.IO) { com.ai.assistance.operit.data.resources.ocr.OcrModelResources.requireAvailable(context) }
         // 同时进行拉丁文和中文识别
         val latinResult = recognizeTextFromUri(context, uri, Language.LATIN, quality)
         val chineseResult = recognizeTextFromUri(context, uri, Language.CHINESE, quality)

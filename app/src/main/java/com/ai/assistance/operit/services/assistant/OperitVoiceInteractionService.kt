@@ -3,7 +3,7 @@ package com.ai.assistance.operit.services.assistant
 import android.content.Intent
 import android.os.Bundle
 import android.service.voice.VoiceInteractionService
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 /**
  * Operit 语音交互服务

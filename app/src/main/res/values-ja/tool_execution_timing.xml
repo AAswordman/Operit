@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_timing_simple">%1$s • %2$d回%3$s</string>
+    <string name="tool_timing_combined">%1$s%2$s • 思考%3$d回 • 呼び出し%4$d回</string>
+    <string name="tool_timing_elapsed">（%1$d秒）</string>
+    <string name="tool_timing_completed">完了</string>
+    <string name="tool_timing_running">実行中</string>
+    <string name="tool_timing_stopped">停止</string>
+    <string name="tool_timing_searches">検索%1$d回</string>
+    <string name="tool_timing_elapsed_millis">（%1$dミリ秒）</string>
+</resources>

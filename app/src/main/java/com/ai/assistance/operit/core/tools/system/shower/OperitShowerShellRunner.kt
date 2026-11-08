@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.system.shower
 
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
-import com.ai.assistance.operit.core.tools.system.ShellIdentity as AppShellIdentity
+import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
+import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity as AppShellIdentity
 import com.ai.assistance.showerclient.ShellCommandResult
 import com.ai.assistance.showerclient.ShellIdentity
 import com.ai.assistance.showerclient.ShellRunner

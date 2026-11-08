@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">Selecionar vários arquivos</string>
+    <string name="workspace_selection_count">%1$d selecionados</string>
+    <string name="workspace_delete_selected_title">Excluir itens selecionados</string>
+    <string name="workspace_delete_selected_message">Excluir os %1$d arquivos ou pastas selecionados, incluindo o conteúdo das pastas? Esta ação não pode ser desfeita.</string>
+    <string name="voice_message_expired">O arquivo de áudio expirou ou foi excluído</string>
+    <string name="chat_media_file_missing">O arquivo não existe mais</string>
+    <string name="chat_media_preview_failed">Não é possível visualizar este arquivo de mídia</string>
+</resources>

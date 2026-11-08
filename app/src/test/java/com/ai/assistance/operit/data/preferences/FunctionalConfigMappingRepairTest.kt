@@ -12,9 +12,7 @@ class FunctionalConfigMappingRepairTest {
             FunctionType.SUMMARY to FunctionConfigMapping("default", 2),
             FunctionType.TITLE_GENERATION to FunctionConfigMapping("deleted", 1),
         )
-
         val repair = remapDeletedConfigReferences(mapping, "deleted")
-
         assertEquals(
             listOf(FunctionType.CHAT, FunctionType.TITLE_GENERATION),
             repair.affectedFunctions,
@@ -30,10 +28,21 @@ class FunctionalConfigMappingRepairTest {
             FunctionType.CHAT to FunctionConfigMapping("default", 0),
             FunctionType.SUMMARY to FunctionConfigMapping("other", 2),
         )
-
         val repair = remapDeletedConfigReferences(mapping, "deleted")
-
         assertEquals(emptyList<FunctionType>(), repair.affectedFunctions)
         assertEquals(mapping, repair.mapping)
+    }
+
+    @Test
+    fun keepsThinkingFieldsWhenOnlyConfigIdAndIndexAreCopied() {
+        val mapping = FunctionConfigMapping(
+            configId = "old",
+            modelIndex = 2,
+            enableThinking = true,
+            thinkingOptionId = "high",
+        )
+        val updated = mapping.copy(configId = "new", modelIndex = 0)
+        assertEquals(true, updated.enableThinking)
+        assertEquals("high", updated.thinkingOptionId)
     }
 }

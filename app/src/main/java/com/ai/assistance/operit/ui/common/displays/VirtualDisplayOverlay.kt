@@ -27,7 +27,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -52,7 +52,7 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.services.ServiceLifecycleOwner
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.agent.ShowerController
 import com.ai.assistance.operit.core.tools.agent.PhoneAgentJobRegistry
 import androidx.compose.ui.geometry.Offset
@@ -141,7 +141,7 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
     private var rainbowBorderVisible by mutableStateOf(false)
     private var automationCurrentStep by mutableStateOf<Int?>(null)
     private var automationTotalSteps by mutableStateOf<Int?>(null)
-    private var automationStatusText by mutableStateOf<String?>(null)
+    private var automationStatus by mutableStateOf<PhoneAgentUiStatus?>(null)
     private var automationIsPaused by mutableStateOf(false)
     private var automationVisible by mutableStateOf(false)
     private var automationOnTogglePauseResume: ((Boolean) -> Unit)? = null
@@ -256,14 +256,14 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
 
     fun showAutomationControls(
         totalSteps: Int,
-        initialStatus: String,
+        initialStatus: PhoneAgentUiStatus,
         onTogglePauseResume: (Boolean) -> Unit,
         onExit: () -> Unit
     ) {
         runOnMainThread {
             automationTotalSteps = totalSteps
             automationCurrentStep = 1
-            automationStatusText = initialStatus
+            automationStatus = initialStatus
             automationIsPaused = false
             automationOnTogglePauseResume = onTogglePauseResume
             automationOnExit = onExit
@@ -271,11 +271,11 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
         }
     }
 
-    fun updateAutomationProgress(currentStep: Int, totalSteps: Int, statusText: String) {
+    fun updateAutomationProgress(currentStep: Int, totalSteps: Int, status: PhoneAgentUiStatus) {
         runOnMainThread {
             automationTotalSteps = totalSteps
             automationCurrentStep = if (currentStep <= 0) 1 else currentStep
-            automationStatusText = statusText
+            automationStatus = status
         }
     }
 
@@ -286,7 +286,7 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
             automationOnExit = null
             automationCurrentStep = null
             automationTotalSteps = null
-            automationStatusText = null
+            automationStatus = null
             automationIsPaused = false
         }
     }
@@ -963,12 +963,10 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                                     .align(Alignment.CenterStart)
                             ) {
                                 if (automationVisible) {
-                                    val step = automationCurrentStep
-                                    val total = automationTotalSteps
-                                    if (step != null && total != null) {
+                                    val status = automationStatus
+                                    if (status != null) {
                                         AutomationControlBar(
-                                            currentStep = step,
-                                            totalSteps = total,
+                                            status = status,
                                             isPaused = automationIsPaused,
                                             onTogglePauseResume = { newPaused ->
                                                 automationIsPaused = newPaused
@@ -1038,12 +1036,10 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                                         .align(Alignment.CenterStart)
                                 ) {
                                     if (automationVisible) {
-                                        val step = automationCurrentStep
-                                        val total = automationTotalSteps
-                                        if (step != null && total != null) {
+                                        val status = automationStatus
+                                        if (status != null) {
                                             AutomationControlBar(
-                                                currentStep = step,
-                                                totalSteps = total,
+                                                status = status,
                                                 isPaused = automationIsPaused,
                                                 onTogglePauseResume = { newPaused ->
                                                     automationIsPaused = newPaused
@@ -1226,12 +1222,12 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
 
     @Composable
     private fun AutomationControlBar(
-        currentStep: Int,
-        totalSteps: Int,
+        status: PhoneAgentUiStatus,
         isPaused: Boolean,
         onTogglePauseResume: (Boolean) -> Unit,
         onExit: () -> Unit
     ) {
+        val visibleStatus = if (isPaused) PhoneAgentUiStatus.Paused else status
         Card(
             modifier = Modifier
                 .wrapContentWidth()
@@ -1248,17 +1244,13 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // 只保留简单的步骤进度文案，例如 "3/20"
-                Box(
-                    modifier = Modifier.size(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "$currentStep/$totalSteps",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Icon(
+                    imageVector = visibleStatus.icon,
+                    contentDescription = stringResource(visibleStatus.labelResId),
+                    modifier = Modifier.size(24.dp),
+                    tint = if (visibleStatus.needsAttention)
+                        MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
                 // 垂直排列：上面是暂停/继续，下面是退出任务的 X
                 IconButton(onClick = { onTogglePauseResume(!isPaused) }) {
                     Icon(

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_allow_hint">자동으로 실행</string>
+    <string name="tp_ask_hint">매번 확인</string>
+    <string name="tp_forbid_hint">실행이 허용되지 않음</string>
+    <string name="tp_all">모두</string>
+    <string name="tp_search">검색 도구 이름 또는 설명</string>
+    <string name="tp_follow_default">기본값을 따르다</string>
+    <string name="tp_follow_default_with_value">기본값을 따르십시오 · %1$s</string>
+    <string name="tp_selected_count">품목 %1$d 선택됨</string>
+    <string name="tp_select_visible">현재 결과를 모두 선택하세요.</string>
+    <string name="tp_no_matches">일치 도구가 없습니다. 다른 키워드를 사용해 보세요.</string>
+    <string name="tp_already_configured">대상 규칙으로 구성됨</string>
+    <string name="tp_apply_count">%1$d 아이템에 적용</string>
+    <string name="tp_default_title">기본 실행 모드</string>
+    <string name="tp_default_description">개별적으로 설정되지 않은 도구는 이 규칙을 사용합니다. 기본 모드를 수정하면 개별 규칙을 덮어쓰지 않습니다.</string>
+    <string name="tp_saved">권한 설정이 저장되었습니다.</string>
+    <string name="tp_save_failed">저장하지 못했습니다. 다시 시도해 주세요.</string>
+    <string name="tp_rules_count">단일 규칙 · %1$d</string>
+    <string name="tp_batch">배치 관리</string>
+    <string name="tp_rules_description">개별 규칙이 우선 적용됩니다. 이 설정을 제거하려면 \"기본값 따르기\"를 선택하십시오.</string>
+    <string name="tp_results_count">%1$d 항목 표시 중</string>
+    <string name="tp_empty_rules">아직 단일 규칙은 없으며 모든 도구는 기본 방법을 따릅니다.</string>
+    <string name="tp_empty_filter">이 카테고리에는 아직 단일 규칙이 없습니다.</string>
+    <string name="tp_change">규칙 수정</string>
+    <string name="tp_batch_title">%1$d 규칙 수정</string>
+    <string name="tp_help">기본 실행 모드는 개별 규칙이 없는 도구에 사용됩니다. 허용은 자동으로 실행되고, 요청은 각 실행 전에 확인을 요청하며, 허용하지 않음은 실행을 방지합니다. \n\n 단일 규칙은 항상 우선 적용되며 기본 모드를 수정해도 해당 규칙을 덮어쓰지 않습니다. 허용, 질문, 금지는 개별적으로 설정할 수 있습니다. 기본값 따르기를 선택하면 개별 규칙이 제거됩니다. \n\n 도구 이름이나 설명을 검색하고 상태별로 필터링할 수 있습니다. 추가 및 일괄 관리는 검색 및 필터 전체에서 선택 사항을 유지하며 선택한 도구에만 적용됩니다. 취소하면 저장되지 않습니다. 규칙 영역의 \"마지막 수정 취소\"를 통해 이 페이지의 마지막 변경 사항을 복원할 수 있습니다. 결과를 저장하려면 조명 프롬프트를 사용하십시오. \n\n이 설정은 도구 실행 확인만 관리하며 Android 시스템 권한을 대체하지 않습니다.</string>
+    <string name="workflow_schedule_invalid">구성을 확인하십시오. 간격은 최소 15분이며 오버플로될 수 없습니다. Cron에는 5개의 유효한 필드가 필요합니다. 날짜는 실제로 존재해야 합니다. 활성화된 계획은 마감일 이전에 다음 실행이 있어야 합니다.</string>
+    <string name="workflow_repeat_daily_hint">반복 활성화 후 지정된 날짜부터 매일 현지 시간에 실행됩니다. 닫힐 때 한 번만 실행됩니다.</string>
+    <string name="workflow_repeat_hint">반복 활성화 후에는 간격 또는 Cron 규칙에 따라 계속 실행됩니다. 닫히면 다음 번에만 실행됩니다.</string>
+    <string name="workflow_end_time_label">마감일(선택사항)</string>
+    <string name="workflow_end_time_hint">컷오프가 없음을 나타내려면 비워 두십시오. 현지 시간 yyyy-MM-dd HH:mm:ss를 사용합니다. 기한이 초과되면 실행이 시작되지 않습니다.</string>
+    <string name="workflow_schedule_timing_hint">고정 간격은 일정을 활성화하거나 수정하는 전체 간격(최소 15분)을 기다립니다. Cron은 시스템의 현재 시간대의 시계와 일치합니다. 배경은 Android WorkManager에 의해 예약됩니다. 절전 모드, 절전, 백그라운드 제한 및 작업 대기열로 인해 실행이 지연될 수 있으며 시간 엄수를 보장할 수 없습니다. 강제 종료 후 다시 시작하려면 애플리케이션을 다시 열어야 합니다.</string>
+    <string name="tp_undo_last">마지막 수정 취소</string>
+    <string name="tp_restored">마지막 수정이 취소되었습니다</string>
+</resources>

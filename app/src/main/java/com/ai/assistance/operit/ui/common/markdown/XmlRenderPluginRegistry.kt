@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.ui.common.markdown
 
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.voice.VoiceMessageXmlPlugin
+
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -22,13 +24,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.LinearProgressIndicator
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import com.ai.assistance.operit.ui.common.composedsl.LocalComposeDslXmlStream
 import com.ai.assistance.operit.ui.common.composedsl.RenderToolPkgComposeDslNode
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.ui.common.composedsl.RetainToolPkgComposeDslActions
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CancellationException
@@ -90,7 +93,7 @@ private fun buildXmlRenderComposeDslExecutionContextKey(
 
 object XmlRenderPluginRegistry {
     private const val TAG = "XmlRenderPluginRegistry"
-    private val plugins = CopyOnWriteArrayList<XmlRenderPlugin>()
+    private val plugins = CopyOnWriteArrayList<XmlRenderPlugin>().apply { add(VoiceMessageXmlPlugin) }
     private val changeVersionMutable = MutableStateFlow(0)
     val changeVersion: StateFlow<Int> = changeVersionMutable.asStateFlow()
 
@@ -111,6 +114,14 @@ object XmlRenderPluginRegistry {
 
     fun notifyChanged() {
         changeVersionMutable.update { current -> current + 1 }
+    }
+
+    fun supports(tagName: String): Boolean {
+        val normalizedTagName = tagName.trim()
+        if (normalizedTagName.isBlank()) {
+            return false
+        }
+        return plugins.any { plugin -> plugin.supports(normalizedTagName) }
     }
 
     @Composable
@@ -546,6 +557,7 @@ object XmlRenderPluginRegistry {
             isRenderLoading = false
         }
 
+        RetainToolPkgComposeDslActions(jsEngine, renderResult)
         Box(modifier = modifier) {
             when {
                 renderResult?.tree != null -> {

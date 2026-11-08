@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.repository
 
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -10,11 +12,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.os.RemoteException
-import com.ai.assistance.operit.util.AppLogger
-import android.widget.Toast
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.system.AccessibilityProviderInstaller
+import com.ai.assistance.operit.core.tools.permissions.authorization.AccessibilityProviderInstaller
 import com.ai.assistance.operit.provider.IAccessibilityProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,10 +110,10 @@ object UIHierarchyManager {
             val apkFile = extractProviderApkFromAssets(context)
             if (apkFile == null) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(
+                    OKToast.error(
                         context,
                         context.getString(R.string.toast_apk_extract_failed),
-                        Toast.LENGTH_SHORT
+                        OKToast.LENGTH_SHORT
                     ).show()
                 }
                 return@launch
@@ -142,10 +143,10 @@ object UIHierarchyManager {
                     context.startActivity(installIntent)
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "启动安装界面失败", e)
-                    Toast.makeText(
+                    OKToast.error(
                         context,
                         context.getString(R.string.toast_operation_failed, e.message ?: ""),
-                        Toast.LENGTH_SHORT
+                        OKToast.LENGTH_SHORT
                     ).show()
                 }
             }

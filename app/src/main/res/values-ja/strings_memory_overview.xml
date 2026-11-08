@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">記憶の管理</string>
+    <string name="memory_management_subtitle">記憶領域とキャラクターの紐付けを管理</string>
+    <string name="memory_overview_global">全体での使用</string>
+    <string name="memory_overview_current_global">現在の記憶領域</string>
+    <string name="memory_overview_change">変更</string>
+    <string name="memory_overview_spaces">記憶領域</string>
+    <string name="memory_overview_roles">キャラクターの使用先</string>
+    <string name="memory_overview_active_count">全体の領域 · %1$d 人が使用</string>
+    <string name="memory_overview_bound_count">%1$d 人が固定で使用</string>
+    <string name="memory_overview_fixed">固定 · %1$s</string>
+    <string name="memory_overview_missing_space">指定された記憶領域がありません。再選択してください</string>
+    <string name="memory_overview_follow">全体の設定に従う · %1$s</string>
+    <string name="memory_overview_choose_global">全体の記憶領域を変更</string>
+    <string name="memory_overview_create">記憶領域を作成</string>
+    <string name="memory_overview_rename">記憶領域の名前を変更</string>
+    <string name="memory_overview_name">領域の名前</string>
+    <string name="memory_overview_delete_title">記憶領域を削除</string>
+    <string name="memory_overview_delete_warning">「%1$s」とその記憶・ユーザープロフィールを削除しますか？紐付けられたキャラクターは全体の設定に従うようになります。元に戻せません。</string>
+    <string name="memory_overview_binding_title">%1$s の記憶領域</string>
+    <string name="memory_overview_space_actions">記憶領域の操作</string>
+    <string name="memory_action_select">ノードを選択</string>
+    <string name="memory_action_delete_selected">選択したノードを削除</string>
+    <string name="memory_action_link">ノードを接続</string>
+    <string name="memory_action_add">記憶を追加</string>
+    <string name="memory_action_create">記憶を作成</string>
+    <string name="memory_action_import">文書を取り込む</string>
+</resources>

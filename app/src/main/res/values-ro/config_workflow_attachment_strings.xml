@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">Atinge pentru a edita o singură cheie; săgeata deschide grupul de chei</string>
+    <string name="model_workspace_open_key_pool">Setările grupului de chei</string>
+    <string name="patch_update_no_matching_chain">Nu există o cale incrementală completă de la APK-ul instalat. Actualizează cu APK-ul complet.</string>
+    <string name="patch_update_base_changed">APK-ul instalat nu corespunde bazei acestui patch. Actualizează cu APK-ul complet.</string>
+    <string name="workflow_run_details">Detalii și istoric de execuție</string>
+    <string name="workflow_run_load_failed">Înregistrările nu pot fi citite. Verifică accesul la dosarul fluxurilor.</string>
+    <string name="workflow_run_older">Mai vechi</string>
+    <string name="workflow_run_newer">Mai nou</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">Durată: %1$.2f s</string>
+    <string name="workflow_run_legacy">Această înregistrare nu are detalii despre noduri. Noile execuții vor salva rezultatele complete.</string>
+    <string name="workflow_run_node_success">Reușit</string>
+    <string name="workflow_run_node_failed">Eșuat</string>
+    <string name="workflow_run_node_skipped">Omis conform condiției</string>
+    <string name="workflow_run_node_not_run">Neexecutat</string>
+    <string name="workflow_run_node_cancelled">Anulat</string>
+    <string name="workflow_run_queued">În așteptare după altă sarcină programată</string>
+    <string name="workflow_issue_timeout">Timpul de răspuns a expirat. Verifică serviciul sau limita nodului.</string>
+    <string name="workflow_issue_network">Conexiunea a eșuat. Verifică rețeaua și adresa serviciului.</string>
+    <string name="workflow_issue_auth">Autentificarea a eșuat. Verifică cheia sau contul.</string>
+    <string name="workflow_issue_quota">Cota sau limita cererilor a fost atinsă. Verifică soldul și frecvența.</string>
+    <string name="workflow_issue_permission">Lipsește o permisiune. Verifică permisiunile de sistem ale instrumentului.</string>
+    <string name="workflow_issue_tool_missing">Instrumentul nu este disponibil. Verifică dacă pachetul este instalat și activat.</string>
+    <string name="workflow_issue_input">Datele de intrare sau acțiunea nodului sunt invalide. Verifică parametrii.</string>
+    <string name="workflow_issue_reference">Rezultatul unui nod referit nu este disponibil. Verifică legăturile și referințele.</string>
+    <string name="workflow_issue_busy">Mediul de execuție este ocupat. Așteaptă finalizarea sarcinii curente.</string>
+    <string name="workflow_issue_cancelled">Această execuție a fost anulată.</string>
+    <string name="workflow_issue_cycle">Există o dependență circulară. Modifică legăturile dintre noduri.</string>
+    <string name="workflow_issue_trigger">Nu există un declanșator disponibil. Verifică setările de declanșare.</string>
+    <string name="workflow_issue_runtime">Mediul de execuție nu este pregătit. Încearcă din nou în curând.</string>
+    <string name="workflow_issue_unknown">Nodul nu a finalizat acțiunea. Verifică intrările și setările instrumentului.</string>
+    <string name="sent_image_count">%1$d imagini</string>
+    <string name="sent_image_expired_count">%1$d imagini expirate</string>
+    <string name="workflow_run_failed_nodes">Noduri eșuate: %1$s</string>
+</resources>

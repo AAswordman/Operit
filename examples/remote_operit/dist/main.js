@@ -7,7 +7,7 @@ exports.registerToolPkg = registerToolPkg;
 exports.onApplicationCreate = onApplicationCreate;
 const index_ui_js_1 = __importDefault(require("./ui/remote_operit_setup/index.ui.js"));
 function registerToolPkg() {
-    ToolPkg.registerToolboxUiModule({
+    ToolPkg.registerUiModule({
         id: "remote_operit_setup",
         runtime: "compose_dsl",
         screen: index_ui_js_1.default,

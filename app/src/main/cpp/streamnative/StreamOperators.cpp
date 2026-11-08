@@ -209,8 +209,10 @@ public:
                     emitIndex(out, activeTag_, globalIndex, runTag, runStart, runEnd);
                 }
                 if (activePlugin_->state() != PluginState::PROCESSING) {
-                    // Close active group
-                    emitBreak(out, globalIndex + 1, runTag, runStart, runEnd);
+                    // 行内代码保护仍属于同一个正文段，不额外切开段落。
+                    if (activeTag_ != MD_PLAIN_TEXT) {
+                        emitBreak(out, globalIndex + 1, runTag, runStart, runEnd);
+                    }
                     activePlugin_ = nullptr;
                     activeTag_ = MD_PLAIN_TEXT;
                     activeIndex_ = -1;
@@ -376,7 +378,7 @@ private:
 MarkdownSession* createMarkdownBlockSession() {
     std::vector<PluginEntry> plugins;
     plugins.reserve(16);
-    // Order must match NestedMarkdownProcessor.getBlockPlugins()
+    // 块级先保护代码范围，保留反引号供下一阶段生成行内代码节点。
     plugins.push_back({std::make_unique<StreamMarkdownHeaderPlugin>(true), MD_HEADER});
     plugins.push_back({std::make_unique<StreamMarkdownFencedCodeBlockPlugin>(true), MD_CODE_BLOCK});
     plugins.push_back({std::make_unique<StreamMarkdownBlockQuotePlugin>(false), MD_BLOCK_QUOTE});
@@ -389,6 +391,7 @@ MarkdownSession* createMarkdownBlockSession() {
     plugins.push_back({std::make_unique<StreamMarkdownBlockBracketLaTeXPlugin>(true), MD_BLOCK_LATEX});
     plugins.push_back({std::make_unique<StreamMarkdownTablePlugin>(true), MD_TABLE});
     plugins.push_back({std::make_unique<StreamMarkdownImagePlugin>(true), MD_IMAGE});
+    plugins.push_back({std::make_unique<StreamMarkdownInlineCodePlugin>(true, true), MD_PLAIN_TEXT});
     plugins.push_back({std::make_unique<StreamXmlPlugin>(true), MD_XML_BLOCK});
     return new MarkdownSession(std::move(plugins));
 }

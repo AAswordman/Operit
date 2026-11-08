@@ -6,12 +6,14 @@ import com.ai.assistance.llama.LlamaSession
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
+import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +21,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.model.ModelListFetcher
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
 
 class LlamaProvider(
     private val context: Context,
@@ -52,6 +57,7 @@ class LlamaProvider(
 
     private val sessionLock = Any()
     private var session: LlamaSession? = null
+    private var modelUsageHandle: LocalModelUsageHandle? = null
 
     override val inputTokenCount: Long
         get() = _inputTokenCount
@@ -69,6 +75,19 @@ class LlamaProvider(
         _inputTokenCount = 0L
         _outputTokenCount = 0L
         _cachedInputTokenCount = 0L
+    }
+
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun requestedMaxTokens(parameters: List<ModelParameter<*>>): Int {
+        val parameter = parameters.find {
+            it.isEnabled && (it.id == "max_tokens" || it.apiName == "max_tokens")
+        } ?: return -1
+        return (parameter.currentValue as? Number)?.toInt() ?: -1
     }
 
     private fun logLargeString(prefix: String, message: String) {
@@ -105,8 +124,13 @@ class LlamaProvider(
 
     override fun release() {
         synchronized(sessionLock) {
-            session?.release()
-            session = null
+            try {
+                session?.release()
+            } finally {
+                session = null
+                modelUsageHandle?.close()
+                modelUsageHandle = null
+            }
         }
     }
 
@@ -124,12 +148,31 @@ class LlamaProvider(
             return@withContext Result.failure(Exception(context.getString(R.string.llama_error_model_file_not_exist, modelFile.absolutePath)))
         }
 
-        val testSession = LlamaSession.create(
-            pathModel = modelFile.absolutePath,
-            config = sessionConfig
-        ) ?: return@withContext Result.failure(Exception(context.getString(R.string.llama_error_create_session_failed)))
+        val usageHandle = LocalModelRuntimeRegistry.acquire(modelFile)
+            ?: return@withContext Result.failure(
+                Exception(context.getString(R.string.llama_error_create_session_failed))
+            )
+        val testSession =
+            try {
+                LlamaSession.create(
+                    pathModel = modelFile.absolutePath,
+                    config = sessionConfig,
+                )
+            } catch (error: Exception) {
+                usageHandle.close()
+                throw error
+            } ?: run {
+                usageHandle.close()
+                return@withContext Result.failure(
+                    Exception(context.getString(R.string.llama_error_create_session_failed))
+                )
+            }
 
-        testSession.release()
+        try {
+            testSession.release()
+        } finally {
+            usageHandle.close()
+        }
         Result.success("llama.cpp backend is available (native ready).")
     }
 
@@ -167,6 +210,7 @@ class LlamaProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -178,6 +222,7 @@ class LlamaProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> = stream {
         isCancelled = false
+        outputStoppedByLimit = false
 
         if (!LlamaSession.isAvailable()) {
             throw IOException("${context.getString(R.string.llama_error_prefix)}: ${LlamaSession.getUnavailableReason()}")
@@ -275,10 +320,8 @@ class LlamaProvider(
         _outputTokenCount = 0L
         onTokensUpdated(_inputTokenCount, 0L, 0L)
 
-        val requestedMaxNewTokens = modelParameters
-            .find { it.name == "max_tokens" }
-            ?.let { (it.currentValue as? Number)?.toInt() }
-            ?: -1
+        val requestedMaxNewTokens = requestedMaxTokens(modelParameters)
+        val effectiveMaxNewTokens = if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 16384
 
         AppLogger.d(
             TAG,
@@ -294,7 +337,7 @@ class LlamaProvider(
             onUsageReported,
         )
         val success = withContext(Dispatchers.IO) {
-                s.generateStream(prompt, requestedMaxNewTokens) { token ->
+                s.generateStream(prompt, effectiveMaxNewTokens) { token ->
                     if (isCancelled) {
                         false
                     } else {
@@ -319,6 +362,9 @@ class LlamaProvider(
                 }
             }
 
+        if (!isCancelled && success && outputTokenCount >= effectiveMaxNewTokens) {
+            outputStoppedByLimit = true
+        }
         LocalGenerationEnd.end(
             cancelled = isCancelled,
             success = success,
@@ -398,11 +444,23 @@ class LlamaProvider(
         synchronized(sessionLock) {
             session?.let { return it }
             val modelFile = getModelFile(context, modelName)
-            val created = LlamaSession.create(
-                pathModel = modelFile.absolutePath,
-                config = sessionConfig
-            )
+            val usageHandle = LocalModelRuntimeRegistry.acquire(modelFile) ?: return null
+            val created =
+                try {
+                    LlamaSession.create(
+                        pathModel = modelFile.absolutePath,
+                        config = sessionConfig,
+                    )
+                } catch (error: Exception) {
+                    usageHandle.close()
+                    throw error
+                }
+            if (created == null) {
+                usageHandle.close()
+                return null
+            }
             session = created
+            modelUsageHandle = usageHandle
             return created
         }
     }
