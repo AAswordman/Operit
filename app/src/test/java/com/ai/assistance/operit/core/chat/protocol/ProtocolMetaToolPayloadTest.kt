@@ -108,13 +108,14 @@ class ProtocolMetaToolPayloadTest {
     }
 
     @Test
-    fun replayAndRollbackRebuildTheSameVisiblePrefix() {
+    fun replayAndRollbackRestoreTheSameVisiblePrefix() {
         val rawPrefix = block("tool_result", "源码 `") + meta() + "保留正文"
         val expected = block("tool_result", "源码 `") + "保留正文"
         val filter = ProtocolMetaDisplayFilter()
         assertEquals(expected, filter.append(rawPrefix))
+        val checkpoint = filter.checkpoint()
         filter.append("应撤回的内容")
-        assertEquals(expected, filter.reset(rawPrefix))
+        filter.restore(checkpoint)
         assertEquals("重试后正文", filter.append(meta() + "重试后正文"))
         assertEquals("", filter.finish())
         val replay = ProtocolMetaDisplayFilter()
