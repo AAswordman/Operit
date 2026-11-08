@@ -1286,9 +1286,16 @@ class ActionHandler(
                 val app = fields["app"]?.takeIf { it.isNotBlank() } ?: return fail(message = "No app name specified for Launch")
                 val packageName = resolveAppPackageName(app)
                 if (isMainScreenAgent() && launchState.suppressesLaunch(packageName)) {
-                    return ok(message = "No Launch dispatched: the launch request for $packageName was already accepted. Missing UI observations do not revoke it; continue with Wait or Inspect.")
+                    return ok(message = "No Launch dispatched: this task is already tracking $packageName. Continue from the current page with Wait or Inspect; unavailable nodes do not authorize a restart.")
                 }
                 try {
+                    // A new tool invocation clears launch history, including after user takeover.
+                    // Observe the real foreground before prewarm/Launch can send another launcher Intent.
+                    if (isMainScreenAgent() && isAppForeground(packageName) == true) {
+                        launchState.reuseForeground(packageName)
+                        AppLogger.d("PhoneAgent", "[$agentId] launch_reused_foreground: package=$packageName; no start_app dispatched")
+                        return ok(message = "Target app $packageName is already in the foreground. No launch was dispatched; continue from the current page, including steps completed by the user.")
+                    }
                     if (showerCtx.isAdbOrHigher && !isMainScreenAgent()) {
                         val pm = context.packageManager
                         val hasLaunchableTarget = pm.getLaunchIntentForPackage(packageName) != null
@@ -1396,17 +1403,20 @@ class ActionHandler(
                 val end = fields["end"] ?: return fail(message = "Missing swipe end")
                 val (sx, sy) = parseRelativePoint(start) ?: return fail(message = "Invalid swipe start")
                 val (ex, ey) = parseRelativePoint(end) ?: return fail(message = "Invalid swipe end")
+                AppLogger.d("PhoneAgent", "[$agentId] swipe_request: normalized_start=$start normalized_end=$end pixel_start=($sx,$sy) pixel_end=($ex,$ey)")
                 val exec = withAgentInputFeedback {
                     if (showerCtx.canUseShowerForInput) {
                         val okSwipe = ShowerController.swipe(agentId, sx, sy, ex, ey)
-                        if (okSwipe) ok() else fail(message = "Shower SWIPE failed")
+                        if (okSwipe) ok(message = "Swipe dispatched; inspect the target content to verify scrolling.")
+                        else fail(message = "Swipe delivery was not confirmed and may have partially taken effect. Inspect the current page before any repeat.")
                     } else {
                         val params = withDisplayParam(listOf(
                             ToolParameter("start_x", sx.toString()), ToolParameter("start_y", sy.toString()),
                             ToolParameter("end_x", ex.toString()), ToolParameter("end_y", ey.toString())
                         ))
                         val result = toolImplementations.swipe(AITool("swipe", params))
-                        if (result.success) ok() else fail(message = result.error ?: "Swipe failed")
+                        if (result.success) ok(message = "Swipe dispatched; inspect the target content to verify scrolling.")
+                        else fail(message = "Swipe delivery was not confirmed: ${result.error}. Inspect the current page before any repeat.")
                     }
                 }
                 if (exec.success && !exec.shouldFinish) delay(POST_NON_WAIT_ACTION_DELAY_MS)

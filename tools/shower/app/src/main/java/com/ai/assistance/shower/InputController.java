@@ -7,6 +7,8 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.util.Log;
 
+import com.ai.assistance.shower.input.SwipeInputSequence;
+
 import java.lang.reflect.Method;
 import java.util.Random;
 
@@ -169,23 +171,23 @@ class InputController {
         inject(up);
     }
 
-    private void injectTapEvent(MotionEvent event) {
+    private void injectPointerEvent(MotionEvent event, int targetDisplayId) {
         try {
             if (setDisplayIdMethod != null) {
-                setDisplayIdMethod.invoke(event, displayId);
-            } else if (displayId != 0) {
-                throw new IllegalStateException("Cannot assign tap to display " + displayId);
+                setDisplayIdMethod.invoke(event, targetDisplayId);
+            } else if (targetDisplayId != 0) {
+                throw new IllegalStateException("Cannot assign pointer to display " + targetDisplayId);
             }
-            // WAIT_FOR_FINISH: do not acknowledge the Binder TAP before Android has finished
+            // WAIT_FOR_FINISH: do not acknowledge a pointer event before Android has finished
             // dispatching this event. An accepted injection still needs app-side verification.
             boolean confirmed = (Boolean) injectInputEventMethod.invoke(inputManager, event, 2);
             if (!confirmed) {
-                throw new IllegalStateException("InputManager rejected tap action " + event.getAction());
+                throw new IllegalStateException("InputManager rejected pointer action " + event.getAction());
             }
         } catch (java.lang.reflect.InvocationTargetException e) {
-            throw new IllegalStateException("Tap injection failed on display " + displayId, e.getCause());
+            throw new IllegalStateException("Pointer injection failed on display " + targetDisplayId, e.getCause());
         } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Tap injection failed on display " + displayId, e);
+            throw new IllegalStateException("Pointer injection failed on display " + targetDisplayId, e);
         } finally {
             event.recycle();
         }
@@ -199,6 +201,7 @@ class InputController {
     }
 
     synchronized void injectTap(float x, float y) {
+        final int targetDisplayId = displayId;
         float px = fuzzingEnabled ? jitter(x, tapPositionJitterPx) : x;
         float py = fuzzingEnabled ? jitter(y, tapPositionJitterPx) : y;
         float pressure = randomPressure();
@@ -207,19 +210,19 @@ class InputController {
         long delayMax = Math.max(delayMin, tapUpDelayMaxMs);
         long pressDuration = fuzzingEnabled ? nextLong(delayMin, delayMax) : 60L;
         long downTime = SystemClock.uptimeMillis();
-        injectTapEvent(tapEvent(downTime, MotionEvent.ACTION_DOWN, px, py, pressure, size));
+        injectPointerEvent(tapEvent(downTime, MotionEvent.ACTION_DOWN, px, py, pressure, size), targetDisplayId);
         boolean released = false;
         try {
             // A backdated timestamp does not create a physical press interval. Keep the stream
             // down in real time, on this Binder thread, before releasing the same pointer.
             SystemClock.sleep(pressDuration);
-            injectTapEvent(tapEvent(downTime, MotionEvent.ACTION_UP, px, py, 0f, size));
+            injectPointerEvent(tapEvent(downTime, MotionEvent.ACTION_UP, px, py, 0f, size), targetDisplayId);
             released = true;
         } finally {
             if (!released) {
                 try {
                     // Release an incomplete touch stream; this is not another click attempt.
-                    injectTapEvent(tapEvent(downTime, MotionEvent.ACTION_CANCEL, px, py, 0f, size));
+                    injectPointerEvent(tapEvent(downTime, MotionEvent.ACTION_CANCEL, px, py, 0f, size), targetDisplayId);
                 } catch (RuntimeException cleanupError) {
                     Main.logToFile("Failed to cancel incomplete tap: " + cleanupError.getMessage(), cleanupError);
                 }
@@ -227,92 +230,58 @@ class InputController {
         }
     }
 
-    void injectSwipe(float x1, float y1, float x2, float y2, long durationMs) {
-        long end = SystemClock.uptimeMillis();
-
+    synchronized void injectSwipe(float x1, float y1, float x2, float y2, long durationMs) {
+        // A virtual display can be released during a stream. Keep its remaining events and
+        // CANCEL on the original display instead of following a controller reset to display 0.
+        final int targetDisplayId = displayId;
+        if (!Float.isFinite(x1) || !Float.isFinite(y1) || !Float.isFinite(x2) || !Float.isFinite(y2)) {
+            throw new IllegalArgumentException("Swipe coordinates must be finite");
+        }
         long baseDuration = Math.max(1L, durationMs);
         long jitterMs = Math.max(0L, swipeDurationJitterMs);
         long actualDuration = fuzzingEnabled ? Math.max(1L, baseDuration + nextLong(-jitterMs, jitterMs)) : baseDuration;
-        long start = Math.max(0L, end - actualDuration);
-
         int minSteps = Math.max(1, swipeStepsMin);
         int maxSteps = Math.max(minSteps, swipeStepsMax);
         int steps = fuzzingEnabled ? (int) nextLong(minSteps, maxSteps) : 10;
-        if (steps < 1) steps = 1;
-
-        float sx = fuzzingEnabled ? jitter(x1, tapPositionJitterPx) : x1;
-        float sy = fuzzingEnabled ? jitter(y1, tapPositionJitterPx) : y1;
-        float ex = fuzzingEnabled ? jitter(x2, tapPositionJitterPx) : x2;
-        float ey = fuzzingEnabled ? jitter(y2, tapPositionJitterPx) : y2;
-
-        // down
-        MotionEvent down = MotionEvent.obtain(
-                start,
-                start,
-                MotionEvent.ACTION_DOWN,
-                sx,
-                sy,
-                randomPressure(),
-                randomSize(),
-                0,
-                1.0f,
-                1.0f,
-                0,
-                0
-        );
-        down.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        inject(down);
-
-        for (int i = 1; i <= steps; i++) {
-            float t = i / (float) steps;
-            float te = smoothstep(t);
-            float x = sx + (ex - sx) * te;
-            float y = sy + (ey - sy) * te;
-
-            if (fuzzingEnabled) {
-                float atten = 1f - Math.abs(2f * t - 1f);
-                float jitterRange = movePositionJitterPx * atten;
-                x = jitter(x, jitterRange);
-                y = jitter(y, jitterRange);
+        final float sx = fuzzingEnabled ? jitter(x1, tapPositionJitterPx) : x1;
+        final float sy = fuzzingEnabled ? jitter(y1, tapPositionJitterPx) : y1;
+        final float ex = fuzzingEnabled ? jitter(x2, tapPositionJitterPx) : x2;
+        final float ey = fuzzingEnabled ? jitter(y2, tapPositionJitterPx) : y2;
+        final float size = randomSize();
+        Main.logToFile("SWIPE begin: display=" + targetDisplayId + " start=(" + sx + "," + sy +
+                ") end=(" + ex + "," + ey + ") duration_ms=" + actualDuration, null);
+        // Send a real-duration stream with current timestamps. The former burst of backdated
+        // events could be coalesced/rejected while still being reported as a successful swipe.
+        SwipeInputSequence.run(actualDuration, steps, new SwipeInputSequence.Clock() {
+            @Override public long uptimeMillis() { return SystemClock.uptimeMillis(); }
+            @Override public void sleep(long millis) { SystemClock.sleep(millis); }
+        }, (action, downTime, eventTime, fraction) -> {
+            float t = smoothstep(fraction);
+            float x = sx + (ex - sx) * t;
+            float y = sy + (ey - sy) * t;
+            int androidAction;
+            switch (action) {
+                case DOWN: androidAction = MotionEvent.ACTION_DOWN; break;
+                case MOVE:
+                    androidAction = MotionEvent.ACTION_MOVE;
+                    if (fuzzingEnabled) {
+                        float jitterRange = movePositionJitterPx * (1f - Math.abs(2f * fraction - 1f));
+                        x = jitter(x, jitterRange);
+                        y = jitter(y, jitterRange);
+                    }
+                    break;
+                case UP: androidAction = MotionEvent.ACTION_UP; break;
+                case CANCEL: androidAction = MotionEvent.ACTION_CANCEL; break;
+                default: throw new IllegalStateException("Unknown pointer action");
             }
-
-            long now = start + (long) ((end - start) * t);
-
-            MotionEvent move = MotionEvent.obtain(
-                    start,
-                    now,
-                    MotionEvent.ACTION_MOVE,
-                    x,
-                    y,
-                    randomPressure(),
-                    randomSize(),
-                    0,
-                    1.0f,
-                    1.0f,
-                    0,
-                    0
-            );
-            move.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-            inject(move);
-        }
-
-        long upTime = end;
-        MotionEvent up = MotionEvent.obtain(
-                start,
-                upTime,
-                MotionEvent.ACTION_UP,
-                ex,
-                ey,
-                randomPressure(),
-                randomSize(),
-                0,
-                1.0f,
-                1.0f,
-                0,
-                0
-        );
-        up.setSource(InputDevice.SOURCE_TOUCHSCREEN);
-        inject(up);
+            float pressure = action == SwipeInputSequence.Action.UP || action == SwipeInputSequence.Action.CANCEL
+                    ? 0f : randomPressure();
+            MotionEvent event = MotionEvent.obtain(downTime, eventTime, androidAction, x, y,
+                    pressure, size, 0, 1.0f, 1.0f, 0, 0);
+            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            injectPointerEvent(event, targetDisplayId);
+        });
+        Main.logToFile("SWIPE dispatch finished: display=" + targetDisplayId, null);
     }
 
     void injectTouchEventFull(

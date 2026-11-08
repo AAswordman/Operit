@@ -8,9 +8,9 @@ internal object PhoneLocalProtocol {
     fun prompt(useEnglish: Boolean): String = if (useEnglish) EN else CN
 
     fun launchPrompt(useEnglish: Boolean): String = if (useEnglish) {
-        "\nAPP_LAUNCH_STATE records an accepted launch separately from UI readiness. Missing or unreadable nodes do not mean the app failed to start. When same_app_launch_allowed=false, continue from the current app with Wait/Inspect/Observe; do not send Launch again. A tap being accepted does not prove the intended control responded.\n"
+        "\nAPP_LAUNCH_STATE distinguishes an accepted launch, reuse of an already foreground app, and UI readiness. Missing or unreadable nodes do not mean the app failed to start. When same_app_launch_allowed=false, continue from the current app with Wait/Inspect/Observe; do not send Launch again. A tap being accepted does not prove the intended control responded.\n"
     } else {
-        "\nAPP_LAUNCH_STATE 将启动请求已受理与页面就绪分开记录。节点缺失或读取失败不代表软件启动失败。same_app_launch_allowed=false 时，在当前 App 上继续等待或请求 Inspect/Observe，不得再次 Launch。点击受理不等于目标控件已响应。\n"
+        "\nAPP_LAUNCH_STATE 区分启动请求已受理、直接复用已在前台的 App 和页面就绪。节点缺失或读取失败不代表软件启动失败。same_app_launch_allowed=false 时，在当前 App 上继续等待或请求 Inspect/Observe，不得再次 Launch。点击受理不等于目标控件已响应。\n"
     }
 
     private const val CN = """
@@ -24,6 +24,7 @@ internal object PhoneLocalProtocol {
 3. 明确请求图片：{"action":"Inspect"}。下一轮只有新截图，不再同时读取 XML；节点编号失效，用原有单步操作处理图像。
 4. 明确请求节点：{"action":"Observe"}。下一轮只有新节点摘要。
 
+需要滑动时先 Inspect 查看可滚区域，再用本轮截图的坐标 Swipe；不得根据 zone 或 list 角色猜测坐标。当前所需按钮已显示时优先 Tap，无需先把列表滑到底。
 图像模式在原有单步动作后继续使用截图；Observe 切换到节点模式。节点动作被拒绝或尚无可验证变化时仍返回节点摘要，需要图像时明确 Inspect。
 
 把 screen/ref 换成本轮真实值。普通点击不要求猜测下一页资源 ID；先点击当前真实入口，依据返回的新页面决定下一步。Type 自动替换内容并检查逐字回读；未聚焦时先点输入框。ref 不能跨观察使用、不能保存成复用模板。
@@ -48,6 +49,7 @@ Start with compact text nodes. Return ONE existing do()/finish() command or ONE 
 3. Request an image: {"action":"Inspect"}. The next observation is screenshot-only, with no extra XML read. Node references are invalid; use existing single-step visual actions.
 4. Request nodes: {"action":"Observe"}. The next observation is node-only.
 
+Before scrolling, Inspect the actual scrollable region, then use current screenshot coordinates for Swipe; never guess coordinates from zone or the list role. Tap an already visible needed button without first scrolling to the end.
 Image mode keeps using screenshots after existing single-step actions; Observe switches to node mode. Rejected or unverified node actions still return nodes. Request Inspect explicitly when an image is needed.
 
 Use actual screen/ref values. A single Tap does not require predicting selectors on an unseen page. Navigate through the observed entry and decide from the returned page. Type replaces text and verifies exact readback; tap an unfocused input first. Never reuse a ref on another observation or save it in a template.

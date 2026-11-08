@@ -15,6 +15,7 @@ internal class PhoneAppLaunchState(
     private var awaitingInitialObservation = false
     private var observationUnavailable = false
     private var leftAcceptedApp = false
+    private var reusedForeground = false
 
     val pendingPackage: String? get() = if (awaitingInitialObservation) packageName else null
 
@@ -25,12 +26,18 @@ internal class PhoneAppLaunchState(
         awaitingInitialObservation = false
         observationUnavailable = false
         leftAcceptedApp = false
+        reusedForeground = false
     }
 
-    fun accepted(packageName: String) {
+    fun accepted(packageName: String) = beginObservation(packageName, reused = false)
+
+    fun reuseForeground(packageName: String) = beginObservation(packageName, reused = true)
+
+    private fun beginObservation(packageName: String, reused: Boolean) {
         this.packageName = packageName
         deadlineMs = nowMs() + 15_000L
-        foregroundConfirmed = false
+        foregroundConfirmed = reused
+        reusedForeground = reused
         awaitingInitialObservation = true
         observationUnavailable = false
         leftAcceptedApp = false
@@ -63,7 +70,9 @@ internal class PhoneAppLaunchState(
     fun prompt(): String {
         val launchedPackage = packageName ?: return ""
         return "[APP_LAUNCH_STATE] " + JSONObject()
-            .put("package", launchedPackage).put("launch_request", "accepted")
+            .put("package", launchedPackage)
+            .put("launch_request", if (reusedForeground) "not_dispatched" else "accepted")
+            .put("foreground_reused", reusedForeground)
             .put("foreground_confirmed", foregroundConfirmed)
             .put("ui_observation", when {
                 observationUnavailable -> "unavailable"

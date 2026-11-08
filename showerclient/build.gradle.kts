@@ -42,6 +42,8 @@ dependencies {
 
 // The server and client Binder protocol must come from the same checkout.
 val showerServerSources = rootProject.layout.projectDirectory.dir("tools/shower/app/src/main/java")
+// The Android-free schedule is compiled from this same source for client-side JVM regressions.
+android.sourceSets.getByName("main").java.srcDir(showerServerSources.dir("com/ai/assistance/shower/input").asFile)
 val showerServerAndroidJar = android.sdkDirectory.resolve("platforms/android-${requireNotNull(android.compileSdk)}/android.jar")
 val showerServerClasses = layout.buildDirectory.dir("generated/showerServer/classes")
 val showerServerAssets = layout.buildDirectory.dir("generated/showerServer/assets")

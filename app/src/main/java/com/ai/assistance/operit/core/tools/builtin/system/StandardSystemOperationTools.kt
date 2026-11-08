@@ -533,7 +533,13 @@ open class StandardSystemOperationTools(private val context: Context) {
 
         return try {
             val intent: Intent? = if (activityName.isBlank()) {
-                context.packageManager.getLaunchIntentForPackage(packageName)
+                context.packageManager.getLaunchIntentForPackage(packageName)?.apply {
+                    // Match a launcher icon: Android can bring the retained task's top page forward.
+                    action = Intent.ACTION_MAIN
+                    removeCategory(Intent.CATEGORY_INFO)
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                    addFlags(Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+                }
             } else {
                 Intent(Intent.ACTION_MAIN).also {
                     it.addCategory(Intent.CATEGORY_LAUNCHER)

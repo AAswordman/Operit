@@ -161,4 +161,43 @@ class PhoneStartupObservationTest {
             assertEquals(0L, testScheduler.currentTime)
         }
     }
+
+    @Test fun newTaskCanReuseForegroundWithoutClaimingAnotherLaunchWasSent() {
+        val state = PhoneAppLaunchState { 500L }
+        state.accepted(pkg)
+        state.reset()
+        state.reuseForeground(pkg)
+        assertTrue(state.foregroundConfirmed)
+        assertTrue(state.suppressesLaunch(pkg))
+        assertEquals(pkg, state.pendingPackage)
+        assertEquals(15500L, state.deadlineMs)
+        val status = JSONObject(state.prompt().removePrefix("[APP_LAUNCH_STATE] "))
+        assertEquals("not_dispatched", status.getString("launch_request"))
+        assertTrue(status.getBoolean("foreground_reused"))
+        assertFalse(status.getBoolean("same_app_launch_allowed"))
+    }
+
+    @Test fun failedObservationDoesNotAuthorizeRestartingAReusedForegroundPage() {
+        val state = PhoneAppLaunchState()
+        state.reuseForeground(pkg)
+        state.observationUnavailable()
+        assertTrue(state.suppressesLaunch(pkg))
+        assertTrue(state.foregroundConfirmed)
+        state.observationAvailable(pkg)
+        assertNull(state.pendingPackage)
+        assertTrue(state.suppressesLaunch(pkg))
+    }
+
+    @Test fun returningAfterHomeRecordsANewLaunchInsteadOfOldForegroundReuse() {
+        val state = PhoneAppLaunchState()
+        state.reuseForeground(pkg)
+        state.leftApp()
+        assertFalse(state.suppressesLaunch(pkg))
+        state.accepted(pkg)
+        val status = JSONObject(state.prompt().removePrefix("[APP_LAUNCH_STATE] "))
+        assertEquals("accepted", status.getString("launch_request"))
+        assertFalse(status.getBoolean("foreground_reused"))
+        assertFalse(state.foregroundConfirmed)
+    }
+
 }
