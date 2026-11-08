@@ -9236,7 +9236,7 @@
     <string name="builtin_market_source">来源</string>
     <string name="builtin_market_resource_version">资源版本</string>
     <string name="builtin_resource_import">导入内置资源包</string>
-    <string name="builtin_resource_import_hint">选择对应的插件或脚本，再导入从离线资源或内置扩展导出的 ZIP 资源包。</string>
+    <string name="builtin_resource_import_hint">选择对应的插件或脚本，再导入对应的 ZIP 资源包。</string>
     <string name="builtin_resource_no_targets">没有可导入的内置资源。</string>
     <string name="builtin_market_version">资源版本 %1$s</string>
     <string name="extension_updates_no_sources">没有可检查更新的插件或脚本。手动导入且没有市场来源的项目无法检查更新。</string>

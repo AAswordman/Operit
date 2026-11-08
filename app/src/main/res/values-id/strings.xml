@@ -8512,7 +8512,7 @@
     <string name="builtin_market_source">Sumber</string>
     <string name="builtin_market_resource_version">Versi sumber daya</string>
     <string name="builtin_resource_import">Impor sumber daya bawaan</string>
-    <string name="builtin_resource_import_hint">Pilih plugin atau skrip yang sesuai, lalu impor ZIP yang diekspor dari sumber daya offline atau ekstensi bawaan.</string>
+    <string name="builtin_resource_import_hint">Pilih plugin atau skrip yang sesuai, lalu impor paket sumber daya ZIP yang sesuai.</string>
     <string name="builtin_resource_no_targets">Tidak ada sumber daya bawaan yang dapat diimpor.</string>
     <string name="builtin_market_version">Versi sumber daya %1$s</string>
     <string name="extension_updates_no_sources">Tidak ada plugin atau skrip dengan sumber pembaruan. Item yang diimpor manual tanpa sumber pasar tidak dapat diperiksa.</string>

@@ -9105,7 +9105,7 @@
     <string name="builtin_market_source">Sursă</string>
     <string name="builtin_market_resource_version">Versiunea resursei</string>
     <string name="builtin_resource_import">Importă resurse integrate</string>
-    <string name="builtin_resource_import_hint">Selectează extensia sau scriptul corespunzător, apoi importă un ZIP exportat din resursele offline sau extensiile integrate.</string>
+    <string name="builtin_resource_import_hint">Selectează extensia sau scriptul corespunzător, apoi importă pachetul de resurse ZIP corespunzător.</string>
     <string name="builtin_resource_no_targets">Nu există resurse integrate disponibile pentru import.</string>
     <string name="builtin_market_version">Versiunea resursei %1$s</string>
     <string name="extension_updates_no_sources">Nu există extensii sau scripturi cu o sursă de actualizări. Elementele importate manual fără o sursă din magazin nu pot fi verificate.</string>

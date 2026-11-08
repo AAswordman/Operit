@@ -50,6 +50,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -64,6 +65,7 @@ internal fun PackageDetailsScreen(
         packageDescription: String,
         toolPackage: ToolPackage?,
         packageManager: PackageManager,
+        deletionScope: CoroutineScope,
         isContainerEnabled: Boolean,
         isToggling: Boolean,
         toggleError: String?,
@@ -211,7 +213,9 @@ internal fun PackageDetailsScreen(
                     onClick = {
                         isDeleting = true
                         deleteFailed = false
-                        scope.launch {
+                        // Resource refresh can remove this child before deletion resumes.
+                        // Keep success navigation in the enclosing detail route's scope.
+                        deletionScope.launch {
                             try {
                                 val deleted = withContext(Dispatchers.IO) {
                                     if (resolvedPackage?.isBuiltIn == true) {

@@ -94,6 +94,7 @@ fun PackageDetailEntryScreen(
             packageDescription = toolPackage.description.resolve(context),
             toolPackage = toolPackage,
             packageManager = packageManager,
+            deletionScope = scope,
             isContainerEnabled = enabled,
             isToggling = toggling || packageName in updating,
             toggleError = toggleError,

@@ -8580,7 +8580,7 @@
     <string name="builtin_market_source">Origen</string>
     <string name="builtin_market_resource_version">Versión del recurso</string>
     <string name="builtin_resource_import">Importar recursos integrados</string>
-    <string name="builtin_resource_import_hint">Selecciona el complemento o script correspondiente e importa un ZIP exportado desde los recursos sin conexión o las extensiones integradas.</string>
+    <string name="builtin_resource_import_hint">Selecciona el complemento o script correspondiente y luego importa el paquete de recursos ZIP correspondiente.</string>
     <string name="builtin_resource_no_targets">No hay recursos integrados disponibles para importar.</string>
     <string name="builtin_market_version">Versión del recurso %1$s</string>
     <string name="extension_updates_no_sources">No hay complementos ni scripts con un origen de actualizaciones. Los elementos importados manualmente sin un origen del mercado no se pueden comprobar.</string>
