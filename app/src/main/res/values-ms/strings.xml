@@ -7430,7 +7430,7 @@
     <string name="data_storage_extension_scripts">Skrip</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Kemahiran</string>
-    <string name="data_storage_extension_plugin_source">Sumber pemalam</string>
+    <string name="data_storage_extension_plugin_data">Data pemalam</string>
     <string name="data_storage_extension_dev_package">Pakej pembangunan</string>
     <string name="data_storage_extension_themes">Pakej tema</string>
     <string name="data_storage_extension_bridge">Jambatan MCP</string>
@@ -7439,7 +7439,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Tiada data pemalam</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8439,4 +8439,5 @@
     <string name="data_storage_detail_model_engines">Enjin masa jalan</string>
     <string name="pkg_delete_failed">Fail sambungan tidak dapat dipadam. Semak akses fail atau nyahdayakan pemalam yang bergantung padanya.</string>
     <string name="pkg_delete_success">Fail sambungan telah dipadam</string>
+    <string name="data_storage_extension_plugin_data_desc">Mengandungi buku dunia dan tetapan pemalam. Urus data ini dalam pemalam berkaitan.</string>
 </resources>

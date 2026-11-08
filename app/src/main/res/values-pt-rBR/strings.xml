@@ -7192,7 +7192,7 @@
     <string name="data_storage_extension_scripts">Scripts</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Habilidades</string>
-    <string name="data_storage_extension_plugin_source">Código-fonte dos plugins</string>
+    <string name="data_storage_extension_plugin_data">Dados de plugins</string>
     <string name="data_storage_extension_dev_package">Pacotes de desenvolvimento</string>
     <string name="data_storage_extension_themes">Pacotes de tema</string>
     <string name="data_storage_extension_bridge">Ponte MCP</string>
@@ -7201,7 +7201,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Nenhum dado de plugin</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8280,4 +8280,5 @@
     <string name="data_storage_detail_model_engines">Mecanismos de execução</string>
     <string name="pkg_delete_failed">Não foi possível excluir os arquivos da extensão. Verifique o acesso ou desative os plugins dependentes.</string>
     <string name="pkg_delete_success">Arquivos da extensão excluídos</string>
+    <string name="data_storage_extension_plugin_data_desc">Contém livros de mundo e configurações. Gerencie estes dados no plugin correspondente.</string>
 </resources>

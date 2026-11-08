@@ -8024,7 +8024,7 @@
     <string name="data_storage_extension_scripts">Scripturi</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Competențe</string>
-    <string name="data_storage_extension_plugin_source">Sursă plugin</string>
+    <string name="data_storage_extension_plugin_data">Date ale pluginurilor</string>
     <string name="data_storage_extension_dev_package">Pachete de dezvoltare</string>
     <string name="data_storage_extension_themes">Pachete de teme</string>
     <string name="data_storage_extension_bridge">Punte MCP</string>
@@ -8033,7 +8033,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Nu există date ale pluginurilor</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -9033,4 +9033,5 @@
     <string name="data_storage_detail_model_engines">Motoare de execuție</string>
     <string name="pkg_delete_failed">Fișierele extensiei nu au putut fi șterse. Verifică accesul sau dezactivează pluginurile dependente.</string>
     <string name="pkg_delete_success">Fișierele extensiei au fost șterse</string>
+    <string name="data_storage_extension_plugin_data_desc">Conține cărți de lume și setări. Gestionează aceste date în pluginul corespunzător.</string>
 </resources>

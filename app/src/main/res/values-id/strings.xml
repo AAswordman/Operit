@@ -7352,7 +7352,7 @@
     <string name="data_storage_extension_scripts">Skrip</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Skill</string>
-    <string name="data_storage_extension_plugin_source">Sumber plugin</string>
+    <string name="data_storage_extension_plugin_data">Data plugin</string>
     <string name="data_storage_extension_dev_package">Paket pengembangan</string>
     <string name="data_storage_extension_themes">Paket tema</string>
     <string name="data_storage_extension_bridge">Jembatan MCP</string>
@@ -7361,7 +7361,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Tidak ada data plugin</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8440,4 +8440,5 @@
     <string name="data_storage_detail_model_engines">Mesin runtime</string>
     <string name="pkg_delete_failed">File ekstensi tidak dapat dihapus. Periksa akses file atau nonaktifkan plugin yang bergantung padanya.</string>
     <string name="pkg_delete_success">File ekstensi telah dihapus</string>
+    <string name="data_storage_extension_plugin_data_desc">Berisi buku dunia dan pengaturan plugin. Kelola data ini di plugin terkait.</string>
 </resources>

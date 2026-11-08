@@ -8272,7 +8272,7 @@
     <string name="data_storage_extension_scripts">脚本</string>
     <string name="data_storage_extension_mcp">模型上下文协议</string>
     <string name="data_storage_extension_skills">技能</string>
-    <string name="data_storage_extension_plugin_source">插件源码</string>
+    <string name="data_storage_extension_plugin_data">插件数据</string>
     <string name="data_storage_extension_dev_package">开发包</string>
     <string name="data_storage_extension_themes">主题包</string>
     <string name="data_storage_extension_bridge">模型上下文协议桥接</string>
@@ -8281,7 +8281,7 @@
     <string name="data_storage_extension_scripts_empty">暂无脚本</string>
     <string name="data_storage_extension_mcp_empty">暂无模型上下文协议服务</string>
     <string name="data_storage_extension_skills_empty">暂无技能</string>
-    <string name="data_storage_extension_plugin_source_empty">暂无插件源码</string>
+    <string name="data_storage_extension_plugin_data_empty">暂无插件数据</string>
     <string name="data_storage_extension_dev_package_empty">暂无开发包</string>
     <string name="data_storage_extension_themes_empty">暂无主题包</string>
     <string name="data_storage_extension_bridge_empty">暂无模型上下文协议桥接文件</string>
@@ -9164,4 +9164,5 @@
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>
     <string name="toolreg_terminal_task_desc">终端托管任务操作：%1$s</string>
+    <string name="data_storage_extension_plugin_data_desc">包含世界书和插件设置，请在对应插件中管理这些数据。</string>
 </resources>

@@ -468,7 +468,7 @@
     <string name="data_storage_extension_scripts">スクリプト</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">スキル</string>
-    <string name="data_storage_extension_plugin_source">プラグインソース</string>
+    <string name="data_storage_extension_plugin_data">プラグインデータ</string>
     <string name="data_storage_extension_dev_package">開発パッケージ</string>
     <string name="data_storage_extension_themes">テーマパッケージ</string>
     <string name="data_storage_extension_bridge">MCP ブリッジ</string>
@@ -477,7 +477,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">プラグインデータはありません</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8277,4 +8277,5 @@
     <string name="data_storage_detail_model_engines">実行エンジン</string>
     <string name="pkg_delete_failed">拡張機能のファイルを削除できません。アクセス権を確認するか、依存するプラグインを無効にして再試行してください。</string>
     <string name="pkg_delete_success">拡張機能のファイルを削除しました</string>
+    <string name="data_storage_extension_plugin_data_desc">ワールドブックや設定が含まれます。対応するプラグインで管理してください。</string>
 </resources>

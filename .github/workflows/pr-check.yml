@@ -24,6 +24,38 @@ env:
   MANUAL_DEPS_DIR: manual-deps
 
 jobs:
+  worldbook:
+    name: World book storage regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+      - name: Install TypeScript dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Compile and verify world book storage
+        run: |
+          npx --no-install tsc -p examples/worldbook/tsconfig.json
+          npx --no-install tsc -p examples/worldbook/tsconfig.tests.json
+          node --test examples/worldbook/tests-dist/*.test.js examples/worldbook/tests/*.test.cjs
+      - name: Upload world book distribution
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: worldbook-distribution
+          path: |
+            examples/worldbook/dist/
+            examples/worldbook/tests-dist/
+          retention-days: 7
   fast:
     name: Fast checks
     runs-on: ubuntu-24.04
@@ -586,7 +618,7 @@ jobs:
 
   candidate:
     name: Candidate checks
-    needs: [fast, android_build, android_tests]
+    needs: [fast, worldbook, android_build, android_tests]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -595,6 +627,7 @@ jobs:
       - name: Require selected checks
         env:
           FAST_RESULT: ${{ needs.fast.result }}
+          WORLDBOOK_RESULT: ${{ needs.worldbook.result }}
           ANDROID_BUILD_REQUIRED: ${{ needs.fast.result == 'success' && needs.fast.outputs.android_full == 'true' }}
           ANDROID_BUILD_RESULT: ${{ needs.android_build.result }}
           ANDROID_TESTS_REQUIRED: ${{ needs.fast.result == 'success' && (needs.fast.outputs.android_jvm == 'true' || needs.fast.outputs.android_full == 'true') }}
@@ -624,6 +657,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
           check_stage fast true "$FAST_RESULT"
+          check_stage worldbook true "$WORLDBOOK_RESULT"
           check_stage android-build "$ANDROID_BUILD_REQUIRED" "$ANDROID_BUILD_RESULT"
           check_stage android-jvm-tests "$ANDROID_TESTS_REQUIRED" "$ANDROID_TESTS_RESULT"
 

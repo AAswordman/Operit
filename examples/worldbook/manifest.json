@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "toolpkg_id": "com.operit.worldbook",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "api_version": "1.0.0",
   "main": "dist/main.js",
   "author": [

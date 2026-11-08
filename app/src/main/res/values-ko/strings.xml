@@ -7199,7 +7199,7 @@
     <string name="data_storage_extension_scripts">스크립트</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">스킬</string>
-    <string name="data_storage_extension_plugin_source">플러그인 소스</string>
+    <string name="data_storage_extension_plugin_data">플러그인 데이터</string>
     <string name="data_storage_extension_dev_package">개발 패키지</string>
     <string name="data_storage_extension_themes">테마 패키지</string>
     <string name="data_storage_extension_bridge">MCP 브리지</string>
@@ -7208,7 +7208,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">플러그인 데이터 없음</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -8287,4 +8287,5 @@
     <string name="data_storage_detail_model_engines">실행 엔진</string>
     <string name="pkg_delete_failed">확장 파일을 삭제할 수 없습니다. 파일 권한을 확인하거나 의존 플러그인을 비활성화한 후 다시 시도하세요.</string>
     <string name="pkg_delete_success">확장 설치 파일을 삭제했습니다</string>
+    <string name="data_storage_extension_plugin_data_desc">월드북과 플러그인 설정이 포함됩니다. 해당 플러그인에서 관리하세요.</string>
 </resources>
