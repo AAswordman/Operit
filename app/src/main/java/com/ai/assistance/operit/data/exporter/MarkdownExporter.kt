@@ -16,7 +16,7 @@ object MarkdownExporter {
     /**
      * 导出单个对话为 Markdown
      */
-    fun exportSingle(context: Context, chatHistory: ChatHistory, folderPath: String? = null): String {
+    fun exportSingle(context: Context, chatHistory: ChatHistory): String {
         val sb = StringBuilder()
 
         // 结构化元数据注释 (简化格式)
@@ -26,8 +26,8 @@ object MarkdownExporter {
         metaParts.add("title=${chatHistory.title}")
         metaParts.add("created=${chatHistory.createdAt.format(dateFormatter)}")
         metaParts.add("updated=${chatHistory.updatedAt.format(dateFormatter)}")
-        if (folderPath != null) {
-            metaParts.add("folder=${folderPath}")
+        if (chatHistory.group != null) {
+            metaParts.add("group=${chatHistory.group}")
         }
         sb.appendLine("<!-- chat-info: ${metaParts.joinToString(", ")} -->")
 
@@ -36,8 +36,8 @@ object MarkdownExporter {
         sb.appendLine("title: ${chatHistory.title}")
         sb.appendLine("created: ${chatHistory.createdAt.format(dateFormatter)}")
         sb.appendLine("updated: ${chatHistory.updatedAt.format(dateFormatter)}")
-        if (folderPath != null) {
-            sb.appendLine("folder: $folderPath")
+        if (chatHistory.group != null) {
+            sb.appendLine("group: ${chatHistory.group}")
         }
         sb.appendLine("messages: ${chatHistory.messages.size}")
         sb.appendLine("---")
@@ -50,8 +50,8 @@ object MarkdownExporter {
         // 元信息
         sb.appendLine(context.getString(R.string.markdown_export_created_time, chatHistory.createdAt.format(dateFormatter)))
         sb.appendLine(context.getString(R.string.markdown_export_updated_time, chatHistory.updatedAt.format(dateFormatter)))
-        if (folderPath != null) {
-            sb.appendLine(context.getString(R.string.markdown_export_group, folderPath))
+        if (chatHistory.group != null) {
+            sb.appendLine(context.getString(R.string.markdown_export_group, chatHistory.group))
         }
         sb.appendLine()
         sb.appendLine("---")
@@ -68,11 +68,7 @@ object MarkdownExporter {
     /**
      * 导出多个对话为 Markdown
      */
-    fun exportMultiple(
-        context: Context,
-        chatHistories: List<ChatHistory>,
-        folderPathsByChatId: Map<String, String> = emptyMap(),
-    ): String {
+    fun exportMultiple(context: Context, chatHistories: List<ChatHistory>): String {
         val sb = StringBuilder()
 
         sb.appendLine(context.getString(R.string.markdown_export_title))
@@ -91,7 +87,7 @@ object MarkdownExporter {
                 sb.appendLine()
             }
 
-            sb.append(exportSingle(context, chatHistory, folderPathsByChatId[chatHistory.id]))
+            sb.append(exportSingle(context, chatHistory))
         }
 
         return sb.toString()

@@ -229,6 +229,7 @@ private fun RecentChatSelectorOverlay(
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
     val userPreferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val coroutineScope = rememberCoroutineScope()
+    val ungroupedText = stringResource(R.string.ungrouped)
     val items = remember(chatHistories) {
         chatHistories.sortedByDescending { it.updatedAt }.take(20)
     }
@@ -279,6 +280,7 @@ private fun RecentChatSelectorOverlay(
                     items(items) { history ->
                         val isActive = history.id == currentChatId
                         val avatarUri = avatarUriMap[history.id]
+                        val groupText = history.group?.takeIf { it.isNotBlank() } ?: ungroupedText
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -323,6 +325,13 @@ private fun RecentChatSelectorOverlay(
                                     text = history.title,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = groupText,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )

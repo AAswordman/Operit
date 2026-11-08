@@ -9,41 +9,11 @@ data class OperitChatArchive(
     val archiveType: String = ARCHIVE_TYPE,
     val formatVersion: Int = CURRENT_FORMAT_VERSION,
     val exportedAt: Long = System.currentTimeMillis(),
-    val folders: List<OperitArchivedFolder> = emptyList(),
     val chats: List<OperitArchivedChat>,
 ) {
     companion object {
         const val ARCHIVE_TYPE = "operit_chat_archive"
-        const val CURRENT_FORMAT_VERSION = 4
-    }
-}
-
-@Serializable
-data class OperitArchivedFolder(
-    val id: String,
-    val name: String,
-    val parentFolderId: String? = null,
-    val displayOrder: Long = 0L,
-    val createdAt: Long,
-) {
-    fun toEntity(): ChatFolderEntity =
-        ChatFolderEntity(
-            id = id,
-            name = name,
-            parentFolderId = parentFolderId,
-            displayOrder = displayOrder,
-            createdAt = createdAt,
-        )
-
-    companion object {
-        fun fromEntity(entity: ChatFolderEntity): OperitArchivedFolder =
-            OperitArchivedFolder(
-                id = entity.id,
-                name = entity.name,
-                parentFolderId = entity.parentFolderId,
-                displayOrder = entity.displayOrder,
-                createdAt = entity.createdAt,
-            )
+        const val CURRENT_FORMAT_VERSION = 2
     }
 }
 
@@ -60,7 +30,6 @@ data class OperitArchivedChat(
     val outputTokens: Long = 0L,
     val currentWindowSize: Long = 0L,
     val group: String? = null,
-    val folderId: String? = null,
     val displayOrder: Long = 0L,
     val workspace: String? = null,
     val workspaceEnv: String? = null,
@@ -69,9 +38,8 @@ data class OperitArchivedChat(
     val characterGroupId: String? = null,
     val locked: Boolean = false,
     val pinned: Boolean = false,
-    val isFavorite: Boolean? = null,
 ) {
-    fun toChatHistory(resolvedFavorite: Boolean, folderId: String? = this.folderId): ChatHistory {
+    fun toChatHistory(): ChatHistory {
         return ChatHistory(
             id = id,
             title = title,
@@ -81,7 +49,7 @@ data class OperitArchivedChat(
             inputTokens = inputTokens,
             outputTokens = outputTokens,
             currentWindowSize = currentWindowSize,
-            folderId = folderId,
+            group = group,
             displayOrder = displayOrder,
             workspace = workspace,
             workspaceEnv = workspaceEnv,
@@ -90,7 +58,6 @@ data class OperitArchivedChat(
             characterGroupId = characterGroupId,
             locked = locked,
             pinned = pinned,
-            isFavorite = resolvedFavorite,
         )
     }
 
@@ -108,8 +75,7 @@ data class OperitArchivedChat(
                 inputTokens = history.inputTokens,
                 outputTokens = history.outputTokens,
                 currentWindowSize = history.currentWindowSize,
-                group = null,
-                folderId = history.folderId,
+                group = history.group,
                 displayOrder = history.displayOrder,
                 workspace = history.workspace,
                 workspaceEnv = history.workspaceEnv,
@@ -118,7 +84,6 @@ data class OperitArchivedChat(
                 characterGroupId = history.characterGroupId,
                 locked = history.locked,
                 pinned = history.pinned,
-                isFavorite = history.isFavorite,
             )
         }
     }

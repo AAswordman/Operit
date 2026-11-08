@@ -13,7 +13,6 @@ import {
   getMessages,
   getModelSelector,
   getTheme,
-  listChatFolders,
   listChats,
   renameGroup as renameGroupOnServer,
   reorderChats as reorderChatsOnServer,
@@ -45,7 +44,6 @@ import type {
   WebActivePromptSnapshot,
   WebActivePromptTarget,
   WebBootstrapResponse,
-  WebChatFolderSummary,
   WebChatMessage,
   WebChatMessageLocatorPreview,
   WebChatReorderItem,
@@ -452,7 +450,6 @@ export interface ChatViewModelState {
   modelSelector: WebModelSelectorState | null;
   modelSelectorLoading: boolean;
   chats: WebChatSummary[];
-  chatFolders: WebChatFolderSummary[];
   visibleChats: WebChatSummary[];
   selectedChatId: string | null;
   selectedChat: WebChatSummary | null;
@@ -528,8 +525,6 @@ export interface ChatViewModelActions {
     payload: {
       title?: string;
       group?: string | null;
-      folder_id?: string | null;
-      update_folder?: boolean;
       update_group?: boolean;
       locked?: boolean;
       update_locked?: boolean;
@@ -538,23 +533,12 @@ export interface ChatViewModelActions {
       update_binding?: boolean;
     }
   ) => Promise<WebChatSummary | null>;
-  reorderConversations: (
-    expectedItems: WebChatReorderItem[],
-    items: WebChatReorderItem[]
-  ) => Promise<void>;
-  renameGroup: (
-    oldName: string,
-    newName: string,
-    characterCardName?: string | null,
-    folderId?: string | null,
-    characterGroupId?: string | null
-  ) => Promise<void>;
+  reorderConversations: (items: WebChatReorderItem[]) => Promise<void>;
+  renameGroup: (oldName: string, newName: string, characterCardName?: string | null) => Promise<void>;
   deleteGroup: (
     groupName: string,
     deleteChats: boolean,
-    characterCardName?: string | null,
-    folderId?: string | null,
-    characterGroupId?: string | null
+    characterCardName?: string | null
   ) => Promise<void>;
   updateInputSettings: (
     payload: Partial<{
@@ -593,7 +577,6 @@ export function useChatViewModel(): ChatViewModel {
   const [modelSelector, setModelSelector] = useState<WebModelSelectorState | null>(null);
   const [modelSelectorLoading, setModelSelectorLoading] = useState(false);
   const [chats, setChats] = useState<WebChatSummary[]>([]);
-  const [chatFolders, setChatFolders] = useState<WebChatFolderSummary[]>([]);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<WebChatMessage[]>([]);
   const [messageInput, setMessageInput] = useState('');
@@ -722,12 +705,8 @@ export function useChatViewModel(): ChatViewModel {
   }
 
   async function refreshChats(currentToken: string) {
-    const [chatList, folderList] = await Promise.all([
-      listChats(currentToken),
-      listChatFolders(currentToken)
-    ]);
+    const chatList = await listChats(currentToken);
     setChats(chatList);
-    setChatFolders(folderList);
     setHistoryLoaded(true);
     return chatList;
   }
@@ -842,7 +821,6 @@ export function useChatViewModel(): ChatViewModel {
       setModelSelector(null);
       setModelSelectorLoading(false);
       setChats([]);
-      setChatFolders([]);
       resetChatDrafts();
       pendingHistorySyncRef.current.clear();
       setMessages([]);
@@ -1470,8 +1448,6 @@ export function useChatViewModel(): ChatViewModel {
     payload: {
       title?: string;
       group?: string | null;
-      folder_id?: string | null;
-      update_folder?: boolean;
       update_group?: boolean;
       locked?: boolean;
       update_locked?: boolean;
@@ -1504,16 +1480,13 @@ export function useChatViewModel(): ChatViewModel {
     }
   }
 
-  async function reorderConversations(
-    expectedItems: WebChatReorderItem[],
-    items: WebChatReorderItem[]
-  ) {
+  async function reorderConversations(items: WebChatReorderItem[]) {
     if (!token || items.length === 0) {
       return;
     }
 
     try {
-      await reorderChatsOnServer(token, expectedItems, items);
+      await reorderChatsOnServer(token, items);
       await refreshChats(token);
     } catch (actionError: unknown) {
       handleApiFailure(actionError);
@@ -1523,9 +1496,7 @@ export function useChatViewModel(): ChatViewModel {
   async function renameGroup(
     oldName: string,
     newName: string,
-    characterCardName?: string | null,
-    folderId?: string | null,
-    characterGroupId?: string | null
+    characterCardName?: string | null
   ) {
     if (!token) {
       return;
@@ -1541,9 +1512,7 @@ export function useChatViewModel(): ChatViewModel {
       await renameGroupOnServer(token, {
         old_name: normalizedOldName,
         new_name: normalizedNewName,
-        character_card_name: characterCardName ?? null,
-        character_group_id: characterGroupId ?? null,
-        folder_id: folderId ?? null
+        character_card_name: characterCardName ?? null
       });
       await refreshChats(token);
     } catch (actionError: unknown) {
@@ -1554,9 +1523,7 @@ export function useChatViewModel(): ChatViewModel {
   async function deleteGroup(
     groupName: string,
     deleteChats: boolean,
-    characterCardName?: string | null,
-    folderId?: string | null,
-    characterGroupId?: string | null
+    characterCardName?: string | null
   ) {
     if (!token) {
       return;
@@ -1571,9 +1538,7 @@ export function useChatViewModel(): ChatViewModel {
       await deleteGroupOnServer(token, {
         group_name: normalizedGroupName,
         delete_chats: deleteChats,
-        character_card_name: characterCardName ?? null,
-        character_group_id: characterGroupId ?? null,
-        folder_id: folderId ?? null
+        character_card_name: characterCardName ?? null
       });
       const refreshedChats = await refreshChats(token);
       if (selectedChatId && !refreshedChats.some((chat) => chat.id === selectedChatId)) {
@@ -1762,7 +1727,6 @@ export function useChatViewModel(): ChatViewModel {
     modelSelector,
     modelSelectorLoading,
     chats,
-    chatFolders,
     visibleChats,
     selectedChatId,
     selectedChat,

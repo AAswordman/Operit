@@ -97,14 +97,11 @@ class ChatEntityTest {
             outputTokens = 50,
             currentWindowSize = 10,
             group = "group1",
-            folderId = "folder1",
             workspace = "workspace1",
             parentChatId = "parent1",
             characterCardName = "char1",
             locked = true,
             pinned = true,
-            isFavorite = true,
-            lastMessageAt = 1234L,
         )
         val history = entity.toChatHistory(emptyList())
         assertEquals("test-id", history.id)
@@ -113,17 +110,12 @@ class ChatEntityTest {
         assertEquals(100, history.inputTokens)
         assertEquals(50, history.outputTokens)
         assertEquals(10, history.currentWindowSize)
-        // The migrated group is diagnostic-only; the current folder may have been renamed or moved.
-        assertNull(history.group)
-        assertEquals("folder1", history.folderId)
+        assertEquals("group1", history.group)
         assertEquals("workspace1", history.workspace)
         assertEquals("parent1", history.parentChatId)
         assertEquals("char1", history.characterCardName)
         assertEquals(true, history.locked)
         assertEquals(true, history.pinned)
-        assertTrue(history.isFavorite)
-        assertEquals(1234L, history.lastMessageAtEpochMillis)
-        assertNotNull(history.lastMessageAt)
         assertNotNull(history.createdAt)
         assertNotNull(history.updatedAt)
     }
@@ -140,16 +132,13 @@ class ChatEntityTest {
         assertEquals("Hello", history.messages[1].content)
     }
 
-    @Test fun `fromChatHistory round trip preserves folder metadata without legacy group`() {
+    @Test fun `fromChatHistory round trip`() {
         val original = ChatEntity(
             id = "round-trip-id",
             title = "Round Trip",
             inputTokens = 50,
             outputTokens = 25,
             group = "test-group",
-            folderId = "current-folder",
-            isFavorite = true,
-            lastMessageAt = 1234L,
         )
         val history = original.toChatHistory(emptyList())
         val roundTripped = ChatEntity.fromChatHistory(history)
@@ -157,29 +146,7 @@ class ChatEntityTest {
         assertEquals(original.title, roundTripped.title)
         assertEquals(original.inputTokens, roundTripped.inputTokens)
         assertEquals(original.outputTokens, roundTripped.outputTokens)
-        assertNull(roundTripped.group)
-        assertEquals(original.folderId, roundTripped.folderId)
-        assertEquals(original.isFavorite, roundTripped.isFavorite)
-        assertEquals(original.lastMessageAt, roundTripped.lastMessageAt)
-        assertEquals(original.createdAt, roundTripped.createdAt)
-    }
-
-    @Test fun `fromChatHistory does not revive legacy group from an incoming history`() {
-        // Legacy input must be resolved at the import/API boundary, not during ordinary model conversion.
-        for (folderId in listOf(null, "resolved-folder")) {
-            val history = ChatHistory(
-                id = "legacy-input",
-                title = "Legacy input",
-                messages = emptyList(),
-                createdAt = LocalDateTime.of(2026, 1, 1, 0, 0),
-                updatedAt = LocalDateTime.of(2026, 1, 1, 0, 0),
-                group = "old-folder-name",
-                folderId = folderId,
-            )
-            val entity = ChatEntity.fromChatHistory(history)
-            assertNull(entity.group)
-            assertEquals(folderId, entity.folderId)
-        }
+        assertEquals(original.group, roundTripped.group)
     }
 
     @Test fun `fromChatHistory computes displayOrder when zero`() {

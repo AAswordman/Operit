@@ -1,7 +1,6 @@
 package com.ai.assistance.operit.integrations.externalchat
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.ChatCreationResultData
 import com.ai.assistance.operit.core.tools.ChatListResultData
 import com.ai.assistance.operit.core.tools.MessageSendResultData
 import com.ai.assistance.operit.core.tools.defaultTool.standard.MessageSendStreamSession
@@ -175,44 +174,23 @@ class ExternalChatRequestExecutor(context: Context) {
             }
         }
 
-        var createdChatId: String? = null
         if (request.createNewChat) {
             val params = mutableListOf<ToolParameter>()
             request.group?.trim()?.takeIf { it.isNotBlank() }?.let {
                 params += ToolParameter(name = "group", value = it)
             }
-            request.folderId?.trim()?.takeIf { it.isNotBlank() }?.let {
-                params += ToolParameter(name = "folder_id", value = it)
-            }
-            val createResult = chatTool.createNewChat(
+            chatTool.createNewChat(
                 AITool(
                     name = "create_new_chat",
                     parameters = params
                 )
             )
-            createdChatId =
-                (createResult.result as? ChatCreationResultData)
-                    ?.chatId
-                    ?.takeIf { createResult.success && it.isNotBlank() }
-            if (createdChatId == null) {
-                return PreparationResult.Failed(
-                    ExternalChatResult(
-                        requestId = requestId,
-                        success = false,
-                        error =
-                            createResult.error?.takeIf { it.isNotBlank() }
-                                ?: "Failed to create chat",
-                    )
-                )
-            }
         }
 
         val sendParams = mutableListOf(
             ToolParameter(name = "message", value = message)
         )
-        if (request.createNewChat) {
-            sendParams += ToolParameter(name = "chat_id", value = requireNotNull(createdChatId))
-        } else {
+        if (!request.createNewChat) {
             request.chatId?.trim()?.takeIf { it.isNotBlank() }?.let {
                 sendParams += ToolParameter(name = "chat_id", value = it)
             }

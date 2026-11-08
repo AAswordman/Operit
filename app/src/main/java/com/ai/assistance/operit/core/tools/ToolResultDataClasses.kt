@@ -1997,8 +1997,7 @@ data class ChatCreationResultData(
 data class ChatListResultData(
     val totalCount: Int,
     val currentChatId: String?,
-    val chats: List<ChatInfo>,
-    val folders: List<FolderInfo> = emptyList(),
+    val chats: List<ChatInfo>
 ) : ToolResultData() {
     
     @Serializable
@@ -2013,15 +2012,7 @@ data class ChatListResultData(
         val outputTokens: Long,
         val characterCardName: String? = null,
         val characterCardId: String? = null,
-        val characterGroupId: String? = null,
-        val folderId: String? = null,
-    )
-
-    @Serializable
-    data class FolderInfo(
-        val id: String,
-        val name: String,
-        val parentFolderId: String? = null,
+        val characterGroupId: String? = null
     )
     
     override fun toString(): String {
@@ -2031,16 +2022,6 @@ data class ChatListResultData(
             sb.appendLine("Current Chat ID: $currentChatId")
         }
         sb.appendLine()
-
-        if (folders.isNotEmpty()) {
-            sb.appendLine("Chat Folders:")
-            folders.forEach { folder ->
-                sb.appendLine(
-                    "Folder ID: ${folder.id}; Name: ${folder.name}; Parent Folder ID: ${folder.parentFolderId ?: "root"}"
-                )
-            }
-            sb.appendLine()
-        }
 
         if (chats.isEmpty()) {
             sb.appendLine("No chats")
@@ -2059,7 +2040,6 @@ data class ChatListResultData(
                 if (!chat.characterGroupId.isNullOrBlank()) {
                     sb.appendLine("Character Group ID: ${chat.characterGroupId}")
                 }
-                sb.appendLine("Folder ID: ${chat.folderId ?: "ungrouped"}")
                 sb.appendLine("Token Statistics: Input ${chat.inputTokens} / Output ${chat.outputTokens}")
                 sb.appendLine("Created: ${chat.createdAt}")
                 sb.appendLine("Updated: ${chat.updatedAt}")
