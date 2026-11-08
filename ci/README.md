@@ -63,3 +63,23 @@ MNN 使用官方 `3.6.1` 发布提交 `d407447ed56c4121a11ccbd266dc184ca1ead0c2`
 JVM lane 只下载 `libs.zip`，完整 Android lane 下载 `libs.zip` 和 `jniLibs.zip` 两个固定归档；导出模板由应用从个人仓库的固定资源 Release 按需下载，不参与 APK 构建。`download_android_dependencies.sh` 使用固定 Google Drive file ID；`prepare_android_dependencies.py` 限制成员数量、解压大小、压缩比和文件类型，重建固定输出根目录，只验证本次实际解出的文件，并拒绝越界路径、重复成员及符号链接。原生源码依赖由各模块通过 `cmake/operit_git_source.cmake` 下载固定 GitHub archive。`arsc.jar` 已无消费者，`smart-exception` 改由 Maven Central 提供，`android-gif-drawable` 的重复 native 库也不会从归档写入构建目录。应用打包前，Gradle 会检查外部构建的 `liboperit_ripgrep.so`，以及本地 FFmpegKit AAR 中 10 个 arm64 native 库；缺失或零长度文件会使打包失败。共用的 Silero VAD 由 Gradle 按 `app/config/stt-model-assets.properties` 获取到生成 assets 目录并校验 SHA-256；大型 Sherpa-NCNN 模型不打进 APK。外置资源的大小、SHA-256、来源和许可说明固定在 `app/config/offline-resources.properties`，模型、Ubuntu 归档和导出模板的离线使用说明见 `docs/TODO/feat/offline-resources/01-implementation.md`。
 
 这些 Drive 归档目前还没有内容 hash。归档内容寻址与许可证清单继续由[外部制品清单计划](../docs/TODO/ci/refactor_building_sys/3_ExternalArtifactManifest.md)跟踪，在取得并审计真实归档前不记录推测值。STT 模型资产已有逐文件来源和 hash，但 Sherpa NCNN 模型上游元数据尚未声明许可证，发布前仍需完成许可证审计。
+
+## Terminal core sync
+
+`terminal/` 是 `3316891527/OperitTerminalCore` 的 Git 子模块。同一提交的受版本控制文件完全一致；主应用记录固定提交，独立仓库的默认分支用于展示已经被应用采用的最新终端版本。
+
+[Sync terminal core](../.github/workflows/sync-terminal-core.yml) 在 `dev`、`main` 更新 `terminal`、`.gitmodules` 或同步实现时自动调用 [同步脚本](script/sync_terminal_core.py)。它不初始化子模块、不编译应用，读取两个分支最新应用提交的 gitlink、选择包含另一版本的较新提交后，通过 GitHub API 快进终端仓库的默认分支。运行摘要记录触发提交、两个分支的终端引用和更新前后版本。同组等待运行可能被后续事件合并，每次读取最新引用可避免漏同步。
+
+沿用源码仓库的 `OPERIT_DISTRIBUTION_TOKEN` secret，该凭据需对 `3316891527/OperitTerminalCore` 具有 Contents 写权限。工作流只处理维护者仓库的 `dev`、`main`，不在 PR 或其他 fork 中使用该凭据。
+
+后续开发仍在终端子模块内提交并推送核心代码，再在 Operit 中提交 `terminal` 引用；合入 `dev` 后自动更新终端默认分支，无需另行复制文件或手工合并默认分支。没有提交或没有推送的本地修改不包含在 gitlink 中。主应用中的终端页面、工具适配代码仍由主应用维护。
+
+终端默认分支已经一致时不写入；它已经包含应用引用时保留较新版本，因此旧发布分支的事件不会倒退终端版本。历史分叉、未发布的终端提交、凭据权限不足均使工作流失败，维护者需修正原因后重新运行。
+
+本地只读预览：
+
+```bash
+GH_TOKEN=... python3 -B ci/script/sync_terminal_core.py --dry-run
+```
+
+实际执行将省略 `--dry-run`。GitHub Actions 的 `Sync terminal core` 也提供手动运行入口，只能选择 `dev` 或 `main`。
