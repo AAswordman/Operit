@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">일시 대기 중: %1$d초 남음</string>
+    <string name="api_key_pool_cooling_summary">%1$d개 키가 일시 대기 중 · 최소 %2$d초 남음</string>
+    <string name="api_key_pool_states_cleared">테스트 마크 및 임시 쿨타임이 삭제되었습니다.</string>
+    <string name="api_key_pool_no_available_marks">구성 \"%1$s\"는 사용 가능한 것으로 표시된 키를 테스트하지 않습니다. 먼저 표시를 지우고 다시 테스트하십시오.</string>
+    <string name="api_key_pool_all_cooling">«%1$s»의 후보 키가 일시 대기 중입니다. %2$d초 후 다시 시도할 수 있습니다.</string>
+    <string name="api_key_pool_already_tried">이 요청에서 \"%1$s\" 구성에 대한 모든 후보 키가 시도되었습니다. 나중에 다시 시도하십시오.</string>
+    <string name="api_key_pool_no_enabled_keys">구성 \'%1$s\'에는 사용 가능한 활성화된 키가 없습니다. 키 풀 구성을 확인하세요.</string>
+    <string name="api_key_pool_endpoint_error">요청 주소 또는 방법이 존재하지 않습니다. 서비스 제공업체 유형을 확인하고 API 경로를 완료하세요. 사용자 정의 경로(예: /v2)는 있는 그대로 사용되며, OpenAI 호환 인터페이스는 일반적으로 /chat/completions에 입력해야 합니다. 원래 오류: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">모델 «%1$s» 일시 대기 중: %2$d초 남음</string>
+</resources>

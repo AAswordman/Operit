@@ -1,29 +1,33 @@
 package com.ai.assistance.operit.services.core
 
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
 import com.ai.assistance.operit.core.chat.AIMessageManager
+import com.ai.assistance.operit.core.chat.context.ContextWindowBreakdown
+import com.ai.assistance.operit.core.chat.context.ContextWindowBreakdownEstimator
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.config.FunctionalPrompts
-import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
-import com.ai.assistance.operit.api.chat.llmprovider.AIService
-import com.ai.assistance.operit.data.model.ModelParameter
+import com.ai.assistance.operit.api.chat.runtime.MultiServiceManager
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.data.config.model.ModelParameter
 import com.ai.assistance.operit.data.model.CharacterCard
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
-import com.ai.assistance.operit.data.model.ChatTurnOptions
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
-import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.core.tools.ToolProgressBus
-import com.ai.assistance.operit.ui.features.chat.viewmodel.UiStateDelegate
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.core.tools.runtime.ToolProgressBus
+import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.UiStateDelegate
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
@@ -33,12 +37,15 @@ import com.ai.assistance.operit.data.preferences.ModelConfigManager
 import com.ai.assistance.operit.data.preferences.FunctionalConfigManager
 import com.ai.assistance.operit.data.preferences.FunctionConfigMapping
 import com.ai.assistance.operit.services.ChatServiceUiBridge
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.ChatUtils
-import com.ai.assistance.operit.util.LocaleUtils
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.context.ChatUtils
+import com.ai.assistance.operit.util.android.LocaleUtils
 import com.ai.assistance.operit.data.repository.MemoryAutoSaveCandidateRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -46,9 +53,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
@@ -95,11 +103,17 @@ class MessageCoordinationDelegate(
     private var summaryJob: Job? = null
     private var sendTriggeredSummaryJob: Job? = null
 
-    // 保存当前的 promptFunctionType，用于自动继续时保持提示词一致性
-    private var currentPromptFunctionType: PromptFunctionType = PromptFunctionType.CHAT
-    private var currentChatModelConfigIdOverride: String? = null
-    private var currentChatModelIndexOverride: Int? = null
-    private var currentMemorySpaceIdOverride: String? = null
+    private data class ChatRequestConfiguration(
+        val promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        val modelConfigId: String? = null,
+        val modelIndex: Int? = null,
+        val memorySpaceId: String? = null,
+    )
+
+    private val requestConfigurationByChatId = ConcurrentHashMap<String, ChatRequestConfiguration>()
+
+    private fun requestConfigurationFor(chatId: String): ChatRequestConfiguration =
+        requestConfigurationByChatId.getOrPut(chatId) { ChatRequestConfiguration() }
 
     private var nonFatalErrorCollectorJob: Job? = null
     private val characterCardManager = CharacterCardManager.getInstance(context)
@@ -121,6 +135,8 @@ class MessageCoordinationDelegate(
 
     private val pendingAutoContinuationByChatId =
         ConcurrentHashMap<String, PendingAutoContinuationRequest>()
+    private val stableWindowRefreshJobsByChatId = ConcurrentHashMap<String, Job>()
+    private val stableWindowRefreshMutexesByChatId = ConcurrentHashMap<String, Mutex>()
 
     init {
         ensureNonFatalErrorCollectorStarted()
@@ -130,14 +146,14 @@ class MessageCoordinationDelegate(
         if (nonFatalErrorCollectorJob?.isActive == true) return
         nonFatalErrorCollectorJob = coroutineScope.launch {
             messageProcessingDelegate.nonFatalErrorEvent.collect { errorMessage ->
-                uiStateDelegate.showToast(errorMessage)
+                OKToast.requestError(context, errorMessage).show()
             }
         }
     }
 
 
 
-    private fun fallbackConversationTitle(userText: String, attachments: List<com.ai.assistance.operit.data.model.AttachmentInfo>): String {
+    private fun fallbackConversationTitle(userText: String, attachments: List<com.ai.assistance.operit.core.chat.attachment.AttachmentInfo>): String {
         return attachments.firstOrNull()?.fileName?.trim()?.takeIf { it.isNotBlank() }
             ?: context.getString(R.string.new_conversation)
     }
@@ -145,7 +161,7 @@ class MessageCoordinationDelegate(
     private fun launchConversationTitleGeneration(
         chatId: String,
         userText: String,
-        attachments: List<com.ai.assistance.operit.data.model.AttachmentInfo>,
+        attachments: List<com.ai.assistance.operit.core.chat.attachment.AttachmentInfo>,
         fallbackTitle: String
     ) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -199,6 +215,40 @@ class MessageCoordinationDelegate(
             chatModelIndexOverride = chatModelIndexOverride,
             memorySpaceIdOverride = memorySpaceIdOverride,
             publishEstimate = false
+        )
+    }
+
+    suspend fun loadContextWindowBreakdown(chatId: String): ContextWindowBreakdown {
+        val service = EnhancedAIService.getChatInstance(context, chatId)
+        val roleCardId = resolveRoleCardId(chatId, null, preferActiveRoleCard = true)
+        val currentChat = checkNotNull(
+            chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == chatId }
+        ) { "无法读取对话的上下文配置" }
+        val currentRoleName = characterCardManager.getCharacterCardFlow(roleCardId).first().name
+        val (modelConfigId, modelIndex) = resolveRoleCardChatModelOverrides(roleCardId)
+        val snapshot = AIMessageManager.calculateStableContextWindowSnapshot(
+            enhancedAiService = service,
+            chatId = chatId,
+            chatHistory = chatHistoryDelegate.getRuntimeChatHistory(chatId),
+            workspacePath = currentChat.workspace,
+            workspaceEnv = currentChat.workspaceEnv,
+            promptFunctionType = requestConfigurationFor(chatId).promptFunctionType,
+            roleCardId = roleCardId,
+            currentRoleName = currentRoleName,
+            splitHistoryByRole = true,
+            groupOrchestrationMode = isGroupChatSession(chatId),
+            groupParticipantNamesText = buildBoundGroupParticipantNamesText(chatId),
+            chatModelConfigIdOverride = modelConfigId,
+            chatModelIndexOverride = modelIndex,
+            memorySpaceIdOverride = resolveRoleCardMemoryProfileOverride(roleCardId),
+            publishEstimate = false
+        )
+        val settings = resolveChatContextSettingsForRequest(modelConfigId)
+        return ContextWindowBreakdownEstimator.fromSnapshot(
+            snapshot = snapshot,
+            maxWindowTokens = (settings.effectiveContextLength * 1024f).toLong(),
+            autoSummaryThreshold = settings.summaryTokenThreshold,
+            enableSummary = settings.enableSummary
         )
     }
 
@@ -269,55 +319,116 @@ class MessageCoordinationDelegate(
         groupParticipantNamesText: String? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
-        memorySpaceIdOverride: String? = null
-    ): Long? {
-        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
-        val service = resolveWindowEstimateService(targetChatId) ?: return null
-        val effectiveRoleCardId = resolveRoleCardId(targetChatId, roleCardId)
-        val effectivePromptFunctionType = promptFunctionType ?: currentPromptFunctionType
-        val effectiveChatModelConfigIdOverride =
-            chatModelConfigIdOverride ?: currentChatModelConfigIdOverride
-        val effectiveChatModelIndexOverride =
-            chatModelIndexOverride ?: currentChatModelIndexOverride
-        val effectiveMemorySpaceIdOverride =
-            memorySpaceIdOverride
-                ?: currentMemorySpaceIdOverride
-                ?: effectiveRoleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
+        memorySpaceIdOverride: String? = null,
+    ): Long? = withContext(Dispatchers.IO) {
+        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return@withContext null
+        // 同一聊天的估算、持久化和界面写回整体串行，旧结果不会覆盖新结果。
+        stableWindowRefreshMutexesByChatId.getOrPut(targetChatId) { Mutex() }.withLock {
+            val service = resolveWindowEstimateService(targetChatId) ?: return@withLock null
+            val effectiveRoleCardId = resolveRoleCardId(targetChatId, roleCardId)
+            val requestConfiguration = requestConfigurationFor(targetChatId)
+            val effectivePromptFunctionType = promptFunctionType ?: requestConfiguration.promptFunctionType
+            val effectiveChatModelConfigIdOverride =
+                chatModelConfigIdOverride ?: requestConfiguration.modelConfigId
+            val effectiveChatModelIndexOverride =
+                chatModelIndexOverride ?: requestConfiguration.modelIndex
+            val effectiveMemorySpaceIdOverride =
+                memorySpaceIdOverride
+                    ?: requestConfiguration.memorySpaceId
+                    ?: effectiveRoleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
 
-        val newWindowSize =
-            recalculateStableWindowSize(
-                service = service,
-                chatId = targetChatId,
-                roleCardId = effectiveRoleCardId,
-                promptFunctionType = effectivePromptFunctionType,
-                groupOrchestrationMode = groupOrchestrationMode,
-                groupParticipantNamesText = groupParticipantNamesText,
-                chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
-                chatModelIndexOverride = effectiveChatModelIndexOverride,
-                memorySpaceIdOverride = effectiveMemorySpaceIdOverride
+            val newWindowSize =
+                recalculateStableWindowSize(
+                    service = service,
+                    chatId = targetChatId,
+                    roleCardId = effectiveRoleCardId,
+                    promptFunctionType = effectivePromptFunctionType,
+                    groupOrchestrationMode = groupOrchestrationMode,
+                    groupParticipantNamesText = groupParticipantNamesText,
+                    chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
+                    chatModelIndexOverride = effectiveChatModelIndexOverride,
+                    memorySpaceIdOverride = effectiveMemorySpaceIdOverride
+                )
+            coroutineContext.ensureActive()
+            val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts(targetChatId)
+            // 窗口估算只保存窗口值，避免累计用量被旧快照覆盖。
+            chatHistoryDelegate.saveCurrentContextWindow(newWindowSize, chatIdOverride = targetChatId)
+            withContext(Dispatchers.Main) {
+                coroutineContext.ensureActive()
+                tokenStatsDelegate.setCurrentWindowSize(targetChatId, newWindowSize)
+            }
+            AppLogger.d(
+                TAG,
+                "上下文窗口已刷新: chatId=$targetChatId, window=$newWindowSize, " +
+                    "input=$inputTokens, output=$outputTokens, service=${service.javaClass.simpleName}, " +
+                    "promptType=$effectivePromptFunctionType"
             )
-        val (inputTokens, outputTokens) = tokenStatsDelegate.getCumulativeTokenCounts(targetChatId)
-        chatHistoryDelegate.saveCurrentChat(
-            inputTokens = inputTokens,
-            outputTokens = outputTokens,
-            actualContextWindowSize = newWindowSize,
-            chatIdOverride = targetChatId
-        )
+            newWindowSize
+        }
+    }
+
+    fun scheduleStableContextWindowRefresh(
+        chatId: String? = null,
+        roleCardId: String? = null,
+        promptFunctionType: PromptFunctionType? = null,
+        groupOrchestrationMode: Boolean = false,
+        groupParticipantNamesText: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        memorySpaceIdOverride: String? = null
+    ): Job? {
+        val targetChatId = chatId ?: chatHistoryDelegate.currentChatId.value ?: return null
+        // 先登记惰性任务再启动，避免并发调度时旧任务反过来取消新任务。
+        return synchronized(stableWindowRefreshJobsByChatId) {
+            val refreshJob = coroutineScope.launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                try {
+                    refreshStableContextWindow(
+                        chatId = targetChatId,
+                        roleCardId = roleCardId,
+                        promptFunctionType = promptFunctionType,
+                        groupOrchestrationMode = groupOrchestrationMode,
+                        groupParticipantNamesText = groupParticipantNamesText,
+                        chatModelConfigIdOverride = chatModelConfigIdOverride,
+                        chatModelIndexOverride = chatModelIndexOverride,
+                        memorySpaceIdOverride = memorySpaceIdOverride
+                    )
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.w(TAG, "异步刷新上下文窗口失败: chatId=$targetChatId", e)
+                }
+            }
+            stableWindowRefreshJobsByChatId.put(targetChatId, refreshJob)?.cancel()
+            refreshJob.invokeOnCompletion {
+                stableWindowRefreshJobsByChatId.remove(targetChatId, refreshJob)
+            }
+            refreshJob.start()
+            refreshJob
+        }
+    }
+
+    private fun launchMessageSend(block: suspend CoroutineScope.() -> Unit): Job =
+        coroutineScope.launch(Dispatchers.Main.immediate) {
+            runMessageSend { block() }
+        }
+
+    private suspend fun runMessageSend(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            reportSendFailure(e)
+        }
+    }
+
+    private suspend fun reportSendFailure(error: Exception) {
+        AppLogger.e(TAG, "发送消息时出错", error)
         withContext(Dispatchers.Main) {
-            tokenStatsDelegate.setTokenCounts(
-                targetChatId,
-                inputTokens,
-                outputTokens,
-                newWindowSize
+            uiStateDelegate.showErrorMessage(
+                context.getString(R.string.message_send_failed, error.message.orEmpty())
             )
         }
-        AppLogger.d(
-            TAG,
-            "上下文窗口已刷新: chatId=$targetChatId, window=$newWindowSize, " +
-                "input=$inputTokens, output=$outputTokens, service=${service.javaClass.simpleName}, " +
-                "promptType=$effectivePromptFunctionType"
-        )
-        return newWindowSize
     }
 
     /**
@@ -340,7 +451,7 @@ class MessageCoordinationDelegate(
             AppLogger.d(TAG, "当前没有活跃对话，自动创建新对话")
 
             // 使用 coroutineScope 启动协程
-            coroutineScope.launch {
+            launchMessageSend {
                 // 使用现有的createNewChat方法创建新对话
                 chatHistoryDelegate.createNewChat()
 
@@ -354,7 +465,7 @@ class MessageCoordinationDelegate(
                 if (chatHistoryDelegate.currentChatId.value == null) {
                     AppLogger.e(TAG, "创建新对话超时，无法发送消息")
                     uiStateDelegate.showErrorMessage(context.getString(R.string.chat_cannot_create_new))
-                    return@launch
+                    return@launchMessageSend
                 }
 
                 AppLogger.d(
@@ -376,19 +487,164 @@ class MessageCoordinationDelegate(
                 )
             }
         } else {
-            // 已有对话，直接发送消息
-            sendMessageInternal(
-                promptFunctionType,
-                roleCardIdOverride = roleCardIdOverride,
-                preferActiveRoleCard = preferActiveRoleCard,
-                chatIdOverride = chatIdOverride,
-                messageTextOverride = messageTextOverride,
-                proxySenderNameOverride = proxySenderNameOverride,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride,
-                turnOptions = turnOptions
-            )
+            // 已有对话，异步进入发送流程；内部的配置和历史读取会切到 IO
+            launchMessageSend {
+                sendMessageInternal(
+                    promptFunctionType,
+                    roleCardIdOverride = roleCardIdOverride,
+                    preferActiveRoleCard = preferActiveRoleCard,
+                    chatIdOverride = chatIdOverride,
+                    messageTextOverride = messageTextOverride,
+                    proxySenderNameOverride = proxySenderNameOverride,
+                    chatModelConfigIdOverride = chatModelConfigIdOverride,
+                    chatModelIndexOverride = chatModelIndexOverride,
+                    turnOptions = turnOptions
+                )
+            }
         }
+    }
+
+    private val pendingVoiceChats = ConcurrentHashMap.newKeySet<String>()
+
+    /** 等到用户消息落库再关闭录音面板，请求回复继续由现有发送任务处理。 */
+    suspend fun sendVoiceMessage(
+        chatId: String,
+        content: String,
+        canSubmit: () -> Boolean,
+        onPersisted: () -> Unit,
+    ): Boolean {
+        if (!canSubmit() || !pendingVoiceChats.add(chatId)) return false
+        val persisted = kotlinx.coroutines.CompletableDeferred<Boolean>()
+        var sendJob: Job? = null
+        try {
+            val activeSendJob = sendMessageInternal(
+                promptFunctionType = PromptFunctionType.CHAT,
+                preferActiveRoleCard = true,
+                chatIdOverride = chatId,
+                messageTextOverride = content,
+                consumeComposerState = false,
+                canSubmitVoice = canSubmit,
+                onUserMessagePersisted = {
+                    onPersisted()
+                    persisted.complete(true)
+                },
+            ) ?: return false
+            sendJob = activeSendJob
+            val completion = activeSendJob.invokeOnCompletion { cause ->
+                if (cause != null) persisted.completeExceptionally(cause)
+                else persisted.complete(false)
+            }
+            try {
+                return persisted.await()
+            } finally {
+                completion.dispose()
+            }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            reportSendFailure(error)
+            return false
+        } finally {
+            // 面板取消时先结束尚未落库的任务，再允许会话清理录音文件。
+            if (!persisted.isCompleted || persisted.isCancelled) {
+                withContext(kotlinx.coroutines.NonCancellable) { sendJob?.cancelAndJoin() }
+            }
+            pendingVoiceChats.remove(chatId)
+        }
+    }
+
+    private val pendingManualContinuationChats = ConcurrentHashMap.newKeySet<String>()
+
+    private fun canContinueGeneration(chatId: String): Boolean =
+        chatHistoryDelegate.currentChatId.value == chatId &&
+            !messageProcessingDelegate.isChatLoading(chatId) &&
+            _summarizingChatId.value != chatId &&
+            _sendTriggeredSummarizingChatId.value != chatId &&
+            !pendingAutoContinuationByChatId.containsKey(chatId) &&
+            chatHistoryDelegate.chatHistory.value.any {
+                (it.sender == "user" || it.sender == "ai") && it.content.isNotBlank()
+            }
+
+    /** 仅使用历史续写，不读取或清空尚未发送的编辑器内容。 */
+    fun continueGeneration() {
+        val chatId = chatHistoryDelegate.currentChatId.value ?: return
+        if (!canContinueGeneration(chatId) || !pendingManualContinuationChats.add(chatId)) return
+        launchMessageSend {
+            try {
+                val continuation = withContext(Dispatchers.IO) {
+                    val groupId = chatHistoryDelegate.chatHistories.value
+                        .firstOrNull { it.id == chatId }?.characterGroupId
+                    val roleCardId = if (groupId.isNullOrBlank()) {
+                        resolveRoleCardId(chatId, null)
+                    } else {
+                        val group = characterGroupCardManager.getCharacterGroupCard(groupId)
+                            ?: return@withContext null
+                        val lastAiMessage = chatHistoryDelegate.getRuntimeChatHistory(chatId)
+                            .lastOrNull { it.sender == "ai" }
+                        if (lastAiMessage == null) {
+                            group.members.minByOrNull { it.orderIndex }?.characterCardId
+                        } else {
+                            group.members.firstOrNull { member ->
+                                characterCardManager.getCharacterCard(member.characterCardId).name == lastAiMessage.roleName
+                            }?.characterCardId
+                        }
+                    } ?: return@withContext null
+                    roleCardId to buildBoundGroupParticipantNamesText(chatId)
+                } ?: return@launchMessageSend
+                // 配置读取期间可能切换聊天或启动其他请求，发送前再次确认状态。
+                if (!canContinueGeneration(chatId)) return@launchMessageSend
+                sendMessageInternal(
+                    promptFunctionType = PromptFunctionType.CHAT,
+                    isContinuation = true,
+                    sendMode = MessageSendMode.CONTINUE,
+                    roleCardIdOverride = continuation.first,
+                    chatIdOverride = chatId,
+                    isGroupOrchestrationTurn = continuation.second != null,
+                    groupParticipantNamesText = continuation.second,
+                )
+            } finally {
+                pendingManualContinuationChats.remove(chatId)
+            }
+        }
+    }
+
+    private val pendingA2uiChats = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
+
+    /** 卡片提交沿用正常请求管线，同时保留聊天框草稿、附件与回复目标。 */
+    fun trySendA2ui(
+        owner: com.ai.assistance.operit.ui.common.a2ui.A2uiOwner,
+        text: String,
+    ): Boolean {
+        if (text.isBlank() || text.length > 40_000 || !canSubmitA2ui(owner)) return false
+        if (!pendingA2uiChats.add(owner.chatId)) return false
+        launchMessageSend {
+            try {
+                // 配置读取前再次检查，防止切换聊天或修改候选回复后提交旧卡片。
+                if (!canSubmitA2ui(owner)) return@launchMessageSend
+                sendMessageInternal(
+                    promptFunctionType = PromptFunctionType.CHAT,
+                    chatIdOverride = owner.chatId,
+                    messageTextOverride = text,
+                    consumeComposerState = false,
+                    a2uiOwner = owner,
+                )
+            } finally {
+                pendingA2uiChats.remove(owner.chatId)
+            }
+        }
+        return true
+    }
+
+    private fun canSubmitA2ui(owner: com.ai.assistance.operit.ui.common.a2ui.A2uiOwner): Boolean {
+        if (chatHistoryDelegate.currentChatId.value != owner.chatId ||
+            messageProcessingDelegate.isChatLoading(owner.chatId) ||
+            (isSummarizing.value && summarizingChatId.value == owner.chatId) ||
+            (isSendTriggeredSummarizing.value && sendTriggeredSummarizingChatId.value == owner.chatId)) return false
+        val message = chatHistoryDelegate.chatHistory.value.firstOrNull { it.timestamp == owner.timestamp }
+            ?: return false
+        return com.ai.assistance.operit.ui.common.a2ui.matchesA2uiOwner(
+            chatHistoryDelegate.currentChatId.value, message, owner,
+        )
     }
 
     suspend fun regenerateSingleAiMessage(index: Int) {
@@ -446,7 +702,7 @@ class MessageCoordinationDelegate(
                 requestMessageContent = requestMessageContent,
                 requestHistory = requestHistory,
                 workspacePath = workspacePath,
-                promptFunctionType = currentPromptFunctionType,
+                promptFunctionType = requestConfigurationFor(chatId).promptFunctionType,
                 roleCardId = roleCardId,
                 currentRoleName = currentRoleName,
                 enableThinking = apiConfigDelegate.enableThinkingMode.value,
@@ -514,12 +770,13 @@ class MessageCoordinationDelegate(
 
     /**
      * 内部发送消息的逻辑
+     * 返回本次直接发送任务，校验拒绝发送时返回 null，语音确认页据此保留录音。
      */
-    private fun sendMessageInternal(
+    private suspend fun sendMessageInternal(
         promptFunctionType: PromptFunctionType,
         isContinuation: Boolean = false,
         skipSummaryCheck: Boolean = false,
-        isAutoContinuation: Boolean = false,
+        sendMode: MessageSendMode = MessageSendMode.USER,
         roleCardIdOverride: String? = null,
         preferActiveRoleCard: Boolean = false,
         chatIdOverride: String? = null,
@@ -535,23 +792,25 @@ class MessageCoordinationDelegate(
         enableGroupOrchestration: Boolean = true,
         isGroupOrchestrationTurn: Boolean = false,
         groupParticipantNamesText: String? = null,
-        turnOptions: ChatTurnOptions = ChatTurnOptions()
-    ) {
-        // 如果不是自动续写，更新当前的 promptFunctionType
-        if (!isAutoContinuation) {
-            currentPromptFunctionType = promptFunctionType
-        }
+        turnOptions: ChatTurnOptions = ChatTurnOptions(),
+        consumeComposerState: Boolean = true,
+        a2uiOwner: com.ai.assistance.operit.ui.common.a2ui.A2uiOwner? = null,
+        canSubmitVoice: (() -> Boolean)? = null,
+        onUserMessagePersisted: (() -> Unit)? = null,
+    ): Job? {
+        val isAutoContinuation = sendMode.usesPreviousTurnConfiguration
         val isBackgroundSend =
             !chatIdOverride.isNullOrBlank() && chatIdOverride != chatHistoryDelegate.currentChatId.value
-        // 自动续聊由总结消息中的续接指令驱动，不能消费用户尚未提交的编辑器状态。
-        val shouldReadComposerState = !isBackgroundSend && !isAutoContinuation
-        val effectiveMessageTextOverride = if (isAutoContinuation) "" else messageTextOverride
+        // 手动及自动续写都不消费草稿、附件与回复目标，A2UI 仍保留独立的编辑器控制。
+        val shouldReadComposerState = consumeComposerState && sendMode.shouldReadComposer(isBackgroundSend)
+        val effectiveMessageTextOverride = if (sendMode.isContinuation) "" else messageTextOverride
         // 获取当前聊天ID和工作区路径
         val chatId = chatIdOverride ?: chatHistoryDelegate.currentChatId.value
         if (chatId == null) {
-            uiStateDelegate.showErrorMessage(context.getString(R.string.chat_no_active_conversation))
-            return
+            OKToast.warning(context, context.getString(R.string.chat_please_create_new_chat), OKToast.LENGTH_SHORT).show()
+            return null
         }
+        val previousConfiguration = requestConfigurationFor(chatId)
         if (!isAutoContinuation) {
             cancelPendingAutoContinuation(chatId, restoreIdleIfPendingState = false)
         }
@@ -569,7 +828,7 @@ class MessageCoordinationDelegate(
                 chatIdOverride = chatIdOverride
             )
         ) {
-            coroutineScope.launch {
+            launchMessageSend {
                 val handled = runCatching {
                     orchestrateGroupConversation(
                         chatId = chatId,
@@ -577,15 +836,17 @@ class MessageCoordinationDelegate(
                         turnOptions = turnOptions
                     )
                 }.getOrElse { throwable ->
+                    if (throwable is CancellationException) throw throwable
                     AppLogger.e(TAG, "群组编排失败，回退普通发送", throwable)
                     false
                 }
+                coroutineContext.ensureActive()
                 if (!handled) {
                     sendMessageInternal(
                         promptFunctionType = promptFunctionType,
                         isContinuation = isContinuation,
                         skipSummaryCheck = skipSummaryCheck,
-                        isAutoContinuation = isAutoContinuation,
+                        sendMode = sendMode,
                         roleCardIdOverride = roleCardIdOverride,
                         preferActiveRoleCard = preferActiveRoleCard,
                         chatIdOverride = chatIdOverride,
@@ -600,7 +861,7 @@ class MessageCoordinationDelegate(
                     )
                 }
             }
-            return
+            return null
         }
         val currentChat = chatHistoryDelegate.chatHistories.value.find { it.id == chatId }
         val workspacePath = currentChat?.workspace
@@ -615,7 +876,7 @@ class MessageCoordinationDelegate(
         val currentAttachments =
             if (shouldReadComposerState) attachmentDelegate.attachments.value else emptyList()
         // 手动发送必须与选择器一致；后台和定向消息仍由窗口绑定决定角色卡。
-        val roleCardId = runBlocking {
+        val roleCardId = withContext(Dispatchers.IO) {
             resolveRoleCardId(
                 chatId = chatId,
                 roleCardId = roleCardIdOverride,
@@ -623,52 +884,70 @@ class MessageCoordinationDelegate(
             )
         }
         val resolvedOverrides = try {
-            if (promptFunctionType == PromptFunctionType.CHAT) {
-                val (resolvedChatModelConfigIdOverride, resolvedChatModelIndexOverride) =
-                    when {
-                        !chatModelConfigIdOverride.isNullOrBlank() -> {
-                            Pair(chatModelConfigIdOverride, (chatModelIndexOverride ?: 0).coerceAtLeast(0))
+            withContext(Dispatchers.IO) {
+                if (promptFunctionType == PromptFunctionType.CHAT) {
+                    val (resolvedChatModelConfigIdOverride, resolvedChatModelIndexOverride) =
+                        when {
+                            !chatModelConfigIdOverride.isNullOrBlank() -> {
+                                Pair(chatModelConfigIdOverride, (chatModelIndexOverride ?: 0).coerceAtLeast(0))
+                            }
+                            isAutoContinuation -> {
+                                Pair(previousConfiguration.modelConfigId, previousConfiguration.modelIndex)
+                            }
+                            else -> {
+                                resolveRoleCardChatModelOverrides(roleCardId)
+                            }
                         }
-                        isAutoContinuation -> {
-                            Pair(currentChatModelConfigIdOverride, currentChatModelIndexOverride)
+                    val resolvedMemorySpaceIdOverride =
+                        when {
+                            !memorySpaceIdOverride.isNullOrBlank() -> memorySpaceIdOverride
+                            isAutoContinuation -> previousConfiguration.memorySpaceId
+                            else -> roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
                         }
-                        else -> {
-                            resolveRoleCardChatModelOverrides(roleCardId)
-                        }
-                    }
-                val resolvedMemorySpaceIdOverride =
-                    when {
-                        !memorySpaceIdOverride.isNullOrBlank() -> memorySpaceIdOverride
-                        isAutoContinuation -> currentMemorySpaceIdOverride
-                        else -> roleCardId?.let { resolveRoleCardMemoryProfileOverride(it) }
-                    }
-                Triple(
-                    resolvedChatModelConfigIdOverride,
-                    resolvedChatModelIndexOverride,
-                    resolvedMemorySpaceIdOverride
-                )
-            } else {
-                Triple(null, null, null)
+                    Triple(
+                        resolvedChatModelConfigIdOverride,
+                        resolvedChatModelIndexOverride,
+                        resolvedMemorySpaceIdOverride
+                    )
+                } else {
+                    Triple(null, null, null)
+                }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLogger.e(TAG, "解析角色卡对话模型绑定失败", e)
             uiStateDelegate.showErrorMessage(
                 e.message ?: context.getString(R.string.role_card_chat_model_binding_parse_failed)
             )
-            return
+            return null
         }
         val resolvedChatModelConfigIdOverride = resolvedOverrides.first
         val resolvedChatModelIndexOverride = resolvedOverrides.second
         val resolvedMemorySpaceIdOverride = resolvedOverrides.third
+        val configurationError = withContext(Dispatchers.IO) {
+            val configId = resolvedChatModelConfigIdOverride?.takeIf { it.isNotBlank() }
+                ?: FunctionalConfigManager(context).getConfigIdForFunction(FunctionType.CHAT)
+            val config = ModelConfigManager(context).getModelConfigFlow(configId).first()
+            chatModelConfigurationError(context, config)
+        }
+        if (configurationError != null) {
+            // 在消费草稿、附件和启动总结前返回，让配置修正后可以直接重发。
+            OKToast.requestError(context, configurationError).show()
+            return null
+        }
         val chatContextSettings =
-            runBlocking {
+            withContext(Dispatchers.IO) {
                 resolveChatContextSettingsForRequest(resolvedChatModelConfigIdOverride)
             }
 
         if (!isAutoContinuation) {
-            currentChatModelConfigIdOverride = resolvedChatModelConfigIdOverride
-            currentChatModelIndexOverride = resolvedChatModelIndexOverride
-            currentMemorySpaceIdOverride = resolvedMemorySpaceIdOverride
+            requestConfigurationByChatId[chatId] = ChatRequestConfiguration(
+                promptFunctionType = promptFunctionType,
+                modelConfigId = resolvedChatModelConfigIdOverride,
+                modelIndex = resolvedChatModelIndexOverride,
+                memorySpaceId = resolvedMemorySpaceIdOverride,
+            )
         }
 
         // 当前请求使用的Token使用率阈值，默认使用配置值
@@ -680,8 +959,12 @@ class MessageCoordinationDelegate(
                 .toInt()
 
         // 如果不是续写，检查是否需要总结
-        if (turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck) {
-            val currentMessages = runBlocking { chatHistoryDelegate.getCurrentRuntimeChatHistorySnapshot() }
+        // 总结关闭时跳过历史预读；开启时继续在 IO 线程读取，避免阻塞主线程。
+        if (chatContextSettings.enableSummary && turnOptions.persistTurn && !isBackgroundSend && !isContinuation && !skipSummaryCheck) {
+            val currentMessages =
+                withContext(Dispatchers.IO) {
+                    chatHistoryDelegate.getCurrentRuntimeChatHistorySnapshot()
+                }
             val currentTokens = tokenStatsDelegate.currentWindowSizeFlow.value
 
             val isShouldGenerateSummary = AIMessageManager.shouldGenerateSummary(
@@ -726,8 +1009,12 @@ class MessageCoordinationDelegate(
             false
         }
 
+        // 异步读取配置期间可能发生聊天切换、删除或新请求，提交前核对原卡片身份。
+        if (a2uiOwner != null && !canSubmitA2ui(a2uiOwner)) return null
+        if (canSubmitVoice != null && !canSubmitVoice()) return null
+
         // 调用messageProcessingDelegate发送消息，并传递附件信息和工作区路径
-        messageProcessingDelegate.sendUserMessage(
+        val sendJob = messageProcessingDelegate.sendUserMessage(
             attachments = currentAttachments,
             chatId = chatId,
             messageTextOverride = effectiveMessageTextOverride,
@@ -742,7 +1029,7 @@ class MessageCoordinationDelegate(
             maxTokens = maxTokensForSend,
             tokenUsageThreshold = tokenUsageThresholdForSend,
             replyToMessage = if (shouldReadComposerState) uiBridge.getReplyToMessage() else null,
-            isAutoContinuation = isAutoContinuation,
+            sendMode = sendMode,
             enableSummary = !forceDisableSummary && !isBackgroundSend && chatContextSettings.enableSummary,
             chatModelConfigIdOverride = resolvedChatModelConfigIdOverride,
             chatModelIndexOverride = resolvedChatModelIndexOverride,
@@ -750,20 +1037,22 @@ class MessageCoordinationDelegate(
             suppressUserMessageInHistory = suppressUserMessageInHistory,
             isGroupOrchestrationTurn = isGroupOrchestrationTurn,
             groupParticipantNamesText = groupParticipantNamesText,
-            turnOptions = turnOptions
+            turnOptions = turnOptions,
+            onUserMessagePersisted = onUserMessagePersisted,
         )
 
         // 只有在非续写（即用户主动发送）时才清空附件和UI状态
-        if (!isBackgroundSend && !isContinuation) {
+        if (shouldReadComposerState && !isContinuation) {
             if (currentAttachments.isNotEmpty()) {
                 attachmentDelegate.clearAttachments()
             }
             uiBridge.resetAttachmentPanelState()
             uiBridge.clearReplyToMessage()
         }
+        return sendJob
     }
 
-    private fun shouldRunGroupOrchestration(
+    private suspend fun shouldRunGroupOrchestration(
         promptFunctionType: PromptFunctionType,
         isContinuation: Boolean,
         isAutoContinuation: Boolean,
@@ -779,7 +1068,7 @@ class MessageCoordinationDelegate(
         if (!proxySenderNameOverride.isNullOrBlank()) return false
         if (!messageTextOverride.isNullOrBlank()) return false
         if (!chatIdOverride.isNullOrBlank()) return false
-        val activePrompt = runBlocking { activePromptManager.getActivePrompt() }
+        val activePrompt = withContext(Dispatchers.IO) { activePromptManager.getActivePrompt() }
         if (activePrompt !is ActivePrompt.CharacterGroup) return false
         return true
     }
@@ -969,7 +1258,7 @@ class MessageCoordinationDelegate(
                     promptFunctionType = promptFunctionType,
                     isContinuation = !isFirstMemberOfFirstRound,
                     skipSummaryCheck = true,
-                    isAutoContinuation = false,
+                    sendMode = MessageSendMode.USER,
                     roleCardIdOverride = member.characterCardId,
                     chatIdOverride = chatId,
                     messageTextOverride = memberMessage,
@@ -1035,7 +1324,7 @@ class MessageCoordinationDelegate(
 
     private suspend fun planResponseOrder(
         userText: String,
-        members: List<com.ai.assistance.operit.data.model.GroupMemberConfig>,
+        members: List<com.ai.assistance.operit.data.character.GroupMemberConfig>,
         memberCardsById: Map<String, CharacterCard>
     ): PlannedRounds? {
         val service = getEnhancedAiService() ?: return null
@@ -1178,7 +1467,7 @@ class MessageCoordinationDelegate(
     }
 
     private suspend fun buildGroupParticipantNamesText(
-        members: List<com.ai.assistance.operit.data.model.GroupMemberConfig>,
+        members: List<com.ai.assistance.operit.data.character.GroupMemberConfig>,
         memberCardsById: Map<String, CharacterCard>
     ): String {
         val useEnglish = !LocaleUtils.usesChineseContent(context)
@@ -1212,7 +1501,7 @@ class MessageCoordinationDelegate(
         )
     }
 
-    private suspend fun resolveTargetGroupForChat(chatId: String): com.ai.assistance.operit.data.model.CharacterGroupCard? {
+    private suspend fun resolveTargetGroupForChat(chatId: String): com.ai.assistance.operit.data.character.CharacterGroupCard? {
         val activePrompt = activePromptManager.getActivePrompt()
         val activeGroupId = (activePrompt as? ActivePrompt.CharacterGroup)
             ?.id
@@ -1347,7 +1636,7 @@ class MessageCoordinationDelegate(
                     sendMessageInternal(
                         promptFunctionType = request.promptFunctionType,
                         isContinuation = true,
-                        isAutoContinuation = true,
+                        sendMode = MessageSendMode.AUTO_CONTINUE,
                         roleCardIdOverride = request.roleCardIdOverride,
                         chatIdOverride = chatId,
                         chatModelConfigIdOverride = request.chatModelConfigIdOverride,
@@ -1368,7 +1657,7 @@ class MessageCoordinationDelegate(
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    AppLogger.e(TAG, "派发自动续聊时出错: ${e.message}", e)
+                    reportSendFailure(e)
                     if (isSamePendingAutoContinuation(chatId, request)) {
                         removePendingAutoContinuation(chatId)
                         messageProcessingDelegate.setSuppressIdleCompletedStateForChat(chatId, false)
@@ -1383,8 +1672,9 @@ class MessageCoordinationDelegate(
         chatId: String,
         promptFunctionType: PromptFunctionType
     ) {
+        val requestConfiguration = requestConfigurationFor(chatId)
         val chatContextSettings =
-            resolveChatContextSettingsForRequest(currentChatModelConfigIdOverride)
+            resolveChatContextSettingsForRequest(requestConfiguration.modelConfigId)
         if (!chatContextSettings.enableSummary) return
 
         val currentMessages = chatHistoryDelegate.getRuntimeChatHistory(chatId)
@@ -1409,15 +1699,15 @@ class MessageCoordinationDelegate(
                 autoContinue = false,
                 promptFunctionType = promptFunctionType,
                 chatIdOverride = chatId,
-                chatModelConfigIdOverride = currentChatModelConfigIdOverride,
-                chatModelIndexOverride = currentChatModelIndexOverride,
+                chatModelConfigIdOverride = requestConfiguration.modelConfigId,
+                chatModelIndexOverride = requestConfiguration.modelIndex,
                 isGroupChat = true
             )
         }
     }
 
-    private fun resolveRoleCardChatModelOverrides(roleCardId: String): Pair<String?, Int?> {
-        val roleCard = runBlocking { characterCardManager.getCharacterCardFlow(roleCardId).first() }
+    private suspend fun resolveRoleCardChatModelOverrides(roleCardId: String): Pair<String?, Int?> {
+        val roleCard = characterCardManager.getCharacterCardFlow(roleCardId).first()
         val bindingMode = CharacterCardChatModelBindingMode.normalize(roleCard.chatModelBindingMode)
         return if (
             bindingMode == CharacterCardChatModelBindingMode.FIXED_CONFIG &&
@@ -1429,8 +1719,8 @@ class MessageCoordinationDelegate(
         }
     }
 
-    private fun resolveRoleCardMemoryProfileOverride(roleCardId: String): String? {
-        val roleCard = runBlocking { characterCardManager.getCharacterCardFlow(roleCardId).first() }
+    private suspend fun resolveRoleCardMemoryProfileOverride(roleCardId: String): String? {
+        val roleCard = characterCardManager.getCharacterCardFlow(roleCardId).first()
         val bindingMode =
             CharacterCardMemoryProfileBindingMode.normalize(roleCard.memoryProfileBindingMode)
         return if (
@@ -1454,7 +1744,7 @@ class MessageCoordinationDelegate(
      */
     fun manuallyUpdateMemory() {
         if (_isUpdatingMemory.value) {
-            uiStateDelegate.showToast(context.getString(R.string.chat_summarizing_memory))
+            OKToast.info(context, context.getString(R.string.chat_summarizing_memory)).show()
             return
         }
         coroutineScope.launch {
@@ -1479,13 +1769,13 @@ class MessageCoordinationDelegate(
                     .filter { it.content.isNotBlank() }
 
             if (currentChatId.isNullOrBlank()) {
-                uiStateDelegate.showToast(context.getString(R.string.chat_history_empty_no_update))
+                OKToast.info(context, context.getString(R.string.chat_history_empty_no_update)).show()
                 return@launch
             }
             if (userMessages.isEmpty()) {
-                uiStateDelegate.showToast(
+                OKToast.warning(context,
                     context.getString(R.string.chat_selected_messages_no_user_for_memory)
-                )
+                ).show()
                 return@launch
             }
 
@@ -1503,22 +1793,22 @@ class MessageCoordinationDelegate(
                         chatId = currentChatId,
                         triggerMessageTimestamps = userMessages.map { it.timestamp }
                     )
-                uiStateDelegate.showToast(
+                OKToast.success(context,
                     context.getString(
                         R.string.chat_selected_messages_added_to_memory_queue,
                         userMessages.size
                     )
-                )
+                ).show()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "选中消息加入自动记忆队列失败", e)
-                uiStateDelegate.showToast(
+                OKToast.error(context,
                     context.getString(
                         R.string.chat_selected_messages_add_to_memory_queue_failed,
                         e.message ?: ""
                     )
-                )
+                ).show()
             }
         }
     }
@@ -1531,16 +1821,16 @@ class MessageCoordinationDelegate(
     ) {
         val enhancedAiService = getEnhancedAiService()
         if (enhancedAiService == null) {
-            uiStateDelegate.showToast(context.getString(R.string.chat_ai_service_unavailable_memory))
+            OKToast.error(context, context.getString(R.string.chat_ai_service_unavailable_memory)).show()
             return
         }
         if (sourceMessages.isEmpty()) {
-            uiStateDelegate.showToast(emptyToastMessage)
+            OKToast.info(context, emptyToastMessage).show()
             return
         }
 
         _isUpdatingMemory.value = true
-        uiStateDelegate.showToast(context.getString(R.string.chat_summarizing_memory))
+        OKToast.info(context, context.getString(R.string.chat_summarizing_memory)).show()
 
         try {
             val history = sourceMessages.map { it.sender to it.content }
@@ -1561,17 +1851,17 @@ class MessageCoordinationDelegate(
                 lastContent = lastMessageContent,
                 memorySpaceIdOverride = memorySpaceIdOverride,
                 onSuccess = {
-                    uiStateDelegate.showToast(context.getString(R.string.chat_memory_manually_updated))
+                    OKToast.success(context, context.getString(R.string.chat_memory_manually_updated)).show()
                     _isUpdatingMemory.value = false
                 },
                 onError = { e ->
                     AppLogger.e(TAG, "手动更新记忆失败", e)
-                    uiStateDelegate.showToast(
+                    OKToast.error(context,
                         context.getString(
                             R.string.chat_manual_update_memory_failed,
                             e.message ?: ""
                         )
-                    )
+                    ).show()
                     _isUpdatingMemory.value = false
                 }
             )
@@ -1581,13 +1871,26 @@ class MessageCoordinationDelegate(
         } catch (e: Exception) {
             _isUpdatingMemory.value = false
             AppLogger.e(TAG, "手动更新记忆失败", e)
-            uiStateDelegate.showToast(
+            OKToast.error(context,
                 context.getString(
                     R.string.chat_manual_update_memory_failed,
                     e.message ?: ""
                 )
-            )
+            ).show()
         }
+    }
+
+    /** 进度只更新原会话的总结标签，不覆盖并发聊天的接收或工具执行状态。 */
+    internal fun reportSummaryProgress(chatId: String, message: String) {
+        messageProcessingDelegate.setSummaryProgressForChat(chatId, message)
+    }
+
+    internal fun reportSummaryRetry(error: String) = showSummaryError(error, retrying = true)
+
+    private fun showSummaryError(error: String, retrying: Boolean = false) {
+        val failure = context.getString(R.string.chat_summarize_generation_failed, error)
+        val message = if (retrying) failure + "\n" + context.getString(R.string.enhanced_retrying_request) else failure
+        OKToast.requestError(context, message).show()
     }
 
     /**
@@ -1595,7 +1898,7 @@ class MessageCoordinationDelegate(
      */
     fun manuallySummarizeConversation() {
         if (_isSummarizing.value) {
-            uiStateDelegate.showToast(context.getString(R.string.chat_summarizing_please_wait))
+            OKToast.info(context, context.getString(R.string.chat_summarizing_please_wait)).show()
             return
         }
         coroutineScope.launch {
@@ -1607,7 +1910,7 @@ class MessageCoordinationDelegate(
                     isGroupChat = isGroupChatSession(currentChatId)
                 )
             if (success) {
-                uiStateDelegate.showToast(context.getString(R.string.chat_conversation_summary_generated))
+                OKToast.success(context, context.getString(R.string.chat_conversation_summary_generated)).show()
             }
         }
     }
@@ -1778,7 +2081,11 @@ class MessageCoordinationDelegate(
         val asyncSummaryJob =
             coroutineScope.launch {
             try {
-                val service = getEnhancedAiService() ?: return@launch
+                val service = getEnhancedAiService()
+                if (service == null) {
+                    OKToast.requestError(context, context.getString(R.string.chat_ai_service_unavailable_summarize)).show()
+                    return@launch
+                }
 
                 // 检查是否是群聊
                 val currentChat = chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == originalChatId }
@@ -1790,8 +2097,14 @@ class MessageCoordinationDelegate(
                     messages = snapshotMessages,
                     autoContinue = false,
                     isGroupChat = isGroupChat,
-                    summaryConfig = summaryConfig
-                ) ?: return@launch
+                    summaryConfig = summaryConfig,
+                    onProgress = { reportSummaryProgress(originalChatId, it) },
+                    onNonFatalError = { reportSummaryRetry(it) },
+                )
+                if (summaryMessage == null) {
+                    OKToast.requestError(context, context.getString(R.string.chat_summarize_failed_no_valid_summary)).show()
+                    return@launch
+                }
 
                 val currentChatId = chatHistoryDelegate.currentChatId.value
                 if (currentChatId != originalChatId) {
@@ -1820,6 +2133,7 @@ class MessageCoordinationDelegate(
                 throw e
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Async summary during send failed: ${e.message}", e)
+                showSummaryError(e.message.orEmpty())
             } finally {
                 _isSendTriggeredSummarizing.value = false
 
@@ -1868,8 +2182,9 @@ class MessageCoordinationDelegate(
             AppLogger.d(TAG, "已在总结中，忽略本次请求")
             return false
         }
+        val currentChatId = chatIdOverride ?: chatHistoryDelegate.currentChatId.value ?: return false
+        val requestConfiguration = requestConfigurationFor(currentChatId)
         _isSummarizing.value = true
-        val currentChatId = chatIdOverride ?: chatHistoryDelegate.currentChatId.value
         _summarizingChatId.value = currentChatId
         if (currentChatId != null) {
             messageProcessingDelegate.setSuppressIdleCompletedStateForChat(currentChatId, true)
@@ -1879,12 +2194,12 @@ class MessageCoordinationDelegate(
             )
         }
         val effectiveChatModelConfigIdOverride =
-            chatModelConfigIdOverride ?: currentChatModelConfigIdOverride
+            chatModelConfigIdOverride ?: requestConfiguration.modelConfigId
         val effectiveChatModelIndexOverride =
-            chatModelIndexOverride ?: currentChatModelIndexOverride
+            chatModelIndexOverride ?: requestConfiguration.modelIndex
         val effectiveMemorySpaceIdOverride =
             memorySpaceIdOverride
-                ?: currentMemorySpaceIdOverride
+                ?: requestConfiguration.memorySpaceId
                 ?: roleCardIdOverride?.let { resolveRoleCardMemoryProfileOverride(it) }
         val effectiveIsGroupChat = isGroupChat || isGroupChatSession(currentChatId)
 
@@ -1892,7 +2207,7 @@ class MessageCoordinationDelegate(
         try {
             val service = getEnhancedAiService()
             if (service == null) {
-                uiStateDelegate.showErrorMessage(context.getString(R.string.chat_ai_service_unavailable_summarize))
+                OKToast.requestError(context, context.getString(R.string.chat_ai_service_unavailable_summarize)).show()
                 return false
             }
 
@@ -1917,7 +2232,9 @@ class MessageCoordinationDelegate(
                     currentMessages,
                     autoContinue,
                     effectiveIsGroupChat,
-                    summaryConfig
+                    summaryConfig,
+                    onProgress = { reportSummaryProgress(currentChatId, it) },
+                    onNonFatalError = { reportSummaryRetry(it) },
                 )
 
             if (summaryMessage != null) {
@@ -1940,7 +2257,7 @@ class MessageCoordinationDelegate(
                 summarySuccess = true
             } else {
                 AppLogger.w(TAG, "总结失败或无需总结")
-                uiStateDelegate.showErrorMessage(context.getString(R.string.chat_summarize_failed_no_valid_summary))
+                OKToast.requestError(context, context.getString(R.string.chat_summarize_failed_no_valid_summary)).show()
             }
         } catch (e: CancellationException) {
             // 总结被取消，这是正常流程
@@ -1948,12 +2265,7 @@ class MessageCoordinationDelegate(
             throw e // 重新抛出取消异常，让协程正确取消
         } catch (e: Exception) {
             AppLogger.e(TAG, "生成总结时出错: ${e.message}", e)
-            uiStateDelegate.showErrorMessage(
-                context.getString(
-                    R.string.chat_summarize_generation_failed,
-                    e.message ?: ""
-                )
-            )
+            showSummaryError(e.message.orEmpty())
         } finally {
             _isSummarizing.value = false
             if (_summarizingChatId.value == currentChatId) {
@@ -1969,7 +2281,7 @@ class MessageCoordinationDelegate(
             if (summarySuccess) {
                 if (autoContinue) {
                     if (currentChatId != null) {
-                        val continuationPromptType = promptFunctionType ?: currentPromptFunctionType
+                        val continuationPromptType = promptFunctionType ?: requestConfiguration.promptFunctionType
                         if (messageProcessingDelegate.isChatLoading(currentChatId)) {
                             AppLogger.d(TAG, "总结成功，但上一轮仍在处理中，转为排队自动续聊...")
                             queuePendingAutoContinuation(
@@ -1985,18 +2297,20 @@ class MessageCoordinationDelegate(
                         } else {
                             messageProcessingDelegate.setSuppressIdleCompletedStateForChat(currentChatId, false)
                             AppLogger.d(TAG, "总结成功，自动继续对话...")
-                            sendMessageInternal(
-                                promptFunctionType = continuationPromptType,
-                                isContinuation = true,
-                                isAutoContinuation = true,
-                                roleCardIdOverride = roleCardIdOverride,
-                                chatIdOverride = currentChatId,
-                                chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
-                                chatModelIndexOverride = effectiveChatModelIndexOverride,
-                                memorySpaceIdOverride = effectiveMemorySpaceIdOverride,
-                                isGroupOrchestrationTurn = isGroupOrchestrationTurn,
-                                groupParticipantNamesText = groupParticipantNamesText
-                            )
+                            runMessageSend {
+                                sendMessageInternal(
+                                    promptFunctionType = continuationPromptType,
+                                    isContinuation = true,
+                                    sendMode = MessageSendMode.AUTO_CONTINUE,
+                                    roleCardIdOverride = roleCardIdOverride,
+                                    chatIdOverride = currentChatId,
+                                    chatModelConfigIdOverride = effectiveChatModelConfigIdOverride,
+                                    chatModelIndexOverride = effectiveChatModelIndexOverride,
+                                    memorySpaceIdOverride = effectiveMemorySpaceIdOverride,
+                                    isGroupOrchestrationTurn = isGroupOrchestrationTurn,
+                                    groupParticipantNamesText = groupParticipantNamesText
+                                )
+                            }
                             if (!messageProcessingDelegate.isChatLoading(currentChatId)) {
                                 AppLogger.w(TAG, "自动续聊未能启动，恢复Idle: chatId=$currentChatId")
                                 restoreIdleIfCurrentlySummarizing(currentChatId)
@@ -2040,7 +2354,8 @@ class MessageCoordinationDelegate(
                     globalRules = config.summaryCustomRules.takeIf { it.isNotBlank() },
                     sectionOverrides = config.summarySectionOverrides,
                     dialogueReviewEnabled = config.enableSummaryDialogueReview,
-                    dialogueReviewTitle = config.summaryDialogueReviewTitle
+                    dialogueReviewTitle = config.summaryDialogueReviewTitle,
+                    previousSummaryReviewEnabled = config.enablePreviousSummaryReview
                 )
             } else {
                 ConversationSummaryConfig()

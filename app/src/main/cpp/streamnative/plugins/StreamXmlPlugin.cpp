@@ -2,6 +2,76 @@
 
 namespace streamnative {
 
+namespace {
+
+bool isAttributeSpace(char16_t c) {
+    return c == u' ' || c == u'\t' || c == u'\r' || c == u'\n';
+}
+
+std::u16string lowerAscii(std::u16string value) {
+    for (auto& c : value) {
+        if (c >= u'A' && c <= u'Z') c += u'a' - u'A';
+    }
+    return value;
+}
+
+// 与 ChatMarkupRegex 的工具标签范围一致，仅工具标签可以紧接普通正文。
+bool isToolLikeTagName(const std::u16string& original) {
+    const auto name = lowerAscii(original);
+    if (name == u"tool" || name == u"tool_result") return true;
+    std::u16string suffix;
+    if (name.rfind(u"tool_result_", 0) == 0) {
+        suffix = name.substr(12);
+    } else if (name.rfind(u"tool_", 0) == 0) {
+        suffix = name.substr(5);
+        if (suffix == u"result" || suffix.rfind(u"result_", 0) == 0) return false;
+    } else {
+        return false;
+    }
+    if (suffix.empty()) return false;
+    for (const char16_t c : suffix) {
+        if (!((c >= u'a' && c <= u'z') || (c >= u'0' && c <= u'9') || c == u'_')) return false;
+    }
+    return true;
+}
+
+// 按引号边界读取属性，避免 data-token 或其他属性值中的 token 触发思考闭合。
+bool readThinkingToken(const std::u16string& attributes, std::u16string& token) {
+    size_t cursor = 0;
+    while (cursor < attributes.size()) {
+        while (cursor < attributes.size() && isAttributeSpace(attributes[cursor])) ++cursor;
+        const size_t nameStart = cursor;
+        while (cursor < attributes.size() && !isAttributeSpace(attributes[cursor]) &&
+               attributes[cursor] != u'=') ++cursor;
+        const auto name = lowerAscii(attributes.substr(nameStart, cursor - nameStart));
+        while (cursor < attributes.size() && isAttributeSpace(attributes[cursor])) ++cursor;
+        if (cursor >= attributes.size()) break;
+        if (attributes[cursor] != u'=') {
+            ++cursor;
+            continue;
+        }
+        ++cursor;
+        while (cursor < attributes.size() && isAttributeSpace(attributes[cursor])) ++cursor;
+        if (cursor >= attributes.size()) break;
+        const char16_t quote = attributes[cursor++];
+        if (quote != u'\"' && quote != u'\'') {
+            while (cursor < attributes.size() && !isAttributeSpace(attributes[cursor])) ++cursor;
+            continue;
+        }
+        const size_t valueStart = cursor;
+        const size_t valueEnd = attributes.find(quote, cursor);
+        if (valueEnd == std::u16string::npos) break;
+        cursor = valueEnd + 1;
+        if (name == u"token") {
+            token = attributes.substr(valueStart, valueEnd - valueStart);
+            return true;
+        }
+    }
+    return false;
+}
+
+} // 匿名命名空间
+
 StreamXmlPlugin::StreamXmlPlugin(bool includeTagsInOutput)
         : includeTagsInOutput_(includeTagsInOutput),
           state_(PluginState::IDLE),
@@ -25,9 +95,13 @@ void StreamXmlPlugin::reset() {
     state_ = PluginState::IDLE;
     startState_ = StartState::WAIT_LT;
     tagName_.clear();
+    attributes_.clear();
     endMatcher_.reset();
+    alternateEndMatcher_.reset();
     endPattern_.clear();
+    alternateEndPattern_.clear();
     haveEndPattern_ = false;
+    inlineToolOnly_ = false;
     lastChar_ = 0;
 }
 
@@ -113,6 +187,7 @@ bool StreamXmlPlugin::processStartMatcher(char16_t c) {
         case StartState::WAIT_LT: {
             if (c == u'<') {
                 tagName_.clear();
+                attributes_.clear();
                 startState_ = StartState::WAIT_FIRST_LETTER;
                 state_ = PluginState::TRYING;
             }
@@ -130,7 +205,8 @@ bool StreamXmlPlugin::processStartMatcher(char16_t c) {
             return false;
         }
         case StartState::IN_TAG_NAME: {
-            if (c == u' ') {
+            if (isAttributeSpace(c)) {
+                attributes_.push_back(c);
                 startState_ = StartState::IN_ATTRS;
                 state_ = PluginState::TRYING;
                 return false;
@@ -156,6 +232,7 @@ bool StreamXmlPlugin::processStartMatcher(char16_t c) {
                 state_ = PluginState::TRYING;
                 return true;
             }
+            attributes_.push_back(c);
             state_ = PluginState::TRYING;
             return false;
         }
@@ -164,13 +241,36 @@ bool StreamXmlPlugin::processStartMatcher(char16_t c) {
 }
 
 void StreamXmlPlugin::buildEndPattern() {
-    endPattern_.clear();
-    endPattern_.reserve(tagName_.size() + 3);
-    endPattern_.push_back(u'<');
-    endPattern_.push_back(u'/');
-    endPattern_.append(tagName_);
-    endPattern_.push_back(u'>');
+    const auto name = lowerAscii(tagName_);
+    std::u16string token;
+    const bool hasThinkingToken =
+            (name == u"think" || name == u"thinking") && readThinkingToken(attributes_, token);
+
+    auto buildPattern = [&](char16_t quote, std::u16string& pattern) {
+        pattern.clear();
+        pattern.reserve(tagName_.size() + token.size() + 12);
+        pattern.push_back(u'<');
+        pattern.push_back(u'/');
+        pattern.append(tagName_);
+        if (hasThinkingToken) {
+            pattern.append(u" token=");
+            pattern.push_back(quote);
+            pattern.append(token);
+            pattern.push_back(quote);
+        }
+        pattern.push_back(u'>');
+    };
+
+    buildPattern(u'"', endPattern_);
     endMatcher_.setPattern(endPattern_);
+    if (hasThinkingToken) {
+        // ThinkingMarkup 兼容单双引号，原生流式分段也必须保持相同边界。
+        buildPattern(u'\'', alternateEndPattern_);
+        alternateEndMatcher_.setPattern(alternateEndPattern_);
+    } else {
+        alternateEndPattern_.clear();
+        alternateEndMatcher_.reset();
+    }
     haveEndPattern_ = true;
 }
 
@@ -183,7 +283,9 @@ bool StreamXmlPlugin::processChar(char16_t c, bool atStartOfLine) {
 
     if (state_ == PluginState::PROCESSING) {
         if (haveEndPattern_) {
-            if (endMatcher_.process(c)) {
+            const bool matched = endMatcher_.process(c) ||
+                    (!alternateEndPattern_.empty() && alternateEndMatcher_.process(c));
+            if (matched) {
                 allowStartAfterEndTag_ = true;
                 allowStartAfterPunctuation_ = false;
                 reset();
@@ -195,9 +297,10 @@ bool StreamXmlPlugin::processChar(char16_t c, bool atStartOfLine) {
 
     if (state_ == PluginState::IDLE && !atStartOfLine) {
         const bool allowStart = allowStartAfterEndTag_ || allowStartAfterPunctuation_;
-        if (!allowStart) {
+        if (!allowStart && c != u'<') {
             return finish(handleDefaultCharacter(c));
         }
+        inlineToolOnly_ = !allowStart;
         if (c == u' ' || c == u'\t' || isEmojiContinuationChar(c)) {
             return finish(handleDefaultCharacter(c));
         }
@@ -207,6 +310,10 @@ bool StreamXmlPlugin::processChar(char16_t c, bool atStartOfLine) {
     const bool startMatched = processStartMatcher(c);
 
     if (startMatched) {
+        if (inlineToolOnly_ && !isToolLikeTagName(tagName_)) {
+            reset();
+            return finish(true);
+        }
         if (prevChar == u'/') {
             // Treat self-closing tags like <br/> as plain text to avoid entering XML mode.
             reset();

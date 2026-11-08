@@ -3,14 +3,15 @@ package com.ai.assistance.operit.core.tools
  import android.content.Context
  import android.os.Build
  import com.ai.assistance.operit.core.tools.javascript.JsToolManager
- import com.ai.assistance.operit.core.tools.packTool.PackageManager
- import com.ai.assistance.operit.data.model.AITool
- import com.ai.assistance.operit.data.model.ToolResult
- import com.ai.assistance.operit.data.model.ToolValidationResult
+ import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+ import com.ai.assistance.operit.core.tools.protocol.AITool
+ import com.ai.assistance.operit.core.tools.protocol.ToolResult
+ import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
  import kotlinx.coroutines.flow.Flow
  import kotlinx.serialization.builtins.MapSerializer
  import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -31,6 +32,7 @@ import kotlinx.serialization.json.JsonPrimitive
  import kotlinx.coroutines.runBlocking
  import kotlinx.coroutines.flow.last
  import java.util.Locale
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
  
  /**
   * Represents a package of tools that can be imported by the AI
@@ -297,6 +299,7 @@ object StringOrStringListSerializer : KSerializer<List<String>> {
      }
  }
  
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ToolPackage(
     val name: String,

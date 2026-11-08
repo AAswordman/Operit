@@ -2,18 +2,20 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.context.ChatUtils
 import java.security.MessageDigest
 import java.util.Base64
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
 
 open class OpenAIResponsesProvider(
     private val responsesApiEndpoint: String,
@@ -51,6 +53,7 @@ open class OpenAIResponsesProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -61,7 +64,7 @@ open class OpenAIResponsesProvider(
             } else {
                 ChatUtils.stripOpenAiResponsesReasoningMetaTurns(chatHistory)
             }
-        val baseRequestBodyJson = super.createRequestBodyInternal(
+        val jsonObject = super.createRequestBodyObject(
             context,
             requestChatHistory,
             modelParameters,
@@ -69,21 +72,10 @@ open class OpenAIResponsesProvider(
             availableTools,
             preserveThinkInHistory
         )
-        val jsonObject = JSONObject(baseRequestBodyJson)
 
         applyResponsesReasoningEffort(context, jsonObject, enableThinking)
 
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString(
-            "OpenAIResponsesProvider",
-            sanitizedLogJson.toString(4),
-            "Final Responses request body: "
-        )
+        logRequestBody("OpenAIResponsesProvider", jsonObject, "Final Responses request body: ")
 
         return createJsonRequestBody(jsonObject.toString())
     }
@@ -119,12 +111,14 @@ open class OpenAIResponsesProvider(
             apiEndpoint = responsesApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
     }
 
     private fun shouldAttachPromptCacheKey(): Boolean {
-        return responsesProviderType == ApiProviderType.OPENAI_RESPONSES
+        // Codex 请求 store=false，没有服务端会话，缓存同样依赖这个稳定键。
+        return responsesProviderType == ApiProviderType.OPENAI_RESPONSES ||
+            responsesProviderType == ApiProviderType.OPENAI_CODEX
     }
 
     private fun buildPromptCacheKey(
@@ -549,6 +543,18 @@ object OpenAIResponsesPayloadAdapter {
                                 )
                             }
                         }
+                        "file" -> {
+                            // DeepSeek Files API 文件块（file_id 引用），转换为 Responses 的 input_image part
+                            val fileId = part.optString("file_id", "")
+                            if (fileId.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_image")
+                                        put("file_id", fileId)
+                                    }
+                                )
+                            }
+                        }
 
                         "input_file" -> {
                             val fileData = part.optString("file_data", "")
@@ -559,6 +565,20 @@ object OpenAIResponsesPayloadAdapter {
                                         put("type", "input_file")
                                         put("filename", fileName)
                                         put("file_data", fileData)
+                                    }
+                                )
+                            }
+                        }
+
+                        "video_url", "input_video" -> {
+                            val videoUrl =
+                                part.optJSONObject("video_url")?.optString("url", "")
+                                    ?: part.optString("video_url", "")
+                            if (videoUrl.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_video")
+                                        put("video_url", videoUrl)
                                     }
                                 )
                             }

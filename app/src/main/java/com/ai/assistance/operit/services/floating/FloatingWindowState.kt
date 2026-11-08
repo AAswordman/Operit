@@ -31,9 +31,6 @@ class FloatingWindowState(context: Context) {
     val ballSize = mutableStateOf(60.dp)
     val isAtEdge = mutableStateOf(false)
 
-    // DragonBones pet mode lock state
-    var isPetModeLocked = mutableStateOf(false)
-
     // Transition state
     var lastWindowPositionX: Int = 0
     var lastWindowPositionY: Int = 0

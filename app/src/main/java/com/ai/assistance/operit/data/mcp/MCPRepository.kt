@@ -6,16 +6,18 @@ import android.net.Uri
 import android.os.Environment
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.mcp.MCPPackage
 import com.ai.assistance.operit.core.tools.mcp.McpRuntimeDescriptor
 import com.ai.assistance.operit.core.tools.mcp.MCPServerConfig
 import com.ai.assistance.operit.core.tools.mcp.MCPToolExecutor
 import com.ai.assistance.operit.data.mcp.plugins.MCPConfigGenerator
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.data.transfer.DownloadTransferProgress
+import com.ai.assistance.operit.data.transfer.copyWithTransferProgress
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
@@ -124,9 +126,11 @@ class MCPRepository(private val context: Context) {
             val installedIds = mutableSetOf<String>()
 
             pluginMetadata.values.forEach { metadata ->
-                // 统一检查：根据 command 判断是否需要物理安装
+                // 配置中的本地服务应进入启动列表；运行文件是否就绪由启动阶段判断。
                 val isInstalled = if (metadata.type == "remote") {
                     true // 远程服务器
+                } else if (mcpLocalServer.getMCPServer(metadata.id) != null) {
+                    true
                 } else {
                     isPluginPhysicallyInstalled(metadata.id) // 自动处理 npx/uvx/uv
                 }
@@ -196,28 +200,16 @@ class MCPRepository(private val context: Context) {
     }
 
     /**
-     * 判断插件是否需要物理安装（npx/uvx/uv/remote 类型不需要）
+     * 判断插件是否需要物理安装（npx/uvx/uv 以及自包含路径配置不需要）
      */
     private fun needsPhysicalInstallation(serverId: String): Boolean {
-        val serverConfig = mcpLocalServer.getMCPServer(serverId)
-        val command = serverConfig?.command?.lowercase() ?: return true
-        
-        return commandNeedsPhysicalInstallation(command)
-    }
-    
-    /**
-     * 判断命令类型是否需要物理安装
-     * @param command 命令字符串（小写）
-     * @return true 如果需要物理安装，false 如果是 npx/uvx/uv 等不需要物理安装的命令
-     */
-    private fun commandNeedsPhysicalInstallation(command: String): Boolean {
-        // npx、uvx、uv、remote 类型的插件不需要物理安装
-        return when (command) {
-            "npx" -> false
-            "uvx" -> false
-            "uv" -> false
-            else -> true
-        }
+        val serverConfig = mcpLocalServer.getMCPServer(serverId) ?: return true
+
+        return McpStdioConfigResolver.requiresAppManagedInstallation(
+            command = serverConfig.command,
+            args = serverConfig.args.orEmpty(),
+            cwd = serverConfig.cwd
+        )
     }
     
     /**
@@ -229,11 +221,11 @@ class MCPRepository(private val context: Context) {
         return parsedConfig.servers
             .filterIsInstance<StdioMcpImportedServer>()
             .any { server ->
-                val command = server.command
-                    .substringAfterLast('/')
-                    .substringAfterLast('\\')
-                    .lowercase()
-                commandNeedsPhysicalInstallation(command)
+                McpStdioConfigResolver.requiresAppManagedInstallation(
+                    command = server.command,
+                    args = server.args,
+                    cwd = server.cwd
+                )
             }
     }
 
@@ -262,6 +254,9 @@ class MCPRepository(private val context: Context) {
             false // 没有元数据记录
         } else if (metadata.type == "remote") {
             true // 远程服务器配置后即为已安装
+        } else if (mcpLocalServer.getMCPServer(serverId) != null) {
+            // 已写入 mcpServers 的本地服务由用户配置，启动时就绪性由 MCPLocalServer 判定
+            true
         } else {
             isPluginPhysicallyInstalled(serverId) // 自动处理 npx/uvx/uv
         }
@@ -622,60 +617,40 @@ class MCPRepository(private val context: Context) {
     ): File? = withContext(Dispatchers.IO) {
         val tempFile = File(context.cacheDir, "mcp_${serverId}_repo.zip")
         
-        try {
-            val url = URL(zipUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.connectTimeout = CONNECT_TIMEOUT
-            connection.readTimeout = READ_TIMEOUT
-            connection.doInput = true
-            connection.setRequestProperty(
+        val connection = (URL(zipUrl).openConnection() as HttpURLConnection).apply {
+            connectTimeout = CONNECT_TIMEOUT
+            readTimeout = READ_TIMEOUT
+            doInput = true
+            setRequestProperty(
                 "User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             )
-            
+        }
+        try {
             connection.connect()
-            
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
                 AppLogger.e(TAG, "下载失败，HTTP响应码: ${connection.responseCode}")
                 return@withContext null
             }
-            
-            val contentLength = connection.contentLength.toLong()
+            val contentLength = connection.contentLengthLong
             AppLogger.d(TAG, "开始下载，文件大小: $contentLength 字节")
-            
-            val inputStream = BufferedInputStream(connection.inputStream)
-            val outputStream = FileOutputStream(tempFile)
-            
-            val buffer = ByteArray(BUFFER_SIZE)
-            var bytesRead: Int
-            var totalBytesRead: Long = 0
-            var lastReportedProgress = -1
-            
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                outputStream.write(buffer, 0, bytesRead)
-                totalBytesRead += bytesRead
-                
-                val progress = if (contentLength > 0) {
-                    (totalBytesRead * 100 / contentLength).toInt()
-                } else -1
-                
-                if (progress != lastReportedProgress) {
-                    progressCallback(InstallProgress.Downloading(progress))
-                    lastReportedProgress = progress
+            BufferedInputStream(connection.inputStream).use { input ->
+                FileOutputStream(tempFile).use { output ->
+                    input.copyWithTransferProgress(output, contentLength, { transfer ->
+                        val percent = transfer.fraction?.let { (it * 100).toInt() } ?: -1
+                        progressCallback(InstallProgress.Downloading(percent, transfer))
+                    }, BUFFER_SIZE)
+                    output.flush()
                 }
             }
-            
-            outputStream.flush()
-            outputStream.close()
-            inputStream.close()
-            
             AppLogger.d(TAG, "下载完成，保存到: ${tempFile.path}")
             return@withContext tempFile
-            
         } catch (e: Exception) {
             AppLogger.e(TAG, "下载ZIP文件失败: ${e.message}", e)
             if (tempFile.exists()) tempFile.delete()
             return@withContext null
+        } finally {
+            connection.disconnect()
         }
     }
 
@@ -1373,7 +1348,10 @@ private data class UnifiedToolInfo(
 /** 安装进度状态 */
 sealed class InstallProgress {
     object Preparing : InstallProgress()
-    data class Downloading(val progress: Int) : InstallProgress() // -1 表示未知进度
+    data class Downloading(
+        val progress: Int,
+        val transfer: DownloadTransferProgress? = null,
+    ) : InstallProgress() // -1 表示未知进度
     data class Extracting(val progress: Int) : InstallProgress() // -1 表示未知进度
     object Finished : InstallProgress()
 }

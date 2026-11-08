@@ -1,9 +1,9 @@
 package com.ai.assistance.operit.core.tools.system.shell
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShellIdentity
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit

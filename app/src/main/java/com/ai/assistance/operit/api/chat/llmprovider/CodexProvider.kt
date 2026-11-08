@@ -4,8 +4,8 @@ import android.content.Context
 import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.data.api.CodexAuthManager
 import com.ai.assistance.operit.data.api.CodexOAuthProtocol
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -13,6 +13,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.SharedHttpClient
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
 
 private class CodexAccessTokenProvider(
     private val authManager: CodexAuthManager,
@@ -51,6 +53,9 @@ class CodexProvider(
     thinkingConfigurations = thinkingConfigurations,
     thinkingOptionId = thinkingOptionId,
 ) {
+    // 聊天服务按会话缓存。session-id 跟这个实例走，重试和后续轮次才能维持缓存亲和。
+    private val codexSessionId = UUID.randomUUID().toString()
+
     override fun applyAuthenticationHeaders(builder: Request.Builder, currentApiKey: String) {
         super.applyAuthenticationHeaders(builder, currentApiKey)
         val accountId = authManager.currentAccountId()
@@ -58,7 +63,7 @@ class CodexProvider(
         builder.header("ChatGPT-Account-ID", accountId)
         builder.header("originator", "operit")
         builder.header("User-Agent", "Operit/${BuildConfig.VERSION_NAME}")
-        builder.header("session-id", UUID.randomUUID().toString())
+        builder.header("session-id", codexSessionId)
         authManager.currentResidency()?.let { residency ->
             builder.header("x-openai-internal-codex-residency", residency)
         }
@@ -117,7 +122,7 @@ class CodexProvider(
         )
     }
 
-    override suspend fun getModelsList(_context: Context): Result<List<ModelOption>> {
+    override suspend fun getModelsList(context: Context): Result<List<ModelOption>> {
         return CodexModelListFetcher.getModelsList(httpClient)
     }
 

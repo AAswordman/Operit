@@ -3,7 +3,7 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
@@ -14,6 +14,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
+import com.ai.assistance.operit.api.chat.keypool.SingleApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ModelConfigConnectionTester
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
 
 /**
  * Protocol-level regression tests for the OpenAI tool-call history conversion.
@@ -210,7 +213,7 @@ class OpenAiToolCallHistoryTest {
             ),
             placeholder
         )
-        assertFalse(placeholder.contains("用户取消"))
+        assertTrue(placeholder.contains("这不是用户取消"))
         assertEquals(4, messages.length())
     }
 

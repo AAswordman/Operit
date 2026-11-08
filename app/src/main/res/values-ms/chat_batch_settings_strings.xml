@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">Tindakan pukal</string>
+    <string name="chat_batch_exit">Keluar pemilihan</string>
+    <string name="chat_batch_summarize">Ringkaskan tajuk</string>
+    <string name="chat_batch_progress">Memproses %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">Sembang yang dikunci tidak dipadam.</string>
+    <string name="chat_batch_delete_title">Padam sembang terpilih</string>
+    <string name="chat_batch_delete_message">%1$d sembang akan dipadam dan %2$d sembang dikunci akan dikekalkan. Tindakan ini tidak boleh dibuat asal.</string>
+    <string name="chat_batch_result">Selesai: %1$d berjaya, %2$d dilangkau, %3$d gagal</string>
+    <string name="language_follow_system">Ikut sistem</string>
+    <string name="language_global_info">Bahasa digunakan untuk semua watak. Aplikasi dibuka semula selepas pertukaran.</string>
+    <string name="language_change_failed">Tidak dapat menukar bahasa. Sila cuba lagi.</string>
+</resources>

@@ -124,7 +124,7 @@ class PredicateCondition(
 internal class GreedyStarCondition(val condition: KmpCondition) : KmpCondition {
     override fun matches(c: Char): Boolean = condition.matches(c)
     override fun getDescription(): String = "greedy*(${condition.getDescription()})"
-    override fun toRegexPattern(): String = "(${condition.toRegexPattern()})*"
+    override fun toRegexPattern(): String = "(?:${condition.toRegexPattern()})*"
 }
 
 /** A private marker condition used by the builder to handle capturing groups. */

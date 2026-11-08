@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.config
 
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
-import com.ai.assistance.operit.data.model.SummarySectionOverride
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
+import com.ai.assistance.operit.data.config.model.SummarySectionOverride
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

@@ -635,6 +635,17 @@ fun getJsToolsDefinition(): String {
                     }
                     return toolCall("get_app_usage_time", params);
                 },
+                // 获取软件和插件的当前性能指标
+                getPerformanceMetrics: (options = {}) => {
+                    const params = {};
+                    if (options && typeof options === "object" && !Array.isArray(options)) {
+                        if (options.pluginId !== undefined && options.pluginId !== null) {
+                            const pluginId = String(options.pluginId).trim();
+                            if (pluginId) params.plugin_id = pluginId;
+                        }
+                    }
+                    return toolCall("get_performance_metrics", params);
+                },
                 // 获取设备位置
                 getLocation: (highAccuracy = false, timeout = 10, includeAddress = true) =>
                     toolCall("get_device_location", {
@@ -807,6 +818,18 @@ fun getJsToolsDefinition(): String {
                 // 执行终端命令 - 一次性收集输出
                 terminal: {
                     create: (sessionName) => toolCall("create_terminal_session", { session_name: sessionName }),
+                    start: (sessionId, command, options = {}) => {
+                        const params = { session_id: sessionId, command };
+                        if (options.timeoutMs !== undefined && options.timeoutMs !== null) params.timeout_ms = String(options.timeoutMs);
+                        if (options.yieldMs !== undefined && options.yieldMs !== null) params.yield_ms = String(options.yieldMs);
+                        return toolCall("start_terminal_task", params);
+                    },
+                    poll: (runId, options = {}) => {
+                        const params = { run_id: runId };
+                        if (options.yieldMs !== undefined && options.yieldMs !== null) params.yield_ms = String(options.yieldMs);
+                        return toolCall("poll_terminal_task", params);
+                    },
+                    cancel: (runId) => toolCall("cancel_terminal_task", { run_id: runId }),
                     exec: (sessionId, command, timeoutMs) => {
                         const params = { session_id: sessionId, command };
                         if (timeoutMs !== undefined && timeoutMs !== null) {
@@ -953,6 +976,14 @@ fun getJsToolsDefinition(): String {
             SoftwareSettings: {
                 readEnvironmentVariable: (key) => {
                     return toolCall("read_environment_variable", { key: String(key ?? "") });
+                },
+                getToolPermissionMode: () => {
+                    return toolCall("get_tool_permission_mode", {});
+                },
+                setToolPermissionMode: (permissionLevel) => {
+                    return toolCall("set_tool_permission_mode", {
+                        permission_level: String(permissionLevel ?? "")
+                    });
                 },
                 writeEnvironmentVariable: (key, value) => {
                     const params = { key: String(key ?? "") };

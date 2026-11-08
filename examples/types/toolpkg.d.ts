@@ -804,7 +804,7 @@ export namespace ToolPkg {
         );
     }
 
-    export interface ToolboxUiModuleRegistration {
+    export interface UiModuleRegistration {
         id: string;
         runtime?: string;
         screen: ComposeDslScreenRef;
@@ -812,6 +812,9 @@ export namespace ToolPkg {
         title?: LocalizedText;
         keepAlive?: boolean;
     }
+
+    /** @deprecated 仅保留旧插件类型声明，旧注册调用不产生界面或导航。 */
+    export type ToolboxUiModuleRegistration = UiModuleRegistration;
 
     export interface UiRouteRegistration {
         id: string;
@@ -825,7 +828,8 @@ export namespace ToolPkg {
     }
 
     export type NavigationSurface =
-        | "toolbox"
+        | "package_details" // 在插件详情中展示界面入口
+        | "toolbox" // 兼容旧声明，调用后忽略，不发布入口
         | "main_sidebar_plugins";
 
     export interface NavigationEntryRegistration {
@@ -987,6 +991,7 @@ export namespace ToolPkg {
     export interface IpcCallOptions {
         targetRuntime?: RuntimeKind;
         targetContextKey?: string;
+        timeoutMs?: number;
     }
 
     export interface IpcApi {
@@ -1046,7 +1051,9 @@ export namespace ToolPkg {
     }
 
     export interface Registry {
-        /** @since ToolPkg API 1.0.0 */
+        /** 注册可从插件详情打开的界面模块。 @since ToolPkg API 1.0.0 */
+        registerUiModule(definition: UiModuleRegistration): void;
+        /** @deprecated 兼容注册为插件详情配置模块，不返回内容，也不创建旧工具箱导航；新插件请使用 registerUiModule。 */
         registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;
         /** @since ToolPkg API 1.0.0 */
         registerUiRoute(definition: UiRouteRegistration): void;
@@ -1100,6 +1107,8 @@ export namespace ToolPkg {
 }
 
 declare global {
+    function registerToolPkgUiModule(definition: ToolPkg.UiModuleRegistration): void;
+    /** @deprecated 兼容注册为插件详情配置模块，不返回内容，也不创建旧工具箱导航；新插件请使用 registerUiModule。 */
     function registerToolPkgToolboxUiModule(definition: ToolPkg.ToolboxUiModuleRegistration): void;
 
     function registerToolPkgUiRoute(definition: ToolPkg.UiRouteRegistration): void;

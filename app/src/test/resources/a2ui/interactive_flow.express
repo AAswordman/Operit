@@ -1,0 +1,20 @@
+
+$/flow = {step:0,flavor:"原味"}
+$/steps = [
+ {id:"step0",order:0,title:"开始",detail:"点击任意步骤查看说明。准备好后，勾选完成并前往下一步。"},
+ {id:"step1",order:1,title:"准备食材",detail:"准备番茄、鸡蛋、葱、食用油和适量盐。清洗番茄并切块。"},
+ {id:"step2",order:2,title:"打散鸡蛋",detail:"鸡蛋打入碗中，加少量盐搅匀。生熟食材分开放置。"},
+ {id:"step3",order:3,title:"炒鸡蛋",detail:"锅热后加油，倒入蛋液，轻推至凝固后盛出备用。"},
+ {id:"step4",order:4,title:"炒番茄",detail:"锅中补少量油，放入番茄炒软，按需加一点水。"},
+ {id:"step5",order:5,title:"口味选择",detail:"选择甜口或原味。可以随时返回更改，不影响其他步骤记录。"},
+ {id:"step6",order:6,title:"混合出锅",detail:"倒回鸡蛋轻轻翻匀，按口味调盐，确认鸡蛋熟透后出锅。"},
+ {id:"step7",order:7,title:"结束",detail:"完成！已经完成的步骤仍可点开查看，也可以返回上一步。"}
+]
+root = Column(children=[Header(text="番茄炒蛋",label="点步骤查看说明，勾选记录进度",status="本地交互"),steps])
+steps = Repeat(items=$/steps,key="id",maxItems=8,child=stepRow)
+stepRow = Column(gap="xs",children=[node,details,connector])
+node = Pressable(label=concat(values=[item(field="title"),if(condition=item_state(field="done",default=false),then="，已完成",else="，未完成")]),selected=equals(a=$/flow/step,b=item(field="order")),child=Header(text=item(field="title"),status=if(condition=item_state(field="done",default=false),then="已完成",else="待完成"),tone=if(condition=item_state(field="done",default=false),then="success",else="neutral")),action=Event(name="local_action",context={op:"set",path:"/flow/step",value:item(field="order")}))
+details = Conditional(visible=equals(a=$/flow/step,b=item(field="order")),children=[Text(text=item(field="detail")),branch,CheckBox(label="本步骤已完成",value=item_state(field="done",default=false)),navigation])
+branch = Conditional(visible=equals(a=item(field="order"),b=5),children=[Frame(maxWidth=120,child=Vector(label="判断节点：选择口味",width=120,height=64,shapes=[{type:"polygon",points:[[60,2],[118,32],[60,62],[2,32]],tone:"info",filled:true}])),Segmented(label="选择口味",options=["甜口","原味"],value=$/flow/flavor),Text(text=if(condition=equals(a=$/flow/flavor,b="甜口"),then="甜口分支：加入少量糖，先少放，再尝味调整。",else="原味分支：不加糖，保留番茄的酸甜。"))])
+connector = Conditional(visible=lessThan(a=item(field="order"),b=7),children=[Vector(label="前往下一步骤",width=320,height=28,shapes=[{type:"arrow",x1:160,y1:2,x2:160,y2:26,tone:if(condition=item_state(field="done",default=false),then="success",else="neutral")}])])
+navigation = Row(wrap=true,children=[Button(child=Text(text="上一步"),checks=[{condition:greaterThan(a=$/flow/step,b=0),message:"当前是第一步"}],action=Event(name="local_action",context={op:"add",path:"/flow/step",value:-1})),Button(child=Text(text="下一步"),variant="primary",checks=[{condition:lessThan(a=$/flow/step,b=7),message:"已到最后一步"}],action=Event(name="local_action",context={op:"add",path:"/flow/step",value:1}))])

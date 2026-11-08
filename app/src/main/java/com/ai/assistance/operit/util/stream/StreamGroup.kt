@@ -2,7 +2,7 @@ package com.ai.assistance.operit.util.stream
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 /**
  * 流处理器接口，定义了如何处理流数据
@@ -53,12 +53,14 @@ class CompositeStreamProcessor<T, R>(
  * @property stream 这个组中的数据流
  * @property processor 处理这个组数据的处理器
  * @property children 子分组列表
+ * @property continuesPrevious 是否接续恢复前尚未完成的同一块，仅由分段器标记
  */
 class StreamGroup<TAG>(
         val tag: TAG,
         val stream: Stream<String>,
         val processor: StreamProcessor<String, *>? = null,
-        val children: MutableList<StreamGroup<*>> = mutableListOf()
+        val children: MutableList<StreamGroup<*>> = mutableListOf(),
+        val continuesPrevious: Boolean = false,
 ) {
     /**
      * 收集这个组的流数据

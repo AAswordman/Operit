@@ -2,13 +2,13 @@ package com.ai.assistance.operit.data.mcp.plugins
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.OperitPaths
-import com.ai.assistance.operit.util.PortProcessKiller
-import com.ai.assistance.operit.core.tools.system.Terminal
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.files.OperitPaths
+import com.ai.assistance.operit.util.network.PortProcessKiller
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -446,6 +446,40 @@ class MCPBridge private constructor(private val context: Context) {
                     }
                 }
 
+        private val SENSITIVE_LOG_KEY =
+            Regex("(token|secret|password|passwd|api[_-]?key|authorization|bearer|credential)", RegexOption.IGNORE_CASE)
+
+        /** 复制日志数据并遮蔽环境变量值和其他敏感参数，避免导出日志泄露凭据。 */
+        private fun redactForLog(value: Any?): Any? = when (value) {
+            is JSONObject ->
+                JSONObject().apply {
+                    value.keys().forEach { key ->
+                        val child = value.opt(key)
+                        when {
+                            key.equals("env", ignoreCase = true) && child is JSONObject -> {
+                                val maskedEnv = JSONObject()
+                                child.keys().forEach { envKey -> maskedEnv.put(envKey, "***") }
+                                put(key, maskedEnv)
+                            }
+                            SENSITIVE_LOG_KEY.containsMatchIn(key) -> put(key, "***")
+                            else -> put(key, redactForLog(child))
+                        }
+                    }
+                }
+            is JSONArray ->
+                JSONArray().apply {
+                    for (index in 0 until value.length()) {
+                        put(redactForLog(value.opt(index)))
+                    }
+                }
+            else -> value
+        }
+
+        private fun redactSensitiveParams(params: JSONObject?): String {
+            if (params == null) return ""
+            return redactForLog(params)?.toString().orEmpty()
+        }
+
         private fun sendCommandThroughStream(
             command: JSONObject,
             writer: PrintWriter,
@@ -464,8 +498,12 @@ class MCPBridge private constructor(private val context: Context) {
                     AppLogger.e(TAG, emptyResponseMessage)
                     null
                 } else {
-                    AppLogger.d(TAG, "命令[$cmdId: $cmdType${if (!serviceName.isNullOrBlank()) " service=$serviceName" else ""}]响应: $response")
-                    JSONObject(response)
+                    val parsed = JSONObject(response)
+                    AppLogger.d(
+                        TAG,
+                        "命令[$cmdId: $cmdType${if (!serviceName.isNullOrBlank()) " service=$serviceName" else ""}]响应: ${redactForLog(parsed)}"
+                    )
+                    parsed
                 }
             } catch (e: Exception) {
                 AppLogger.e(TAG, "命令[$cmdId: $cmdType]通信或解析失败: ${e.message}")
@@ -506,11 +544,12 @@ class MCPBridge private constructor(private val context: Context) {
 
                         // Enhanced logging with special handling for commands with service names
                         val serviceName = params?.optString("name")
+                        val logParams = redactSensitiveParams(params)
                         val logMessage =
                                 if (serviceName != null && serviceName.isNotEmpty()) {
-                                    "${context.getString(R.string.mcp_send_command)}[$cmdId]: $cmdType ${context.getString(R.string.mcp_service_label)}: $serviceName ${context.getString(R.string.mcp_other_params)}: ${params.toString()}"
+                                    "${context.getString(R.string.mcp_send_command)}[$cmdId]: $cmdType ${context.getString(R.string.mcp_service_label)}: $serviceName ${context.getString(R.string.mcp_other_params)}: $logParams"
                                 } else {
-                                    "${context.getString(R.string.mcp_send_command)}[$cmdId]: $cmdType ${if (params != null) "参数: $params" else ""}"
+                                    "${context.getString(R.string.mcp_send_command)}[$cmdId]: $cmdType ${if (params != null) "参数: $logParams" else ""}"
                                 }
 
                         AppLogger.d(TAG, logMessage)

@@ -16,6 +16,7 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
                 };
                 if (typeof __tree !== 'undefined') {
                     __response.tree = __tree;
+                    __response.__composeActions = __bundle.getActionSnapshot();
                 }
                 if (typeof __actionResult !== 'undefined') {
                     __response.actionResult = __actionResult;

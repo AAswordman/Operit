@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">Ajuste primeiro o tamanho da decoração e o espaço do texto. Use um estilo de borda se ela se deformar. O controle de espaço altera os dois lados.</string>
+    <string name="chat_bubble_decoration_size">Tamanho da decoração</string>
+    <string name="chat_bubble_text_space">Espaço lateral do texto</string>
+    <string name="chat_bubble_text_space_value">Esq. %1$d · Dir. %2$d dp</string>
+    <string name="chat_bubble_reset_size">Redefinir tamanho e espaço</string>
+    <string name="chat_bubble_border_presets">Decoração da borda a preservar</string>
+    <string name="chat_bubble_border_small">Menos</string>
+    <string name="chat_bubble_border_normal">Equilibrado</string>
+    <string name="chat_bubble_border_large">Mais</string>
+    <string name="chat_bubble_advanced">Ajustes detalhados</string>
+    <string name="chat_bubble_advanced_hint">O centro se expande com o texto enquanto as bordas mantêm a decoração. O recorte remove espaços vazios ao redor da imagem.</string>
+    <string name="chat_bubble_horizontal_region">Área de preenchimento horizontal</string>
+    <string name="chat_bubble_vertical_region">Área de preenchimento vertical</string>
+</resources>

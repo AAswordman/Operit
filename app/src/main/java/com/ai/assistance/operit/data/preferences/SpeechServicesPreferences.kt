@@ -8,9 +8,9 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.api.speech.SpeechServiceFactory
-import com.ai.assistance.operit.api.voice.HttpTtsResponsePipelineStep
-import com.ai.assistance.operit.api.voice.VoiceServiceFactory
+import com.ai.assistance.operit.api.speech.stt.SttServiceFactory
+import com.ai.assistance.operit.api.speech.tts.HttpTtsResponsePipelineStep
+import com.ai.assistance.operit.api.speech.tts.TtsServiceFactory
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -50,7 +50,8 @@ class SpeechServicesPreferences(private val context: Context) {
     data class VitsTtsPackageConfig(
         val packagePath: String = "",
         val speakerId: String = "",
-        val options: Map<String, String> = emptyMap()
+        val options: Map<String, String> = emptyMap(),
+        val installedModelKey: String = ""
     )
 
     @Serializable
@@ -58,6 +59,7 @@ class SpeechServicesPreferences(private val context: Context) {
         val endpointUrl: String,
         val apiKey: String,
         val modelName: String,
+        val localModelKey: String = "",
     )
 
     companion object {
@@ -74,8 +76,8 @@ class SpeechServicesPreferences(private val context: Context) {
         val STT_HTTP_CONFIG = stringPreferencesKey("stt_http_config")
 
         // Default Values
-        val DEFAULT_TTS_SERVICE_TYPE = VoiceServiceFactory.VoiceServiceType.SIMPLE_TTS
-        val DEFAULT_STT_SERVICE_TYPE = SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN
+        val DEFAULT_TTS_SERVICE_TYPE = TtsServiceFactory.VoiceServiceType.SIMPLE_TTS
+        val DEFAULT_STT_SERVICE_TYPE = SttServiceFactory.SpeechServiceType.SHERPA_NCNN
 
         const val DEFAULT_TTS_SPEECH_RATE = 1.0f
         const val DEFAULT_TTS_PITCH = 1.0f
@@ -108,17 +110,17 @@ class SpeechServicesPreferences(private val context: Context) {
             "（[^）]+）"     // 中文括号
         )
 
-        private fun parseSttServiceType(raw: String?): SpeechServiceFactory.SpeechServiceType {
+        private fun parseSttServiceType(raw: String?): SttServiceFactory.SpeechServiceType {
             if (raw == null) return DEFAULT_STT_SERVICE_TYPE
-            if (raw == "SHERPA_MNN") return SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN
-            return runCatching { SpeechServiceFactory.SpeechServiceType.valueOf(raw) }
+            if (raw == "SHERPA_MNN") return SttServiceFactory.SpeechServiceType.SHERPA_NCNN
+            return runCatching { SttServiceFactory.SpeechServiceType.valueOf(raw) }
                 .getOrElse { DEFAULT_STT_SERVICE_TYPE }
         }
     }
 
     // --- TTS Flows ---
-    val ttsServiceTypeFlow: Flow<VoiceServiceFactory.VoiceServiceType> = dataStore.data.map { prefs ->
-        VoiceServiceFactory.VoiceServiceType.valueOf(
+    val ttsServiceTypeFlow: Flow<TtsServiceFactory.VoiceServiceType> = dataStore.data.map { prefs ->
+        TtsServiceFactory.VoiceServiceType.valueOf(
             prefs[TTS_SERVICE_TYPE] ?: DEFAULT_TTS_SERVICE_TYPE.name
         )
     }
@@ -163,7 +165,7 @@ class SpeechServicesPreferences(private val context: Context) {
     }
 
     // --- STT Flows ---
-    val sttServiceTypeFlow: Flow<SpeechServiceFactory.SpeechServiceType> = dataStore.data.map { prefs ->
+    val sttServiceTypeFlow: Flow<SttServiceFactory.SpeechServiceType> = dataStore.data.map { prefs ->
         parseSttServiceType(prefs[STT_SERVICE_TYPE])
     }
 
@@ -182,7 +184,7 @@ class SpeechServicesPreferences(private val context: Context) {
 
     // --- Save TTS Settings ---
     suspend fun saveTtsSettings(
-        serviceType: VoiceServiceFactory.VoiceServiceType,
+        serviceType: TtsServiceFactory.VoiceServiceType,
         httpConfig: TtsHttpConfig? = null,
         vitsConfig: VitsTtsPackageConfig? = null,
         cleanerRegexs: List<String>? = null,
@@ -202,7 +204,7 @@ class SpeechServicesPreferences(private val context: Context) {
             speechRate?.let { prefs[TTS_SPEECH_RATE] = it }
             pitch?.let { prefs[TTS_PITCH] = it }
 
-            if (serviceType == VoiceServiceFactory.VoiceServiceType.VITS_TTS) {
+            if (serviceType == TtsServiceFactory.VoiceServiceType.VITS_TTS || serviceType == TtsServiceFactory.VoiceServiceType.SHERPA_ONNX_TTS) {
                 vitsConfig?.let { prefs[TTS_VITS_PACKAGE_CONFIG] = serializerJson.encodeToString(it) }
             }
         }
@@ -217,19 +219,21 @@ class SpeechServicesPreferences(private val context: Context) {
 
     // --- Save STT Settings ---
     suspend fun saveSttSettings(
-        serviceType: SpeechServiceFactory.SpeechServiceType,
+        serviceType: SttServiceFactory.SpeechServiceType,
         httpConfig: SttHttpConfig? = null,
     ) {
         dataStore.edit { prefs ->
             prefs[STT_SERVICE_TYPE] = serviceType.name
 
             when (serviceType) {
-                SpeechServiceFactory.SpeechServiceType.SHERPA_NCNN -> {
-                }
-                SpeechServiceFactory.SpeechServiceType.OPENAI_STT -> {
+                SttServiceFactory.SpeechServiceType.SHERPA_ONNX,
+                SttServiceFactory.SpeechServiceType.SHERPA_NCNN -> {
                     httpConfig?.let { prefs[STT_HTTP_CONFIG] = serializerJson.encodeToString(it) }
                 }
-                SpeechServiceFactory.SpeechServiceType.DEEPGRAM_STT -> {
+                SttServiceFactory.SpeechServiceType.OPENAI_STT -> {
+                    httpConfig?.let { prefs[STT_HTTP_CONFIG] = serializerJson.encodeToString(it) }
+                }
+                SttServiceFactory.SpeechServiceType.DEEPGRAM_STT -> {
                     httpConfig?.let { prefs[STT_HTTP_CONFIG] = serializerJson.encodeToString(it) }
                 }
             }

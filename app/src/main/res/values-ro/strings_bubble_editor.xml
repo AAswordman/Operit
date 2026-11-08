@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">Ajustează mai întâi mărimea decorului și spațiul textului. Alege o presetare de chenar dacă marginile se deformează. Glisorul de spațiu schimbă ambele laturi.</string>
+    <string name="chat_bubble_decoration_size">Mărimea decorului</string>
+    <string name="chat_bubble_text_space">Spațiu lateral pentru text</string>
+    <string name="chat_bubble_text_space_value">St. %1$d · Dr. %2$d dp</string>
+    <string name="chat_bubble_reset_size">Resetează mărimea și spațiul</string>
+    <string name="chat_bubble_border_presets">Decor de chenar de păstrat</string>
+    <string name="chat_bubble_border_small">Mai puțin</string>
+    <string name="chat_bubble_border_normal">Echilibrat</string>
+    <string name="chat_bubble_border_large">Mai mult</string>
+    <string name="chat_bubble_advanced">Ajustări detaliate</string>
+    <string name="chat_bubble_advanced_hint">Centrul se extinde odată cu textul, iar marginile își păstrează decorul. Decuparea elimină spațiul gol din jurul imaginii.</string>
+    <string name="chat_bubble_horizontal_region">Zonă de umplere orizontală</string>
+    <string name="chat_bubble_vertical_region">Zonă de umplere verticală</string>
+</resources>

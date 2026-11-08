@@ -7,8 +7,8 @@ import androidx.room.Transaction
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 
-// SQLite LENGTH/SUBSTR count characters, and this bound keeps every returned text row well below CursorWindow size.
-private const val CONTENT_CHUNK_CHARACTER_COUNT = 65_536
+// 按 BLOB 字节读取，避免 TEXT 的 LENGTH/SUBSTR 在 NUL 处截断；每个字段单块不超过 64 KiB。
+private const val CONTENT_CHUNK_BYTE_COUNT = 65_536
 
 private const val MESSAGE_CONTENT_ROW_QUERY =
     """
@@ -16,7 +16,8 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         messageId,
         chatId,
         sender,
-        SUBSTR(content, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS content,
+        '' AS sections,
+        '' AS searchText,
         timestamp,
         orderIndex,
         roleName,
@@ -32,7 +33,10 @@ private const val MESSAGE_CONTENT_ROW_QUERY =
         completedAt,
         displayMode,
         isFavorite,
-        LENGTH(content) AS contentCharacterCount
+        LENGTH(CAST(sections AS BLOB)) AS sectionsByteCount,
+        COALESCE(CAST(SUBSTR(CAST(sections AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS sectionsBytes,
+        LENGTH(CAST(searchText AS BLOB)) AS searchTextByteCount,
+        COALESCE(CAST(SUBSTR(CAST(searchText AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS searchTextBytes
     FROM messages
     """
 
@@ -43,7 +47,8 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         chatId,
         messageTimestamp,
         variantIndex,
-        SUBSTR(content, 1, $CONTENT_CHUNK_CHARACTER_COUNT) AS content,
+        '' AS sections,
+        '' AS searchText,
         roleName,
         provider,
         modelName,
@@ -54,18 +59,27 @@ private const val MESSAGE_VARIANT_CONTENT_ROW_QUERY =
         outputDurationMs,
         waitDurationMs,
         completedAt,
-        LENGTH(content) AS contentCharacterCount
+        LENGTH(CAST(sections AS BLOB)) AS sectionsByteCount,
+        COALESCE(CAST(SUBSTR(CAST(sections AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS sectionsBytes,
+        LENGTH(CAST(searchText AS BLOB)) AS searchTextByteCount,
+        COALESCE(CAST(SUBSTR(CAST(searchText AS BLOB), 1, $CONTENT_CHUNK_BYTE_COUNT) AS BLOB), X'') AS searchTextBytes
     FROM message_variants
     """
 
 data class MessageContentRow(
     @Embedded val message: MessageEntity,
-    val contentCharacterCount: Long,
+    val sectionsByteCount: Long,
+    val sectionsBytes: ByteArray,
+    val searchTextByteCount: Long,
+    val searchTextBytes: ByteArray,
 )
 
 data class MessageVariantContentRow(
     @Embedded val variant: MessageVariantEntity,
-    val contentCharacterCount: Long,
+    val sectionsByteCount: Long,
+    val sectionsBytes: ByteArray,
+    val searchTextByteCount: Long,
+    val searchTextBytes: ByteArray,
 )
 
 data class ChatContentCharacterCount(
@@ -76,6 +90,33 @@ data class ChatContentCharacterCount(
 /** Reads message text in bounded rows so a single large message cannot overflow CursorWindow. */
 @Dao
 abstract class ChatContentDao {
+    @Query(
+        "SELECT messageTimestamp, COUNT(*) AS variantCount FROM message_variants" +
+            " WHERE chatId = :chatId AND messageTimestamp >= :minTimestamp" +
+            " AND messageTimestamp <= :maxTimestamp GROUP BY messageTimestamp"
+    )
+    protected abstract suspend fun queryVariantCountsForMessageRange(
+        chatId: String,
+        minTimestamp: Long,
+        maxTimestamp: Long,
+    ): List<MessageVariantCount>
+
+    @Query(
+        MESSAGE_VARIANT_CONTENT_ROW_QUERY +
+            " WHERE chatId = :chatId AND messageTimestamp >= :minTimestamp" +
+            " AND messageTimestamp <= :maxTimestamp" +
+            " AND EXISTS (SELECT 1 FROM messages" +
+            " WHERE messages.chatId = message_variants.chatId" +
+            " AND messages.timestamp = message_variants.messageTimestamp" +
+            " AND messages.selectedVariantIndex = message_variants.variantIndex)" +
+            " ORDER BY messageTimestamp ASC, variantIndex ASC"
+    )
+    protected abstract suspend fun querySelectedVariantsForMessageRange(
+        chatId: String,
+        minTimestamp: Long,
+        maxTimestamp: Long,
+    ): List<MessageVariantContentRow>
+
     @Query(MESSAGE_CONTENT_ROW_QUERY + " WHERE chatId = :chatId ORDER BY timestamp ASC")
     protected abstract suspend fun queryMessagesForChat(chatId: String): List<MessageContentRow>
 
@@ -189,14 +230,14 @@ abstract class ChatContentDao {
     ): MessageContentRow?
 
     @Query(
-        "SELECT SUBSTR(content, :startCharacter, :characterCount)" +
+        "SELECT CAST(SUBSTR(CAST(sections AS BLOB), :startByte, :byteCount) AS BLOB)" +
             " FROM messages WHERE messageId = :messageId"
     )
     protected abstract suspend fun queryMessageContentChunk(
         messageId: Long,
-        startCharacter: Long,
-        characterCount: Int,
-    ): String?
+        startByte: Long,
+        byteCount: Int,
+    ): ByteArray?
 
     @Query(
         MESSAGE_VARIANT_CONTENT_ROW_QUERY +
@@ -239,14 +280,14 @@ abstract class ChatContentDao {
     ): MessageVariantContentRow?
 
     @Query(
-        "SELECT SUBSTR(content, :startCharacter, :characterCount)" +
+        "SELECT CAST(SUBSTR(CAST(sections AS BLOB), :startByte, :byteCount) AS BLOB)" +
             " FROM message_variants WHERE variantId = :variantId"
     )
     protected abstract suspend fun queryMessageVariantContentChunk(
         variantId: Long,
-        startCharacter: Long,
-        characterCount: Int,
-    ): String?
+        startByte: Long,
+        byteCount: Int,
+    ): ByteArray?
 
     @Query(
         """
@@ -255,8 +296,8 @@ abstract class ChatContentDao {
             COALESCE(
                 SUM(
                     CASE
-                        WHEN messages.selectedVariantIndex = 0 THEN LENGTH(messages.content)
-                        ELSE LENGTH(selectedVariant.content)
+                        WHEN messages.selectedVariantIndex = 0 THEN LENGTH(messages.searchText)
+                        ELSE LENGTH(selectedVariant.searchText)
                     END
                 ),
                 0
@@ -272,6 +313,22 @@ abstract class ChatContentDao {
         """
     )
     abstract suspend fun getSelectedContentCharacterCountsByChat(): List<ChatContentCharacterCount>
+
+    @Query(
+        """
+        SELECT
+            chats.id AS chatId,
+            COALESCE(
+                (SELECT SUM(LENGTH(sections)) FROM messages WHERE messages.chatId = chats.id),
+                0
+            ) + COALESCE(
+                (SELECT SUM(LENGTH(sections)) FROM message_variants WHERE message_variants.chatId = chats.id),
+                0
+            ) AS contentCharacterCount
+        FROM chats
+        """
+    )
+    abstract suspend fun getArchiveContentCharacterCountsByChat(): List<ChatContentCharacterCount>
 
     @Transaction
     open suspend fun getMessagesForChat(chatId: String): List<MessageEntity> =
@@ -408,34 +465,59 @@ abstract class ChatContentDao {
             materializeVariant(it)
         }
 
+    @Query("SELECT CAST(SUBSTR(CAST(searchText AS BLOB), :startByte, :byteCount) AS BLOB) FROM messages WHERE messageId = :id")
+    protected abstract suspend fun queryMessageSearchTextChunk(
+        id: Long, startByte: Long, byteCount: Int,
+    ): ByteArray?
+
+    @Query("SELECT CAST(SUBSTR(CAST(searchText AS BLOB), :startByte, :byteCount) AS BLOB) FROM message_variants WHERE variantId = :id")
+    protected abstract suspend fun queryVariantSearchTextChunk(
+        id: Long, startByte: Long, byteCount: Int,
+    ): ByteArray?
+
+    /** 事务内读取基础消息、候选数量及选中正文，确保切换候选不会拼出混合快照。 */
+    @Transaction
+    open suspend fun getRuntimeMessagesForChatWindow(
+        chatId: String,
+        startTimestampInclusive: Long?,
+        endTimestampInclusive: Long?,
+    ): RuntimeChatMessageSnapshot {
+        // 复用已有时间窗口查询，保持总结起点、重生成截止位置和索引使用方式相同。
+        val rows = when {
+            startTimestampInclusive != null && endTimestampInclusive != null ->
+                queryMessagesForChatWindowAsc(chatId, startTimestampInclusive, endTimestampInclusive)
+            startTimestampInclusive != null ->
+                queryMessagesForChatFromTimestampAsc(chatId, startTimestampInclusive)
+            endTimestampInclusive != null ->
+                queryMessagesForChatInRangeAsc(chatId, null, null, endTimestampInclusive)
+            else -> queryMessagesForChat(chatId)
+        }
+        val messages = materializeMessages(rows)
+        if (messages.isEmpty()) {
+            return RuntimeChatMessageSnapshot(emptyList(), emptyList(), emptyList())
+        }
+        val minTimestamp = messages.first().timestamp
+        val maxTimestamp = messages.last().timestamp
+        val variantCounts = queryVariantCountsForMessageRange(chatId, minTimestamp, maxTimestamp)
+        val selectedVariants = if (messages.any { it.selectedVariantIndex != 0 }) {
+            materializeVariants(querySelectedVariantsForMessageRange(chatId, minTimestamp, maxTimestamp))
+        } else {
+            emptyList()
+        }
+        return RuntimeChatMessageSnapshot(messages, selectedVariants, variantCounts)
+    }
+
     private suspend fun materializeMessages(rows: List<MessageContentRow>): List<MessageEntity> =
         rows.map { materializeMessage(it) }
 
     private suspend fun materializeMessage(row: MessageContentRow): MessageEntity {
-        if (row.contentCharacterCount <= CONTENT_CHUNK_CHARACTER_COUNT) {
-            return row.message
+        val sections = readUtf8Content(row.sectionsByteCount, row.sectionsBytes, "messages.sections:${row.message.messageId}") { start, count ->
+            queryMessageContentChunk(row.message.messageId, start, count)
         }
-
-        val content = StringBuilder(row.message.content)
-        var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-        while (startCharacter <= row.contentCharacterCount) {
-            val chunk =
-                checkNotNull(
-                    queryMessageContentChunk(
-                        row.message.messageId,
-                        startCharacter,
-                        CONTENT_CHUNK_CHARACTER_COUNT,
-                    )
-                ) {
-                    "Message disappeared while reading content: messageId=${row.message.messageId}"
-                }
-            check(chunk.isNotEmpty()) {
-                "Message content ended before its recorded length: messageId=${row.message.messageId}"
-            }
-            content.append(chunk)
-            startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
+        val searchText = readUtf8Content(row.searchTextByteCount, row.searchTextBytes, "messages.searchText:${row.message.messageId}") { start, count ->
+            queryMessageSearchTextChunk(row.message.messageId, start, count)
         }
-        return row.message.copy(content = content.toString())
+        return row.message.copy(sections = sections, searchText = searchText)
     }
 
     private suspend fun materializeVariants(
@@ -443,29 +525,39 @@ abstract class ChatContentDao {
     ): List<MessageVariantEntity> = rows.map { materializeVariant(it) }
 
     private suspend fun materializeVariant(row: MessageVariantContentRow): MessageVariantEntity {
-        if (row.contentCharacterCount <= CONTENT_CHUNK_CHARACTER_COUNT) {
-            return row.variant
+        val sections = readUtf8Content(row.sectionsByteCount, row.sectionsBytes, "message_variants.sections:${row.variant.variantId}") { start, count ->
+            queryMessageVariantContentChunk(row.variant.variantId, start, count)
         }
+        val searchText = readUtf8Content(row.searchTextByteCount, row.searchTextBytes, "message_variants.searchText:${row.variant.variantId}") { start, count ->
+            queryVariantSearchTextChunk(row.variant.variantId, start, count)
+        }
+        return row.variant.copy(sections = sections, searchText = searchText)
+    }
 
-        val content = StringBuilder(row.variant.content)
-        var startCharacter = CONTENT_CHUNK_CHARACTER_COUNT.toLong() + 1L
-        while (startCharacter <= row.contentCharacterCount) {
-            val chunk =
-                checkNotNull(
-                    queryMessageVariantContentChunk(
-                        row.variant.variantId,
-                        startCharacter,
-                        CONTENT_CHUNK_CHARACTER_COUNT,
-                    )
-                ) {
-                    "Message variant disappeared while reading content: variantId=${row.variant.variantId}"
-                }
-            check(chunk.isNotEmpty()) {
-                "Message variant content ended before its recorded length: variantId=${row.variant.variantId}"
-            }
-            content.append(chunk)
-            startCharacter += CONTENT_CHUNK_CHARACTER_COUNT
+    /** 先拼接完整字节再解码，允许一个汉字或表情跨越分块边界。 */
+    private suspend fun readUtf8Content(
+        byteCount: Long,
+        firstChunk: ByteArray,
+        field: String,
+        fetchChunk: suspend (startByte: Long, byteCount: Int) -> ByteArray?,
+    ): String {
+        check(byteCount in 0..Int.MAX_VALUE.toLong()) { "内容长度超出可读取范围：$field ($byteCount)" }
+        check(firstChunk.size.toLong() == minOf(byteCount, CONTENT_CHUNK_BYTE_COUNT.toLong())) {
+            "首块长度与存储长度不一致：$field"
         }
-        return row.variant.copy(content = content.toString())
+        if (byteCount <= CONTENT_CHUNK_BYTE_COUNT) return firstChunk.toString(Charsets.UTF_8)
+        val content = ByteArray(byteCount.toInt())
+        firstChunk.copyInto(content)
+        var offset = firstChunk.size
+        while (offset < content.size) {
+            val count = minOf(CONTENT_CHUNK_BYTE_COUNT, content.size - offset)
+            val chunk = checkNotNull(fetchChunk(offset.toLong() + 1L, count)) {
+                "分块读取时消息已不存在：$field"
+            }
+            check(chunk.size == count) { "分块长度与存储长度不一致：$field ($offset)" }
+            chunk.copyInto(content, offset)
+            offset += chunk.size
+        }
+        return content.toString(Charsets.UTF_8)
     }
 }

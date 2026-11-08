@@ -4,8 +4,8 @@ import android.os.SystemClock
 import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.data.preferences.GitHubAuthPreferences
 import com.ai.assistance.operit.data.preferences.GitHubUser
-import com.ai.assistance.operit.ui.features.packages.market.normalizeMarketArtifactId
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.ui.features.extensions.packages.market.normalizeMarketArtifactId
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers

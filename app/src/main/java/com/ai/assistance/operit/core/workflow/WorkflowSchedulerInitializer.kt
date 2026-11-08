@@ -1,56 +1,51 @@
 package com.ai.assistance.operit.core.workflow
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.workflow.scheduling.WorkflowSchedulePlan
 import com.ai.assistance.operit.data.repository.WorkflowRepository
+import com.ai.assistance.operit.util.logging.AppLogger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
-/**
- * WorkflowSchedulerInitializer
- * 
- * Initializes workflow scheduling when the app starts.
- * Re-schedules all enabled workflows to ensure they continue running
- * even if the app was force-stopped or updated.
- */
+/** 启动恢复只补缺失任务，避免系统唤醒进程时重置或取消原有计划。 */
 object WorkflowSchedulerInitializer {
-    
     private const val TAG = "WorkflowSchedulerInit"
-    
-    /**
-     * Initialize workflow scheduling
-     * Should be called from Application.onCreate()
-     */
+    private val restoreMutex = Mutex()
+
     fun initialize(context: Context) {
-        AppLogger.d(TAG, "Initializing workflow scheduler...")
-        
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch { restore(context.applicationContext) }
+    }
+
+    suspend fun restore(context: Context, rebaseCalendar: Boolean = false) {
+        restoreMutex.withLock {
             try {
                 val repository = WorkflowRepository(context.applicationContext)
-                val result = repository.getAllWorkflows()
-                
-                result.getOrNull()?.let { workflows ->
-                    var scheduledCount = 0
-                    
-                    workflows.forEach { workflow ->
-                        if (workflow.enabled) {
-                            val success = repository.scheduleWorkflow(workflow.id)
-                            if (success) {
-                                scheduledCount++
-                                AppLogger.d(TAG, "Scheduled workflow: ${workflow.name} (${workflow.id})")
-                            }
-                        }
+                val workflows = repository.getAllWorkflows().getOrThrow()
+                for (workflow in workflows) {
+                    try {
+                        val plan = WorkflowSchedulePlan.from(workflow)
+                        val replace = rebaseCalendar && plan?.calendarBased == true
+                        repository.scheduleWorkflow(
+                            workflow.id,
+                            replaceExisting = replace,
+                            preserveRunning = replace,
+                        )
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (error: Exception) {
+                        AppLogger.e(TAG, "Cannot restore schedule: ${workflow.id}", error)
                     }
-                    
-                    AppLogger.d(TAG, "Workflow scheduler initialized. Scheduled $scheduledCount workflows.")
-                } ?: run {
-                    AppLogger.w(TAG, "Failed to get workflows during initialization")
                 }
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "Error initializing workflow scheduler", e)
+                AppLogger.d(TAG, "Schedule restoration complete, calendarRebase=$rebaseCalendar")
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "Cannot restore workflow schedules", error)
             }
         }
     }
 }
-

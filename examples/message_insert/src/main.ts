@@ -1,4 +1,4 @@
-import toolboxUI from "./ui/index.ui.js";
+import packageUI from "./ui/index.ui.js";
 import {
   appendExtraInfoToMessage,
   getAppContext,
@@ -81,10 +81,10 @@ function resolveHookActivePrompt(
 }
 
 export function registerToolPkg(): boolean {
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "message_insert_settings",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     params: {},
     title: {
       zh: "额外信息注入",

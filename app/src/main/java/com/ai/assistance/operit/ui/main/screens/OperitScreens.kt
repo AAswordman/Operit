@@ -13,7 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,72 +25,68 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.NavItem
-import com.ai.assistance.operit.ui.features.about.screens.AboutScreen
-import com.ai.assistance.operit.ui.features.assistant.screens.AssistantConfigScreen
-import com.ai.assistance.operit.ui.features.chat.screens.AIChatScreen
-import com.ai.assistance.operit.ui.features.demo.screens.ShizukuDemoScreen
-import com.ai.assistance.operit.ui.features.help.screens.HelpScreen
-import com.ai.assistance.operit.ui.features.memory.screens.MemoryScreen
-import com.ai.assistance.operit.ui.features.packages.screens.MarketHomeTab
-import com.ai.assistance.operit.ui.features.packages.screens.PackageManagerScreen
-import com.ai.assistance.operit.ui.features.packages.screens.ArtifactPublishScreen
-import com.ai.assistance.operit.ui.features.packages.screens.RepoMarketPublishScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketManageScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketCategoryScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketAuthorScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketDetailEntryScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketNotificationsScreen
-import com.ai.assistance.operit.ui.features.packages.screens.UnifiedMarketScreen
-import com.ai.assistance.operit.ui.features.packages.screens.marketCategoryLabel
-import com.ai.assistance.operit.ui.features.packages.screens.toArtifactPublishClusterContext
-import com.ai.assistance.operit.ui.features.packages.market.ArtifactPublishClusterContext
-import com.ai.assistance.operit.ui.features.packages.market.MarketStatsType
-import com.ai.assistance.operit.ui.features.packages.market.PluginCreationIntent
-import com.ai.assistance.operit.ui.features.settings.screens.ChatBackupSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ChatHistorySettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ContextSummarySettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ExternalHttpChatSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.FunctionalConfigScreen
-import com.ai.assistance.operit.ui.features.settings.screens.GlobalDisplaySettingsScreen
-import com.ai.assistance.operit.ui.features.performance.PerformanceMonitorScreen
-import com.ai.assistance.operit.ui.features.settings.screens.GitHubAccountScreen
-import com.ai.assistance.operit.ui.features.settings.screens.LanguageSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.LayoutAdjustmentSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ModelConfigScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ModelConfigEntryMode
-import com.ai.assistance.operit.ui.features.settings.screens.ModelPromptsSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.TagMarketScreen
-import com.ai.assistance.operit.ui.features.settings.screens.SettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
-import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
-import com.ai.assistance.operit.ui.features.settings.screens.UserPreferencesSettingsScreen
-import com.ai.assistance.operit.ui.features.tokenstats.TokenUsageStatisticsScreen
-import com.ai.assistance.operit.ui.features.token.TokenConfigWebViewScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.AppPermissionsToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.FileManagerToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.LogcatToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.ShellExecutorToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.StreamMarkdownDemoScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.TerminalAutoConfigToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.TerminalToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.ToolboxScreen
+import com.ai.assistance.operit.ui.features.support.about.screens.AboutScreen
+import com.ai.assistance.operit.ui.features.conversation.chat.screens.AIChatScreen
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalRunMainChatAction
+import com.ai.assistance.operit.ui.features.support.demo.screens.ShizukuDemoScreen
+import com.ai.assistance.operit.ui.features.support.help.screens.HelpScreen
+import com.ai.assistance.operit.ui.features.conversation.memory.screens.MemoryScreen
+import com.ai.assistance.operit.ui.features.conversation.memory.screens.MemoryOverviewScreen
+
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.MarketHomeTab
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.PackageManagerScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.PackageDetailEntryScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.ArtifactPublishScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.RepoMarketPublishScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketManageScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketCategoryScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketAuthorScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketDetailEntryScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketNotificationsScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.UnifiedMarketScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.marketCategoryLabel
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.toArtifactPublishClusterContext
+import com.ai.assistance.operit.ui.features.extensions.packages.market.ArtifactPublishClusterContext
+import com.ai.assistance.operit.ui.features.extensions.packages.market.MarketStatsType
+import com.ai.assistance.operit.ui.features.extensions.packages.market.PluginCreationIntent
+import com.ai.assistance.operit.ui.features.management.databackup.DataAndBackupScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.GlobalDisplaySettingsScreen
+import com.ai.assistance.operit.ui.features.management.performance.PerformanceMonitorScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.market.account.GitHubAccountScreen
+
+import com.ai.assistance.operit.ui.features.management.settings.model.ModelWorkspaceTab
+import com.ai.assistance.operit.ui.features.management.settings.screens.ModelConfigScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.ModelPromptsSettingsScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.TagMarketScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.SettingsScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.SpeechServicesSettingsScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.ThemeSettingsScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.ToolPermissionSettingsScreen
+import com.ai.assistance.operit.ui.features.management.settings.screens.MnnModelDownloadScreen
+import com.ai.assistance.operit.ui.features.management.settings.profile.UserProfileManagementScreen
+import com.ai.assistance.operit.data.storage.StorageCategory
+import com.ai.assistance.operit.ui.features.management.storage.BackupExportStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.ChatHistoryStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.ConfigurationResourceStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.DataStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.LinuxEnvironmentStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.LocalModelStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.MemoryLibraryStorageScreen
+import com.ai.assistance.operit.ui.features.management.storage.WorkspaceMediaStorageScreen
+import com.ai.assistance.operit.ui.features.models.tokenstats.TokenUsageStatisticsScreen
+import com.ai.assistance.operit.ui.features.models.token.TokenConfigWebViewScreen
+import com.ai.assistance.operit.ui.features.support.demo.markdown.StreamMarkdownDemoScreen
+import com.ai.assistance.operit.ui.main.screens.TerminalAutoConfigToolScreen
+import com.ai.assistance.operit.ui.features.automation.terminal.EmbeddedTerminalPage
+import com.ai.assistance.operit.ui.features.automation.terminal.TerminalEntryScreen
 import com.ai.assistance.operit.ui.common.composedsl.ToolPkgComposeDslToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.UIDebuggerToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.DefaultAssistantGuideToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.ProcessLimitRemoverToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.sqlviewer.SqlViewerToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.ffmpegtoolbox.FFmpegToolboxScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.htmlpackager.HtmlPackagerScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.speechtotext.SpeechToTextToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.texttospeech.TextToSpeechToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.tooltester.ToolTesterScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.autoglm.AutoGlmOneClickToolScreen
-import com.ai.assistance.operit.ui.features.toolbox.screens.autoglm.AutoGlmToolScreen
-import com.ai.assistance.operit.ui.features.update.screens.UpdateScreen
-import com.ai.assistance.operit.ui.features.workflow.screens.WorkflowListScreen
-import com.ai.assistance.operit.ui.features.workflow.screens.WorkflowDetailScreen
+import com.ai.assistance.operit.ui.main.screens.UIDebuggerToolScreen
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.export.htmlpackager.HtmlPackagerScreen
+import com.ai.assistance.operit.ui.features.management.settings.speech.stt.SpeechToTextToolScreen
+import com.ai.assistance.operit.ui.features.management.update.screens.UpdateScreen
+import com.ai.assistance.operit.ui.features.automation.workflow.screens.WorkflowListScreen
+import com.ai.assistance.operit.ui.features.automation.workflow.screens.WorkflowDetailScreen
 import com.ai.assistance.operit.ui.main.PendingChatDraftHandler
 import com.ai.assistance.operit.ui.main.navigation.AppRouterGateway
 
@@ -141,7 +137,11 @@ sealed class Screen(
     }
 
     // Main screens (primary)
-    data object AiChat : Screen(navItem = NavItem.AiChat) {
+    // 聊天内容离页立即退出绘制，避免透明设置页和插件页透出聊天记录。
+    data object AiChat : Screen(
+        navItem = NavItem.AiChat,
+        participatesInCrossfadeTransition = false,
+    ) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -154,24 +154,22 @@ sealed class Screen(
         ) {
             AIChatScreen(
                     padding = PaddingValues(0.dp),
-                    viewModel = null,
+                    viewModel = LocalMainChatViewModel.current,
                     isFloatingMode = false,
                     hasBackgroundImage = hasBackgroundImage,
-                    onNavigateToTokenConfig = { navigateTo(TokenConfig) },
                     onNavigateToSettings = { navigateTo(Settings) },
                     onNavigateToMemoryBase = { navigateTo(MemoryBase) },
                     onNavigateToModelConfig = { navigateTo(ModelConfig) },
-                    onNavigateToOnboardingModelConfig = { navigateTo(ModelConfigOnboarding) },
                     onNavigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
                     onNavigateToPackageManager = { navigateTo(Packages) },
+                    onNavigateToHtmlPackager = { navigateTo(HtmlPackager) },
                     onLoading = onLoading,
                     onError = onError,
                     onGestureConsumed = onGestureConsumed
             )
         }
     }
-
-    data object MemoryBase : Screen(navItem = NavItem.MemoryBase, titleRes = R.string.screen_title_memory_base) {
+    data object MemoryBase : Screen(navItem = NavItem.Settings, titleRes = R.string.memory_management_title) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -182,7 +180,23 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            MemoryScreen()
+            MemoryOverviewScreen(onOpenSpace = { id -> navigateTo(MemorySpaceDetail(id)) }, onOpenRecent = { id, uuid -> navigateTo(MemorySpaceDetail(id, startInList = true, memoryUuid = uuid)) })
+        }
+    }
+
+    data class MemorySpaceDetail(val spaceId: String, val startInList: Boolean = false, val memoryUuid: String? = null) :
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_memory_base) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            MemoryScreen(spaceId = spaceId, onConfigureEmbedding = { navigateTo(FunctionalConfig) }, initialList = startInList, initialMemoryUuid = memoryUuid)
         }
     }
 
@@ -202,22 +216,43 @@ sealed class Screen(
                 onNavigateToMCPMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
                 onNavigateToSkillMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
                 onNavigateToArtifactMarket = { navigateTo(Market(MarketHomeTab.ALL)) },
+                onOpenMarketDetail = { entry ->
+                    navigateTo(MarketEntryDetail(entry = entry))
+                },
                 onStartPluginCreation = { intent ->
                     PendingChatDraftHandler.setPendingDraft(intent.toPrompt(context))
                     navigateTo(AiChat)
                 },
-                onOpenToolPkgPluginConfig = { containerPackageName, uiModuleId, title, keepAlive ->
-                    navigateTo(
-                        ToolPkgPluginConfig(
-                            containerPackageName = containerPackageName,
-                            uiModuleId = uiModuleId,
-                            title = title,
-                            keepAlive = keepAlive
-                        )
-                    )
+                onOpenPackageDetail = { packageName, title ->
+                    navigateTo(PackageDetail(packageName, title))
                 }
             )
         }
+    }
+
+    data class PackageDetail(val packageName: String, val title: String) : Screen(navItem = NavItem.Packages) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit,
+        ) {
+            PackageDetailEntryScreen(
+                packageName = packageName,
+                onNavigateBack = onGoBack,
+                onOpenMarketDetail = { navigateTo(MarketEntryDetail(it)) },
+                onOpenToolPkgPluginConfig = { container, module, moduleTitle, keepAlive ->
+                    navigateTo(ToolPkgPluginConfig(container, module, moduleTitle, keepAlive))
+                },
+            )
+        }
+
+        @Composable
+        override fun getTitle(): String = title
     }
 
     data class Market(val initialTab: MarketHomeTab = MarketHomeTab.ALL) :
@@ -234,6 +269,7 @@ sealed class Screen(
         ) {
             UnifiedMarketScreen(
                 initialTab = initialTab,
+                onNavigateToBuiltInDetail = { navigateTo(BuiltInMarketDetail(it)) },
                 onNavigateToArtifactPublish = { navigateTo(ArtifactPublish) },
                 onNavigateToRepoPublish = { type -> navigateTo(RepoPublish(type)) },
                 onNavigateToMarketManage = { navigateTo(MarketManage) },
@@ -296,6 +332,24 @@ sealed class Screen(
         }
     }
 
+    data class BuiltInMarketDetail(val resourceId: String) : Screen(navItem = NavItem.Packages, titleRes = R.string.builtin) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit,
+        ) {
+            com.ai.assistance.operit.ui.features.extensions.packages.market.BuiltInMarketDetailScreen(
+                resourceId = resourceId,
+                onOpenInstalled = { name, title -> navigateTo(PackageDetail(name, title)) },
+            )
+        }
+    }
+
     data class MarketEntryDetail(
         val entry: com.ai.assistance.operit.data.api.MarketV2Entry,
         val fromManage: Boolean = false
@@ -332,6 +386,8 @@ sealed class Screen(
                 }
             )
         }
+        @Composable
+        override fun getTitle(): String = entry.title
     }
 
     data class MarketAuthor(
@@ -376,6 +432,7 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             UnifiedMarketManageScreen(
+                onNavigateToGitHubAccount = { navigateTo(GitHubAccount) },
                 onNavigateToEditArtifact = { issue ->
                     navigateTo(ArtifactEdit(issue))
                 },
@@ -543,36 +600,6 @@ sealed class Screen(
         }
     }
 
-    data object Toolbox : Screen(navItem = NavItem.Toolbox) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ToolboxScreen(
-                    navController = navController,
-                    onNavigationEntrySelected = { entry ->
-                        val nativeScreen = ScreenRouteRegistry.buildScreen(entry.routeId, entry.routeArgs)
-                        if (nativeScreen != null) {
-                            navigateTo(nativeScreen)
-                        } else {
-                            AppRouterGateway.navigate(
-                                routeId = entry.routeId,
-                                args = entry.routeArgs,
-                                source = com.ai.assistance.operit.ui.main.navigation.RouteEntrySource.DEFAULT
-                            )
-                        }
-                    }
-            )
-        }
-    }
-
-
     data object ShizukuCommands : Screen(navItem = NavItem.ShizukuCommands) {
         @Composable
         override fun Content(
@@ -600,30 +627,23 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             SettingsScreen(
-                    navigateToUserPreferences = { navigateTo(UserPreferencesSettings) },
                     navigateToToolPermissions = { navigateTo(ToolPermission) },
-                    navigateToGitHubAccount = { navigateTo(GitHubAccount) },
                     navigateToModelConfig = { navigateTo(ModelConfig) },
                     navigateToThemeSettings = { navigateTo(ThemeSettings) },
                     navigateToGlobalDisplaySettings = { navigateTo(GlobalDisplaySettings) },
                     navigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
-                    navigateToFunctionalConfig = { navigateTo(FunctionalConfig) },
-                    navigateToChatHistorySettings = { navigateTo(ChatHistorySettings) },
-                    navigateToChatBackupSettings = { navigateTo(ChatBackupSettings) },
-                    navigateToLanguageSettings = { navigateTo(LanguageSettings) },
+                    navigateToMemory = { navigateTo(MemoryBase) },
+                    navigateToDataStorageManagement = { navigateTo(DataStorageManagement) },
+                    navigateToDataAndBackup = { navigateTo(ChatBackupSettings) },
+
                     navigateToSpeechServicesSettings = { navigateTo(SpeechServicesSettings) },
-                    navigateToExternalHttpChatSettings = { navigateTo(ExternalHttpChatSettings) },
-                    navigateToPersonaCardGeneration = { navigateTo(PersonaCardGeneration) },
-                    navigateToWaifuModeSettings = { navigateTo(WaifuModeSettings) },
-                    navigateToTokenUsageStatistics = { navigateTo(TokenUsageStatistics) },
                     navigateToPerformanceMonitor = { navigateTo(PerformanceMonitor) },
-                    navigateToContextSummarySettings = { navigateTo(ContextSummarySettings) },
-                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) }
+                    navigateToAbout = { navigateTo(About) }
             )
         }
     }
 
-    data object GitHubAccount : Screen(navItem = NavItem.Settings, titleRes = R.string.github_account) {
+    data object GitHubAccount : Screen(navItem = NavItem.Packages, titleRes = R.string.github_account) {
         @Composable
         override fun Content(
             navController: NavController,
@@ -638,7 +658,7 @@ sealed class Screen(
         }
     }
 
-    data object Help : Screen(navItem = NavItem.Help) {
+    data object Help : Screen(navItem = NavItem.Settings, titleRes = R.string.nav_help) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -653,7 +673,7 @@ sealed class Screen(
         }
     }
 
-    data object About : Screen(navItem = NavItem.About) {
+    data object About : Screen(navItem = NavItem.Settings, titleRes = R.string.nav_about) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -667,12 +687,14 @@ sealed class Screen(
             AboutScreen(
                 navigateToUpdateHistory = {
                     navigateTo(UpdateHistory)
-                }
+                },
+                navigateToHelp = { navigateTo(Help) },
+                navigateToAgreement = { navigateTo(Agreement) }
             )
         }
     }
 
-    data object Agreement : Screen(navItem = NavItem.Agreement) {
+    data object Agreement : Screen(navItem = NavItem.Settings, titleRes = R.string.tool_user_agreement) {
         @Composable
         override fun Content(
             navController: NavController,
@@ -683,15 +705,13 @@ sealed class Screen(
             onError: (String) -> Unit,
             onGestureConsumed: (Boolean) -> Unit
         ) {
-            com.ai.assistance.operit.ui.features.agreement.screens.AgreementScreen(
-                    onAgreementAccepted = onGoBack
-            )
+            com.ai.assistance.operit.ui.features.support.agreement.screens.AgreementScreen()
         }
     }
 
     data object UpdateHistory :
             Screen(
-                    navItem = NavItem.About,
+                    navItem = NavItem.Settings,
                     titleRes = R.string.update_history
             ) {
         @Composable
@@ -705,25 +725,6 @@ sealed class Screen(
             onGestureConsumed: (Boolean) -> Unit
         ) {
             UpdateScreen(onNavigateToThemeSettings = { navigateTo(ThemeSettings) })
-        }
-    }
-
-    data object AssistantConfig :
-            Screen(
-                    navItem = NavItem.AssistantConfig,
-                    participatesInCrossfadeTransition = false
-            ) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            AssistantConfigScreen()
         }
     }
 
@@ -780,7 +781,7 @@ sealed class Screen(
     }
 
     // Secondary screens - Settings
-    data object UserPreferencesSettings :
+    data class UserPreferencesSettings(val initialProfileId: String? = null) :
             Screen(navItem = NavItem.Settings, titleRes = R.string.settings_user_preferences) {
         @Composable
         override fun Content(
@@ -792,9 +793,10 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            UserPreferencesSettingsScreen(
+            UserProfileManagementScreen(
                 onNavigateBack = onGoBack,
-                onNavigateToMemory = { navigateTo(MemoryBase) }
+                onNavigateToMemory = { id -> navigateTo(MemorySpaceDetail(id)) },
+                initialProfileId = initialProfileId
             )
         }
     }
@@ -816,7 +818,7 @@ sealed class Screen(
     }
 
     data object ModelConfig :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_model_config) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.model_workspace_title) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -833,24 +835,6 @@ sealed class Screen(
         }
     }
 
-    data object ModelConfigOnboarding :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_model_config) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ModelConfigScreen(
-                navigateToMnnModelDownload = { navigateTo(MnnModelDownload) },
-                entryMode = ModelConfigEntryMode.CHAT_ONBOARDING
-            )
-        }
-    }
     // 添加SpeechServicesSettings屏幕定义
     data object SpeechServicesSettings :
             Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_speech_services_settings) {
@@ -865,25 +849,8 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             SpeechServicesSettingsScreen(
-                onBackPressed = onGoBack,
-                onNavigateToTextToSpeech = { navigateTo(TextToSpeech) }
+                onBackPressed = onGoBack
             )
-        }
-    }
-    
-    data object ExternalHttpChatSettings :
-        Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_external_http_chat_settings) {
-        @Composable
-        override fun Content(
-            navController: NavController,
-            navigateTo: ScreenNavigationHandler,
-            onGoBack: () -> Unit,
-            hasBackgroundImage: Boolean,
-            onLoading: (Boolean) -> Unit,
-            onError: (String) -> Unit,
-            onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ExternalHttpChatSettingsScreen(onBackPressed = onGoBack)
         }
     }
     
@@ -917,7 +884,7 @@ sealed class Screen(
             onError: (String) -> Unit,
             onGestureConsumed: (Boolean) -> Unit
         ) {
-            com.ai.assistance.operit.ui.features.settings.screens.PersonaCardGenerationScreen(
+            com.ai.assistance.operit.ui.features.management.settings.screens.PersonaCardGenerationScreen(
                 onNavigateToSettings = { navigateTo(Settings) },
                 onNavigateToModelConfig = { navigateTo(ModelConfig) },
                 onNavigateToModelPrompts = { navigateTo(ModelPromptsSettings) }
@@ -938,7 +905,7 @@ sealed class Screen(
             onError: (String) -> Unit,
             onGestureConsumed: (Boolean) -> Unit
         ) {
-            com.ai.assistance.operit.ui.features.settings.screens.WaifuModeSettingsScreen(
+            com.ai.assistance.operit.ui.features.management.settings.screens.WaifuModeSettingsScreen(
                 onNavigateBack = onGoBack,
                 onNavigateToCustomEmoji = { navigateTo(CustomEmojiManagement) }
             )
@@ -958,7 +925,7 @@ sealed class Screen(
             onError: (String) -> Unit,
             onGestureConsumed: (Boolean) -> Unit
         ) {
-            com.ai.assistance.operit.ui.features.settings.screens.CustomEmojiManagementScreen(
+            com.ai.assistance.operit.ui.features.management.settings.screens.CustomEmojiManagementScreen(
                 onNavigateBack = onGoBack
             )
         }
@@ -996,13 +963,14 @@ sealed class Screen(
                 onBackPressed = onGoBack,
                 onNavigateToMarket = { navigateTo(TagMarket) },
                 onNavigateToPersonaGeneration = { navigateTo(PersonaCardGeneration) },
-                onNavigateToChatManagement = { navigateTo(ChatHistorySettings) }
+                onNavigateToChatManagement = { navigateTo(ChatHistorySettings) },
+                onNavigateToUserProfiles = { id -> navigateTo(UserPreferencesSettings(id)) }
             )
         }
     }
 
     data object FunctionalConfig :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_functional_config) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.model_workspace_title) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1013,9 +981,9 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            FunctionalConfigScreen(
-                    onBackPressed = onGoBack,
-                    onNavigateToModelConfig = { navigateTo(ModelConfig) }
+            ModelConfigScreen(
+                navigateToMnnModelDownload = { navigateTo(MnnModelDownload) },
+                initialTab = ModelWorkspaceTab.FUNCTIONS,
             )
         }
     }
@@ -1037,7 +1005,12 @@ sealed class Screen(
     }
 
     data object GlobalDisplaySettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_global_display_settings) {
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_global_display_settings,
+                    // 本页自带标题栏，跨页淡出会让旧页面按已移除的宿主栏留白重新排版。
+                    participatesInCrossfadeTransition = false
+            ) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1052,8 +1025,12 @@ sealed class Screen(
         }
     }
 
-    data object LayoutAdjustmentSettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_layout_adjustment) {
+    data object DataStorageManagement :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_data_storage_management,
+                    usesRouteViewModelStore = true
+            ) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1064,12 +1041,169 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            LayoutAdjustmentSettingsScreen(onNavigateBack = onGoBack)
+            DataStorageScreen(
+                    onManageCategory = { category ->
+                        when (category) {
+                            StorageCategory.LINUX_ENVIRONMENT -> navigateTo(LinuxEnvironmentStorage)
+                            StorageCategory.LOCAL_MODELS -> navigateTo(LocalModelStorage)
+                            StorageCategory.WORKSPACES_AND_MEDIA -> navigateTo(WorkspaceMediaStorage)
+                            StorageCategory.CHAT_HISTORY -> navigateTo(ChatHistoryStorage)
+                            StorageCategory.MEMORY_LIBRARY -> navigateTo(MemoryLibraryStorage)
+                            StorageCategory.BACKUPS_AND_EXPORTS -> navigateTo(BackupExportStorage)
+                            StorageCategory.CONFIGURATION,
+                            StorageCategory.PACKAGES_AND_PLUGINS -> navigateTo(ConfigurationResourceStorage)
+                            StorageCategory.CACHE_AND_TEMPORARY,
+                            StorageCategory.OTHER -> Unit
+                        }
+                    }
+            )
+        }
+    }
+
+    data object LocalModelStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_local_model_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            LocalModelStorageScreen(
+                onDownloadMnn = { navigateTo(MnnModelDownload) },
+            )
+        }
+    }
+
+    data object LinuxEnvironmentStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_linux_environment_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            LinuxEnvironmentStorageScreen()
+        }
+    }
+
+    data object WorkspaceMediaStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_workspace_media_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            WorkspaceMediaStorageScreen()
+        }
+    }
+
+    data object ChatHistoryStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_chat_history_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            ChatHistoryStorageScreen()
+        }
+    }
+
+    data object MemoryLibraryStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_memory_library_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            MemoryLibraryStorageScreen()
+        }
+    }
+
+    data object BackupExportStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_backup_export_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            BackupExportStorageScreen()
+        }
+    }
+
+    data object ConfigurationResourceStorage :
+            Screen(
+                    navItem = NavItem.Settings,
+                    titleRes = R.string.screen_title_configuration_resource_storage,
+                    usesRouteViewModelStore = true
+            ) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            ConfigurationResourceStorageScreen()
         }
     }
 
     data object ChatHistorySettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_chat_history_settings) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.data_backup_title, usesRouteViewModelStore = true) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1080,12 +1214,12 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            ChatHistorySettingsScreen()
+            DataAndBackupScreen(initialTab = 1, onNavigateToTokenStatistics = { navigateTo(TokenUsageStatistics) })
         }
     }
 
     data object ChatBackupSettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_chat_backup_settings) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.data_backup_title, usesRouteViewModelStore = true) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1096,12 +1230,13 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            ChatBackupSettingsScreen()
+            DataAndBackupScreen(onNavigateToTokenStatistics = { navigateTo(TokenUsageStatistics) })
         }
     }
 
+    // 保留已发布的语言路由标识，入口统一显示含语言下拉菜单的主题页。
     data object LanguageSettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_language_settings) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_theme_settings) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1112,7 +1247,7 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            LanguageSettingsScreen(onBackPressed = onGoBack)
+            ThemeSettingsScreen()
         }
     }
 
@@ -1158,7 +1293,7 @@ sealed class Screen(
     }
 
     data object ContextSummarySettings :
-            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_context_summary_settings) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.model_workspace_title) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1169,7 +1304,10 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            ContextSummarySettingsScreen(onBackPressed = onGoBack)
+            ModelConfigScreen(
+                navigateToMnnModelDownload = { navigateTo(MnnModelDownload) },
+                initialTab = ModelWorkspaceTab.SUMMARY,
+            )
         }
     }
 
@@ -1237,26 +1375,8 @@ sealed class Screen(
         override fun getTitle(): String = title
     }
 
-    // Toolbox secondary screens
-
-    data object FileManager :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_file_manager) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            FileManagerToolScreen(navController = navController)
-        }
-    }
-
     data object Terminal :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_terminal) {
+            Screen(navItem = NavItem.Terminal, titleRes = R.string.screen_title_terminal) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1267,12 +1387,21 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            TerminalToolScreen(navController = navController)
+            val viewModel = LocalMainChatViewModel.current
+            val runMainChatAction = LocalRunMainChatAction.current
+            TerminalEntryScreen(
+                initialPage = EmbeddedTerminalPage.CONSOLE,
+                onOpenTerminal = { page ->
+                    runMainChatAction { viewModel.openTerminalFromHub(page) }
+                },
+                onGoBack = onGoBack,
+                onError = onError,
+            )
         }
     }
 
     data object TerminalSetup :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_terminal) {
+            Screen(navItem = NavItem.Terminal, titleRes = R.string.screen_title_terminal) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1283,12 +1412,21 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            TerminalToolScreen(navController = navController, forceShowSetup = true)
+            val viewModel = LocalMainChatViewModel.current
+            val runMainChatAction = LocalRunMainChatAction.current
+            TerminalEntryScreen(
+                initialPage = EmbeddedTerminalPage.SETUP,
+                onOpenTerminal = { page ->
+                    runMainChatAction { viewModel.openTerminalFromHub(page) }
+                },
+                onGoBack = onGoBack,
+                onError = onError,
+            )
         }
     }
 
     data object TerminalAutoConfig :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_terminal_auto_config) {
+            Screen(navItem = NavItem.Terminal, titleRes = R.string.screen_title_terminal_auto_config) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1303,24 +1441,8 @@ sealed class Screen(
         }
     }
 
-    data object AppPermissions :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_app_permissions) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            AppPermissionsToolScreen(navController = navController)
-        }
-    }
-
     data object UIDebugger :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_ui_debugger) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_ui_debugger) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1335,24 +1457,8 @@ sealed class Screen(
         }
     }
 
-    data object ShellExecutor :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_shell_executor) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ShellExecutorToolScreen(navController = navController)
-        }
-    }
-
     data object Logcat :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_logcat) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.data_backup_title, usesRouteViewModelStore = true) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1363,46 +1469,13 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            LogcatToolScreen(navController = navController)
-        }
-    }
-
-    data object SqlViewer :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_sql_viewer) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            SqlViewerToolScreen(navController = navController)
-        }
-    }
-
-    // FFmpeg Toolbox screen
-    data object FFmpegToolbox :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_ffmpeg_toolbox) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            FFmpegToolboxScreen(navController = navController)
+            DataAndBackupScreen(initialTab = 2, onNavigateToTokenStatistics = { navigateTo(TokenUsageStatistics) })
         }
     }
 
     // 流式Markdown演示屏幕
     data object MarkdownDemo :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_markdown_demo) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_markdown_demo) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1417,43 +1490,9 @@ sealed class Screen(
         }
     }
 
-    // 工具测试屏幕
-    data object ToolTester :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_tool_tester) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ToolTesterScreen(navController = navController)
-        }
-    }
-
-    // 在MarkdownDemo对象后添加TextToSpeech对象
-    data object TextToSpeech :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_text_to_speech) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            TextToSpeechToolScreen(navController = navController)
-        }
-    }
-
     // Tools screens
     data object SpeechToText :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_speech_to_text) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_speech_to_text) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1469,7 +1508,7 @@ sealed class Screen(
     }
 
     data object DefaultAssistantGuide :
-            Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_default_assistant_guide) {
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_default_assistant_guide) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1480,27 +1519,15 @@ sealed class Screen(
                 onError: (String) -> Unit,
                 onGestureConsumed: (Boolean) -> Unit
         ) {
-            DefaultAssistantGuideToolScreen(navController = navController)
+            SpeechServicesSettingsScreen(
+                onBackPressed = onGoBack,
+                initialTabIndex = 2,
+            )
         }
     }
 
 
-    data object ProcessLimitRemover : Screen(navItem = NavItem.Toolbox, titleRes = R.string.tool_process_limit_remover) {
-        @Composable
-        override fun Content(
-            navController: NavController,
-            navigateTo: ScreenNavigationHandler,
-            onGoBack: () -> Unit,
-            hasBackgroundImage: Boolean,
-            onLoading: (Boolean) -> Unit,
-            onError: (String) -> Unit,
-            onGestureConsumed: (Boolean) -> Unit
-        ) {
-            ProcessLimitRemoverToolScreen(navController = navController)
-        }
-    }
-
-    data object HtmlPackager : Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_html_packager) {
+    data object HtmlPackager : Screen(navItem = NavItem.AiChat, titleRes = R.string.screen_title_html_packager) {
         @Composable
         override fun Content(
                 navController: NavController,
@@ -1512,39 +1539,6 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             HtmlPackagerScreen(onGoBack = onGoBack)
-        }
-    }
-
-    data object AutoGlmOneClick : Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_autoglm_one_click) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            AutoGlmOneClickToolScreen(
-                navController = navController,
-                onNavigateToModelConfig = { navigateTo(ModelConfig) }
-            )
-        }
-    }
-    
-    data object AutoGlmTool : Screen(navItem = NavItem.Toolbox, titleRes = R.string.screen_title_autoglm_tool) {
-        @Composable
-        override fun Content(
-                navController: NavController,
-                navigateTo: ScreenNavigationHandler,
-                onGoBack: () -> Unit,
-                hasBackgroundImage: Boolean,
-                onLoading: (Boolean) -> Unit,
-                onError: (String) -> Unit,
-                onGestureConsumed: (Boolean) -> Unit
-        ) {
-            AutoGlmToolScreen()
         }
     }
 

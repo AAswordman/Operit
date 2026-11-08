@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.ui.permissions
 
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -8,8 +10,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
-import android.widget.Toast
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.compose.animation.AnimatedVisibility
@@ -48,7 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -74,8 +75,8 @@ import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
 import com.ai.assistance.operit.services.ServiceLifecycleOwner
 import com.ai.assistance.operit.ui.floating.FloatingWindowTheme
 import kotlinx.coroutines.delay
@@ -366,10 +367,10 @@ class PermissionRequestOverlay(private val context: Context) {
                 
                 // 可选：使用Toast提示用户
                 Handler(Looper.getMainLooper()).post {
-                    Toast.makeText(
+                    OKToast.warning(
                         context,
                         context.getString(R.string.overlay_permission_grant_hint),
-                        Toast.LENGTH_LONG
+                        OKToast.LENGTH_LONG
                     ).show()
                 }
             } catch (e: Exception) {

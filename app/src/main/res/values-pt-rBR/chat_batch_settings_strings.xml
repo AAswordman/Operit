@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">Ações em lote</string>
+    <string name="chat_batch_exit">Sair da seleção</string>
+    <string name="chat_batch_summarize">Resumir títulos</string>
+    <string name="chat_batch_progress">Processando %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">Conversas bloqueadas não serão excluídas.</string>
+    <string name="chat_batch_delete_title">Excluir conversas selecionadas</string>
+    <string name="chat_batch_delete_message">%1$d conversas serão excluídas e %2$d conversas bloqueadas serão mantidas. Esta ação não pode ser desfeita.</string>
+    <string name="chat_batch_result">Lote concluído: %1$d sucessos, %2$d ignoradas, %3$d falhas</string>
+    <string name="language_follow_system">Seguir o sistema</string>
+    <string name="language_global_info">O idioma se aplica a todos os personagens. O aplicativo será reaberto após a alteração.</string>
+    <string name="language_change_failed">Não foi possível alterar o idioma. Tente novamente.</string>
+</resources>

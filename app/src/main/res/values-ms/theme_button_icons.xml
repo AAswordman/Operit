@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_button_icons">Ikon butang</string>
+    <string name="studio_button_icons_hint">Setiap baris mewakili satu butang. Pilih mod cerah atau gelap untuk menyunting isian, warna ikon, bentuk, bingkai, ruang dalaman, lapisan, keadaan interaksi dan aset ikon secara berasingan.</string>
+    <string name="studio_button_style_hint">Rupa butang ini disimpan berasingan. Butang tanpa tetapan mewarisi gaya umum. Pemulihan hanya mempengaruhi butang dan mod ini serta mengekalkan aset ikonnya.</string>
+    <string name="studio_button_style_inherit">Pulihkan gaya butang umum</string>
+</resources>

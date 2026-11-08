@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">Data dan sandaran</string>
+    <string name="data_backup_settings_desc">Sandaran dan pemulihan, pengurusan sembang, penggunaan token dan log diagnostik</string>
+    <string name="data_backup_tab_restore">Sandarkan dan pulihkan</string>
+    <string name="data_backup_tab_chats">Pengurusan sembang</string>
+    <string name="data_backup_tab_logs">Log diagnostik</string>
+    <string name="data_backup_overview">Gambaran keseluruhan data</string>
+    <string name="data_backup_current_profile">Konfigurasi semasa · %1$s</string>
+    <string name="data_backup_count_chats">Sejarah sembang</string>
+    <string name="data_backup_count_characters">kad watak</string>
+    <string name="data_backup_count_memories">kemasukan ingatan</string>
+    <string name="data_backup_count_links">persatuan ingatan</string>
+    <string name="data_backup_token_entry_desc">Lihat statistik penggunaan, kos dan model</string>
+    <string name="data_backup_never">Tiada sandaran lagi</string>
+    <string name="data_backup_recent">Sandaran terbaharu · %1$s</string>
+    <string name="data_backup_files">Fail sandaran</string>
+    <string name="data_backup_snapshot_title">petikan fail</string>
+    <string name="data_backup_snapshot_desc">Pakej fail dan konfigurasi aplikasi dan perlu dimulakan semula selepas pemulihan.</string>
+    <string name="data_backup_snapshot_export">Eksport gambar</string>
+    <string name="data_backup_snapshot_restore">Pulihkan syot kilat</string>
+    <string name="data_backup_daily_on">Sandaran automatik harian dihidupkan</string>
+    <string name="data_backup_daily_off">Sandaran automatik harian tidak didayakan</string>
+    <string name="data_backup_db_summary">%1$s · Simpan salinan %2$d</string>
+    <string name="data_backup_file_count">%1$d salinan</string>
+    <string name="data_backup_individual">Import dan eksport item tunggal</string>
+    <string name="data_backup_individual_desc">Sembang, kad aksara, memori dan konfigurasi model</string>
+    <string name="data_backup_export_directory">Eksport direktori · Muat turun/Operit</string>
+    <string name="data_backup_help">Arahan sandaran</string>
+    <string name="data_backup_done">faham</string>
+    <string name="data_backup_snapshot_export_title">Eksport petikan fail</string>
+    <string name="data_backup_start_export">Mulakan eksport</string>
+    <string name="data_backup_choose_file">Pilih fail sandaran</string>
+    <string name="data_backup_choose_file_desc">Pilih petikan ZIP untuk dipulihkan</string>
+    <string name="data_backup_manage_links">Mengurus persatuan</string>
+    <string name="data_backup_build_memory">Bina ingatan</string>
+    <string name="data_backup_chat_records">Pengurusan sejarah sembang</string>
+    <string name="data_backup_chat_records_desc">Ubah suai persatuan dalam kelompok, susun rekod atau bina kenangan.</string>
+    <string name="data_backup_message_count_suffix">· Mesej %1$d</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">Folder berikut tidak digunakan oleh mana-mana sembang. Padam hanya folder yang dipilih.</string>
+    <string name="data_backup_locked_notice">Pemadaman melangkau sembang terkunci</string>
+    <string name="data_backup_clear_chats">rekod yang jelas</string>
+    <string name="data_backup_clear_chats_confirm">Semua sembang yang tidak berkunci dan mesejnya akan dipadamkan. Sembang berkunci akan dikekalkan, teruskan?</string>
+    <string name="data_backup_export_app_logs">Eksport log aplikasi</string>
+    <string name="data_backup_export_app_logs_desc">Maklumat diagnostik dikekalkan untuk memudahkan pengesanan masalah operasi.</string>
+    <string name="data_backup_log_format">TXT · Log aplikasi boleh dieksport</string>
+    <string name="data_backup_export_logs">Log eksport</string>
+    <string name="data_backup_log_filters">Penapisan eksport</string>
+    <string name="data_backup_filters_none">Log penuh · Tiada penapisan didayakan</string>
+    <string name="data_backup_filters_count">Penapisan pada item %1$d didayakan</string>
+    <string name="data_backup_log_directory">Simpan untuk Muat Turun/operit</string>
+    <string name="data_backup_clear_logs">Kosongkan log</string>
+    <string name="data_backup_clear_logs_confirm">Log aplikasi semasa akan dikosongkan. Operasi ini tidak akan memadamkan sejarah sembang atau statistik token. Adakah anda mahu meneruskan?</string>
+    <string name="data_backup_memory_window_hint">Proses 8-48 mesej pada satu masa</string>
+    <string name="data_backup_locked_chat">sembang terkunci</string>
+    <string name="data_backup_ungrouped">Tidak berkumpulan</string>
+    <string name="data_backup_memory_build_desc">Sembang %1$d dipilih. Kenangan akan diekstrak daripada mesej yang dipilih, mungkin mengakibatkan penggunaan model.</string>
+</resources>

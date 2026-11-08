@@ -10,20 +10,19 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import android.text.TextUtils
 import android.util.Base64
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.BinaryResultData
 import com.ai.assistance.operit.core.tools.BooleanResultData
 import com.ai.assistance.operit.core.tools.IntResultData
-import com.ai.assistance.operit.core.tools.SandboxScriptExecutionResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolResultData
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolResult
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
 import com.ai.assistance.operit.data.preferences.EnvPreferences
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.ToolPkgWasmRuntime
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -166,23 +165,7 @@ internal object JsNativeInterfaceDelegates {
             is StringResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
             is BooleanResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
             is IntResultData -> SerializedToolResultData(data = JsonPrimitive(resultData.value))
-            is SandboxScriptExecutionResultData -> {
-                val jsonData =
-                    Json.parseToJsonElement(
-                        Json.encodeToString(SandboxScriptExecutionResultData.serializer(), resultData)
-                    )
-                SerializedToolResultData(data = jsonData)
-            }
-            else -> {
-                val jsonString = resultData.toJson()
-                val jsonData =
-                    try {
-                        Json.parseToJsonElement(jsonString)
-                    } catch (_e: Exception) {
-                        JsonPrimitive(jsonString)
-                    }
-                SerializedToolResultData(data = jsonData)
-            }
+            else -> SerializedToolResultData(data = JsToolResultJson.encodeStructured(resultData))
         }
     }
 
@@ -827,55 +810,6 @@ internal object JsNativeInterfaceDelegates {
                 )
             }
         }.start()
-    }
-
-    fun buildToolResultCallbackScript(callbackId: String, result: String, isError: Boolean): String {
-        val trimmedResult = result.trim()
-        val isJsonLiteral =
-            (trimmedResult.startsWith("{") && trimmedResult.endsWith("}")) ||
-                (trimmedResult.startsWith("[") && trimmedResult.endsWith("]")) ||
-                (trimmedResult.startsWith("\"") && trimmedResult.endsWith("\""))
-
-        return if (isJsonLiteral) {
-            """
-                if (typeof window['$callbackId'] === 'function') {
-                    window['$callbackId']($result, $isError);
-                } else {
-                    console.error("Callback not found: $callbackId");
-                }
-            """.trimIndent()
-        } else {
-            val escapedResult =
-                result.replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\r")
-            """
-                if (typeof window['$callbackId'] === 'function') {
-                    window['$callbackId']("$escapedResult", $isError);
-                } else {
-                    console.error("Callback not found: $callbackId");
-                }
-            """.trimIndent()
-        }
-    }
-
-    fun buildStringResultCallbackScript(callbackId: String, result: String, isError: Boolean): String {
-        val safeCallbackId = JSONObject.quote(callbackId.trim())
-        val safeResult = JSONObject.quote(result)
-        return """
-            (function() {
-                var root = typeof globalThis !== 'undefined'
-                    ? globalThis
-                    : (typeof window !== 'undefined' ? window : this);
-                var callback = root ? root[$safeCallbackId] : undefined;
-                if (typeof callback === 'function') {
-                    callback($safeResult, $isError);
-                    return;
-                }
-                console.error("Callback not found: " + $safeCallbackId);
-            })();
-        """.trimIndent()
     }
 
     fun imageProcessing(

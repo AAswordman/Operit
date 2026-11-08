@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">Menyalin...</string>
+    <string name="workspace_transfer_moving">Memindahkan...</string>
+    <string name="workspace_transfer_scanning">Mengira fail...</string>
+    <string name="workspace_transfer_processing">Memproses...</string>
+    <string name="workspace_transfer_finishing">Memadam sumber...</string>
+    <string name="workspace_transfer_name">Nama</string>
+    <string name="workspace_transfer_source">Dari</string>
+    <string name="workspace_transfer_destination">Ke</string>
+    <string name="workspace_transfer_copied">Disalin</string>
+    <string name="workspace_transfer_remaining">Baki</string>
+    <string name="workspace_transfer_speed">Kelajuan</string>
+    <string name="workspace_transfer_item">Item %1$d / %2$d · Kemajuan item semasa</string>
+    <string name="workspace_transfer_files">Fail: %1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">Membatalkan...</string>
+    <string name="workspace_transfer_deleting">Memadam...</string>
+    <string name="workspace_transfer_deleted_items">%1$d / %2$d item dipadam</string>
+    <string name="workspace_transfer_delete_scope">Kemajuan mengira item yang dipilih, bukan fail dalam setiap folder.</string>
+    <string name="workspace_transfer_delete_cancel_note">Pembatalan menghentikan item seterusnya selepas pemadaman semasa selesai. Kandungan yang dipadam tidak dipulihkan.</string>
+</resources>

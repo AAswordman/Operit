@@ -6,7 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.floating.FloatingMode
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 /**
  * Receives system ASSIST intents and forwards them to Operit's voice assistant entry.

@@ -1,0 +1,6 @@
+
+root = Column(children=[
+ Grid(children=[Display(label="总 Token",text="9.0M"),Display(label="缓存命中率",text="94.2%")]),
+ Chart(label="每日 Token 用量",type="bar",labels=["周一","周二","周三","周四","周五"],
+ series=[{label:"Token",values:[1200000,1800000,1500000,2100000,2400000]}])
+])

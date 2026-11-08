@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">Pilih beberapa file</string>
+    <string name="workspace_selection_count">%1$d dipilih</string>
+    <string name="workspace_delete_selected_title">Hapus item yang dipilih</string>
+    <string name="workspace_delete_selected_message">Hapus %1$d file atau folder yang dipilih, termasuk isi folder? Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="voice_message_expired">File audio telah kedaluwarsa atau dihapus</string>
+    <string name="chat_media_file_missing">File sudah tidak ada</string>
+    <string name="chat_media_preview_failed">File media ini tidak dapat dipratinjau</string>
+</resources>

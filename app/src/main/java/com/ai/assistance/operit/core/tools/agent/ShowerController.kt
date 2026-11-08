@@ -56,6 +56,9 @@ object ShowerController {
     suspend fun prepareMainDisplay(context: Context): Boolean =
         prepareMainDisplay("default", context)
 
+    suspend fun acquireInputClient(agentId: String): AutoCloseable =
+        getInstance(agentId).acquireInputClient()
+
     /** Ensures a virtual display is created and ready for the specified agent. */
     suspend fun ensureDisplay(
         agentId: String,

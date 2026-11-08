@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">Se copiază...</string>
+    <string name="workspace_transfer_moving">Se mută...</string>
+    <string name="workspace_transfer_scanning">Se numără fișierele...</string>
+    <string name="workspace_transfer_processing">Se procesează...</string>
+    <string name="workspace_transfer_finishing">Se șterge sursa...</string>
+    <string name="workspace_transfer_name">Nume</string>
+    <string name="workspace_transfer_source">Sursă</string>
+    <string name="workspace_transfer_destination">Destinație</string>
+    <string name="workspace_transfer_copied">Copiat</string>
+    <string name="workspace_transfer_remaining">Rămas</string>
+    <string name="workspace_transfer_speed">Viteză</string>
+    <string name="workspace_transfer_item">Element %1$d / %2$d · Progresul elementului curent</string>
+    <string name="workspace_transfer_files">Fișiere: %1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">Se anulează...</string>
+    <string name="workspace_transfer_deleting">Se șterge...</string>
+    <string name="workspace_transfer_deleted_items">%1$d / %2$d elemente șterse</string>
+    <string name="workspace_transfer_delete_scope">Progresul numără elementele selectate, nu fișierele din fiecare dosar.</string>
+    <string name="workspace_transfer_delete_cancel_note">Anularea oprește elementele următoare după încheierea ștergerii curente. Conținutul șters nu este restaurat.</string>
+</resources>

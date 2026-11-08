@@ -39,7 +39,7 @@ TOOLPKG_PATTERNS = (
     "tools/example_packages/sync_example_packages.py",
 )
 ANDROID_FULL_PATTERNS = (
-    ".github/workflows/android-build.yml",
+    ".github/workflows/build.yml",
     ".github/workflows/android-tests.yml",
     ".github/workflows/pr-check.yml",
     ".gitmodules",
@@ -56,11 +56,14 @@ ANDROID_FULL_PATTERNS = (
     "gradlew.bat",
     "settings.gradle.kts",
     "tools/native_ripgrep/**",
+    "tools/native_apply_patch/**",
+    "tools/web_chat_cli/**",
+    "tools/terminal_commands/**",
+    ".github/actions/terminal-commands/**",
 )
 ANDROID_MODULE_ROOTS = (
-    "avator/dragonbones",
-    "avator/fbx",
-    "avator/mmd",
+    "a2ui-compat",
+    "material-icons-subset",
     "llm/llama",
     "llm/mnn",
     "quickjs",

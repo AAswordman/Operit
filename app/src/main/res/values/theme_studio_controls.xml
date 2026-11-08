@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">文字颜色</string>
+    <string name="studio_message_background_color">消息背景色</string>
+    <string name="studio_message_text_color">消息文字色</string>
+    <string name="studio_border">描边</string>
+    <string name="studio_border_edit_hint">未设置宽度时，选择描边颜色会设为 1dp；宽度设为 0 可关闭描边。描边不跟随背景透明度。</string>
+    <string name="studio_line_color">线条颜色</string>
+    <string name="studio_padding_hint">在组件原有间距上追加留白；0 表示不追加。</string>
+    <string name="studio_text_color_priority_hint">消息和组件的独立文字颜色优先；全局文字颜色会覆盖全局配色中的正文色。</string>
+    <string name="studio_message_color_hint">消息背景色仍受消息外观中的背景透明度控制；文字颜色独立生效。</string>
+    <string name="studio_avatar_fill_hint">头像填充色位于图片下方；不透明的头像图片会遮住填充色。</string>
+    <string name="studio_min_height_hint">设置高度下限，不会把组件压缩到原生最小高度以下。</string>
+</resources>

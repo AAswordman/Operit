@@ -42,16 +42,11 @@ struct PrefixMatcher {
 inline bool isDigit(char16_t c) { return c >= u'0' && c <= u'9'; }
 }
 
-// --- Fenced code block ---
+// 代码围栏记录字符和开始长度，避免另一种围栏或较短围栏提前闭合。
 StreamMarkdownFencedCodeBlockPlugin::StreamMarkdownFencedCodeBlockPlugin(bool includeFences)
-        : includeFences_(includeFences),
-          state_(PluginState::IDLE),
-          fenceLen_(0),
-          isMatchingEndFence_(false),
-          hasStartedMatchingFence_(false) {
+        : includeFences_(includeFences) {
     reset();
 }
-
 PluginState StreamMarkdownFencedCodeBlockPlugin::state() const { return state_; }
 
 bool StreamMarkdownFencedCodeBlockPlugin::initPlugin() {
@@ -62,8 +57,13 @@ bool StreamMarkdownFencedCodeBlockPlugin::initPlugin() {
 void StreamMarkdownFencedCodeBlockPlugin::reset() {
     state_ = PluginState::IDLE;
     fenceLen_ = 0;
+    openingFenceLen_ = 0;
+    fenceChar_ = 0;
+    fenceIndent_ = 0;
     isMatchingEndFence_ = false;
     hasStartedMatchingFence_ = false;
+    isReadingFenceInfo_ = false;
+    hasFenceTrailingWhitespace_ = false;
 }
 
 bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOfLine) {
@@ -71,34 +71,48 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
         if (atStartOfLine) {
             isMatchingEndFence_ = true;
             hasStartedMatchingFence_ = false;
+            fenceLen_ = 0;
+            fenceIndent_ = 0;
+            hasFenceTrailingWhitespace_ = false;
         }
 
         if (isMatchingEndFence_) {
             if (!hasStartedMatchingFence_) {
                 if (c == u' ') {
+                    fenceIndent_ += 1;
+                    if (fenceIndent_ > 3) {
+                        isMatchingEndFence_ = false;
+                        return true;
+                    }
                     return includeFences_;
                 }
                 hasStartedMatchingFence_ = true;
             }
 
-            if (c == u'`') {
+            if (c == fenceChar_ && !hasFenceTrailingWhitespace_) {
                 fenceLen_ += 1;
                 return includeFences_;
             }
 
+            if (fenceLen_ >= openingFenceLen_ &&
+                (c == u' ' || c == u'\t' || c == u'\r')) {
+                hasFenceTrailingWhitespace_ = true;
+                return includeFences_;
+            }
+
             if (c == u'\n') {
-                // line ended; only close if we matched at least 3 backticks
-                if (fenceLen_ >= 3) {
+                // 只在整行结束且同类围栏字符数量足够时闭合，避免代码正文提前退出。
+                if (fenceLen_ >= openingFenceLen_) {
                     reset();
                     return includeFences_;
                 }
-                // not end fence
+                // 当前行不是结束围栏
                 isMatchingEndFence_ = false;
                 fenceLen_ = 0;
                 return true;
             }
 
-            // non-backtick breaks end fence attempt
+            // 非围栏字符使本行结束匹配失效
             isMatchingEndFence_ = false;
             fenceLen_ = 0;
             return true;
@@ -107,28 +121,32 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
         return true;
     }
 
-    // IDLE/TRYING: detect opening fence of 3+ backticks (doesn't require SOL in Kotlin)
+    // 开始围栏必须位于行首，最多允许三个前导空格，与 Kotlin 解析保持一致。
     if (state_ == PluginState::IDLE) {
-        if (c == u'`') {
-            state_ = PluginState::TRYING;
-            fenceLen_ = 1;
-            return includeFences_;
+        if (!atStartOfLine) {
+            return true;
         }
-        (void)atStartOfLine;
-        return true;
+        state_ = PluginState::TRYING;
     }
 
     if (state_ == PluginState::TRYING) {
-        if (c == u'`') {
-            fenceLen_ += 1;
+        if (fenceLen_ == 0 && c == u' ' && fenceIndent_ < 3) {
+            fenceIndent_ += 1;
             return includeFences_;
         }
+        if ((c == u'`' || c == u'~') && !isReadingFenceInfo_) {
+            if (fenceLen_ == 0) fenceChar_ = c;
+            if (c == fenceChar_) {
+                fenceLen_ += 1;
+                return includeFences_;
+            }
+        }
 
-        // We only keep TRYING across the rest of the opening line after we have
-        // already seen 3+ consecutive backticks. This matches the Kotlin KMP pattern.
+        // 等到开始行结束后再确认代码块，保留流式输出中尚未闭合的合法围栏。
         if (c == u'\n') {
             if (fenceLen_ >= 3) {
                 state_ = PluginState::PROCESSING;
+                openingFenceLen_ = fenceLen_;
                 isMatchingEndFence_ = false;
                 hasStartedMatchingFence_ = false;
                 fenceLen_ = 0;
@@ -138,14 +156,13 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
             return true;
         }
 
-        if (fenceLen_ < 3) {
-            // Not a fenced code block; stop trying immediately so inline/backtick runs
-            // don't accidentally accumulate into a fake 3+ fence.
+        if (fenceLen_ < 3 || (fenceChar_ == u'`' && c == u'`')) {
+            // 开始标记不足三个反引号或语言说明含反引号时，整行按普通文本处理。
             reset();
             return true;
         }
 
-        // still in opening line (language id etc)
+        isReadingFenceInfo_ = true;
         return includeFences_;
     }
 
@@ -154,8 +171,9 @@ bool StreamMarkdownFencedCodeBlockPlugin::processChar(char16_t c, bool atStartOf
 }
 
 // --- Inline code ---
-StreamMarkdownInlineCodePlugin::StreamMarkdownInlineCodePlugin(bool includeTicks)
-        : includeTicks_(includeTicks), state_(PluginState::IDLE), tickLen_(0), endMatch_(0) {
+StreamMarkdownInlineCodePlugin::StreamMarkdownInlineCodePlugin(bool includeTicks, bool deferFences)
+        : includeTicks_(includeTicks), deferFences_(deferFences),
+          state_(PluginState::IDLE), tickLen_(0), endMatch_(0) {
     reset();
 }
 
@@ -199,15 +217,20 @@ bool StreamMarkdownInlineCodePlugin::processChar(char16_t c, bool /*atStartOfLin
             return includeTicks_;
         }
         if (state_ == PluginState::TRYING) {
-            // Kotlin start matcher is ` + noneOf('`','\n'), so a second backtick immediately fails.
-            reset();
-            return true;
+            // 连续反引号属于同一个开始分隔符，不能在中间重启匹配。
+            ++tickLen_;
+            return includeTicks_;
         }
     }
 
     if (state_ == PluginState::TRYING) {
         // need a non-tick, non-newline char to confirm start
         if (c != u'`' && c != u'\n') {
+            // 块级解析把三字符以上的开始行留给围栏插件；内联阶段仍解析代码正文。
+            if (deferFences_ && tickLen_ >= 3) {
+                reset();
+                return true;
+            }
             state_ = PluginState::PROCESSING;
             endMatch_ = 0;
             return true;

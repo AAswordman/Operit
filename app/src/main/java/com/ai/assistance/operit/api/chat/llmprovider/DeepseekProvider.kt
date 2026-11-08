@@ -3,19 +3,24 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.ChatUtils
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.context.ChatUtils
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.Base64
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
+import com.ai.assistance.operit.core.chat.media.ImageLink
 
 /**
  * 针对DeepSeek模型的特定API Provider。
@@ -50,7 +55,25 @@ class DeepseekProvider(
         thinkingOptionId = thinkingOptionId
     ) {
     private val configuredApiEndpoint = apiEndpoint
+    /** DeepSeek Files API 图片上传器（与 Responses 协议线共用的抽取实现） */
+    private val fileUploader = DeepseekFileUploader(apiEndpoint, apiKeyProvider, client, customHeaders)
 
+    /** 发送前把消息中的图片上传至 DeepSeek Files API 换取 file_id，失败回退 base64 */
+    override suspend fun prepareMediaForRequest(context: Context, chatHistory: List<PromptTurn>) {
+        fileUploader.prepareMedia(supportsVision, chatHistory, "DeepseekProvider")
+    }
+
+    /** 已有 file_id 时用 DeepSeek 文件块引用，否则回退基类的 base64 内嵌 */
+    override fun buildImageContentPart(link: ImageLink): JSONObject {
+        val fileId = fileUploader.fileIdFor(link.id)
+        if (fileId != null) {
+            return JSONObject().apply {
+                put("type", "file")
+                put("file_id", fileId)
+            }
+        }
+        return super.buildImageContentPart(link)
+    }
     companion object {
         fun create(
             config: ModelConfigData,
@@ -91,8 +114,7 @@ class DeepseekProvider(
                         supportsVideo = supportsVideo,
                         enableToolCall = enableToolCall,
                         thinkingConfigurations = config.thinkingConfigurations,
-                        thinkingOptionId = config.thinkingOptionId,
-                        enableWebSearch = config.enableDeepSeekWebSearch
+                        thinkingOptionId = config.thinkingOptionId
                     )
             }
         }
@@ -107,6 +129,7 @@ class DeepseekProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -120,7 +143,7 @@ class DeepseekProvider(
                 apiEndpoint = configuredApiEndpoint,
                 thinkingConfigurations = thinkingConfigurations,
                 enableThinking = enableThinking,
-                optionId = thinkingOptionId,
+                optionId = thinkingOptionId ?: this.thinkingOptionId,
             )
         }
 
@@ -140,15 +163,15 @@ class DeepseekProvider(
         for (param in modelParameters) {
             if (param.isEnabled) {
                 when (param.valueType) {
-                    com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                         jsonObject.put(param.apiName, param.currentValue as Int)
-                    com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                         jsonObject.put(param.apiName, param.currentValue as Float)
-                    com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                         jsonObject.put(param.apiName, param.currentValue as String)
-                    com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                         jsonObject.put(param.apiName, param.currentValue as Boolean)
-                    com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                         val raw = param.currentValue.toString().trim()
                         val parsed: Any? = try {
                             when {
@@ -201,13 +224,7 @@ class DeepseekProvider(
         jsonObject.put("messages", messagesArray)
 
         // 记录最终的请求体（省略过长的tools字段）
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString("DeepseekProvider", sanitizedLogJson.toString(4), "Final DeepSeek reasoning mode request body: ")
+        logRequestBody("DeepseekProvider", jsonObject, "Final DeepSeek reasoning mode request body: ")
 
         return createJsonRequestBody(jsonObject.toString())
     }
@@ -540,6 +557,7 @@ class DeepseekProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -551,7 +569,7 @@ class DeepseekProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, thinkingOptionId, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
     }
 }
 
@@ -578,6 +596,9 @@ private object DeepseekRouting {
 }
 
 object DeepseekResponsesPayloadAdapter {
+    // DeepSeek 的不同 Responses 版本使用过两种思考内容分片类型，回放时保留实际返回的类型。
+    private val reasoningContentPartTypes = setOf("reasoning_text", "reasoning_content")
+
     fun toResponsesRequest(chatStyleRequest: JSONObject): JSONObject {
         val converted = JSONObject(chatStyleRequest.toString())
 
@@ -650,7 +671,7 @@ object DeepseekResponsesPayloadAdapter {
                                         }
                                     }
 
-                                    "reasoning_text" -> {
+                                    "reasoning_text", "reasoning_content" -> {
                                         val text = part.optString("text", "")
                                         if (text.isNotEmpty()) {
                                             reasoningObserved = true
@@ -669,7 +690,7 @@ object DeepseekResponsesPayloadAdapter {
                         if (contentArray != null) {
                             for (j in 0 until contentArray.length()) {
                                 val part = contentArray.optJSONObject(j) ?: continue
-                                if (part.optString("type", "") == "reasoning_text") {
+                                if (isReasoningContentPart(part)) {
                                     val text = part.optString("text", "")
                                     if (text.isNotEmpty()) {
                                         reasoningChunks.add(text)
@@ -737,8 +758,8 @@ object DeepseekResponsesPayloadAdapter {
             return null
         }
 
-        // DeepSeek emits some thinking as a commentary message instead of a reasoning item.
-        // Persist the original item so the continuation can restore it as reasoning_text.
+        // DeepSeek 有时会把思考内容放在 commentary message 中，而不是 reasoning item。
+        // 保存原始思考分片，使后续续写请求可以按服务端返回的类型恢复。
         val payload = JSONObject().apply {
             put("type", "message")
             put("role", "assistant")
@@ -964,14 +985,28 @@ object DeepseekResponsesPayloadAdapter {
                             }
                         }
 
-                        "image_url", "input_image" -> {
+                        "input_image" -> {
+                            // 已规范化的图片块可能使用 file_id，保留引用及 detail，避免按 URL 重建时丢图。
+                            convertedParts.put(JSONObject(part.toString()))
+                        }
+
+                        "file" -> {
+                            // Files API 上传后的图片是文件引用，Responses 必须转换为 input_image。
+                            val fileId = part.optString("file_id", "")
+                            if (fileId.isNotEmpty()) {
+                                convertedParts.put(
+                                    JSONObject().apply {
+                                        put("type", "input_image")
+                                        put("file_id", fileId)
+                                    }
+                                )
+                            }
+                        }
+
+                        "image_url" -> {
                             val imageUrl =
-                                if (part.optString("type", "") == "input_image") {
-                                    part.optString("image_url", "")
-                                } else {
-                                    part.optJSONObject("image_url")?.optString("url", "")
-                                        ?: part.optString("image_url", "")
-                                }
+                                part.optJSONObject("image_url")?.optString("url", "")
+                                    ?: part.optString("image_url", "")
                             if (imageUrl.isNotEmpty()) {
                                 convertedParts.put(
                                     JSONObject().apply {
@@ -1185,8 +1220,7 @@ object DeepseekResponsesPayloadAdapter {
                 if (reasoningContent.length() == 0) {
                     return false
                 }
-                // Thinking-mode function calls require reasoning_text. Commentary is that thought
-                // in a message envelope; replaying it as output_text makes DeepSeek return 400.
+                // 思考模式下的工具调用需要先回放思考分片；commentary message 中的思考内容也要按思考类型回放，避免被当作正文导致 400。
                 val reasoningItem = JSONObject().apply {
                     put("type", "reasoning")
                     val id = metadata.optString("id", "").trim()
@@ -1208,9 +1242,13 @@ object DeepseekResponsesPayloadAdapter {
     private fun containsReasoningText(content: JSONArray): Boolean {
         return (0 until content.length()).any { index ->
             val part = content.optJSONObject(index) ?: return@any false
-            part.optString("type", "") == "reasoning_text" &&
-                part.optString("text", "").isNotEmpty()
+            isReasoningContentPart(part)
         }
+    }
+
+    private fun isReasoningContentPart(part: JSONObject): Boolean {
+        return part.optString("type", "") in reasoningContentPartTypes &&
+            part.optString("text", "").isNotEmpty()
     }
 
     private fun containsCommentaryText(content: JSONArray): Boolean {
@@ -1221,7 +1259,8 @@ object DeepseekResponsesPayloadAdapter {
         val reasoningContent = JSONArray()
         for (index in 0 until content.length()) {
             val part = content.optJSONObject(index) ?: continue
-            if (part.optString("type", "") !in setOf("output_text", "text", "reasoning_text")) {
+            val partType = part.optString("type", "")
+            if (partType !in setOf("output_text", "text") && !isReasoningContentPart(part)) {
                 continue
             }
             val text = part.optString("text", "")
@@ -1230,7 +1269,10 @@ object DeepseekResponsesPayloadAdapter {
             }
             reasoningContent.put(
                 JSONObject()
-                    .put("type", "reasoning_text")
+                    .put(
+                        "type",
+                        if (partType in reasoningContentPartTypes) partType else "reasoning_text"
+                    )
                     .put("text", text)
             )
         }
@@ -1271,8 +1313,7 @@ private class DeepseekResponsesProvider(
     supportsVideo: Boolean,
     enableToolCall: Boolean,
     thinkingConfigurations: String,
-    thinkingOptionId: String,
-    private val enableWebSearch: Boolean
+    thinkingOptionId: String
 ) : OpenAIProvider(
     apiEndpoint = responsesApiEndpoint,
     apiKeyProvider = apiKeyProvider,
@@ -1289,6 +1330,29 @@ private class DeepseekResponsesProvider(
 ) {
     override val useResponsesApi: Boolean = true
     override val bufferResponsesOutputTextUntilItemDone: Boolean = true
+    /** DeepSeek Files API 图片上传器（与 Chat Completions 协议线共用的抽取实现） */
+    private val fileUploader =
+        DeepseekFileUploader(responsesApiEndpoint, apiKeyProvider, client, customHeaders)
+
+    /** 发送前把消息中的图片上传至 DeepSeek Files API 换取 file_id，失败回退 base64 */
+    override suspend fun prepareMediaForRequest(context: Context, chatHistory: List<PromptTurn>) {
+        fileUploader.prepareMedia(supportsVision, chatHistory, "DeepseekResponsesProvider")
+    }
+
+    /**
+     * 上传图片使用 DeepSeek 文件块，由 DeepseekResponsesPayloadAdapter 转换为
+     * Responses 协议的 input_image + file_id 引用。
+     */
+    override fun buildImageContentPart(link: ImageLink): JSONObject {
+        val fileId = fileUploader.fileIdFor(link.id)
+        if (fileId != null) {
+            return JSONObject().apply {
+                put("type", "file")
+                put("file_id", fileId)
+            }
+        }
+        return super.buildImageContentPart(link)
+    }
 
     override fun isResponsesCommentaryMessage(item: JSONObject): Boolean {
         return item.optString("phase", "").trim().equals("commentary", ignoreCase = true)
@@ -1317,6 +1381,7 @@ private class DeepseekResponsesProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
@@ -1327,15 +1392,13 @@ private class DeepseekResponsesProvider(
             } else {
                 ChatUtils.stripOpenAiResponsesReasoningMetaTurns(chatHistory)
             }
-        val requestJson = JSONObject(
-            createRequestBodyInternal(
-                context = context,
-                chatHistory = requestChatHistory,
-                modelParameters = modelParameters,
-                stream = stream,
-                availableTools = availableTools,
-                preserveThinkInHistory = preserveThinkInHistory
-            )
+        val requestJson = createRequestBodyObject(
+            context = context,
+            chatHistory = requestChatHistory,
+            modelParameters = modelParameters,
+            stream = stream,
+            availableTools = availableTools,
+            preserveThinkInHistory = preserveThinkInHistory
         )
         ThinkingConfigurationApplier.apply(
             context = context,
@@ -1345,20 +1408,9 @@ private class DeepseekResponsesProvider(
             apiEndpoint = responsesApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
         return createJsonRequestBody(requestJson.toString())
-    }
-
-    override fun customizeFinalRequestObject(
-        requestObject: JSONObject,
-        messagesArray: JSONArray,
-        toolsJson: String?
-    ) {
-        if (enableWebSearch) {
-            appendWebSearchTool(requestObject)
-        }
-        super.customizeFinalRequestObject(requestObject, messagesArray, toolsJson)
     }
 
     override fun formatResponsesWebSearchDisplayXml(
@@ -1389,21 +1441,6 @@ private class DeepseekResponsesProvider(
             status = status,
             sources = sources,
         )
-    }
-
-    private fun appendWebSearchTool(requestObject: JSONObject) {
-        val tools = requestObject.optJSONArray("tools") ?: JSONArray().also {
-            requestObject.put("tools", it)
-        }
-        for (index in 0 until tools.length()) {
-            val tool = tools.optJSONObject(index) ?: continue
-            if (tool.optString("type") == "web_search") {
-                requestObject.put("tool_choice", "auto")
-                return
-            }
-        }
-        tools.put(JSONObject().put("type", "web_search"))
-        requestObject.put("tool_choice", "auto")
     }
 
     private fun buildDeepseekSearchXml(

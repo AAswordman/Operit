@@ -1,0 +1,5 @@
+<resources>
+    <string name="workflow_failure_named_node">ノード「%1$s」の実行失敗：%2$s</string>
+    <string name="workflow_failure_action">実行アクション：%1$s</string>
+    <string name="workflow_failure_reason">原因：%1$s</string>
+</resources>

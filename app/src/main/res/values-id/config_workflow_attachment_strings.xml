@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">Ketuk untuk mengedit satu kunci; panah membuka kumpulan kunci</string>
+    <string name="model_workspace_open_key_pool">Pengaturan kumpulan kunci</string>
+    <string name="patch_update_no_matching_chain">Tidak ada jalur pembaruan inkremental lengkap dari APK terpasang. Gunakan APK lengkap.</string>
+    <string name="patch_update_base_changed">APK terpasang tidak cocok dengan dasar patch ini. Gunakan APK lengkap.</string>
+    <string name="workflow_run_details">Detail dan riwayat eksekusi</string>
+    <string name="workflow_run_load_failed">Tidak dapat membaca catatan. Periksa izin akses folder alur kerja.</string>
+    <string name="workflow_run_older">Lebih lama</string>
+    <string name="workflow_run_newer">Lebih baru</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">Durasi: %1$.2f dtk</string>
+    <string name="workflow_run_legacy">Catatan ini tidak memiliki detail simpul. Eksekusi baru akan menyimpan hasil lengkap.</string>
+    <string name="workflow_run_node_success">Berhasil</string>
+    <string name="workflow_run_node_failed">Gagal</string>
+    <string name="workflow_run_node_skipped">Dilewati oleh kondisi</string>
+    <string name="workflow_run_node_not_run">Belum dijalankan</string>
+    <string name="workflow_run_node_cancelled">Dibatalkan</string>
+    <string name="workflow_run_queued">Mengantre, menunggu tugas terjadwal lain</string>
+    <string name="workflow_issue_timeout">Waktu respons habis. Periksa layanan atau batas waktu simpul.</string>
+    <string name="workflow_issue_network">Koneksi jaringan gagal. Periksa jaringan dan alamat layanan.</string>
+    <string name="workflow_issue_auth">Autentikasi layanan gagal. Periksa kunci atau akun.</string>
+    <string name="workflow_issue_quota">Kuota atau batas permintaan tercapai. Periksa saldo dan frekuensi permintaan.</string>
+    <string name="workflow_issue_permission">Izin yang diperlukan belum diberikan. Periksa izin sistem alat ini.</string>
+    <string name="workflow_issue_tool_missing">Alat tidak tersedia. Periksa apakah paketnya terpasang dan aktif.</string>
+    <string name="workflow_issue_input">Masukan atau tindakan simpul tidak valid. Periksa parameternya.</string>
+    <string name="workflow_issue_reference">Hasil simpul rujukan tidak tersedia. Periksa koneksi dan rujukan.</string>
+    <string name="workflow_issue_busy">Lingkungan eksekusi sibuk. Tunggu tugas saat ini selesai.</string>
+    <string name="workflow_issue_cancelled">Eksekusi ini dibatalkan.</string>
+    <string name="workflow_issue_cycle">Terdapat dependensi melingkar. Sesuaikan koneksi simpul.</string>
+    <string name="workflow_issue_trigger">Tidak ada pemicu yang tersedia. Periksa pengaturan pemicu.</string>
+    <string name="workflow_issue_runtime">Lingkungan eksekusi belum siap. Coba lagi nanti.</string>
+    <string name="workflow_issue_unknown">Simpul tidak dapat menyelesaikan tindakan. Periksa masukan dan pengaturan alat.</string>
+    <string name="sent_image_count">%1$d gambar</string>
+    <string name="sent_image_expired_count">%1$d gambar kedaluwarsa</string>
+    <string name="workflow_run_failed_nodes">Simpul gagal: %1$s</string>
+</resources>

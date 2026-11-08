@@ -1,10 +1,10 @@
 package com.ai.assistance.operit.plugins.toolpkg
 
 import android.content.Context
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_CHAT_MESSAGE_MENU_ITEM
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_RUNTIME_COMPOSE_DSL
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgContainerRuntime
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_CHAT_MESSAGE_MENU_ITEM
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_RUNTIME_COMPOSE_DSL
+import com.ai.assistance.operit.core.tools.packTool.parser.ToolPkgContainerRuntime
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuDialogRequest
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuItemClickResult
@@ -12,7 +12,7 @@ import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuItemDefinitio
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuItemParams
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuItemPlugin
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuItemRegistry
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

@@ -47,10 +47,10 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                     val fullContent = StringBuilder(initialContent)
                     val deltaBuffer = StringBuilder()
 
-                    if (initialContent.isNotEmpty()) {
-                        // Restore parser state without re-emitting the already rendered rollback prefix.
-                        session.push(initialContent)
-                    }
+                    // 恢复解析状态并保留最后的真实块边界，不能仅凭类型相同合并新块。
+                    val initialSegments =
+                        if (initialContent.isNotEmpty()) session.push(initialContent) else intArrayOf()
+                    val continuation = MarkdownGroupContinuation(initialSegments)
 
                     val mutex = Mutex()
                     val flushMutex = Mutex()
@@ -64,7 +64,9 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                             val newChannel = Channel<String>(Channel.UNLIMITED)
                             defaultTextChannel = newChannel
                             val stream = newChannel.consumeAsFlow().asStream()
-                            groupChannel.send(StreamGroup(null, stream))
+                            groupChannel.send(
+                                StreamGroup(null, stream, continuesPrevious = continuation.takeFor(MarkdownProcessorType.PLAIN_TEXT))
+                            )
                         }
                     }
 
@@ -78,7 +80,9 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                         activePluginChannel = newChannel
                         activeTag = tag
                         val stream = newChannel.consumeAsFlow().asStream()
-                        groupChannel.send(StreamGroup(tag, stream))
+                        groupChannel.send(
+                            StreamGroup(tag, stream, continuesPrevious = continuation.takeFor(tag))
+                        )
                     }
 
                     suspend fun closePluginChannel() {
@@ -127,6 +131,7 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
 
                             for (action in actions) {
                                 if (action.type == null) {
+                                    continuation.onBoundary()
                                     closeDefaultChannel()
                                     closePluginChannel()
                                     continue
@@ -246,10 +251,10 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                     val fullContent = StringBuilder(initialContent)
                     val deltaBuffer = StringBuilder()
 
-                    if (initialContent.isNotEmpty()) {
-                        // Restore inline parser state without re-emitting the already rendered prefix.
-                        session.push(initialContent)
-                    }
+                    // 恢复解析状态并保留最后的真实块边界，不能仅凭类型相同合并新块。
+                    val initialSegments =
+                        if (initialContent.isNotEmpty()) session.push(initialContent) else intArrayOf()
+                    val continuation = MarkdownGroupContinuation(initialSegments)
 
                     val mutex = Mutex()
                     val flushMutex = Mutex()
@@ -263,7 +268,9 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                             val newChannel = Channel<String>(Channel.UNLIMITED)
                             defaultTextChannel = newChannel
                             val stream = newChannel.consumeAsFlow().asStream()
-                            groupChannel.send(StreamGroup(null, stream))
+                            groupChannel.send(
+                                StreamGroup(null, stream, continuesPrevious = continuation.takeFor(MarkdownProcessorType.PLAIN_TEXT))
+                            )
                         }
                     }
 
@@ -277,7 +284,9 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                         activePluginChannel = newChannel
                         activeTag = tag
                         val stream = newChannel.consumeAsFlow().asStream()
-                        groupChannel.send(StreamGroup(tag, stream))
+                        groupChannel.send(
+                            StreamGroup(tag, stream, continuesPrevious = continuation.takeFor(tag))
+                        )
                     }
 
                     suspend fun closePluginChannel() {
@@ -326,6 +335,7 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
 
                             for (action in actions) {
                                 if (action.type == null) {
+                                    continuation.onBoundary()
                                     closeDefaultChannel()
                                     closePluginChannel()
                                     continue

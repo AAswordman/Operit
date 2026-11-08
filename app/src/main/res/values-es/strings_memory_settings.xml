@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_user_profile">Perfil de usuario</string>
+    <string name="role_user_profile_title">Perfil de usuario de %1$s</string>
+    <string name="role_user_profile_hint">El perfil pertenece al espacio de memoria vinculado a este personaje. El bloqueo impide las actualizaciones automáticas, pero permite la edición manual.</string>
+    <string name="memory_settings_title">Ajustes de memoria</string>
+    <string name="memory_settings_space">Espacio de memoria: %1$s</string>
+    <string name="memory_settings_space_missing">Este espacio de memoria se eliminó. Selecciona otro.</string>
+    <string name="memory_settings_auto_extract_tab">Extracción</string>
+    <string name="memory_settings_retrieval_tab">Búsqueda</string>
+    <string name="memory_settings_history_tab">Reconstrucción</string>
+    <string name="memory_settings_queue">Cola de extracción</string>
+    <string name="memory_settings_queue_status">Pendientes %1$d / %2$d chats · En proceso %3$d · Fallidos %4$d</string>
+    <string name="memory_settings_next_run_unset">La próxima revisión aún no está programada</string>
+    <string name="memory_settings_next_run">Próxima revisión: en unos %1$d minutos</string>
+    <string name="memory_settings_auto_extract_hint">La extracción empieza al acumular al menos %1$d candidatos, incluidos los reintentos fallidos. Los resultados se guardan en este espacio.</string>
+    <string name="memory_settings_interval_value">%1$d min</string>
+    <string name="memory_settings_profile_lock_hint">Impide que el modelo sobrescriba user.md automáticamente. La edición manual sigue disponible.</string>
+    <string name="memory_settings_cloud_embedding">Vectores en la nube</string>
+    <string name="memory_settings_cloud_embedding_hint">Al activarlo, el texto de memoria y búsqueda se envía al servicio de vectores vinculado.</string>
+    <string name="memory_settings_rebuild_saved_hint">La reconstrucción usa el interruptor guardado y el modelo de función vinculado. Guarda primero los cambios.</string>
+    <string name="memory_settings_threshold">Umbral de relevancia</string>
+    <string name="memory_settings_simulation_hint">Realiza una búsqueda real con los pesos, el umbral y el interruptor actuales sin guardar el borrador de ajustes.</string>
+    <string name="memory_settings_select_chats">Seleccionar chats</string>
+    <string name="memory_settings_no_chats">No hay chats vinculados a este espacio de memoria.</string>
+    <string name="memory_settings_history_hint">Extrae memoria del historial por ventanas de mensajes, añadiendo o actualizando contenido sin borrar los recuerdos existentes. Usa las reglas y políticas guardadas.</string>
+    <string name="memory_settings_rebuild_busy">Ya hay una reconstrucción en curso. Debe terminar antes de iniciar otra.</string>
+    <string name="memory_settings_unsaved_title">¿Descartar ajustes sin guardar?</string>
+    <string name="memory_settings_unsaved_message">Al cerrar se perderán los cambios en los ajustes de memoria.</string>
+    <string name="memory_settings_clear_selection">Quitar selección</string>
+</resources>

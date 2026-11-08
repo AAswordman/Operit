@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.data.preferences
 
+import com.ai.assistance.operit.data.preferences.glass.GlassThemePreferences
+
 data class ThemePreferenceValues(
     val strings: Map<String, String> = emptyMap(),
     val booleans: Map<String, Boolean> = emptyMap(),
@@ -47,14 +49,15 @@ data class ThemePreferenceValues(
         copy(floats = floats + (name to value))
 
     companion object {
+        const val SCRIPT_URI_KEY = "custom_theme_script_uri"
         fun defaultVisual(): ThemePreferenceValues =
             ThemePreferenceValues(
                 strings = mapOf(
                     "theme_mode" to UserPreferencesManager.THEME_MODE_LIGHT,
                     "background_media_type" to UserPreferencesManager.MEDIA_TYPE_IMAGE,
-                    "app_bar_content_color_mode" to
-                        UserPreferencesManager.APP_BAR_CONTENT_COLOR_MODE_LIGHT,
                     "chat_style" to UserPreferencesManager.CHAT_STYLE_CURSOR,
+                    "user_chat_style" to UserPreferencesManager.CHAT_STYLE_CURSOR,
+                    "ai_chat_style" to UserPreferencesManager.CHAT_STYLE_CURSOR,
                     "avatar_shape" to UserPreferencesManager.AVATAR_SHAPE_CIRCLE,
                     "on_color_mode" to UserPreferencesManager.ON_COLOR_MODE_AUTO,
                     "input_style" to UserPreferencesManager.INPUT_STYLE_AGENT,
@@ -73,21 +76,15 @@ data class ThemePreferenceValues(
                     "use_background_image" to false,
                     "video_background_muted" to true,
                     "video_background_loop" to true,
-                    "toolbar_transparent" to false,
                     "navigation_drawer_water_glass" to false,
                     "navigation_drawer_button_liquid_glass" to false,
                     "use_custom_navigation_drawer_background_color" to false,
                     "use_custom_navigation_drawer_accent_color" to false,
-                    "use_custom_app_bar_color" to false,
-                    "use_custom_status_bar_color" to false,
-                    "status_bar_transparent" to false,
-                    "status_bar_hidden" to false,
                     "chat_header_transparent" to false,
                     "chat_input_transparent" to false,
                     "chat_input_floating" to false,
                     "chat_input_liquid_glass" to false,
                     "chat_input_water_glass" to false,
-                    "force_app_bar_content_color_enabled" to false,
                     "chat_header_overlay_mode" to false,
                     "use_background_blur" to false,
                     "bubble_show_avatar" to true,
@@ -118,6 +115,10 @@ data class ThemePreferenceValues(
                     "use_custom_font" to false,
                     "bubble_user_use_custom_font" to false,
                     "bubble_ai_use_custom_font" to false,
+                ) + GlassThemePreferences.booleanDefaults,
+                ints = mapOf(
+                    // 思考粒子默认使用白色，作为每个主题独立的颜色配置。
+                    "thinking_particle_color" to 0xFFFFFFFF.toInt(),
                 ),
                 floats = mapOf(
                     "background_image_opacity" to 0.3f,
@@ -146,7 +147,7 @@ data class ThemePreferenceValues(
                     "bubble_content_padding_right" to 12f,
                     "bubble_ai_content_padding_left" to 12f,
                     "bubble_ai_content_padding_right" to 12f,
-                ),
+                ) + GlassThemePreferences.floatDefaults,
             )
     }
 }
@@ -161,6 +162,7 @@ data class ThemePreferenceSnapshot(
     val useCustomColors: Boolean get() = values.requiredBoolean("use_custom_colors")
     val customPrimaryColor: Int? get() = values.int("custom_primary_color")
     val customSecondaryColor: Int? get() = values.int("custom_secondary_color")
+    val thinkingParticleColor: Int get() = values.int("thinking_particle_color") ?: 0xFFFFFFFF.toInt()
     val onColorMode: String get() = values.requiredString("on_color_mode")
     val useBackgroundImage: Boolean get() = values.requiredBoolean("use_background_image")
     val backgroundImageUri: String? get() = values.string("background_image_uri")
@@ -168,40 +170,23 @@ data class ThemePreferenceSnapshot(
     val backgroundImageOpacity: Float get() = values.requiredFloat("background_image_opacity")
     val videoBackgroundMuted: Boolean get() = values.requiredBoolean("video_background_muted")
     val videoBackgroundLoop: Boolean get() = values.requiredBoolean("video_background_loop")
-    val toolbarTransparent: Boolean get() = values.requiredBoolean("toolbar_transparent")
     val navigationDrawerWaterGlass: Boolean
         get() = values.requiredBoolean("navigation_drawer_water_glass")
     val navigationDrawerButtonLiquidGlass: Boolean
         get() = values.requiredBoolean("navigation_drawer_button_liquid_glass")
-    val useCustomNavigationDrawerBackgroundColor: Boolean
-        get() = values.requiredBoolean("use_custom_navigation_drawer_background_color")
-    val customNavigationDrawerBackgroundColor: Int?
-        get() = values.int("custom_navigation_drawer_background_color")
-    val useCustomNavigationDrawerAccentColor: Boolean
-        get() = values.requiredBoolean("use_custom_navigation_drawer_accent_color")
-    val customNavigationDrawerAccentColor: Int?
-        get() = values.int("custom_navigation_drawer_accent_color")
-    val useCustomAppBarColor: Boolean get() = values.requiredBoolean("use_custom_app_bar_color")
-    val customAppBarColor: Int? get() = values.int("custom_app_bar_color")
-    val useCustomStatusBarColor: Boolean
-        get() = values.requiredBoolean("use_custom_status_bar_color")
-    val customStatusBarColor: Int? get() = values.int("custom_status_bar_color")
-    val statusBarTransparent: Boolean get() = values.requiredBoolean("status_bar_transparent")
-    val statusBarHidden: Boolean get() = values.requiredBoolean("status_bar_hidden")
     val chatHeaderTransparent: Boolean get() = values.requiredBoolean("chat_header_transparent")
     val chatHeaderOverlayMode: Boolean get() = values.requiredBoolean("chat_header_overlay_mode")
-    val chatHeaderHistoryIconColor: Int? get() = values.int("chat_header_history_icon_color")
-    val chatHeaderPipIconColor: Int? get() = values.int("chat_header_pip_icon_color")
-    val chatInputTransparent: Boolean get() = values.requiredBoolean("chat_input_transparent")
+    val chatInputOpacity: Float? get() = values.float("chat_input_opacity")?.coerceIn(0f, 1f)
+    val chatInputTransparent: Boolean
+        get() = chatInputOpacity?.let { it < 1f }
+            ?: values.requiredBoolean("chat_input_transparent")
     val chatInputFloating: Boolean get() = values.requiredBoolean("chat_input_floating")
     val chatInputLiquidGlass: Boolean get() = values.requiredBoolean("chat_input_liquid_glass")
     val chatInputWaterGlass: Boolean get() = values.requiredBoolean("chat_input_water_glass")
-    val forceAppBarContentColor: Boolean
-        get() = values.requiredBoolean("force_app_bar_content_color_enabled")
-    val appBarContentColorMode: String get() = values.requiredString("app_bar_content_color_mode")
     val useBackgroundBlur: Boolean get() = values.requiredBoolean("use_background_blur")
     val backgroundBlurRadius: Float get() = values.requiredFloat("background_blur_radius")
-    val chatStyle: String get() = values.requiredString("chat_style")
+    val userChatStyle: String get() = values.requiredString("user_chat_style")
+    val aiChatStyle: String get() = values.requiredString("ai_chat_style")
     val inputStyle: String get() = values.requiredString("input_style")
     val bubbleShowAvatar: Boolean get() = values.requiredBoolean("bubble_show_avatar")
     val bubbleWideLayoutEnabled: Boolean get() = values.requiredBoolean("bubble_wide_layout_enabled")

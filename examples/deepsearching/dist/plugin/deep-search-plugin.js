@@ -53,7 +53,7 @@ function getI18n() {
 }
 function registerToolPkg() {
     console.log("deepsearching registerToolPkg start");
-    console.log("deepsearching skip: registerToolboxUiModule");
+    console.log("deepsearching skip: registerUiModule");
     ToolPkg.registerAppLifecycleHook({
         id: "deepsearching_app_create",
         event: "application_on_create",

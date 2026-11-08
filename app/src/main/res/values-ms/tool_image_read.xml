@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">Konfigurasikan model pengecaman imej yang menyokong input imej dalam Model Fungsi terlebih dahulu.</string>
+</resources>

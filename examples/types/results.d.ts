@@ -341,6 +341,43 @@ export interface AppUsageTimeResultData {
     toString(): string;
 }
 
+/** 性能查询中的单个实体指标。 */
+export interface PerformanceMetricsEntityData {
+    id: string;
+    kind: 'APP' | 'PLUGIN' | 'TERMINAL';
+    displayName: string;
+    cpuPercent: number;
+    memoryKb: number;
+    rxBytesPerSec?: number;
+    txBytesPerSec?: number;
+    detail?: string;
+}
+
+/** 性能查询中的设备级指标。 */
+export interface PerformanceMetricsDeviceData {
+    cpuPercent?: number;
+    totalMemMb: number;
+    availMemMb: number;
+    rxBytesPerSec?: number;
+    txBytesPerSec?: number;
+}
+
+/** getPerformanceMetrics 返回的性能指标结果。 */
+export interface PerformanceMetricsResultData {
+    scope: 'software' | 'plugin';
+    requestedPluginId?: string;
+    pluginFound?: boolean;
+    sampledAtMs: number;
+    sampleAgeMs: number;
+    sampleValid: boolean;
+    cpuCoreCount: number;
+    device: PerformanceMetricsDeviceData;
+    app: PerformanceMetricsEntityData | null;
+    plugins: PerformanceMetricsEntityData[];
+    terminals: PerformanceMetricsEntityData[];
+    toString(): string;
+}
+
 /**
  * Bluetooth adapter state
  */
@@ -629,10 +666,31 @@ export interface TerminalCommandResultData {
     /** ID of the terminal session used for execution */
     sessionId: string;
 
-    /** Whether this execution ended due to timeout. On timeout, the current command is cancelled and the terminal session is kept. */
+    /** 本次执行是否超时；超时会取消当前命令，无法恢复时关闭会话。 */
     timedOut?: boolean;
 
+    /** 返回结果时原会话是否仍存活；旧版本未提供此观测值。 */
+    contextPreserved?: boolean;
+
     /** Returns a formatted string representation of the terminal execution result */
+    toString(): string;
+}
+
+/** 托管任务的输出与画面均为替换快照，查询时不能重复拼接。 */
+export interface TerminalTaskResultData {
+    runId: string;
+    sessionId: string;
+    command: string;
+    status: 'queued' | 'running' | 'cancelling' | 'completed' | 'failed' | 'cancelled' | 'timed_out';
+    output: string;
+    outputTruncated: boolean;
+    exitCode: number | null;
+    sessionExitCode: number | null;
+    terminationReason: string | null;
+    screen: string | null;
+    timedOut: boolean;
+    cancellationOutcome?: 'removed_from_queue' | 'interrupted' | 'session_closed' | 'cleanup_incomplete' | 'already_finished' | null;
+    outputMode: 'tail_snapshot';
     toString(): string;
 }
 
@@ -1907,12 +1965,24 @@ export interface ChatMessagesResult extends BaseResult {
 // ============================================================================
 
 /**
+ * 查询总分与各信号分项。通配符列表和按标题读取没有评分。
+ */
+export interface MemoryQueryScoreInfo {
+    total: number;
+    keyword: number;
+    tag: number;
+    reverseContainment: number;
+    semantic: number;
+    edge: number;
+}
+
+/**
  * Single memory item returned by memory query
  */
 export interface MemoryQueryResultMemoryInfo {
     /** Memory title */
     title: string;
-    /** Memory content or formatted document chunk summary */
+    /** 普通记忆内容；通配符列表仅返回前 10 个字符的预览。 */
     content: string;
     /** Memory source */
     source: string;
@@ -1924,6 +1994,8 @@ export interface MemoryQueryResultMemoryInfo {
     chunkInfo?: string | null;
     /** Optional matched chunk indices for document memories */
     chunkIndices?: number[] | null;
+    /** 排名结果的总分和各信号分项。 */
+    score?: MemoryQueryScoreInfo | null;
 }
 
 /**

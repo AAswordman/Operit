@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">Manajemen memori</string>
+    <string name="memory_management_subtitle">Kelola ruang memori dan karakter</string>
+    <string name="memory_overview_global">Penggunaan global</string>
+    <string name="memory_overview_current_global">Ruang memori saat ini</string>
+    <string name="memory_overview_change">Ganti</string>
+    <string name="memory_overview_spaces">Ruang memori</string>
+    <string name="memory_overview_roles">Penggunaan karakter</string>
+    <string name="memory_overview_active_count">Ruang global · digunakan %1$d karakter</string>
+    <string name="memory_overview_bound_count">%1$d karakter terikat</string>
+    <string name="memory_overview_fixed">Terikat · %1$s</string>
+    <string name="memory_overview_missing_space">Ruang terikat tidak ada; pilih ruang lain</string>
+    <string name="memory_overview_follow">Ikuti global · %1$s</string>
+    <string name="memory_overview_choose_global">Ganti ruang memori global</string>
+    <string name="memory_overview_create">Buat ruang memori</string>
+    <string name="memory_overview_rename">Ubah nama ruang</string>
+    <string name="memory_overview_name">Nama ruang</string>
+    <string name="memory_overview_delete_title">Hapus ruang memori</string>
+    <string name="memory_overview_delete_warning">Hapus “%1$s” beserta memori dan profil penggunanya? Karakter yang terikat akan mengikuti ruang global. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="memory_overview_binding_title">Ruang memori untuk %1$s</string>
+    <string name="memory_overview_space_actions">Opsi ruang memori</string>
+    <string name="memory_action_select">Pilih node</string>
+    <string name="memory_action_delete_selected">Hapus node terpilih</string>
+    <string name="memory_action_link">Hubungkan node</string>
+    <string name="memory_action_add">Tambah memori</string>
+    <string name="memory_action_create">Buat memori</string>
+    <string name="memory_action_import">Impor dokumen</string>
+</resources>

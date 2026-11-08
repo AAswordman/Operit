@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">Atur ukuran hiasan dan jarak teks terlebih dahulu. Pilih preset tepi jika bentuknya berubah. Penggeser jarak mengubah kedua sisi.</string>
+    <string name="chat_bubble_decoration_size">Ukuran hiasan</string>
+    <string name="chat_bubble_text_space">Jarak samping teks</string>
+    <string name="chat_bubble_text_space_value">Kiri %1$d · Kanan %2$d dp</string>
+    <string name="chat_bubble_reset_size">Reset ukuran dan jarak</string>
+    <string name="chat_bubble_border_presets">Hiasan tepi yang dipertahankan</string>
+    <string name="chat_bubble_border_small">Sedikit</string>
+    <string name="chat_bubble_border_normal">Seimbang</string>
+    <string name="chat_bubble_border_large">Banyak</string>
+    <string name="chat_bubble_advanced">Penyesuaian terperinci</string>
+    <string name="chat_bubble_advanced_hint">Bagian tengah melebar mengikuti teks, sementara hiasan tepi dipertahankan. Pemangkasan membuang ruang kosong di luar gambar.</string>
+    <string name="chat_bubble_horizontal_region">Area isi horizontal</string>
+    <string name="chat_bubble_vertical_region">Area isi vertikal</string>
+</resources>

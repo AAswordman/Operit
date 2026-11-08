@@ -1,5 +1,15 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
+import com.ai.assistance.operit.api.chat.error.RequestFailure
+import com.ai.assistance.operit.api.chat.error.RequestFailureTrace
+import com.ai.assistance.operit.api.chat.transport.readResponseLine
+import com.ai.assistance.operit.api.chat.error.RequestFailureCode
+import com.ai.assistance.operit.api.chat.error.RequestFailureException
+import com.ai.assistance.operit.api.chat.error.ResponseJson
+import com.ai.assistance.operit.api.chat.error.ProviderResponseErrors
+import com.ai.assistance.operit.api.chat.error.FirstTokenTimeoutException
+import com.ai.assistance.operit.api.chat.keypool.*
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
@@ -7,18 +17,20 @@ import android.util.Base64
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.api.chat.llmprovider.EndpointCompleter
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.ChatUtils
-import com.ai.assistance.operit.util.HttpLogSanitizer
-import com.ai.assistance.operit.util.LocaleUtils
-import com.ai.assistance.operit.util.StreamingJsonXmlConverter
-import com.ai.assistance.operit.util.TokenCacheManager
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.api.chat.transport.EndpointCompleter
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.ThinkingMarkup
+import com.ai.assistance.operit.core.chat.context.ChatUtils
+import com.ai.assistance.operit.util.logging.HttpLogSanitizer
+import com.ai.assistance.operit.util.logging.RequestBodyLogFormatter
+import com.ai.assistance.operit.util.android.LocaleUtils
+import com.ai.assistance.operit.core.chat.protocol.StreamingJsonXmlConverter
+import com.ai.assistance.operit.core.chat.context.TokenCacheManager
 import com.ai.assistance.operit.util.exceptions.UserCancellationException
 import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.SharedStream
@@ -36,6 +48,9 @@ import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -44,7 +59,24 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
+import com.ai.assistance.operit.core.chat.media.MediaLinkParser
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.LlmRequestTraceContext
+import com.ai.assistance.operit.api.chat.error.HttpStatusCodeException
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyAttemptReport
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyErrorClass
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyRequestElement
+import com.ai.assistance.operit.api.chat.keypool.FirstTokenWatchdog
+import com.ai.assistance.operit.api.chat.keypool.currentApiKeySession
+import com.ai.assistance.operit.api.chat.keypool.handleKeyAwareRetry
+import com.ai.assistance.operit.api.chat.keypool.parseRetryAfterMs
+import com.ai.assistance.operit.api.chat.keypool.reportKeyAwareFailure
+import com.ai.assistance.operit.api.chat.model.ModelListFetcher
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
+import com.ai.assistance.operit.core.chat.media.ImageLink
+import com.ai.assistance.operit.core.chat.media.MediaLink
 
 /**
  * OpenAI API格式的实现，支持标准OpenAI接口和兼容此格式的其他提供商
@@ -114,12 +146,19 @@ open class OpenAIProvider(
     @Volatile
     private var isManuallyCancelled = false
 
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
     /**
      * 带 HTTP 状态码的 API 异常，供统一重试日志和最终错误展示使用。
      */
     class HttpStatusException(
         message: String,
         override val statusCode: Int,
+        override val retryAfterMs: Long? = null,
         cause: Throwable? = null
     ) : IOException(message, cause), HttpStatusCodeException
 
@@ -198,7 +237,7 @@ open class OpenAIProvider(
         val exceptionMessage = context.getString(R.string.openai_error_response_failed, detail)
 
         AppLogger.e("AIService", "【发送消息】响应中包含错误对象: $detail")
-        throw IOException(exceptionMessage)
+        throw ProviderResponseErrors.exception("openai", error, exceptionMessage)
     }
 
     // 重置token计数
@@ -318,6 +357,10 @@ open class OpenAIProvider(
         }
     }
 
+    protected fun logRequestBody(tag: String, body: JSONObject, prefix: String) {
+        logLargeString(tag, RequestBodyLogFormatter.format(body), prefix)
+    }
+
     protected fun logFinalOutput(tag: String, content: CharSequence, prefix: String = "Final output: ") {
         val finalOutput = content.toString()
         if (finalOutput.isBlank()) {
@@ -326,49 +369,6 @@ open class OpenAIProvider(
         }
         logLargeString(tag, finalOutput, prefix)
     }
-
-     protected fun sanitizeImageDataForLogging(json: JSONObject): JSONObject {
-         fun sanitizeObject(obj: JSONObject) {
-             fun sanitizeArray(arr: JSONArray) {
-                 for (i in 0 until arr.length()) {
-                     val value = arr.get(i)
-                     when (value) {
-                         is JSONObject -> sanitizeObject(value)
-                         is JSONArray -> sanitizeArray(value)
-                         is String -> {
-                             if (value.startsWith("data:") && value.contains(";base64,")) {
-                                 arr.put(i, "[image base64 omitted, length=${value.length}]")
-                             }
-                         }
-                     }
-                 }
-             }
-
-             val keys = obj.keys()
-             while (keys.hasNext()) {
-                 val key = keys.next()
-                 val value = obj.get(key)
-                 when (value) {
-                     is JSONObject -> sanitizeObject(value)
-                     is JSONArray -> sanitizeArray(value)
-                     is String -> {
-                         if (value.startsWith("data:") && value.contains(";base64,")) {
-                             obj.put(key, "[image base64 omitted, length=${value.length}]")
-                         } else if (
-                             key == "data" &&
-                                 value.length > 256 &&
-                                 value.all { it.isLetterOrDigit() || it == '+' || it == '/' || it == '=' || it == '\n' || it == '\r' }
-                         ) {
-                             obj.put(key, "[base64 omitted, length=${value.length}]")
-                         }
-                     }
-                 }
-             }
-         }
-
-         sanitizeObject(json)
-         return json
-     }
 
     private fun getOutputImagesDir(): File {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
@@ -567,7 +567,7 @@ open class OpenAIProvider(
     }
 
     /**
-     * 解析服务器返回的内容，不再需要处理<think>标签
+     * 解析服务器返回的内容，思考字段由适配层包裹为带 token 的 think 块
      */
     private fun parseResponse(content: String): String {
         return content
@@ -579,13 +579,13 @@ open class OpenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>> = emptyList(),
         enableThinking: Boolean = false,
+        thinkingOptionId: String? = null,
         stream: Boolean = true,
         availableTools: List<ToolPrompt>? = null,
         preserveThinkInHistory: Boolean = false
     ): RequestBody {
-        val jsonString =
-            createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        val requestJson = JSONObject(jsonString)
+        val requestJson =
+            createRequestBodyObject(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
         ThinkingConfigurationApplier.apply(
             context = context,
             requestJson = requestJson,
@@ -594,7 +594,7 @@ open class OpenAIProvider(
             apiEndpoint = apiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
         return createJsonRequestBody(requestJson.toString())
     }
@@ -613,7 +613,19 @@ open class OpenAIProvider(
         stream: Boolean = true,
         availableTools: List<ToolPrompt>? = null,
         preserveThinkInHistory: Boolean = false
-    ): String {
+    ): String = createRequestBodyObject(
+        context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory
+    ).toString()
+
+    // 直接传递可修改的请求对象，避免内置 Provider 先序列化再解析完整历史。
+    protected fun createRequestBodyObject(
+        context: Context,
+        chatHistory: List<PromptTurn>,
+        modelParameters: List<ModelParameter<*>> = emptyList(),
+        stream: Boolean = true,
+        availableTools: List<ToolPrompt>? = null,
+        preserveThinkInHistory: Boolean = false
+    ): JSONObject {
         val jsonObject = JSONObject()
         jsonObject.put("model", modelName)
         jsonObject.put("stream", stream) // 根据stream参数设置
@@ -631,19 +643,19 @@ open class OpenAIProvider(
                         param.apiName
                     }
                 when (param.valueType) {
-                    com.ai.assistance.operit.data.model.ParameterValueType.INT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.INT ->
                         jsonObject.put(mappedApiName, param.currentValue as Int)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.FLOAT ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.FLOAT ->
                         jsonObject.put(mappedApiName, param.currentValue as Float)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.STRING ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.STRING ->
                         jsonObject.put(mappedApiName, param.currentValue as String)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.BOOLEAN ->
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.BOOLEAN ->
                         jsonObject.put(mappedApiName, param.currentValue as Boolean)
 
-                    com.ai.assistance.operit.data.model.ParameterValueType.OBJECT -> {
+                    com.ai.assistance.operit.data.config.model.ParameterValueType.OBJECT -> {
                         val raw = param.currentValue.toString().trim()
                         val parsed: Any? = try {
                             when {
@@ -703,14 +715,9 @@ open class OpenAIProvider(
         customizeFinalRequestObject(finalRequestObject, messagesArray, toolsJson)
 
         // 使用分块日志函数记录请求体（省略过长的tools字段）
-        val logJson = JSONObject(finalRequestObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString("AIService", sanitizedLogJson.toString(4), "Request body: ")
-        return finalRequestObject.toString()
+        logRequestBody("AIService", finalRequestObject, "Request body: ")
+
+        return finalRequestObject
     }
 
     protected open fun comparableRoleForTurn(turn: PromptTurn): String {
@@ -791,6 +798,14 @@ open class OpenAIProvider(
             "audio/ogg" -> "ogg"
             "audio/webm" -> "webm"
             else -> mimeType.substringAfter("/", "wav")
+        }
+    }
+
+    /** 音频内容类型由服务商协议决定，兼容接口不一定接受 OpenAI 的 input_audio。 */
+    protected open fun buildAudioContentPart(link: MediaLink): JSONObject {
+        return JSONObject().apply {
+            put("type", "input_audio")
+            put("input_audio", buildInputAudioPayload(link))
         }
     }
 
@@ -948,10 +963,7 @@ open class OpenAIProvider(
 
         if (allowUserRichContent && supportsAudio) {
             audioLinks.forEach { link ->
-                contentArray.put(JSONObject().apply {
-                    put("type", "input_audio")
-                    put("input_audio", buildInputAudioPayload(link))
-                })
+                contentArray.put(buildAudioContentPart(link))
             }
         }
 
@@ -982,12 +994,7 @@ open class OpenAIProvider(
 
         if ((allowUserRichContent || allowResponsesToolImages) && supportsVision) {
             imageLinks.forEach { link ->
-                contentArray.put(JSONObject().apply {
-                    put("type", "image_url")
-                    put("image_url", JSONObject().apply {
-                        put("url", "data:${link.mimeType};base64,${link.base64Data}")
-                    })
-                })
+                contentArray.put(buildImageContentPart(link))
             }
         }
 
@@ -997,10 +1004,36 @@ open class OpenAIProvider(
                 put("text", textWithoutLinks)
             })
         }
-
         return contentArray
     }
 
+    /**
+     * 构建单张图片的内容块（OpenAI兼容格式：image_url + base64 data URL）。
+     * 子类可覆写以改用其他传输方式（例如 DeepSeek Files API 的 file_id 引用）。
+     * @param link 图片链接
+     * @return 图片内容块 JSONObject
+     */
+    protected open fun buildImageContentPart(link: ImageLink): JSONObject {
+        return JSONObject().apply {
+            put("type", "image_url")
+            put("image_url", JSONObject().apply {
+                put("url", "data:${link.mimeType};base64,${link.base64Data}")
+            })
+        }
+    }
+
+    /**
+     * 在构建请求体之前预处理消息中的媒体内容（基类为空实现）。
+     * 子类可覆写以执行媒体上传等前置操作（例如 DeepSeek 将图片上传至 Files API）。
+     * 此方法在 sendMessage 的重试循环之前调用一次，位于挂起上下文中。
+     * @param context Android上下文
+     * @param chatHistory 聊天历史
+     */
+    protected open suspend fun prepareMediaForRequest(
+        context: Context,
+        chatHistory: List<PromptTurn>
+    ) {
+    }
     /**
      * 构建消息列表并计算token（核心逻辑）
      * @param message 用户消息
@@ -1352,7 +1385,7 @@ open class OpenAIProvider(
     /**
      * 从结构化参数构建JSON Schema
      */
-    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.data.model.ToolParameterSchema>): JSONObject {
+    private fun buildSchemaFromStructured(params: List<com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema>): JSONObject {
         val schema = JSONObject().apply {
             put("type", "object")
         }
@@ -1408,8 +1441,8 @@ open class OpenAIProvider(
                 try {
                     JSONObject(argumentsJson)
                 } catch (e: Exception) {
-                    AppLogger.w("OpenAIProvider", "Failed to parse tool arguments: $argumentsJson", e)
-                    JSONObject()
+                    AppLogger.w("OpenAIProvider", "Invalid tool arguments: name=$name argsLen=${argumentsJson.length}")
+                    null
                 }
             } else {
                 JSONObject()
@@ -1420,15 +1453,19 @@ open class OpenAIProvider(
             xml.append("\n<$toolTagName name=\"$name\">")
 
             // 添加所有参数
-            val keys = params.keys()
-            while (keys.hasNext()) {
+            val keys = params?.keys()
+            while (keys != null && keys.hasNext()) {
                 val key = keys.next()
-                val value = params.get(key)
+                val value = requireNotNull(params).get(key)
                 // 必须对值进行XML转义，否则会破坏XML结构
                 val escapedValue = escapeXml(value.toString())
                 xml.append("\n<param name=\"$key\">$escapedValue</param>")
             }
 
+            if (params == null) {
+                xml.append("\n<param name=\"_raw_arguments\">")
+                    .append(escapeXml(argumentsJson)).append("</param>")
+            }
             xml.append("\n</$toolTagName>\n")
         }
 
@@ -1525,12 +1562,25 @@ open class OpenAIProvider(
         private val receivedContent: StringBuilder,
         private val emit: suspend (String) -> Unit,
         private val eventChannel: com.ai.assistance.operit.util.stream.MutableSharedStream<TextStreamEvent>,
-        private val onTokensUpdated: suspend (Long, Long, Long) -> Unit
+        private val onTokensUpdated: suspend (Long, Long, Long) -> Unit,
+        private val onFirstOutput: () -> Unit = {}
     ) {
         private val savepointLengths = mutableMapOf<String, Int>()
+        var failureTrace: RequestFailureTrace? = null
+
+        private fun markFirstOutputIfNeeded() {
+            // 思考标签会先写入缓冲，不能把缓冲为空当成还没收到输出。
+            onFirstOutput()
+        }
+        private val savepointRawOffsets = mutableMapOf<String, Int>()
+
+        private var discardedTotal = 0
+
 
         suspend fun emitContent(content: String) {
             if (content.isNotNullOrEmpty()) {
+                markFirstOutputIfNeeded()
+                failureTrace?.let { it.outputCharsParsed = (it.outputCharsParsed ?: 0L) + content.length }
                 emit(content)
                 receivedContent.append(content)
                 tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(content))
@@ -1542,9 +1592,11 @@ open class OpenAIProvider(
             }
         }
 
-        suspend fun emitThinkContent(thinkContent: String, tag: String = "think") {
+        suspend fun emitThinkContent(thinkContent: String) {
             if (thinkContent.isNotNullOrEmpty()) {
-                val wrapped = "<$tag>$thinkContent</$tag>"
+                markFirstOutputIfNeeded()
+                failureTrace?.let { it.outputCharsParsed = (it.outputCharsParsed ?: 0L) + thinkContent.length }
+                val wrapped = ThinkingMarkup.wrap(thinkContent)
                 emit(wrapped)
                 receivedContent.append(wrapped)
                 tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(thinkContent))
@@ -1572,18 +1624,37 @@ open class OpenAIProvider(
         }
 
         suspend fun emitSavepoint(id: String) {
+            val rawOffset = receivedContent.length + discardedTotal
             savepointLengths[id] = receivedContent.length
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.SAVEPOINT, id))
+            savepointRawOffsets[id] = rawOffset
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.SAVEPOINT,
+                    id = id,
+                    contentLength = rawOffset
+                )
+            )
         }
 
         fun getSavepointLength(id: String): Int? = savepointLengths[id]
 
         suspend fun emitRollback(id: String): Boolean {
-            val savepointLength = savepointLengths[id] ?: return false
-            if (receivedContent.length > savepointLength) {
-                receivedContent.setLength(savepointLength)
+            val retainedLength = savepointLengths[id] ?: return false
+            val rawOffset = savepointRawOffsets[id] ?: return false
+            val discardedLength = (receivedContent.length - retainedLength).coerceAtLeast(0)
+            if (discardedLength > 0) {
+                receivedContent.setLength(retainedLength)
+                discardedTotal += discardedLength
             }
-            eventChannel.emit(TextStreamEvent(TextStreamEventType.ROLLBACK, id))
+            savepointRawOffsets[id] = rawOffset + discardedLength
+            eventChannel.emit(
+                TextStreamEvent(
+                    eventType = TextStreamEventType.ROLLBACK,
+                    id = id,
+                    contentLength = rawOffset,
+                    discardedLength = discardedLength
+                )
+            )
             return true
         }
 
@@ -1645,38 +1716,33 @@ open class OpenAIProvider(
         enableRetry: Boolean,
         onNonFatalError: suspend (String) -> Unit,
         onRetryAccepted: suspend () -> Unit,
-        buildRetryMessage: (String, Int) -> String
+        buildRetryMessage: (String, Int, Long) -> String,
+        attemptNumber: Int,
+        watchdog: FirstTokenWatchdog? = null,
+        stream: Boolean = true,
     ): Int {
         if (exception is UserCancellationException || exception is CancellationException) {
             throw exception
         }
         checkCancellation(context, exception)
-
-        val errorText = resolveRetryErrorText(context, exception)
-
-        if (!enableRetry) {
-            throw IOException(errorText, exception)
-        }
-
-        val newRetryCount = retryCount + 1
-        if (newRetryCount > maxRetries) {
-            AppLogger.e("AIService", "【发送消息】$errorText 且达到最大重试次数($maxRetries)", exception)
-            throw IOException(
-                context.getString(R.string.openai_error_connection_timeout, maxRetries, errorText),
-                exception
-            )
-        }
-
-        // A terminal failure must retain its streamed text; only a replacement request discards it.
-        onRetryAccepted()
-        val retryDelayMs = LlmRetryPolicy.nextDelayMs(newRetryCount)
-        AppLogger.w("AIService", "【发送消息】$errorText，将在 ${retryDelayMs}ms 后进行第 $newRetryCount 次重试...", exception)
-        if (!shouldSuppressKeyPoolRateLimitNotice(apiKeyProvider, exception, "AIService")) {
-            onNonFatalError(buildRetryMessage(errorText, newRetryCount))
-        }
-        delay(retryDelayMs)
-
-        return newRetryCount
+        watchdog?.cancel()
+        reportKeyAwareFailure(
+            exception = exception,
+            model = modelName,
+            stream = stream,
+            attemptNumber = attemptNumber,
+        )
+        handleKeyAwareRetry(
+            context = context,
+            exception = exception,
+            enableRetry = enableRetry,
+            onNonFatalError = onNonFatalError,
+            onRetryAccepted = onRetryAccepted,
+            buildRetryMessage = buildRetryMessage,
+            logTag = "AIService",
+            attemptNumber = attemptNumber,
+        )
+        return retryCount + 1
     }
 
     protected fun wrapPackageToolCallsWithProxy(toolCalls: JSONArray): JSONArray {
@@ -1791,12 +1857,7 @@ open class OpenAIProvider(
         matches.forEach { match ->
             // 提取<content>标签内的内容，如果有的话
             val fullContent = match.groupValues[2].trim()
-            val contentMatch = ChatMarkupRegex.contentTag.find(fullContent)
-            val resultContent = if (contentMatch != null) {
-                contentMatch.groupValues[1].trim()
-            } else {
-                fullContent
-            }
+            val resultContent = ToolResultMarkup.contentFromBody(fullContent).trim()
 
             // 保留 name 属性，让结果能配回同名的 tool_call 而不是只按位置对齐
             val openingTag = match.value.substringBefore('>')
@@ -1859,6 +1920,7 @@ open class OpenAIProvider(
         var chunkCount: Int = 0,
         var lastLogTime: Long = System.currentTimeMillis(),
         var isInReasoningMode: Boolean = false,
+        var thinkingToken: String? = null,
         var hasEmittedThinkStart: Boolean = false,
         var hasEmittedRegularContent: Boolean = false,
         var reasoningObserved: Boolean = false,
@@ -1866,7 +1928,8 @@ open class OpenAIProvider(
         var streamCompletionConfirmed: Boolean = false,
         val accumulatedToolCalls: MutableMap<Int, JSONObject> = mutableMapOf(),
         val toolCallState: ToolCallState = ToolCallState(),
-        var lastProcessedToolIndex: Int? = null,
+        var emittingToolIndex: Int? = null,
+        val completedToolCalls: MutableSet<Int> = mutableSetOf(),
         val imageBuffers: MutableMap<Int, ImageBufferState> = mutableMapOf(),
         val emittedResponsesReasoningTextKeys: MutableSet<String> = mutableSetOf(),
         val responsesWebSearchItems: MutableMap<Int, JSONObject> = linkedMapOf(),
@@ -1877,85 +1940,58 @@ open class OpenAIProvider(
         val responsesLiveEmittedOutputIndexes: MutableSet<Int> = mutableSetOf()
     )
 
-    /**
-     * 处理工具切换：关闭前一个工具
-     */
-    private suspend fun handleToolSwitch(
-        prevIndex: Int,
-        state: StreamingState,
-        emitter: StreamEmitter
-    ) {
-        if (state.toolCallState.closed[prevIndex] != true && 
-            state.toolCallState.nameEmitted[prevIndex] == true) {
-            closeToolCallIfOpen(prevIndex, state, emitter)
-            AppLogger.d("AIService", "检测到工具切换，关闭前一个工具 index=$prevIndex")
-        }
-    }
-
-    /**
-     * 处理单个工具调用的增量数据
-     */
+    /** 先按索引累计，只有当前调用可以写入 XML，避免交错参数落到已关闭标签之外。 */
     private suspend fun processToolCallChunk(
         index: Int,
         deltaCall: JSONObject,
         state: StreamingState,
         emitter: StreamEmitter
     ) {
-        // 获取或创建该index的累积对象
-        val accumulated = state.accumulatedToolCalls.getOrPut(index) {
-            createToolCallAccumulator(index)
-        }
-
-        // 更新id和type
-        deltaCall.optString("id", "").let {
-            if (it.isNotEmpty()) accumulated.put("id", it)
-        }
-        deltaCall.optString("type", "").let {
-            if (it.isNotEmpty()) accumulated.put("type", it)
-        }
-
-        // 处理function字段
+        val accumulated = state.accumulatedToolCalls.getOrPut(index) { createToolCallAccumulator(index) }
+        deltaCall.optString("id", "").takeIf { it.isNotEmpty() }?.let { accumulated.put("id", it) }
+        deltaCall.optString("type", "").takeIf { it.isNotEmpty() }?.let { accumulated.put("type", it) }
         val deltaFunction = deltaCall.optJSONObject("function") ?: return
-        val accFunction = accumulated.getJSONObject("function")
-        
-        // 处理工具名
-        val name = deltaFunction.optString("name", "")
-        if (name.isNotEmpty()) {
-            accFunction.put("name", name)
-            // 流式输出开始标签
-            if (state.toolCallState.nameEmitted[index] != true) {
-                val toolTagName = state.toolCallState.getTagName(index)
-                val toolStartTag = if (state.toolCallState.emitted[index] != true) {
-                    state.toolCallState.emitted[index] = true
-                    "\n<$toolTagName name=\"$name\">"
-                } else {
-                    ""
-                }
-                if (toolStartTag.isNotEmpty()) {
-                    emitter.emitTag(toolStartTag)
-                }
-                state.toolCallState.nameEmitted[index] = true
-
-                // 如果参数先到，工具名后到，在此处一次性补喂已累计参数
-                val canonicalArgs = accFunction.optString("arguments", "")
-                if (canonicalArgs.isNotEmpty()) {
-                    feedParserFromCanonical(index, canonicalArgs, state, emitter)
-                }
-            }
+        val function = accumulated.getJSONObject("function")
+        deltaFunction.optString("name", "").takeIf { it.isNotEmpty() }?.let { function.put("name", it) }
+        val arguments = deltaFunction.optString("arguments", "")
+        if (arguments.isNotEmpty()) {
+            val previous = function.optString("arguments", "")
+            val merged = mergeCanonicalArgs(previous, arguments)
+            check(state.toolCallState.closed[index] != true || merged == previous) { "Arguments arrived after tool call completion: index=$index" }
+            function.put("arguments", merged)
         }
-        
-        // 处理参数
-        val args = deltaFunction.optString("arguments", "")
-        if (args.isNotEmpty()) {
-            val currentArgs = accFunction.optString("arguments", "")
-            val mergedArgs = mergeCanonicalArgs(currentArgs, args)
-            val changed = mergedArgs != currentArgs
-            if (changed) {
-                accFunction.put("arguments", mergedArgs)
-                if (state.toolCallState.nameEmitted[index] == true) {
-                    feedParserFromCanonical(index, mergedArgs, state, emitter)
-                }
+        emitAvailableToolCalls(state, emitter)
+    }
+
+    /** 后续调用可以先到；前一个调用的完整对象到齐或收到结束事件后才切换输出。 */
+    private suspend fun emitAvailableToolCalls(
+        state: StreamingState,
+        emitter: StreamEmitter,
+        finishAll: Boolean = false
+    ) {
+        while (true) {
+            val index = state.emittingToolIndex
+                ?: state.accumulatedToolCalls.keys.sorted().firstOrNull { state.toolCallState.closed[it] != true }
+                ?: return
+            state.emittingToolIndex = index
+            val function = state.accumulatedToolCalls.getValue(index).getJSONObject("function")
+            val name = function.optString("name", "")
+            if (name.isEmpty()) return
+            if (state.toolCallState.nameEmitted[index] != true) {
+                val tag = state.toolCallState.getTagName(index)
+                emitter.emitTag("\n<$tag name=\"${escapeXml(name)}\">")
+                state.toolCallState.emitted[index] = true
+                state.toolCallState.nameEmitted[index] = true
             }
+            val arguments = function.optString("arguments", "")
+            feedParserFromCanonical(index, arguments, state, emitter)
+            val completeObject = arguments.trimEnd().endsWith("}") && runCatching { JSONObject(arguments) }.isSuccess
+            if (!finishAll && index !in state.completedToolCalls && !completeObject) return
+            closeToolCallIfOpen(index, state, emitter)
+            if (state.toolCallState.closed[index] != true) return
+            // 只记录结构与长度，便于区分上游空参数和转换丢参，不输出命令内容。
+            AppLogger.d("AIService", "Tool arguments delivered: index=$index name=$name argsLen=${arguments.length} calls=${state.accumulatedToolCalls.size}")
+            state.emittingToolIndex = null
         }
     }
 
@@ -2011,22 +2047,12 @@ open class OpenAIProvider(
         emitter: StreamEmitter
     ) {
         // 如果正在思考模式，收到工具调用时应先关闭思考标签
-        if (state.isInReasoningMode) {
-            state.isInReasoningMode = false
-            emitter.emitTag("</think>")
-            state.hasEmittedThinkStart = false
-        }
+        closeReasoningModeIfOpen(state, emitter)
 
         for (i in 0 until toolCallsDeltas.length()) {
             val deltaCall = toolCallsDeltas.getJSONObject(i)
             val index = deltaCall.optInt("index", -1)
             if (index < 0) continue
-
-            // 检测工具切换
-            if (state.lastProcessedToolIndex != null && state.lastProcessedToolIndex != index) {
-                handleToolSwitch(state.lastProcessedToolIndex!!, state, emitter)
-            }
-            state.lastProcessedToolIndex = index
 
             // Chat Completions 的 tool_calls.arguments 为增量片段。
             processToolCallChunk(index, deltaCall, state, emitter)
@@ -2077,8 +2103,9 @@ open class OpenAIProvider(
     }
 
     private fun hasOpenToolCalls(state: StreamingState): Boolean {
-        return state.toolCallState.nameEmitted.any { (index, emitted) ->
-            emitted && state.toolCallState.closed[index] != true
+        return state.accumulatedToolCalls.any { (index, call) ->
+            call.optJSONObject("function")?.optString("name", "").orEmpty().isNotBlank() &&
+                state.toolCallState.closed[index] != true
         }
     }
 
@@ -2086,12 +2113,7 @@ open class OpenAIProvider(
         state: StreamingState,
         emitter: StreamEmitter
     ) {
-        if (!hasOpenToolCalls(state)) return
-
-        val sortedIndices = state.accumulatedToolCalls.keys.sorted()
-        for (index in sortedIndices) {
-            closeToolCallIfOpen(index, state, emitter)
-        }
+        emitAvailableToolCalls(state, emitter, finishAll = true)
     }
 
     protected open fun formatResponsesWebSearchDisplayXml(
@@ -2754,7 +2776,6 @@ open class OpenAIProvider(
                 // 对于 output_item 事件，仅更新工具元信息（name/id）。
                 // 参数统一由 response.function_call_arguments.delta 通道累积，避免快照+增量混拼导致 JSON 破坏。
                 processToolCallChunk(outputIndex, deltaCall, state, emitter)
-                state.lastProcessedToolIndex = outputIndex
                 // 某些供应商会先发送 output_item.done，随后才发送 function_call_arguments.delta。
                 // 因此不在 output_item.done 阶段关闭工具调用，改由
                 // response.function_call_arguments.done / response.completed 统一收口。
@@ -2786,20 +2807,32 @@ open class OpenAIProvider(
                 }
 
                 processToolCallChunk(outputIndex, deltaCall, state, emitter)
-                state.lastProcessedToolIndex = outputIndex
             }
 
             "response.function_call_arguments.done" -> {
                 if (!enableToolCall) return
                 val outputIndex = jsonResponse.optInt("output_index", -1)
                 if (outputIndex >= 0) {
-                    closeToolCallIfOpen(outputIndex, state, emitter)
-                    state.lastProcessedToolIndex = outputIndex
+                    val snapshot = jsonResponse.optString("arguments", "")
+                    if (snapshot.isNotEmpty()) {
+                        val accumulated = state.accumulatedToolCalls.getOrPut(outputIndex) { createToolCallAccumulator(outputIndex) }
+                        val function = accumulated.getJSONObject("function")
+                        val existing = function.optString("arguments", "")
+                        check(snapshot.startsWith(existing)) { "Tool argument final snapshot conflicts with streamed prefix: index=$outputIndex" }
+                        function.put("arguments", snapshot)
+                    }
+                    state.completedToolCalls.add(outputIndex)
+                    emitAvailableToolCalls(state, emitter)
                 }
             }
 
             "response.completed", "response.incomplete" -> {
                 val responseObj = jsonResponse.optJSONObject("response")
+                if (eventType == "response.incomplete" &&
+                    isResponsesOutputLimit(responseObj, jsonResponse)
+                ) {
+                    outputStoppedByLimit = true
+                }
                 val usage = responseObj?.optJSONObject("usage")
                 val reasoningTokens =
                     usage
@@ -2834,9 +2867,30 @@ open class OpenAIProvider(
                         ?: "Responses stream returned $eventType"
 
                 AppLogger.w("AIService", "Responses流式事件错误: $errorMessage")
-                throw IOException(context.getString(R.string.openai_error_response_failed, errorMessage))
+                throw ProviderResponseErrors.exception(
+                    "openai_responses", error ?: responseObj?.optJSONObject("error"), errorMessage,
+                )
             }
         }
+    }
+
+    private fun isResponsesOutputLimit(
+        responseObj: JSONObject?,
+        eventObj: JSONObject?
+    ): Boolean {
+        val response = responseObj ?: eventObj
+        val status = response?.optString("status", "")?.trim().orEmpty()
+        if (!status.equals("incomplete", ignoreCase = true) &&
+            eventObj?.optString("type", "") != "response.incomplete"
+        ) {
+            return false
+        }
+        val reason = response
+            ?.optJSONObject("incomplete_details")
+            ?.optString("reason", "")
+            ?.trim()
+            .orEmpty()
+        return reason.equals("max_output_tokens", ignoreCase = true)
     }
 
     /**
@@ -2856,6 +2910,9 @@ open class OpenAIProvider(
             return
         }
         state.streamCompletionConfirmed = true
+        if (normalizedFinishReason.equals("length", ignoreCase = true)) {
+            outputStoppedByLimit = true
+        }
 
         if (hasOpenToolCalls(state)) {
             closeAllOpenToolCalls(state, emitter)
@@ -2869,7 +2926,8 @@ open class OpenAIProvider(
 
             // 清空累积器
             state.accumulatedToolCalls.clear()
-            state.lastProcessedToolIndex = null
+            state.emittingToolIndex = null
+            state.completedToolCalls.clear()
         }
     }
 
@@ -2890,7 +2948,9 @@ open class OpenAIProvider(
             if (!state.isInReasoningMode) {
                 state.isInReasoningMode = true
                 if (!state.hasEmittedThinkStart) {
-                    emitter.emitTag("<think>")
+                    val token = ThinkingMarkup.newToken()
+                    state.thinkingToken = token
+                    emitter.emitTag(ThinkingMarkup.openTag(token))
                     state.hasEmittedThinkStart = true
                 }
             }
@@ -2899,11 +2959,7 @@ open class OpenAIProvider(
         // 处理常规内容
         if (hasRegular) {
             // 如果之前在思考模式，现在切换到了常规内容，需要关闭思考标签
-            if (state.isInReasoningMode) {
-                state.isInReasoningMode = false
-                emitter.emitTag("</think>")
-                state.hasEmittedThinkStart = false
-            }
+            closeReasoningModeIfOpen(state, emitter)
 
             // 硬切策略：正文一旦开始输出，后续到达的推理内容全部忽略
             state.hasEmittedRegularContent = true
@@ -2925,8 +2981,10 @@ open class OpenAIProvider(
         if (!state.isInReasoningMode) {
             return
         }
+        val token = requireNotNull(state.thinkingToken)
+        emitter.emitTag(ThinkingMarkup.closeTag(token))
+        state.thinkingToken = null
         state.isInReasoningMode = false
-        emitter.emitTag("</think>")
         state.hasEmittedThinkStart = false
     }
 
@@ -3079,6 +3137,15 @@ open class OpenAIProvider(
         }
         // 处理message格式（非流式响应）
         else {
+            val finishReason =
+                if (choice.has("finish_reason") && !choice.isNull("finish_reason")) {
+                    choice.optString("finish_reason", "").trim()
+                } else {
+                    ""
+                }
+            if (finishReason.equals("length", ignoreCase = true)) {
+                outputStoppedByLimit = true
+            }
             val message = choice.optJSONObject("message")
             if (message != null) {
                 val reasoningContent = message.optString("reasoning_content", "").ifBlank {
@@ -3113,26 +3180,32 @@ open class OpenAIProvider(
         attemptNumber: Int = 1
     ) {
         val state = StreamingState()
+        val trace = emitter.failureTrace
+        trace?.let {
+            it.streamEventsParsed = 0L
+            it.outputCharsParsed = 0L
+            it.protocolCompleted = false
+        }
 
         try {
             // 使用 while 循环读取流式响应
             while (true) {
-                val line = reader.readLine() ?: break
+                val line = reader.readResponseLine(state.streamCompletionConfirmed) {
+                    isManuallyCancelled || trace?.clientCancelled == true
+                } ?: break
 
                 if (!line.startsWith("data:")) {
                     continue
                 }
                 
                 val data = line.substring(5).trim()
+                if (data.isEmpty()) continue
                 if (data == "[DONE]") {
                     flushImageBuffers(state, emitter)
                     closeAllOpenToolCalls(state, emitter)
-                    if (state.isInReasoningMode) {
-                        state.isInReasoningMode = false
-                        emitter.emitTag("</think>")
-                        state.hasEmittedThinkStart = false
-                    }
+                    closeReasoningModeIfOpen(state, emitter)
                     state.streamCompletionConfirmed = true
+                    trace?.protocolCompleted = true
                     AppLogger.d("AIService", "【发送消息】收到流结束标记[DONE]")
                     break
                 }
@@ -3145,11 +3218,17 @@ open class OpenAIProvider(
                 }
 
                 try {
-                    val jsonResponse = JSONObject(data)
+                    val jsonResponse = ResponseJson.parseObject(data, streaming = true)
                     throwIfOpenAiErrorPayload(context, jsonResponse)
+                    trace?.streamEventsParsed = state.chunkCount.toLong()
 
                     if (useResponsesApi) {
                         processResponsesStreamingEvent(context, jsonResponse, state, emitter, onTokensUpdated, onUsageReported, attemptNumber)
+                        if (state.streamCompletionConfirmed) {
+                            trace?.protocolCompleted = true
+                            // Responses 最终事件已含用量，协议不要求后续出现 [DONE] 或断开连接。
+                            break
+                        }
                         continue
                     }
 
@@ -3160,6 +3239,11 @@ open class OpenAIProvider(
                         }
                     }
                     processResponseChunk(jsonResponse, state, emitter, onTokensUpdated, onUsageReported, attemptNumber)
+                    if (state.streamCompletionConfirmed) {
+                        trace?.protocolCompleted = true
+                        // Chat Completions 的 usage 可以晚于 finish_reason；收到后即可结束补读。
+                        if (jsonResponse.optJSONObject("usage") != null) break
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: IOException) {
@@ -3167,11 +3251,12 @@ open class OpenAIProvider(
                 } catch (e: Exception) {
                     AppLogger.w("AIService", "【发送消息】JSON解析错误: ${e.message}")
                     logLargeString("AIService", data, "[Send message] Original data when JSON parsing failed: ")
+                    throw ResponseJson.schemaFailure(e)
                 }
             }
             
             if (!state.streamCompletionConfirmed) {
-                throw IOException(context.getString(R.string.openai_error_network_interrupted))
+                throw RequestFailureException(RequestFailureCode.STREAM_COMPLETION_MISSING, context.getString(R.string.openai_error_network_interrupted))
             }
 
             closeAllOpenToolCalls(state, emitter)
@@ -3209,6 +3294,7 @@ open class OpenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -3222,6 +3308,7 @@ open class OpenAIProvider(
         val eventChannel = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val responseStream = stream {
             isManuallyCancelled = false
+            outputStoppedByLimit = false
             // 重置输出token计数（输入token由TokenCacheManager管理）
             tokenCacheManager.addOutputTokens(-tokenCacheManager.outputTokenCount)
             onTokensUpdated(
@@ -3234,14 +3321,19 @@ open class OpenAIProvider(
                 "AIService",
                 "【发送消息】开始处理sendMessage请求，历史记录数量: ${chatHistory.size}，最后一条长度: ${chatHistory.lastOrNull()?.content?.length ?: 0}"
             )
+            // 先准备媒体，再为本次请求建立密钥池会话，保留图片上传与重试调度。
+            prepareMediaForRequest(context, chatHistory)
 
-            val maxRetries = LlmRetryPolicy.MAX_RETRY_ATTEMPTS
+            val session = apiKeyProvider.createRequestSession(modelName, stream)
+            val maxRetries = (session.maxAttempts() - 1).coerceAtLeast(0)
             var retryCount = 0
             var lastException: Exception? = null
+            val watchdog = FirstTokenWatchdog(CoroutineScope(currentCoroutineContext() + SupervisorJob()))
+            withContext(ApiKeyRequestElement(session)) {
 
             // 用于保存当前 attempt 已接收到的内容；一旦需要重试，会整体回滚到请求起点
             val receivedContent = StringBuilder()
-            val emitter = StreamEmitter(receivedContent, ::emit, eventChannel, onTokensUpdated)
+            val emitter = StreamEmitter(receivedContent, ::emit, eventChannel, onTokensUpdated) { watchdog.markFirstToken() }
             val requestSavepointId = "attempt_${UUID.randomUUID().toString().replace("-", "")}"
             emitter.emitSavepoint(requestSavepointId)
 
@@ -3249,7 +3341,9 @@ open class OpenAIProvider(
                 // 在循环开始时检查是否已被取消
                 checkCancellation(context)
 
+                var attemptCall: okhttp3.Call? = null
                 try {
+                    outputStoppedByLimit = false
                     if (retryCount > 0) {
                         AppLogger.d(
                             "AIService",
@@ -3263,12 +3357,13 @@ open class OpenAIProvider(
                     "AIService",
                     "【发送消息】准备构建请求体，模型参数数量: ${modelParameters.size}，已启用参数: ${modelParameters.count { it.isEnabled }}"
                 )
-                // 直接传递原始历史记录给createRequestBody，让具体的Provider决定如何处理（例如Deepseek需要保留<think>标签）
+                // 直接传递原始历史记录给createRequestBody，让具体的Provider决定如何处理（例如 DeepSeek 需要独立的 reasoning_content）
                 val requestBody = createRequestBody(
                     context,
                     currentHistory,
                     modelParameters,
                     enableThinking,
+                    thinkingOptionId,
                     stream,
                     availableTools,
                     preserveThinkInHistory
@@ -3289,8 +3384,12 @@ open class OpenAIProvider(
                 AppLogger.d("AIService", "[req=$requestTraceId] 【发送消息】准备连接到AI服务...")
 
                 // 创建Call对象并保存到activeCall中，以便可以取消
-                val call = client.newCall(request)
+                val tracedRequest = RequestFailureTrace.attach(request, requestTraceId)
+                emitter.failureTrace = tracedRequest.tag(RequestFailureTrace::class.java)
+                val call = client.newCall(tracedRequest)
+                attemptCall = call
                 activeCall = call
+                watchdog.start(call)
 
                 AppLogger.d("AIService", "[req=$requestTraceId] 【发送消息】正在建立连接到服务器...")
 
@@ -3316,20 +3415,18 @@ open class OpenAIProvider(
                                 "【发送消息】API请求失败，状态码: ${response.code}，错误信息: $errorBody"
                             )
                             // 状态码错误保留状态码信息，随后进入统一重试循环。
-                            if (response.code in 400..499) {
-                                throw HttpStatusException(
-                                    context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
-                                    statusCode = response.code
-                                )
-                            }
-                            throw IOException(context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody))
+                            throw HttpStatusException(
+                                context.getString(R.string.openai_error_api_request_failed_with_status, response.code, errorBody),
+                                statusCode = response.code,
+                                retryAfterMs = parseRetryAfterMs(response),
+                            )
                         }
 
                         AppLogger.d(
                             "AIService",
                             "[req=$requestTraceId] 【发送消息】连接成功(状态码: ${response.code})，准备处理响应..."
                         )
-                        val responseBody = response.body ?: throw IOException(context.getString(R.string.openai_error_response_empty))
+                        val responseBody = response.body ?: throw RequestFailureException(RequestFailureCode.RESPONSE_BODY_MISSING, context.getString(R.string.openai_error_response_empty))
 
                         // 根据stream参数处理响应
                         if (stream) {
@@ -3351,11 +3448,14 @@ open class OpenAIProvider(
                             var hasEmittedRegularContent = false
 
                             try {
-                                val jsonResponse = JSONObject(responseText)
+                                val jsonResponse = ResponseJson.parseObject(responseText, streaming = false)
                                 throwIfOpenAiErrorPayload(context, jsonResponse)
                                 val handledImages = tryHandleOpenAiImageResponse(jsonResponse, emitter, null)
 
                                 if (useResponsesApi) {
+                                    if (isResponsesOutputLimit(jsonResponse, null)) {
+                                        outputStoppedByLimit = true
+                                    }
                                     val parsed = parseResponsesNonStreamingResponse(jsonResponse)
                                     val responseDisplayState = StreamingState()
 
@@ -3444,7 +3544,7 @@ open class OpenAIProvider(
                                 throw e
                             } catch (e: Exception) {
                                 AppLogger.e("AIService", "【发送消息】解析非流式响应失败", e)
-                                throw IOException(context.getString(R.string.openai_error_parse_response_failed, e.message ?: ""), e)
+                                throw ResponseJson.schemaFailure(e)
                             }
                         }
                     } finally {
@@ -3461,25 +3561,46 @@ open class OpenAIProvider(
 
                 // 成功处理后返回
                 checkCancellation(context)
+                watchdog.cancel()
+                currentApiKeySession()?.reportOutcome(
+                    ApiKeyAttemptReport(
+                        success = true,
+                        errorClass = ApiKeyErrorClass.NONE,
+                        ttftMs = watchdog.ttftMs(),
+                        tokensPerSec = watchdog.tokensPerSec(tokenCacheManager.outputTokenCount),
+                        inputTokens = tokenCacheManager.totalInputTokenCount,
+                        outputTokens = tokenCacheManager.outputTokenCount,
+                        cachedInputTokens = tokenCacheManager.cachedInputTokenCount,
+                        model = modelName,
+                        stream = stream,
+                        attemptIndex = attemptNumber,
+                    )
+                )
                 onUsageFinalized?.invoke(attemptNumber)
                 AppLogger.d(
                     "AIService",
                     "【发送消息】请求成功完成，输入token: ${tokenCacheManager.totalInputTokenCount}(缓存:${tokenCacheManager.cachedInputTokenCount})，输出token: ${tokenCacheManager.outputTokenCount}"
                 )
-                return@stream
+                return@withContext
             } catch (e: Exception) {
                 lastException = e
                 retryCount = handleRetryableError(
                     context = context,
-                    exception = e,
+                    exception = RequestFailure.capture(
+                        if (watchdog.timedOut) FirstTokenTimeoutException(e.message ?: "", e) else e,
+                        attemptCall,
+                    ),
                     retryCount = retryCount,
                     maxRetries = maxRetries,
                     enableRetry = enableRetry,
                     onNonFatalError = onNonFatalError,
                     onRetryAccepted = { emitter.emitRollback(requestSavepointId) },
-                    buildRetryMessage = { errorText, retryNumber ->
+                    buildRetryMessage = { errorText, retryNumber, _ ->
                         "【${context.getString(R.string.openai_retry_with_count, errorText, retryNumber)}】"
                     },
+                    attemptNumber = retryCount + 1,
+                    watchdog = watchdog,
+                    stream = stream,
                 )
             }
             }
@@ -3503,6 +3624,7 @@ open class OpenAIProvider(
                 ),
                 lastException
             )
+            }
         }
         return responseStream.withEventChannel(eventChannel)
     }

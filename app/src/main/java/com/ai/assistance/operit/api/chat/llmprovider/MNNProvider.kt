@@ -4,18 +4,20 @@ import android.content.Context
 import android.os.Environment
 import android.util.Base64
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.util.FFmpegUtil
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.MediaPoolManager
+import com.ai.assistance.operit.util.media.FFmpegUtil
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.media.MediaPoolManager
 import com.ai.assistance.mnn.MNNLlmSession
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelOption
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelOption
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.data.storage.LocalModelRuntimeRegistry
+import com.ai.assistance.operit.data.storage.LocalModelUsageHandle
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +29,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.AIService
+import com.ai.assistance.operit.api.chat.model.ModelListFetcher
+import com.ai.assistance.operit.api.chat.protocol.StructuredToolCallBridge
+import com.ai.assistance.operit.core.chat.media.MediaLinkParser
 
 /**
  * MNN本地推理引擎的AI服务实现
@@ -61,6 +67,7 @@ class MNNProvider(
 
     // MNN LLM Session 实例
     private var llmSession: MNNLlmSession? = null
+    private var modelUsageHandle: LocalModelUsageHandle? = null
 
     private var cachedModelMaxAllTokens: Int? = null
     private var cachedModelIsVisual: Boolean? = null
@@ -90,6 +97,19 @@ class MNNProvider(
         _inputTokenCount = 0L
         _outputTokenCount = 0L
         _cachedInputTokenCount = 0L
+    }
+
+    @Volatile
+    private var outputStoppedByLimit = false
+
+    override val outputTruncatedByLimit: Boolean
+        get() = outputStoppedByLimit
+
+    private fun requestedMaxTokens(parameters: List<ModelParameter<*>>): Int {
+        val parameter = parameters.find {
+            it.isEnabled && (it.id == "max_tokens" || it.apiName == "max_tokens")
+        } ?: return -1
+        return (parameter.currentValue as? Number)?.toInt() ?: -1
     }
 
     override fun cancelStreaming() {
@@ -189,20 +209,33 @@ class MNNProvider(
                 AppLogger.d(TAG, "缓存目录存在: ${cacheDir.exists()}, 可写: ${cacheDir.canWrite()}")
                 
                 // 创建 LLM Session（配置必须在创建时传入！）
-                llmSession = MNNLlmSession.create(
-                    modelDir = modelDir,
-                    backendType = backendType,
-                    threadNum = threadCount,
-                    precision = "low",      // 使用低精度以提升性能
-                    memory = memoryMode,    // 根据后端选择内存模式
-                    tmpPath = cacheDir.absolutePath  // 指定缓存目录
-                )
-                
-                if (llmSession == null) {
+                val usageHandle = LocalModelRuntimeRegistry.acquire(modelDirFile)
+                    ?: return@withContext Result.failure(
+                        Exception(context.getString(R.string.mnn_cannot_create_session))
+                    )
+                val createdSession =
+                    try {
+                        MNNLlmSession.create(
+                            modelDir = modelDir,
+                            backendType = backendType,
+                            threadNum = threadCount,
+                            precision = "low",
+                            memory = memoryMode,
+                            tmpPath = cacheDir.absolutePath,
+                        )
+                    } catch (error: Exception) {
+                        usageHandle.close()
+                        throw error
+                    }
+
+                if (createdSession == null) {
+                    usageHandle.close()
                     return@withContext Result.failure(
                         Exception(context.getString(R.string.mnn_cannot_create_session))
                     )
                 }
+                llmSession = createdSession
+                modelUsageHandle = usageHandle
 
                 AppLogger.i(TAG, "MNN LLM模型初始化成功，后端: $backendType")
             }
@@ -513,12 +546,12 @@ class MNNProvider(
                 }
             val rawContent =
                 if (!preserveThinkInHistory && turn.kind == PromptTurnKind.ASSISTANT) {
-                    com.ai.assistance.operit.util.ChatUtils.removeThinkingContent(turn.content)
+                    com.ai.assistance.operit.core.chat.context.ChatUtils.removeThinkingContent(turn.content)
                 } else {
                     turn.content
                 }
             val content =
-                com.ai.assistance.operit.util.ChatUtils.stripOpenAiResponsesProtocolMarkup(rawContent)
+                com.ai.assistance.operit.core.chat.context.ChatUtils.stripOpenAiResponsesProtocolMarkup(rawContent)
             role to content
         }
     }
@@ -601,6 +634,7 @@ class MNNProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -612,6 +646,7 @@ class MNNProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> = stream {
         isCancelled = false
+        outputStoppedByLimit = false
 
         val requestTempFiles = mutableListOf<File>()
 
@@ -652,11 +687,8 @@ class MNNProvider(
                     flattenTypedHistory(multimodalTurns, preserveThinkInHistory)
                 }
 
-            val requestedMaxNewTokens = modelParameters
-                .find { it.name == "max_tokens" }
-                ?.let { (it.currentValue as? Number)?.toInt() }
-                ?: -1
-            val effectiveMaxNewTokens = (if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 512).coerceAtMost(8192)
+            val requestedMaxNewTokens = requestedMaxTokens(modelParameters)
+            val effectiveMaxNewTokens = if (requestedMaxNewTokens > 0) requestedMaxNewTokens else 16384
             val maxPromptTokens = (maxAllTokens - effectiveMaxNewTokens).coerceAtLeast(128)
 
             val safeHistory = trimHistoryToTokenBudget(session, conversationHistory, maxPromptTokens)
@@ -684,7 +716,7 @@ class MNNProvider(
                 com.ai.assistance.operit.data.stats.ProviderUsageNormalizer.SOURCE_MNN,
                 onUsageReported,
             )
-            val success = session.generateStream(safeHistory, requestedMaxNewTokens) { token ->
+            val success = session.generateStream(safeHistory, effectiveMaxNewTokens) { token ->
                     if (isCancelled) {
                         false
                     } else {
@@ -708,6 +740,9 @@ class MNNProvider(
                     }
                 }
 
+            if (!isCancelled && success && outputTokenCount >= effectiveMaxNewTokens) {
+                outputStoppedByLimit = true
+            }
             LocalGenerationEnd.end(
                 cancelled = isCancelled,
                 success = success,
@@ -1011,10 +1046,13 @@ class MNNProvider(
     override fun release() {
         try {
             llmSession?.release()
-            llmSession = null
             AppLogger.d(TAG, "MNN LLM资源已释放")
         } catch (e: Exception) {
             AppLogger.e(TAG, "释放资源时出错", e)
+        } finally {
+            llmSession = null
+            modelUsageHandle?.close()
+            modelUsageHandle = null
         }
     }
 }

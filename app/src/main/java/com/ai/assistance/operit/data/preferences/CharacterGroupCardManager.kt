@@ -15,9 +15,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CharacterGroupCard
-import com.ai.assistance.operit.data.model.GroupMemberConfig
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.character.CharacterGroupCard
+import com.ai.assistance.operit.data.character.GroupMemberConfig
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.google.gson.Gson
@@ -165,7 +165,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
             hasMemberRosterChanged(existingGroup, normalizedGroup) &&
                 isManagedDefaultGroupAvatar(previousAvatarUri, group.id)
         if (shouldRegenerateDefaultAvatar) {
-            regenerateDefaultAvatarForGroup(normalizedGroup, previousAvatarUri)
+            regenerateDefaultAvatarForGroup(normalizedGroup)
         }
     }
 
@@ -356,10 +356,7 @@ class CharacterGroupCardManager private constructor(private val context: Context
         return fileName.startsWith("group_avatar_${groupId}_") && fileName.endsWith(".png")
     }
 
-    private suspend fun regenerateDefaultAvatarForGroup(
-        group: CharacterGroupCard,
-        previousAvatarUri: String?
-    ) {
+    private suspend fun regenerateDefaultAvatarForGroup(group: CharacterGroupCard) {
         runCatching {
             val newAvatarUri = buildDefaultGroupAvatar(group)
             ActivePromptManager.getInstance(context).saveAiAvatarForPrompt(
@@ -367,12 +364,6 @@ class CharacterGroupCardManager private constructor(private val context: Context
                 newAvatarUri,
             )
 
-            if (!previousAvatarUri.isNullOrBlank() && previousAvatarUri != newAvatarUri) {
-                val oldUri = Uri.parse(previousAvatarUri)
-                if (oldUri.scheme?.lowercase() == "file") {
-                    runCatching { File(oldUri.path ?: "").delete() }
-                }
-            }
         }
     }
 

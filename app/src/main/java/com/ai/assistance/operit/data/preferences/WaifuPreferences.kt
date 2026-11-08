@@ -2,6 +2,8 @@ package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
+import com.ai.assistance.operit.data.character.ActivePrompt
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -151,6 +153,54 @@ class WaifuPreferences private constructor(private val context: Context) {
         context.waifuDataStore.edit { preferences ->
             preferences[WAIFU_SELFIE_PROMPT] = prompt
         }
+    }
+
+    /** 当前角色读取正在使用的运行值，其他角色读取各自存储，新卡保持现有继承行为。 */
+    suspend fun loadCharacterCardSettings(characterCardId: String): WaifuSettings {
+        val prompts = ActivePromptManager.getInstance(context)
+        return prompts.runThemeTransition {
+            val target = prompts.getActivePrompt()
+            val prefix = if (characterCardId.isBlank() || target == ActivePrompt.CharacterCard(characterCardId)) ""
+                else getCharacterCardWaifuPrefix(characterCardId)
+            readSettings(context.waifuDataStore.data.first(), prefix)
+        }
+    }
+
+    /** 指定角色与运行值同次提交；编辑非当前角色时不修改当前聊天的设置。 */
+    suspend fun saveCharacterCardSettings(characterCardId: String, settings: WaifuSettings) {
+        require(characterCardId.isNotBlank())
+        val prompts = ActivePromptManager.getInstance(context)
+        prompts.runThemeTransition {
+            val active = prompts.getActivePrompt() == ActivePrompt.CharacterCard(characterCardId)
+            context.waifuDataStore.edit { preferences ->
+                writeSettings(preferences, getCharacterCardWaifuPrefix(characterCardId), settings)
+                if (active) writeSettings(preferences, "", settings)
+            }
+        }
+    }
+
+    private fun readSettings(preferences: Preferences, prefix: String) = WaifuSettings(
+        enabled = preferences[booleanPreferencesKey(prefix + ENABLE_WAIFU_MODE.name)] ?: DEFAULT_ENABLE_WAIFU_MODE,
+        charDelay = preferences[intPreferencesKey(prefix + WAIFU_CHAR_DELAY.name)] ?: DEFAULT_WAIFU_CHAR_DELAY,
+        removePunctuation = preferences[booleanPreferencesKey(prefix + WAIFU_REMOVE_PUNCTUATION.name)] ?: DEFAULT_WAIFU_REMOVE_PUNCTUATION,
+        enableEmoticons = preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_EMOTICONS.name)] ?: DEFAULT_WAIFU_ENABLE_EMOTICONS,
+        enableSelfie = preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_SELFIE.name)] ?: DEFAULT_WAIFU_ENABLE_SELFIE,
+        enableMergeSend = preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_MERGE_SEND.name)] ?: DEFAULT_WAIFU_ENABLE_MERGE_SEND,
+        mergeSendDelayMs = preferences[intPreferencesKey(prefix + WAIFU_MERGE_SEND_DELAY_MS.name)] ?: DEFAULT_WAIFU_MERGE_SEND_DELAY_MS,
+        customPrompt = preferences[stringPreferencesKey(prefix + WAIFU_CUSTOM_PROMPT.name)] ?: DEFAULT_WAIFU_CUSTOM_PROMPT,
+        selfiePrompt = preferences[stringPreferencesKey(prefix + WAIFU_SELFIE_PROMPT.name)] ?: DEFAULT_WAIFU_SELFIE_PROMPT,
+    )
+
+    private fun writeSettings(preferences: MutablePreferences, prefix: String, settings: WaifuSettings) {
+        preferences[booleanPreferencesKey(prefix + ENABLE_WAIFU_MODE.name)] = settings.enabled
+        preferences[intPreferencesKey(prefix + WAIFU_CHAR_DELAY.name)] = settings.charDelay
+        preferences[booleanPreferencesKey(prefix + WAIFU_REMOVE_PUNCTUATION.name)] = settings.removePunctuation
+        preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_EMOTICONS.name)] = settings.enableEmoticons
+        preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_SELFIE.name)] = settings.enableSelfie
+        preferences[booleanPreferencesKey(prefix + WAIFU_ENABLE_MERGE_SEND.name)] = settings.enableMergeSend
+        preferences[intPreferencesKey(prefix + WAIFU_MERGE_SEND_DELAY_MS.name)] = settings.mergeSendDelayMs
+        preferences[stringPreferencesKey(prefix + WAIFU_CUSTOM_PROMPT.name)] = settings.customPrompt
+        preferences[stringPreferencesKey(prefix + WAIFU_SELFIE_PROMPT.name)] = settings.selfiePrompt
     }
 
     // ========== Waifu模式角色卡/群组绑定功能 ==========

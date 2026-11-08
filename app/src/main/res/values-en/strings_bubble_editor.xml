@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">Start with decoration size and text spacing. Use a border preset if the edges look distorted. The spacing slider changes both sides.</string>
+    <string name="chat_bubble_decoration_size">Decoration size</string>
+    <string name="chat_bubble_text_space">Text side spacing</string>
+    <string name="chat_bubble_text_space_value">L %1$d · R %2$d dp</string>
+    <string name="chat_bubble_reset_size">Reset size and spacing</string>
+    <string name="chat_bubble_border_presets">Border decoration to preserve</string>
+    <string name="chat_bubble_border_small">Less</string>
+    <string name="chat_bubble_border_normal">Balanced</string>
+    <string name="chat_bubble_border_large">More</string>
+    <string name="chat_bubble_advanced">Fine adjustments</string>
+    <string name="chat_bubble_advanced_hint">The middle area expands with the text while the edges keep their decoration. Crop removes empty space around the image.</string>
+    <string name="chat_bubble_horizontal_region">Horizontal fill area</string>
+    <string name="chat_bubble_vertical_region">Vertical fill area</string>
+</resources>

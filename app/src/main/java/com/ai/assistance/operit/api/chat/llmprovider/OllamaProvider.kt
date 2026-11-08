@@ -1,7 +1,8 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import okhttp3.OkHttpClient
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
 
 /**
  * Ollama provider.

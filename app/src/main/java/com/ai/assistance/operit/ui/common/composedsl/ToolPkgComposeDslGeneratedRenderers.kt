@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,9 +27,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
 
 /**
  * AUTO-GENERATED from Compose Material3/Foundation component bindings.
@@ -371,7 +370,12 @@ internal fun renderLazyColumnNode(
     val spacing = props.dp("spacing")
     val reverseLayout = props.bool("reverseLayout", false)
     val autoScrollToEnd = props.bool("autoScrollToEnd", false)
-    val listState = rememberLazyListState()
+    val listState =
+        rememberComposeDslLazyListState(
+            nodePath = nodePath,
+            nodeType = node.type,
+            nodeKey = props["key"]
+        )
     val contentNodes = node.slotChildren("content", fallbackToChildren = true)
     val autoScrollSignature =
         if (!autoScrollToEnd) {
@@ -419,8 +423,15 @@ internal fun renderLazyRowNode(
 ) {
     val props = node.props
     val spacing = props.dp("spacing")
+    val listState =
+        rememberComposeDslLazyListState(
+            nodePath = nodePath,
+            nodeType = node.type,
+            nodeKey = props["key"]
+        )
     val contentNodes = node.slotChildren("content", fallbackToChildren = true)
     androidx.compose.foundation.lazy.LazyRow(
+        state = listState,
         modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
         horizontalArrangement = props.horizontalArrangement("horizontalArrangement", spacing),
         verticalAlignment = props.verticalAlignment("verticalAlignment")
@@ -3286,7 +3297,7 @@ internal fun renderBasicTextNode(
 ) {
     val props = node.props
     val onTextLayoutActionId = ToolPkgComposeDslParser.extractActionId(props["onTextLayout"])
-    androidx.compose.foundation.text.BasicText(
+    com.ai.assistance.operit.ui.theme.script.text.ThemeBasicText(
         text = props.string("text"),
         modifier = applyScopedCommonModifier(Modifier, props, modifierResolver),
         style = props.resolvedTextStyle("style", includeColor = true),

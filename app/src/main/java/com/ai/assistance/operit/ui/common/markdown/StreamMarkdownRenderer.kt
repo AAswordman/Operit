@@ -1,6 +1,10 @@
 package com.ai.assistance.operit.ui.common.markdown
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.model.MessageSection
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownCardStateStore
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownRenderFragment
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.widget.ImageView
 import androidx.collection.LruCache
 import androidx.compose.animation.core.animateFloatAsState
@@ -16,7 +20,7 @@ import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -390,7 +394,17 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        renderContent: Boolean = true,
 ) {
+    if (renderContent) {
+        val fragment = LocalMarkdownRenderFragment.current
+        if (fragment != null) {
+            CompositionLocalProvider(LocalMarkdownRenderFragment provides null) {
+                fragment.Render(modifier, textColor, fontSize, onLinkClick, xmlRenderer, nodeGrouper, enableDialogs, fillMaxWidth)
+            }
+            return
+        }
+    }
     // 使用传入的state或创建新的state
     val rendererState = state ?: remember { StreamMarkdownRendererState() }
     
@@ -523,7 +537,7 @@ fun StreamMarkdownRenderer(
                         tempBlockType != MarkdownProcessorType.XML_BLOCK
 
                 val rollbackContinuesCurrentBlock =
-                    rollbackPrefix != null &&
+                    blockGroup.continuesPrevious &&
                         pendingHtmlBreakCount == 0 &&
                         nodes.lastOrNull()?.type == tempBlockType
                 val mergeWithPrevious =
@@ -548,9 +562,19 @@ fun StreamMarkdownRenderer(
                         }
                     }
                 val nodeIndex = nodes.lastIndex
+                // XML 旁路订阅者需要完整的恢复前缀，节点正文则只追加新尾部。
+                val xmlPrefix =
+                    if (tempBlockType == MarkdownProcessorType.XML_BLOCK && rollbackContinuesCurrentBlock) {
+                        newNode.content.toString()
+                    } else {
+                        ""
+                    }
                 val blockStream: Stream<String> =
                     if (tempBlockType == MarkdownProcessorType.XML_BLOCK) {
-                        blockGroup.stream.share(scope = scope, replay = Int.MAX_VALUE)
+                        stream {
+                            if (xmlPrefix.isNotEmpty()) emit(xmlPrefix)
+                            blockGroup.stream.collect { emit(it) }
+                        }.share(scope = scope, replay = Int.MAX_VALUE)
                     } else {
                         blockGroup.stream
                     }
@@ -626,8 +650,19 @@ fun StreamMarkdownRenderer(
                         }
                     }
                 } else {
-                    blockStream.collect { contentChunk ->
-                        batchUpdater.appendBlockChunk(newNode, contentChunk)
+                    var skipRestoredXmlPrefix = xmlPrefix.isNotEmpty()
+                    try {
+                        blockStream.collect { contentChunk ->
+                            if (skipRestoredXmlPrefix) {
+                                skipRestoredXmlPrefix = false
+                            } else {
+                                batchUpdater.appendBlockChunk(newNode, contentChunk)
+                            }
+                        }
+                    } finally {
+                        if (tempBlockType == MarkdownProcessorType.XML_BLOCK) {
+                            batchUpdater.completeXmlBlock(nodeIndex)
+                        }
                     }
                 }
 
@@ -662,9 +697,12 @@ fun StreamMarkdownRenderer(
         }
     }
 
+    // 聊天列表的解析入口不创建布局，离屏时仍持续收集消息。
+    if (!renderContent) return
+
     // 渲染Markdown内容 - 使用统一的Canvas渲染器
     Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
-        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STREAMING) {
+        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STREAMING, LocalMarkdownCardStateStore provides null) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
                     nodes = renderNodes,
@@ -870,6 +908,50 @@ internal suspend fun parseMarkdownToNodes(content: String): List<MarkdownNode> {
     return parsedNodes
 }
 
+/** 聊天静态消息按 section 边界渲染，沿用现有分组、展开、详情和复制组件。 */
+@Composable
+fun StreamMarkdownRenderer(
+    sections: List<MessageSection>,
+    modifier: Modifier = Modifier,
+    textColor: Color = LocalContentColor.current,
+    fontSize: TextUnit = Unspecified,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    onLinkClick: ((String) -> Unit)? = null,
+    xmlRenderer: XmlContentRenderer = remember { DefaultXmlRenderer() },
+    nodeGrouper: MarkdownNodeGrouper = NoopMarkdownNodeGrouper,
+    state: StreamMarkdownRendererState? = null,
+    enableDialogs: Boolean = true,
+    fillMaxWidth: Boolean = true,
+    renderContent: Boolean = true,
+) {
+    // 必须先复用时间线的块节点，避免滚动时重新拼接整条消息及构造缓存键。
+    if (renderContent) {
+        val fragment = LocalMarkdownRenderFragment.current
+        if (fragment != null) {
+            CompositionLocalProvider(LocalMarkdownRenderFragment provides null) {
+                fragment.Render(modifier, textColor, fontSize, onLinkClick, xmlRenderer, nodeGrouper, enableDialogs, fillMaxWidth)
+            }
+            return
+        }
+    }
+    val content = remember(sections) { MessageSectionCodec.render(sections) }
+    StreamMarkdownRenderer(
+        content = content,
+        modifier = modifier,
+        textColor = textColor,
+        fontSize = fontSize,
+        backgroundColor = backgroundColor,
+        onLinkClick = onLinkClick,
+        xmlRenderer = xmlRenderer,
+        nodeGrouper = nodeGrouper,
+        state = state,
+        enableDialogs = enableDialogs,
+        fillMaxWidth = fillMaxWidth,
+        renderContent = renderContent,
+        messageSections = sections,
+    )
+}
+
 /** 高性能静态Markdown渲染组件 接受一个完整的字符串，一次性解析和渲染，适用于静态内容显示。 */
 @Composable
 fun StreamMarkdownRenderer(
@@ -884,16 +966,30 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        renderContent: Boolean = true,
+        messageSections: List<MessageSection>? = null,
 ) {
-    // 使用流式版本相同的渲染器ID生成逻辑
-    val rendererId = remember(content) { "static-renderer-${content.hashCode()}" }
+    if (renderContent) {
+        val fragment = LocalMarkdownRenderFragment.current
+        if (fragment != null) {
+            CompositionLocalProvider(LocalMarkdownRenderFragment provides null) {
+                fragment.Render(modifier, textColor, fontSize, onLinkClick, xmlRenderer, nodeGrouper, enableDialogs, fillMaxWidth)
+            }
+            return
+        }
+    }
+    val cacheKey = remember(content, messageSections) {
+        if (messageSections == null) "markdown:\u0000$content"
+        else messageSectionCacheKey(content, messageSections)
+    }
+    val rendererId = remember(cacheKey) { "static-renderer-${cacheKey.hashCode()}" }
 
     // 使用传入的state或创建新的state。静态内容完成过解析时，创建组合阶段直接
     // 带入缓存节点；LazyColumn 首帧用空节点测量会形成 0 高度 item，节点离开活跃组合后
     // 后台解析结果无法驱动当前可见项重新布局。
-    val rendererState = state ?: remember(content) {
+    val rendererState = state ?: remember(cacheKey) {
         StreamMarkdownRendererState().also { newState ->
-            val cachedNodes = MarkdownNodeCache.get(content)
+            val cachedNodes = MarkdownNodeCache.get(cacheKey)
             if (cachedNodes != null) {
                 newState.replaceStaticNodes(rendererId, cachedNodes)
             }
@@ -911,12 +1007,12 @@ fun StreamMarkdownRenderer(
     val xmlNodeStreams = rendererState.xmlNodeStreams
 
     // 当content字符串变化时，一次性完成解析
-    LaunchedEffect(content) {
+    LaunchedEffect(cacheKey) {
         // 先检查内容是否与流式渲染收集的内容一致，如果一致则跳过解析
         val collectedContentStr = rendererState.collectedContent.toString()
         val streamParsingCompleted = rendererState.streamParsingCompletedSuccessfully
         val shouldReuseExistingNodes =
-            collectedContentStr == content &&
+            messageSections == null && collectedContentStr == content &&
                 areRenderNodesSynchronized(nodes, renderNodes) &&
                 streamParsingCompleted
 
@@ -929,7 +1025,7 @@ fun StreamMarkdownRenderer(
 
         xmlNodeStreams.clear()
 
-        val cachedNodes = MarkdownNodeCache.get(content)
+        val cachedNodes = MarkdownNodeCache.get(cacheKey)
 
         if (cachedNodes != null) {
             rendererState.replaceStaticNodes(rendererId, cachedNodes)
@@ -938,12 +1034,16 @@ fun StreamMarkdownRenderer(
 
         launch(Dispatchers.IO) {
             try {
-                val parsedNodes = parseMarkdownToNodes(content)
+                val parsedNodes = if (messageSections == null) {
+                    parseMarkdownToNodes(content)
+                } else {
+                    parseMessageSectionsToNodes(messageSections)
+                }
 
                 // 将解析完成的节点添加到节点列表，并更新动画状态
                 withContext(Dispatchers.Main) {
                     // 保存到缓存，这样下次渲染同样内容时可以直接使用
-                    MarkdownNodeCache.put(content, parsedNodes)
+                    MarkdownNodeCache.put(cacheKey, parsedNodes)
 
                     rendererState.replaceStaticNodes(rendererId, parsedNodes)
                 }
@@ -955,9 +1055,12 @@ fun StreamMarkdownRenderer(
         }
     }
 
+    // 聊天列表的解析入口不创建布局，离屏时仍持续收集消息。
+    if (!renderContent) return
+
     // 渲染Markdown内容 - 使用统一的Canvas渲染器
     Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
-        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC) {
+        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC, LocalMarkdownCardStateStore provides null) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
                     nodes = renderNodes,
@@ -997,7 +1100,7 @@ fun StreamMarkdownRenderer(
  * - 使用 graphicsLayer 避免触发内容重组
  */
 @Composable
-private fun AnimatedNode(
+internal fun AnimatedNode(
     nodeKey: String,
     node: MarkdownNodeStable,
     index: Int,
@@ -1041,7 +1144,7 @@ private fun AnimatedNode(
 }
 
 @Composable
-private fun UnifiedMarkdownCanvas(
+internal fun UnifiedMarkdownCanvas(
     nodes: List<MarkdownNodeStable>,
     rendererId: String,
     nodeAnimationStates: Map<String, Boolean>,
@@ -1077,6 +1180,7 @@ private fun UnifiedMarkdownCanvas(
         remember(groupingKey, rendererId, nodeGrouper) {
             nodeGrouper.group(nodes, rendererId)
         }
+    nodeGrouper.RenderScope(nodes) {
     Column(modifier = modifier) {
         groupedItems.forEach { item ->
             when (item) {
@@ -1125,8 +1229,8 @@ private fun UnifiedMarkdownCanvas(
             }
         }
     }
+    }
 }
-
 /** 批量节点更新器 - 负责将原始节点列表的更新批量应用到渲染节点列表 */
 internal class BatchNodeUpdater(
         private val nodes: SnapshotStateList<MarkdownNode>,
@@ -1153,6 +1257,12 @@ internal class BatchNodeUpdater(
     fun appendBlockChunk(node: MarkdownNode, contentChunk: String) {
         node.content + contentChunk
         requestUpdate()
+    }
+
+    fun completeXmlBlock(nodeIndex: Int) {
+        // 先保存最后一帧，再移除回放引用，避免晚订阅者读取空卡片。
+        performBatchUpdate()
+        xmlNodeStreams.remove(nodeIndex)
     }
 
     private fun performBatchUpdate() {

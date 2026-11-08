@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">Dados e backup</string>
+    <string name="data_backup_settings_desc">Backup e recuperação, gerenciamento de bate-papo, uso de token e logs de diagnóstico</string>
+    <string name="data_backup_tab_restore">Backup e restauração</string>
+    <string name="data_backup_tab_chats">Gerenciamento de bate-papo</string>
+    <string name="data_backup_tab_logs">Registro de diagnóstico</string>
+    <string name="data_backup_overview">Visão geral dos dados</string>
+    <string name="data_backup_current_profile">Configuração atual · %1$s</string>
+    <string name="data_backup_count_chats">Histórico de bate-papo</string>
+    <string name="data_backup_count_characters">cartão de personagem</string>
+    <string name="data_backup_count_memories">entrada de memória</string>
+    <string name="data_backup_count_links">associação de memória</string>
+    <string name="data_backup_token_entry_desc">Visualize estatísticas de uso, custo e modelo</string>
+    <string name="data_backup_never">Ainda não há backup</string>
+    <string name="data_backup_recent">Backup recente · %1$s</string>
+    <string name="data_backup_files">Arquivos de backup</string>
+    <string name="data_backup_snapshot_title">Instantâneo do arquivo</string>
+    <string name="data_backup_snapshot_desc">Empacotar arquivos e configurações de aplicativos e precisar reiniciar após a recuperação.</string>
+    <string name="data_backup_snapshot_export">Exportar instantâneo</string>
+    <string name="data_backup_snapshot_restore">Restaurar instantâneo</string>
+    <string name="data_backup_daily_on">O backup automático diário está ativado</string>
+    <string name="data_backup_daily_off">O backup automático diário não está ativado</string>
+    <string name="data_backup_db_summary">%1$s · Reservar cópias %2$d</string>
+    <string name="data_backup_file_count">Cópias %1$d</string>
+    <string name="data_backup_individual">Importação e exportação de item único</string>
+    <string name="data_backup_individual_desc">Chat, cartões de personagem, memória e configuração de modelo</string>
+    <string name="data_backup_export_directory">Diretório de exportação · Download/Operit</string>
+    <string name="data_backup_help">Instruções de backup</string>
+    <string name="data_backup_done">Entendi</string>
+    <string name="data_backup_snapshot_export_title">Exportar instantâneo do arquivo</string>
+    <string name="data_backup_start_export">Iniciar exportação</string>
+    <string name="data_backup_choose_file">Selecione o arquivo de backup</string>
+    <string name="data_backup_choose_file_desc">Selecione o instantâneo ZIP para restaurar</string>
+    <string name="data_backup_manage_links">Gerenciar associações</string>
+    <string name="data_backup_build_memory">Construir memória</string>
+    <string name="data_backup_chat_records">Gerenciamento de histórico de bate-papo</string>
+    <string name="data_backup_chat_records_desc">Modifique associações em lotes, organize registros ou crie memórias.</string>
+    <string name="data_backup_message_count_suffix">· Mensagens %1$d</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">As pastas a seguir não são usadas por nenhum bate-papo. Exclua apenas as pastas selecionadas.</string>
+    <string name="data_backup_locked_notice">A exclusão ignora bate-papos bloqueados</string>
+    <string name="data_backup_clear_chats">limpar registro</string>
+    <string name="data_backup_clear_chats_confirm">Todos os bate-papos desbloqueados e suas mensagens serão excluídos. Os chats bloqueados serão mantidos, continuar?</string>
+    <string name="data_backup_export_app_logs">Exportar logs de aplicativos</string>
+    <string name="data_backup_export_app_logs_desc">As informações de diagnóstico são retidas para facilitar a localização de problemas operacionais.</string>
+    <string name="data_backup_log_format">TXT · O log do aplicativo pode ser exportado</string>
+    <string name="data_backup_export_logs">Exportar registro</string>
+    <string name="data_backup_log_filters">Filtragem de exportação</string>
+    <string name="data_backup_filters_none">Registro completo · Nenhuma filtragem habilitada</string>
+    <string name="data_backup_filters_count">Filtragem de itens %1$d ativada</string>
+    <string name="data_backup_log_directory">Salvar para baixar/operar</string>
+    <string name="data_backup_clear_logs">Limpar registro</string>
+    <string name="data_backup_clear_logs_confirm">O log do aplicativo atual será apagado. Esta operação não excluirá o histórico de bate-papo ou estatísticas de token. Você quer continuar?</string>
+    <string name="data_backup_memory_window_hint">Processe de 8 a 48 mensagens por vez</string>
+    <string name="data_backup_locked_chat">bate-papo bloqueado</string>
+    <string name="data_backup_ungrouped">Não agrupado</string>
+    <string name="data_backup_memory_build_desc">Bate-papos %1$d selecionados. As memórias serão extraídas das mensagens selecionadas, possivelmente resultando no uso do modelo.</string>
+</resources>

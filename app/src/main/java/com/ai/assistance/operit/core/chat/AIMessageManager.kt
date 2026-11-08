@@ -1,43 +1,58 @@
 package com.ai.assistance.operit.core.chat
 
+import com.ai.assistance.operit.core.chat.tools.timing.ToolCallExecution
+import com.ai.assistance.operit.core.chat.voice.VoiceAnalysis
+import com.ai.assistance.operit.core.chat.voice.VoiceMessageMarkup
+import com.ai.assistance.operit.core.chat.media.currentTurnMediaHistory
+import com.ai.assistance.operit.core.chat.media.mediaAttachmentMarkup
+import com.ai.assistance.operit.core.chat.voice.VoiceMessageData
+import com.ai.assistance.operit.core.chat.voice.VoiceInputMode
+
+import com.ai.assistance.operit.core.chat.context.RequestWindowSnapshot
+
+import com.ai.assistance.operit.util.toolmarkup.ToolResultMarkup
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.SystemClock
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.api.chat.enhance.InputProcessor
-import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkParser
-import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
+import com.ai.assistance.operit.core.chat.hooks.InputProcessor
+import com.ai.assistance.operit.core.chat.media.MediaLinkParser
+import com.ai.assistance.operit.core.chat.media.MediaLinkBuilder
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingController
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingHookParams
 import com.ai.assistance.operit.core.chat.plugins.MessageProcessingPluginRegistry
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.MemoryQueryResultData
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.ConversationSummaryConfig
-import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.data.config.model.ConversationSummaryConfig
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.ApiPreferences
-import com.ai.assistance.operit.ui.features.chat.webview.workspace.process.WorkspaceAttachmentProcessor
-import com.ai.assistance.operit.ui.features.chat.webview.workspace.process.WorkspaceChangeTracker
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.MediaPoolManager
-import com.ai.assistance.operit.util.ChatUtils
-import com.ai.assistance.operit.util.ChatMarkupRegex
-import com.ai.assistance.operit.util.LocaleUtils
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceAttachmentProcessor
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.media.MediaPoolManager
+import com.ai.assistance.operit.core.chat.context.ChatUtils
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.protocolMetaDisplayText
+import com.ai.assistance.operit.util.android.LocaleUtils
+import com.ai.assistance.operit.util.logging.ChatTrace
+
 import com.ai.assistance.operit.util.stream.SharedStream
 import com.ai.assistance.operit.util.stream.share
 import com.ai.assistance.operit.util.stream.shareRevisable
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
@@ -141,13 +156,20 @@ object AIMessageManager {
     ): String {
         val totalStartTime = messageTimingNow()
         val promptInputStartTime = messageTimingNow()
-        val processedMessageText = InputProcessor.processUserInput(
+        val voiceMessage = VoiceMessageMarkup.parse(messageText)
+        val processedInput = InputProcessor.processUserInput(
             context = context,
-            input = messageText,
+            input = voiceMessage?.transcript ?: messageText,
             chatId = chatId,
             roleCardId = roleCardId,
             onHookTimeout = onHookTimeout
         )
+        // 钩子处理转写文字，重新封装后保留录音，避免钩子破坏语音条结构。
+        val processedMessageText = if (voiceMessage != null) {
+            VoiceMessageMarkup.encode(voiceMessage.copy(transcript = processedInput))
+        } else {
+            processedInput
+        }
         logMessageTiming(
             stage = "buildUserMessageContent.processUserInput",
             startTimeMs = promptInputStartTime,
@@ -215,14 +237,6 @@ object AIMessageManager {
                 if (enableDirectImageProcessing && attachment.mimeType.startsWith("image/", ignoreCase = true)) {
                     try {
                         val imageId = ImagePoolManager.addImage(attachment.filePath)
-                        val attributes = buildString {
-                            append("id=\"${attachment.filePath}\" ")
-                            append("filename=\"${attachment.fileName}\" ")
-                            append("type=\"${attachment.mimeType}\"")
-                            if (attachment.fileSize > 0) {
-                                append(" size=\"${attachment.fileSize}\"")
-                            }
-                        }
                         val attachedContent = buildString {
                             append(context.getString(R.string.ai_message_image_attached_multimodal_notice))
                             if (attachment.content.isNotBlank()) {
@@ -230,19 +244,11 @@ object AIMessageManager {
                                 append(attachment.content)
                             }
                         }
-                        "${MediaLinkBuilder.image(context, imageId)} <attachment $attributes>$attachedContent</attachment>"
+                        "${MediaLinkBuilder.image(context, imageId)} ${mediaAttachmentMarkup(attachment, attachedContent)}"
                     } catch (e: Exception) {
                         AppLogger.e(TAG, "添加图片到池失败: ${attachment.filePath}", e)
                         // 失败时回退到普通附件格式
-                        val attributes = buildString {
-                            append("id=\"${attachment.filePath}\" ")
-                            append("filename=\"${attachment.fileName}\" ")
-                            append("type=\"${attachment.mimeType}\"")
-                            if (attachment.fileSize > 0) {
-                                append(" size=\"${attachment.fileSize}\"")
-                            }
-                        }
-                        "<attachment $attributes>${attachment.content}</attachment>"
+                        mediaAttachmentMarkup(attachment)
                     }
                 } else if (
                     enableDirectFileProcessing &&
@@ -259,18 +265,10 @@ object AIMessageManager {
                         if (audioId == "error") {
                             throw IllegalStateException("addMedia returned error")
                         }
-                        MediaLinkBuilder.audio(context, audioId)
+                        MediaLinkBuilder.audio(context, audioId) + " " + mediaAttachmentMarkup(attachment)
                     } catch (e: Exception) {
                         AppLogger.e(TAG, "添加音频到池失败: ${attachment.filePath}", e)
-                        val attributes = buildString {
-                            append("id=\"${attachment.filePath}\" ")
-                            append("filename=\"${attachment.fileName}\" ")
-                            append("type=\"${attachment.mimeType}\"")
-                            if (attachment.fileSize > 0) {
-                                append(" size=\"${attachment.fileSize}\"")
-                            }
-                        }
-                        "<attachment $attributes>${attachment.content}</attachment>"
+                        mediaAttachmentMarkup(attachment)
                     }
                 } else if (enableDirectVideoProcessing && attachment.mimeType.startsWith("video/", ignoreCase = true)) {
                     try {
@@ -278,30 +276,14 @@ object AIMessageManager {
                         if (videoId == "error") {
                             throw IllegalStateException("addMedia returned error")
                         }
-                        MediaLinkBuilder.video(context, videoId)
+                        MediaLinkBuilder.video(context, videoId) + " " + mediaAttachmentMarkup(attachment)
                     } catch (e: Exception) {
                         AppLogger.e(TAG, "添加视频到池失败: ${attachment.filePath}", e)
-                        val attributes = buildString {
-                            append("id=\"${attachment.filePath}\" ")
-                            append("filename=\"${attachment.fileName}\" ")
-                            append("type=\"${attachment.mimeType}\"")
-                            if (attachment.fileSize > 0) {
-                                append(" size=\"${attachment.fileSize}\"")
-                            }
-                        }
-                        "<attachment $attributes>${attachment.content}</attachment>"
+                        mediaAttachmentMarkup(attachment)
                     }
                 } else {
                     // 非图片或未启用直接图片处理，使用普通附件格式
-                    val attributes = buildString {
-                        append("id=\"${attachment.filePath}\" ")
-                        append("filename=\"${attachment.fileName}\" ")
-                        append("type=\"${attachment.mimeType}\"")
-                        if (attachment.fileSize > 0) {
-                            append(" size=\"${attachment.fileSize}\"")
-                        }
-                    }
-                    "<attachment $attributes>${attachment.content}</attachment>"
+                    mediaAttachmentMarkup(attachment)
                 }
             }
         } else ""
@@ -319,6 +301,10 @@ object AIMessageManager {
             stage = "buildUserMessageContent.total",
             startTimeMs = totalStartTime,
             details = "messageLength=${processedMessageText.length}, finalLength=${finalMessageContent.length}, attachments=${attachments.size}"
+        )
+        AppLogger.d(
+            TAG,
+            "buildUserMessageContent original=${ChatTrace.describe(messageText)} processed=${ChatTrace.describe(processedMessageText)} final=${ChatTrace.describe(finalMessageContent)}"
         )
         return finalMessageContent
     }
@@ -365,66 +351,53 @@ object AIMessageManager {
         groupParticipantNamesText: String? = null,
         proxySenderName: String? = null,
         onToolInvocation: (suspend (String) -> Unit)? = null,
+        onToolTiming: suspend (ToolCallExecution) -> Unit = {},
         notifyReplyOverride: Boolean? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
         memorySpaceIdOverride: String? = null,
-        disableWarning: Boolean = false
+        disableWarning: Boolean = false,
+        historyOnly: Boolean = false,
+        onVoiceMessageResolved: suspend (VoiceMessageData, VoiceAnalysis) -> Unit = { _, _ -> },
     ): SharedStream<String> {
         val totalStartTime = messageTimingNow()
+        val voiceNormalizedMessage = VoiceMessageMarkup.toRequestContent(messageContent)
         val chatKey = chatId ?: DEFAULT_CHAT_KEY
         lastActiveChatKey = chatKey
         activeEnhancedAiServiceByChatId[chatKey] = enhancedAiService
 
-        val buildMemoryStartTime = messageTimingNow()
-        val memory = getMemoryFromMessages(
-            messages = chatHistory,
-            splitByRole = splitHistoryByRole,
-            targetRoleName = currentRoleName,
-            groupOrchestrationMode = groupOrchestrationMode
-        )
-        logMessageTiming(
-            stage = "sendMessage.buildMemory",
-            startTimeMs = buildMemoryStartTime,
-            details = "chatKey=$chatKey, source=${chatHistory.size}, result=${memory.size}, splitByRole=$splitHistoryByRole, groupOrchestration=$groupOrchestrationMode"
-        )
-        if (splitHistoryByRole && !currentRoleName.isNullOrBlank()) {
-            val assistantCount = memory.count { it.kind == PromptTurnKind.ASSISTANT }
-            val userCount = memory.count { it.kind == PromptTurnKind.USER }
-            AppLogger.d(
-                TAG,
-                "按角色拆解历史: role=$currentRoleName, assistant=$assistantCount, user=$userCount, total=${memory.size}"
-            )
-        }
-
         return withContext(Dispatchers.IO) {
+            val buildMemoryStartTime = messageTimingNow()
+            val memory = getMemoryFromMessages(
+                messages = chatHistory.map { it.copy(content = VoiceMessageMarkup.toRequestContent(it.content)) },
+                splitByRole = splitHistoryByRole,
+                targetRoleName = currentRoleName,
+                groupOrchestrationMode = groupOrchestrationMode
+            )
+            logMessageTiming(
+                stage = "sendMessage.buildMemory",
+                startTimeMs = buildMemoryStartTime,
+                details = "chatKey=$chatKey, source=${chatHistory.size}, result=${memory.size}, splitByRole=$splitHistoryByRole, groupOrchestration=$groupOrchestrationMode"
+            )
+            if (splitHistoryByRole && !currentRoleName.isNullOrBlank()) {
+                val assistantCount = memory.count { it.kind == PromptTurnKind.ASSISTANT }
+                val userCount = memory.count { it.kind == PromptTurnKind.USER }
+                AppLogger.d(
+                    TAG,
+                    "按角色拆解历史: role=$currentRoleName, assistant=$assistantCount, user=$userCount, total=${memory.size}"
+                )
+            }
+
             val limitHistoryStartTime = messageTimingNow()
-            val maxImageHistoryUserTurns = apiPreferences.maxImageHistoryUserTurnsFlow.first()
-            val maxMediaHistoryUserTurns = apiPreferences.maxMediaHistoryUserTurnsFlow.first()
-
-            val memoryAfterImageLimit = limitImageLinksInChatHistory(memory, maxImageHistoryUserTurns)
-            val memoryForRequest = limitMediaLinksInChatHistory(memoryAfterImageLimit, maxMediaHistoryUserTurns)
-            val beforeImageLinkCount = memory.count { MediaLinkParser.hasImageLinks(it.content) }
-            val afterImageLinkCount = memoryForRequest.count { MediaLinkParser.hasImageLinks(it.content) }
-            if (beforeImageLinkCount != afterImageLinkCount) {
-                AppLogger.d(
-                    TAG,
-                    "历史图片裁剪生效: limit=$maxImageHistoryUserTurns, before=$beforeImageLinkCount, after=$afterImageLinkCount"
-                )
-            }
-
-            val beforeMediaLinkCount = memory.count { MediaLinkParser.hasMediaLinks(it.content) }
-            val afterMediaLinkCount = memoryForRequest.count { MediaLinkParser.hasMediaLinks(it.content) }
-            if (beforeMediaLinkCount != afterMediaLinkCount) {
-                AppLogger.d(
-                    TAG,
-                    "历史音视频裁剪生效: limit=$maxMediaHistoryUserTurns, before=$beforeMediaLinkCount, after=$afterMediaLinkCount"
-                )
-            }
+            val memoryForRequest = currentTurnMediaHistory(
+                history = memory,
+                currentMessage = if (historyOnly) "" else voiceNormalizedMessage,
+                omittedLabel = context.getString(R.string.ai_message_media_omitted),
+            )
             logMessageTiming(
                 stage = "sendMessage.limitHistory",
                 startTimeMs = limitHistoryStartTime,
-                details = "chatKey=$chatKey, before=${memory.size}, after=${memoryForRequest.size}, imageLimit=$maxImageHistoryUserTurns, mediaLimit=$maxMediaHistoryUserTurns"
+                details = "chatKey=$chatKey, before=${memory.size}, after=${memoryForRequest.size}, media=current-turn"
             )
 
             val matchPluginStartTime = messageTimingNow()
@@ -433,7 +406,7 @@ object AIMessageManager {
                     context = context,
                     enhancedAIService = enhancedAiService,
                     chatId = chatId,
-                    messageContent = messageContent,
+                    messageContent = voiceNormalizedMessage,
                     chatHistory = memoryForRequest,
                     workspacePath = workspacePath,
                     maxTokens = maxTokens,
@@ -469,21 +442,11 @@ object AIMessageManager {
                 AppLogger.d(TAG, "消息处理插件未接管，使用普通模式")
             }
 
-            // 获取流式输出设置
-            val readStreamSettingStartTime = messageTimingNow()
-            val disableStreamOutput = apiPreferences.disableStreamOutputFlow.first()
-            val enableStream = !disableStreamOutput
-            logMessageTiming(
-                stage = "sendMessage.readStreamSetting",
-                startTimeMs = readStreamSettingStartTime,
-                details = "chatKey=$chatKey, enableStream=$enableStream"
-            )
-
             // 使用普通模式
             val prepareRequestStartTime = messageTimingNow()
             val responseStream = enhancedAiService.sendMessage(
                 EnhancedAIService.SendMessageOptions(
-                    message = messageContent,
+                    message = voiceNormalizedMessage,
                     chatId = chatId,
                     chatHistory = memoryForRequest,
                     workspacePath = workspacePath,
@@ -501,12 +464,14 @@ object AIMessageManager {
                     groupParticipantNamesText = groupParticipantNamesText,
                     proxySenderName = proxySenderName,
                     onToolInvocation = onToolInvocation,
+                    onToolTiming = onToolTiming,
                     notifyReplyOverride = notifyReplyOverride,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
                     memorySpaceIdOverride = memorySpaceIdOverride,
-                    stream = enableStream,
-                    disableWarning = disableWarning
+                    disableWarning = disableWarning,
+                    historyOnly = historyOnly,
+                    onVoiceMessageResolved = onVoiceMessageResolved,
                 )
             ).shareRevisable(
                 scope = scope,
@@ -522,7 +487,7 @@ object AIMessageManager {
             logMessageTiming(
                 stage = "sendMessage.prepareRequest",
                 startTimeMs = prepareRequestStartTime,
-                details = "chatKey=$chatKey, history=${memoryForRequest.size}, stream=$enableStream, prompt=$promptFunctionType"
+                details = "chatKey=$chatKey, history=${memoryForRequest.size}, prompt=$promptFunctionType"
             )
             logMessageTiming(
                 stage = "sendMessage.total",
@@ -552,85 +517,75 @@ object AIMessageManager {
         memorySpaceIdOverride: String? = null,
         publishEstimate: Boolean = true
     ): Long {
+        return calculateStableContextWindowSnapshot(
+            enhancedAiService = enhancedAiService,
+            chatId = chatId,
+            messageContent = messageContent,
+            chatHistory = chatHistory,
+            workspacePath = workspacePath,
+            workspaceEnv = workspaceEnv,
+            promptFunctionType = promptFunctionType,
+            roleCardId = roleCardId,
+            currentRoleName = currentRoleName,
+            splitHistoryByRole = splitHistoryByRole,
+            groupOrchestrationMode = groupOrchestrationMode,
+            groupParticipantNamesText = groupParticipantNamesText,
+            proxySenderName = proxySenderName,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            publishEstimate = publishEstimate
+        ).windowTokens
+    }
+
+    suspend fun calculateStableContextWindowSnapshot(
+        enhancedAiService: EnhancedAIService,
+        chatId: String? = null,
+        messageContent: String = "",
+        chatHistory: List<ChatMessage>,
+        workspacePath: String? = null,
+        workspaceEnv: String? = null,
+        promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        roleCardId: String? = null,
+        currentRoleName: String? = null,
+        splitHistoryByRole: Boolean = true,
+        groupOrchestrationMode: Boolean = false,
+        groupParticipantNamesText: String? = null,
+        proxySenderName: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        memorySpaceIdOverride: String? = null,
+        publishEstimate: Boolean = false
+    ): RequestWindowSnapshot {
         val memory =
             getMemoryFromMessages(
-                messages = chatHistory,
+                messages = chatHistory.map { it.copy(content = VoiceMessageMarkup.toRequestContent(it.content)) },
                 splitByRole = splitHistoryByRole,
                 targetRoleName = currentRoleName,
                 groupOrchestrationMode = groupOrchestrationMode
             )
-        val maxImageHistoryUserTurns = apiPreferences.maxImageHistoryUserTurnsFlow.first()
-        val maxMediaHistoryUserTurns = apiPreferences.maxMediaHistoryUserTurnsFlow.first()
-        val memoryAfterImageLimit = limitImageLinksInChatHistory(memory, maxImageHistoryUserTurns)
-        val memoryForRequest =
-            limitMediaLinksInChatHistory(memoryAfterImageLimit, maxMediaHistoryUserTurns)
+        val memoryForRequest = currentTurnMediaHistory(
+            history = memory,
+            currentMessage = VoiceMessageMarkup.toRequestContent(messageContent),
+            omittedLabel = context.getString(R.string.ai_message_media_omitted),
+        )
 
-        val windowSize =
-            enhancedAiService.estimateRequestWindowFromMemory(
-                message = messageContent,
-                chatHistory = memoryForRequest,
-                chatId = chatId,
-                workspacePath = workspacePath,
-                workspaceEnv = workspaceEnv,
-                promptFunctionType = promptFunctionType,
-                roleCardId = roleCardId,
-                enableGroupOrchestrationHint = groupOrchestrationMode,
-                groupParticipantNamesText = groupParticipantNamesText,
-                proxySenderName = proxySenderName,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride,
-                memorySpaceIdOverride = memorySpaceIdOverride,
-                publishEstimate = publishEstimate
-            )
-        return windowSize
-    }
-
-    private fun limitMediaLinksInChatHistory(
-        history: List<PromptTurn>,
-        keepLastUserMediaTurns: Int
-    ): List<PromptTurn> {
-        val limit = keepLastUserMediaTurns.coerceAtLeast(0)
-        val totalUserTurns = history.count { it.kind == PromptTurnKind.USER }
-        val keepFromTurn = (totalUserTurns - limit).coerceAtLeast(0)
-
-        var currentUserTurnIndex = -1
-        return history.map { turn ->
-            if (turn.kind == PromptTurnKind.USER) {
-                currentUserTurnIndex += 1
-            }
-
-            val shouldKeepMedia = limit > 0 && currentUserTurnIndex >= keepFromTurn
-            if (!shouldKeepMedia && MediaLinkParser.hasMediaLinks(turn.content)) {
-                val removed = MediaLinkParser.removeMediaLinks(turn.content).trim()
-                turn.copy(content = removed.ifBlank { context.getString(R.string.ai_message_media_omitted) })
-            } else {
-                turn
-            }
-        }
-    }
-
-    private fun limitImageLinksInChatHistory(
-        history: List<PromptTurn>,
-        keepLastUserImageTurns: Int
-    ): List<PromptTurn> {
-        val limit = keepLastUserImageTurns.coerceAtLeast(0)
-        val totalUserTurns = history.count { it.kind == PromptTurnKind.USER }
-        val keepFromTurn = (totalUserTurns - limit).coerceAtLeast(0)
-
-        var currentUserTurnIndex = -1
-        return history.map { turn ->
-            if (turn.kind == PromptTurnKind.USER) {
-                currentUserTurnIndex += 1
-            }
-
-            val shouldKeepImages = limit > 0 && currentUserTurnIndex >= keepFromTurn
-            if (!shouldKeepImages && MediaLinkParser.hasImageLinks(turn.content)) {
-                val removed = MediaLinkParser.removeImageLinks(turn.content).trim()
-                turn.copy(content = removed.ifBlank { context.getString(R.string.ai_message_image_omitted) })
-            } else {
-                turn
-            }
-        }
+        return enhancedAiService.estimateRequestWindowSnapshotFromMemory(
+            message = VoiceMessageMarkup.toRequestContent(messageContent),
+            chatHistory = memoryForRequest,
+            chatId = chatId,
+            workspacePath = workspacePath,
+            workspaceEnv = workspaceEnv,
+            promptFunctionType = promptFunctionType,
+            roleCardId = roleCardId,
+            enableGroupOrchestrationHint = groupOrchestrationMode,
+            groupParticipantNamesText = groupParticipantNamesText,
+            proxySenderName = proxySenderName,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            memorySpaceIdOverride = memorySpaceIdOverride,
+            publishEstimate = publishEstimate
+        )
     }
 
     /**
@@ -686,8 +641,11 @@ object AIMessageManager {
         messages: List<ChatMessage>,
         autoContinue: Boolean = false,
         isGroupChat: Boolean = false,
-        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig()
-    ): ChatMessage? {
+        summaryConfig: ConversationSummaryConfig = ConversationSummaryConfig(),
+        onProgress: (String) -> Unit = {},
+        onNonFatalError: suspend (String) -> Unit = {},
+    ): ChatMessage? = withContext(Dispatchers.Default) {
+        // 自动总结可由主线程发起，历史清洗和回顾组装必须在后台完成，取消也由同一协程传播。
         val lastSummaryIndex = messages.indexOfLast { it.sender == "summary" }
         val previousSummary = if (lastSummaryIndex != -1) messages[lastSummaryIndex].content.trim() else null
 
@@ -699,10 +657,10 @@ object AIMessageManager {
 
         if (messagesToSummarize.isEmpty()) {
             AppLogger.d(TAG, "没有新消息需要总结")
-            return null
+            return@withContext null
         }
 
-        val memoryTagRegex = Regex("<memory>.*?</memory>", RegexOption.DOT_MATCHES_ALL)
+        val memoryTagRegex = ChatMarkupRegex.memoryTag
         val conversationReviewEntries = mutableListOf<Pair<String, String>>()
         fun normalizeForReview(text: String): String {
             return text
@@ -786,10 +744,7 @@ object AIMessageManager {
         }
 
         fun condenseToolResultPreview(block: String): String {
-            val resultBody =
-                ChatMarkupRegex.contentTag.find(block)?.groupValues?.getOrNull(1)
-                    ?: ChatMarkupRegex.errorTag.find(block)?.groupValues?.getOrNull(1)
-                    ?: extractXmlBody(block)
+            val resultBody = ToolResultMarkup.contentFromBody(extractXmlBody(block))
             val cleanedBody = stripXmlTagsForReview(resultBody)
             return condenseHeadTail(cleanedBody, headChars = 140, tailChars = 56)
         }
@@ -846,7 +801,8 @@ object AIMessageManager {
         }
 
         fun condenseAssistantForReview(text: String): String {
-            val cleaned = ChatUtils.removeThinkingContent(text)
+            // 必须先删协议块，再去除 XML 标签和压缩，否则负载会变成无法识别的普通文本。
+            val cleaned = ChatUtils.removeThinkingContent(protocolMetaDisplayText(text))
             val normalized = normalizeForReview(cleaned)
             if (normalized.isBlank()) return "[Empty]"
 
@@ -981,10 +937,11 @@ object AIMessageManager {
             // 打包所有消息到一条用户消息
             val packedContent = buildString {
                 messagesToSummarize.forEach { message ->
+                    coroutineContext.ensureActive()
                     // 清理消息内容：移除 memory 标签和 thinking 内容
                     val cleanedContent = if (message.sender == "user") {
                         stripMediaLinksForAssistant(
-                            message.content.replace(memoryTagRegex, "").trim()
+                            VoiceMessageMarkup.toModelText(message.content).replace(memoryTagRegex, "").trim()
                         )
                     } else {
                         // AI 消息需要先移除 thinking 内容，再移除媒体链接
@@ -1016,10 +973,11 @@ object AIMessageManager {
         } else {
             // 非群聊模式：保持原有逻辑
             messagesToSummarize.mapIndexed { index, message ->
+                coroutineContext.ensureActive()
                 val role = if (message.sender == "user") "user" else "assistant"
                 val cleanedContent = if (role == "user") {
                     stripMediaLinksForAssistant(
-                        message.content.replace(memoryTagRegex, "").trim()
+                        VoiceMessageMarkup.toModelText(message.content).replace(memoryTagRegex, "").trim()
                     )
                 } else {
                     stripMediaLinksForAssistant(message.content)
@@ -1040,13 +998,16 @@ object AIMessageManager {
             }
         }
 
-        return try {
+        coroutineContext.ensureActive()
+        return@withContext try {
             AppLogger.d(TAG, "开始使用AI生成对话总结：总结 ${messagesToSummarize.size} 条消息")
             val summary =
                 enhancedAiService.generateSummary(
                     conversationToSummarize,
                     previousSummary,
-                    summaryConfig
+                    summaryConfig,
+                    onProgress = onProgress,
+                    onNonFatalError = onNonFatalError,
                 )
             AppLogger.d(TAG, "AI生成总结完成: ${summary.take(50)}...")
 
@@ -1369,16 +1330,21 @@ object AIMessageManager {
                         isRoleScopedMode,
                         groupOrchestrationMode
                     )
+                    // 读取时清理历史摘要，已保存的协议负载不能再进入后续聊天上下文。
                     "summary" ->
-                        PromptTurn(
-                            kind = PromptTurnKind.SUMMARY,
-                            content = message.content
-                        )
+                        protocolMetaDisplayText(message.content).takeIf { it.isNotBlank() }?.let { content ->
+                            PromptTurn(kind = PromptTurnKind.SUMMARY, content = content)
+                        }
                     else -> null
                 }
             }
         val assistantCount = processedMessages.count { it.kind == PromptTurnKind.ASSISTANT }
         val userCount = processedMessages.count { it.kind == PromptTurnKind.USER }
+        val lastUserTurn = processedMessages.lastOrNull { it.kind == PromptTurnKind.USER }
+        AppLogger.d(
+            TAG,
+            "getMemoryFromMessages source=${messages.size} result=${processedMessages.size} lastUser=${ChatTrace.describe(lastUserTurn?.content.orEmpty())}"
+        )
         logMessageTiming(
             stage = "getMemoryFromMessages.total",
             startTimeMs = totalStartTime,
@@ -1393,11 +1359,7 @@ object AIMessageManager {
         targetRoleName: String,
         removeStatusTags: (String) -> String
     ): PromptTurn? {
-        // 清理思考内容
-        val cleanedContent = ChatUtils.removeThinkingContent(message.content).trim()
-        val contentWithoutStatus = removeStatusTags(cleanedContent)
-
-        // 非角色隔离模式：直接返回 assistant 消息
+        // 非角色隔离模式和当前角色消息无需清洗；只有跨角色桥接才需要移除思考内容。
         if (!isRoleScopedMode) {
             return PromptTurn(
                 kind = PromptTurnKind.ASSISTANT,
@@ -1407,25 +1369,24 @@ object AIMessageManager {
 
         // 角色隔离模式：判断是当前角色还是其他角色
         val messageRoleName = message.roleName.trim()
-        return if (messageRoleName == targetRoleName) {
-            // 当前角色的消息：作为 assistant 返回
-            PromptTurn(
+        if (messageRoleName == targetRoleName) {
+            return PromptTurn(
                 kind = PromptTurnKind.ASSISTANT,
                 content = message.content
             )
-        } else {
-            // 其他角色的消息：转换为 user 消息，添加角色标签
-            val roleLabel = if (messageRoleName.isNotBlank()) messageRoleName else "unknown"
-            val bridgedContent = removeStatusTags(cleanedContent)
-            if (bridgedContent.isBlank()) {
-                null
-            } else {
-                PromptTurn(
-                    kind = PromptTurnKind.USER,
-                    content = "[From role: $roleLabel]\n$bridgedContent"
-                )
-            }
         }
+
+        val cleanedContent = ChatUtils.removeThinkingContent(message.content).trim()
+        val bridgedContent = removeStatusTags(cleanedContent)
+        // 其他角色的消息：转换为 user 消息，添加角色标签
+        val roleLabel = if (messageRoleName.isNotBlank()) messageRoleName else "unknown"
+        if (bridgedContent.isBlank()) {
+            return null
+        }
+        return PromptTurn(
+            kind = PromptTurnKind.USER,
+            content = "[From role: $roleLabel]\n$bridgedContent"
+        )
     }
 
     private fun processUserMessage(

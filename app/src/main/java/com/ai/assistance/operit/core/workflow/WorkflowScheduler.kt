@@ -1,37 +1,28 @@
 package com.ai.assistance.operit.core.workflow
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
 import androidx.work.*
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.*
+import com.ai.assistance.operit.core.workflow.scheduling.WorkflowSchedulePlan
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 
-/**
- * WorkflowScheduler manages scheduling workflows using WorkManager
- * 
- * Supports three scheduling types:
- * - interval: Fixed interval execution (e.g., every 15 minutes)
- * - specific_time: One-time execution at a specific time
- * - cron: Cron-based scheduling (simplified implementation)
- */
-class WorkflowScheduler(private val context: Context) {
-
+/** WorkManager 保留持久任务；日历计划按下一次匹配时刻逐次排队。 */
+class WorkflowScheduler(context: Context) {
     companion object {
         private const val TAG = "WorkflowScheduler"
         private const val WORK_NAME_PREFIX = "workflow_"
-        private const val RETRY_BACKOFF_DELAY_MINUTES = 1L
-        
-        // Schedule types
+        private const val REVISION_TAG = "workflow_schedule_v2"
+        private const val SIGNATURE_TAG_PREFIX = "workflow_plan:"
+        private val scheduleMutex = Mutex()
         const val SCHEDULE_TYPE_INTERVAL = "interval"
         const val SCHEDULE_TYPE_SPECIFIC_TIME = "specific_time"
         const val SCHEDULE_TYPE_CRON = "cron"
-        
-        // Config keys
         const val CONFIG_SCHEDULE_TYPE = "schedule_type"
         const val CONFIG_INTERVAL_MS = "interval_ms"
         const val CONFIG_SPECIFIC_TIME = "specific_time"
@@ -39,435 +30,245 @@ class WorkflowScheduler(private val context: Context) {
         const val CONFIG_REPEAT = "repeat"
         const val CONFIG_END_TIME = "end_time"
         const val CONFIG_ENABLED = "enabled"
-        
-        // WorkManager data keys
         const val KEY_TRIGGER_NODE_ID = "trigger_node_id"
+        const val KEY_SCHEDULE_SIGNATURE = "schedule_signature"
+        const val KEY_SCHEDULED_AT = "scheduled_at"
     }
 
-    private val workManager: WorkManager by lazy { 
-        WorkManager.getInstance(context.applicationContext)
-    }
+    private val completionState =
+        context.applicationContext.getSharedPreferences(
+            "workflow_schedule_completion",
+            Context.MODE_PRIVATE,
+        )
+    private val workManager by lazy { WorkManager.getInstance(context.applicationContext) }
 
-    /**
-     * Schedule a workflow based on its trigger configuration
-     */
-    fun scheduleWorkflow(workflow: Workflow): Boolean {
-        // Find the trigger node
-        val triggerNode = workflow.nodes.filterIsInstance<TriggerNode>()
-            .firstOrNull { it.triggerType == "schedule" }
-
-        if (triggerNode == null) {
-            AppLogger.d(TAG, "No schedule trigger found for workflow: ${workflow.id}")
-            return false
-        }
-
-        val config = triggerNode.triggerConfig
-        val scheduleType = config[CONFIG_SCHEDULE_TYPE] ?: return false
-        val enabled = config[CONFIG_ENABLED]?.toBoolean() ?: true
-
-        if (!enabled) {
-            AppLogger.d(TAG, "Schedule is disabled for workflow: ${workflow.id}")
-            return false
-        }
-
-        return when (scheduleType) {
-            SCHEDULE_TYPE_INTERVAL -> scheduleIntervalWorkflow(workflow.id, triggerNode.id, config)
-            SCHEDULE_TYPE_SPECIFIC_TIME -> scheduleOneTimeWorkflow(workflow.id, triggerNode.id, config)
-            SCHEDULE_TYPE_CRON -> scheduleCronWorkflow(workflow.id, triggerNode.id, config)
-            else -> {
-                AppLogger.e(TAG, "Unknown schedule type: $scheduleType")
+    suspend fun scheduleWorkflow(
+        workflow: Workflow,
+        replaceExisting: Boolean = false,
+        preserveRunning: Boolean = false,
+    ): Boolean =
+        withContext(Dispatchers.IO) {
+            try {
+                scheduleMutex.withLock {
+                    val plan = WorkflowSchedulePlan.from(workflow)
+                    if (plan == null) {
+                        workManager.cancelUniqueWork(getWorkName(workflow.id)).await()
+                        return@withLock false
+                    }
+                    val infos =
+                        workManager.getWorkInfosForUniqueWork(getWorkName(workflow.id)).await()
+                    val active = infos.filterNot { it.state.isFinished }
+                    // 冷启动、重启和时区变化不取消正在执行的任务；旧任务完成后再迁移。
+                    if (
+                        active.any {
+                            it.state == WorkInfo.State.RUNNING &&
+                                (REVISION_TAG !in it.tags ||
+                                    SIGNATURE_TAG_PREFIX + plan.signature in it.tags)
+                        } && (!replaceExisting || preserveRunning)
+                    )
+                        return@withLock true
+                    if (plan.expired(System.currentTimeMillis())) {
+                        workManager.cancelUniqueWork(getWorkName(workflow.id)).await()
+                        return@withLock false
+                    }
+                    if (
+                        !replaceExisting &&
+                            active.any { SIGNATURE_TAG_PREFIX + plan.signature in it.tags }
+                    )
+                        return@withLock true
+                    if (
+                        (!replaceExisting || preserveRunning) &&
+                            !plan.repeat &&
+                            (isCompleted(workflow.id, plan.signature) ||
+                                infos.any {
+                                    it.state == WorkInfo.State.SUCCEEDED &&
+                                        SIGNATURE_TAG_PREFIX + plan.signature in it.tags
+                                })
+                    ) {
+                        workManager.cancelUniqueWork(getWorkName(workflow.id)).await()
+                        return@withLock false
+                    }
+                    val now = System.currentTimeMillis()
+                    val legacyNext =
+                        if (!replaceExisting && plan.periodic)
+                            active
+                                .filter { REVISION_TAG !in it.tags && it.periodicityInfo != null }
+                                .minOfOrNull { it.nextScheduleTimeMillis }
+                                ?.takeIf { it > 0 && it < Long.MAX_VALUE }
+                        else null
+                    val next =
+                        legacyNext
+                            ?: plan.nextAfter(now)
+                            ?: if (
+                                preserveRunning &&
+                                    plan.type == SCHEDULE_TYPE_SPECIFIC_TIME &&
+                                    !plan.repeat &&
+                                    active.any { SIGNATURE_TAG_PREFIX + plan.signature in it.tags }
+                            )
+                                now
+                            else {
+                                workManager.cancelUniqueWork(getWorkName(workflow.id)).await()
+                                return@withLock false
+                            }
+                    if (replaceExisting && !preserveRunning)
+                        check(
+                            completionState
+                                .edit()
+                                .remove("${workflow.id}:${plan.signature}")
+                                .commit()
+                        )
+                    if (plan.periodic) {
+                        val request =
+                            PeriodicWorkRequestBuilder<WorkflowWorker>(
+                                    requireNotNull(plan.intervalMillis),
+                                    TimeUnit.MILLISECONDS,
+                                )
+                                .setInitialDelay(
+                                    (next - now).coerceAtLeast(0),
+                                    TimeUnit.MILLISECONDS,
+                                )
+                                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                                .setInputData(input(workflow.id, plan, next))
+                                .addTag(workflow.id)
+                                .addTag(REVISION_TAG)
+                                .addTag(SIGNATURE_TAG_PREFIX + plan.signature)
+                                .build()
+                        workManager
+                            .enqueueUniquePeriodicWork(
+                                getWorkName(workflow.id),
+                                if (active.isEmpty()) ExistingPeriodicWorkPolicy.KEEP
+                                else ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE,
+                                request,
+                            )
+                            .await()
+                    } else {
+                        workManager
+                            .enqueueUniqueWork(
+                                getWorkName(workflow.id),
+                                if (active.isEmpty()) ExistingWorkPolicy.KEEP
+                                else ExistingWorkPolicy.REPLACE,
+                                oneTime(workflow.id, plan, next),
+                            )
+                            .await()
+                    }
+                    AppLogger.d(
+                        TAG,
+                        "Scheduled workflow=${workflow.id}, trigger=${plan.triggerId}, type=${plan.type}, plannedAt=$next",
+                    )
+                    true
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                if (error is IllegalArgumentException)
+                    workManager.cancelUniqueWork(getWorkName(workflow.id)).await()
+                AppLogger.e(TAG, "Cannot schedule workflow: ${workflow.id}", error)
                 false
             }
         }
-    }
 
-    /**
-     * Schedule workflow with fixed interval
-     */
-    private fun scheduleIntervalWorkflow(workflowId: String, triggerNodeId: String, config: Map<String, String>): Boolean {
-        val intervalMs = config[CONFIG_INTERVAL_MS]?.toLongOrNull() ?: return false
-        val repeat = config[CONFIG_REPEAT]?.toBoolean() ?: true
-
-        if (!repeat) {
-            AppLogger.w(TAG, "Interval scheduling requires repeat=true")
-            return false
-        }
-
-        // Minimum interval is 15 minutes per WorkManager restrictions
-        val intervalMinutes = (intervalMs / 60000).coerceAtLeast(15)
-
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(false)
-            .build()
-
-        val workRequest = PeriodicWorkRequestBuilder<WorkflowWorker>(
-            intervalMinutes, TimeUnit.MINUTES
+    internal suspend fun continueAfterExecution(
+        workflow: Workflow,
+        triggerId: String,
+        signature: String?,
+    ): Boolean {
+        val plan = WorkflowSchedulePlan.from(workflow) ?: return false
+        if (
+            plan.triggerId != triggerId ||
+                (signature != null && signature != plan.signature) ||
+                plan.expired(System.currentTimeMillis())
         )
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                RETRY_BACKOFF_DELAY_MINUTES,
-                TimeUnit.MINUTES
-            )
-            .setInputData(
-                workDataOf(
-                    WorkflowWorker.KEY_WORKFLOW_ID to workflowId,
-                    KEY_TRIGGER_NODE_ID to triggerNodeId
-                )
-            )
-            .addTag(workflowId)
-            .build()
-
-        workManager.enqueueUniquePeriodicWork(
-            getWorkName(workflowId),
-            ExistingPeriodicWorkPolicy.REPLACE,
-            workRequest
-        )
-
-        AppLogger.d(TAG, "Scheduled interval workflow: $workflowId, trigger: $triggerNodeId, interval: $intervalMinutes minutes")
-        return true
-    }
-
-    /**
-     * Schedule workflow for specific time
-     */
-    private fun scheduleOneTimeWorkflow(workflowId: String, triggerNodeId: String, config: Map<String, String>): Boolean {
-        val specificTimeStr = config[CONFIG_SPECIFIC_TIME] ?: return false
-        val repeat = config[CONFIG_REPEAT]?.toBoolean() ?: false
-
-        val targetTime = try {
-            parseDateTime(specificTimeStr)
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "Failed to parse specific_time: $specificTimeStr", e)
             return false
-        }
-
-        val currentTime = System.currentTimeMillis()
-        val delay = targetTime - currentTime
-
-        if (delay < 0) {
-            AppLogger.w(TAG, "Specific time is in the past: $specificTimeStr")
-            return false
-        }
-
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(false)
-            .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<WorkflowWorker>()
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                RETRY_BACKOFF_DELAY_MINUTES,
-                TimeUnit.MINUTES
-            )
-            .setInputData(
-                workDataOf(
-                    WorkflowWorker.KEY_WORKFLOW_ID to workflowId,
-                    KEY_TRIGGER_NODE_ID to triggerNodeId
-                )
-            )
-            .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-            .addTag(workflowId)
-            .build()
-
-        workManager.enqueueUniqueWork(
-            getWorkName(workflowId),
-            ExistingWorkPolicy.REPLACE,
-            workRequest
-        )
-
-        AppLogger.d(TAG, "Scheduled one-time workflow: $workflowId, trigger: $triggerNodeId, time: $specificTimeStr, delay: ${delay}ms")
-        return true
-    }
-
-    /**
-     * Schedule workflow using cron expression
-     * 
-     * Simplified cron implementation that calculates next execution time
-     */
-    private fun scheduleCronWorkflow(workflowId: String, triggerNodeId: String, config: Map<String, String>): Boolean {
-        val cronExpression = config[CONFIG_CRON_EXPRESSION] ?: return false
-        val repeat = config[CONFIG_REPEAT]?.toBoolean() ?: true
-
-        val nextExecutionTime = calculateNextCronTime(cronExpression)
-        if (nextExecutionTime == null) {
-            AppLogger.e(TAG, "Failed to calculate next cron time for: $cronExpression")
-            return false
-        }
-
-        val currentTime = System.currentTimeMillis()
-        val delay = nextExecutionTime - currentTime
-
-        if (delay < 0) {
-            AppLogger.w(TAG, "Calculated cron time is in the past")
-            return false
-        }
-
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(false)
-            .build()
-
-        if (repeat) {
-            // For repeated cron, we use the interval between executions
-            // This is a simplified approach - ideally we'd reschedule after each execution
-            val intervalMs = calculateCronInterval(cronExpression)
-            if (intervalMs != null && intervalMs >= 15 * 60 * 1000) {
-                val intervalMinutes = intervalMs / 60000
-                val workRequest = PeriodicWorkRequestBuilder<WorkflowWorker>(
-                    intervalMinutes, TimeUnit.MINUTES
-                )
-                    .setConstraints(constraints)
-                    .setBackoffCriteria(
-                        BackoffPolicy.EXPONENTIAL,
-                        RETRY_BACKOFF_DELAY_MINUTES,
-                        TimeUnit.MINUTES
-                    )
-                    .setInputData(
-                        workDataOf(
-                            WorkflowWorker.KEY_WORKFLOW_ID to workflowId,
-                            KEY_TRIGGER_NODE_ID to triggerNodeId
-                        )
-                    )
-                    .setInitialDelay(delay, TimeUnit.MILLISECONDS)
-                    .addTag(workflowId)
-                    .build()
-
-                workManager.enqueueUniquePeriodicWork(
-                    getWorkName(workflowId),
-                    ExistingPeriodicWorkPolicy.REPLACE,
-                    workRequest
-                )
-                AppLogger.d(TAG, "Scheduled cron workflow (periodic): $workflowId, trigger: $triggerNodeId, expression: $cronExpression")
-            } else {
-                // Fallback to one-time for complex cron patterns
-                scheduleOneTimeWorkflowWithDelay(workflowId, triggerNodeId, delay)
-                AppLogger.d(TAG, "Scheduled cron workflow (one-time): $workflowId, trigger: $triggerNodeId, expression: $cronExpression")
+        if (!plan.repeat) return false
+        // 已发布的 WorkManager 请求没有签名；仅在当前执行结束后替换为新请求。
+        if (signature == null) {
+            if (plan.nextAfter(System.currentTimeMillis()) == null) return false
+            check(scheduleWorkflow(workflow, replaceExisting = true)) {
+                "Cannot migrate workflow schedule"
             }
-        } else {
-            scheduleOneTimeWorkflowWithDelay(workflowId, triggerNodeId, delay)
-            AppLogger.d(TAG, "Scheduled cron workflow (one-time): $workflowId, trigger: $triggerNodeId, expression: $cronExpression")
+            return true
         }
-
-        return true
-    }
-
-    /**
-     * Helper to schedule one-time work with delay
-     */
-    private fun scheduleOneTimeWorkflowWithDelay(workflowId: String, triggerNodeId: String, delayMs: Long) {
-        val constraints = Constraints.Builder()
-            .setRequiresBatteryNotLow(false)
-            .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<WorkflowWorker>()
-            .setConstraints(constraints)
-            .setBackoffCriteria(
-                BackoffPolicy.EXPONENTIAL,
-                RETRY_BACKOFF_DELAY_MINUTES,
-                TimeUnit.MINUTES
-            )
-            .setInputData(
-                workDataOf(
-                    WorkflowWorker.KEY_WORKFLOW_ID to workflowId,
-                    KEY_TRIGGER_NODE_ID to triggerNodeId
-                )
-            )
-            .setInitialDelay(delayMs, TimeUnit.MILLISECONDS)
-            .addTag(workflowId)
-            .build()
-
-        workManager.enqueueUniqueWork(
-            getWorkName(workflowId),
-            ExistingWorkPolicy.REPLACE,
-            workRequest
-        )
-    }
-
-    /**
-     * Cancel scheduled workflow
-     */
-    fun cancelWorkflow(workflowId: String) {
-        workManager.cancelUniqueWork(getWorkName(workflowId))
-        AppLogger.d(TAG, "Cancelled workflow schedule: $workflowId")
-    }
-
-    /**
-     * Check if workflow is scheduled
-     */
-    suspend fun isWorkflowScheduled(workflowId: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val workInfos = workManager.getWorkInfosForUniqueWork(getWorkName(workflowId)).await()
-            workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "Error checking workflow schedule status", e)
-            false
-        }
-    }
-
-    /**
-     * Get work name for workflow
-     */
-    private fun getWorkName(workflowId: String): String {
-        return "$WORK_NAME_PREFIX$workflowId"
-    }
-
-    /**
-     * Parse datetime string (ISO 8601 or common formats)
-     */
-    private fun parseDateTime(dateTimeStr: String): Long {
-        val formats = listOf(
-            "yyyy-MM-dd'T'HH:mm:ss",
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd HH:mm",
-            "yyyy-MM-dd"
-        )
-
-        for (format in formats) {
-            try {
-                val sdf = SimpleDateFormat(format, Locale.getDefault())
-                val date = sdf.parse(dateTimeStr)
-                if (date != null) {
-                    return date.time
+        if (plan.periodic) return true
+        scheduleMutex.withLock {
+            val active =
+                workManager.getWorkInfosForUniqueWork(getWorkName(workflow.id)).await().filterNot {
+                    it.state.isFinished
                 }
-            } catch (e: Exception) {
-                // Try next format
-            }
+            if (active.none { SIGNATURE_TAG_PREFIX + plan.signature in it.tags }) return@withLock
+            val next = plan.nextAfter(System.currentTimeMillis()) ?: return@withLock
+            workManager
+                .enqueueUniqueWork(
+                    getWorkName(workflow.id),
+                    ExistingWorkPolicy.APPEND_OR_REPLACE,
+                    oneTime(workflow.id, plan, next),
+                )
+                .await()
+            AppLogger.d(TAG, "Next calendar occurrence workflow=${workflow.id}, plannedAt=$next")
         }
-
-        throw IllegalArgumentException("Unsupported datetime format: $dateTimeStr")
+        return true
     }
 
-    /**
-     * Calculate next execution time for cron expression
-     * 
-     * Simplified cron parser supporting basic patterns:
-     * - 0 0 * * * (daily at midnight)
-     * - 0 2 * * * (every 2 hours)
-     * - 15 * * * * (every 15 minutes)
-     */
-    private fun calculateNextCronTime(cronExpression: String): Long? {
-        val parts = cronExpression.trim().split("\\s+".toRegex())
-        if (parts.size < 5) {
-            AppLogger.e(TAG, "Invalid cron expression: $cronExpression")
-            return null
-        }
+    internal fun isCompleted(workflowId: String, signature: String): Boolean =
+        completionState.getBoolean("$workflowId:$signature", false)
 
-        val minute = parts[0]
-        val hour = parts[1]
-        val dayOfMonth = parts[2]
-        val month = parts[3]
-        val dayOfWeek = parts[4]
-
-        val calendar = Calendar.getInstance()
-        calendar.add(Calendar.MINUTE, 1) // Start from next minute
-
-        // Simple cron pattern matching
-        return when {
-            // Daily at specific time: "0 0 * * *"
-            minute.matches("\\d+".toRegex()) && hour.matches("\\d+".toRegex()) && 
-            dayOfMonth == "*" && month == "*" && dayOfWeek == "*" -> {
-                calculateDailyTime(minute.toInt(), hour.toInt())
-            }
-            // Every N hours: "0 */N * * *"
-            minute == "0" && hour.startsWith("*/") && 
-            dayOfMonth == "*" && month == "*" && dayOfWeek == "*" -> {
-                val hourInterval = hour.substring(2).toIntOrNull() ?: return null
-                val nextTime = Calendar.getInstance()
-                nextTime.add(Calendar.HOUR_OF_DAY, hourInterval)
-                nextTime.set(Calendar.MINUTE, 0)
-                nextTime.set(Calendar.SECOND, 0)
-                nextTime.timeInMillis
-            }
-            // Every N minutes: "*/N * * * *"
-            minute.startsWith("*/") && hour == "*" && 
-            dayOfMonth == "*" && month == "*" && dayOfWeek == "*" -> {
-                val minuteInterval = minute.substring(2).toIntOrNull() ?: return null
-                val nextTime = Calendar.getInstance()
-                nextTime.add(Calendar.MINUTE, minuteInterval)
-                nextTime.set(Calendar.SECOND, 0)
-                nextTime.timeInMillis
-            }
-            else -> {
-                AppLogger.w(TAG, "Unsupported cron pattern: $cronExpression")
-                null
-            }
-        }
+    internal fun recordCompletion(workflowId: String, signature: String) {
+        // WorkManager 会清理已完成记录，一次性间隔任务需独立记住消费状态，防止冷启动再次运行。
+        check(completionState.edit().putBoolean("$workflowId:$signature", true).commit())
     }
 
-    /**
-     * Calculate next daily execution time
-     */
-    private fun calculateDailyTime(minute: Int, hour: Int): Long {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, hour)
-        calendar.set(Calendar.MINUTE, minute)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-
-        // If time has passed today, schedule for tomorrow
-        if (calendar.timeInMillis <= System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        return calendar.timeInMillis
+    suspend fun cancelWorkflow(workflowId: String) {
+        scheduleMutex.withLock { workManager.cancelUniqueWork(getWorkName(workflowId)).await() }
     }
 
-    /**
-     * Calculate interval in milliseconds for cron expression
-     * Returns null for complex patterns
-     */
-    private fun calculateCronInterval(cronExpression: String): Long? {
-        val parts = cronExpression.trim().split("\\s+".toRegex())
-        if (parts.size < 5) return null
-
-        val minute = parts[0]
-        val hour = parts[1]
-
-        return when {
-            // Daily
-            minute.matches("\\d+".toRegex()) && hour.matches("\\d+".toRegex()) -> {
-                24 * 60 * 60 * 1000L
+    suspend fun isWorkflowScheduled(workflowId: String): Boolean =
+        withContext(Dispatchers.IO) {
+            workManager.getWorkInfosForUniqueWork(getWorkName(workflowId)).await().any {
+                !it.state.isFinished
             }
-            // Every N hours
-            minute == "0" && hour.startsWith("*/") -> {
-                val hourInterval = hour.substring(2).toLongOrNull() ?: return null
-                hourInterval * 60 * 60 * 1000
-            }
-            // Every N minutes
-            minute.startsWith("*/") && hour == "*" -> {
-                val minuteInterval = minute.substring(2).toLongOrNull() ?: return null
-                minuteInterval * 60 * 1000
-            }
-            else -> null
         }
-    }
 
-    /**
-     * Get next execution time for a workflow
-     */
-    fun getNextExecutionTime(workflow: Workflow): Long? {
-        val triggerNode = workflow.nodes.filterIsInstance<TriggerNode>()
-            .firstOrNull { it.triggerType == "schedule" }
-            ?: return null
-
-        val config = triggerNode.triggerConfig
-        val scheduleType = config[CONFIG_SCHEDULE_TYPE] ?: return null
-
-        return when (scheduleType) {
-            SCHEDULE_TYPE_SPECIFIC_TIME -> {
-                config[CONFIG_SPECIFIC_TIME]?.let { parseDateTime(it) }
-            }
-            SCHEDULE_TYPE_CRON -> {
-                config[CONFIG_CRON_EXPRESSION]?.let { calculateNextCronTime(it) }
-            }
-            SCHEDULE_TYPE_INTERVAL -> {
-                // For interval, next execution is interval from now
-                val intervalMs = config[CONFIG_INTERVAL_MS]?.toLongOrNull() ?: return null
-                System.currentTimeMillis() + intervalMs
-            }
-            else -> null
+    suspend fun getNextExecutionTime(workflow: Workflow): Long? =
+        withContext(Dispatchers.IO) {
+            if (WorkflowSchedulePlan.identity(workflow) == null) return@withContext null
+            // 展示已登记请求的时间，不在每次刷新时把间隔重新加到现在。
+            workManager
+                .getWorkInfosForUniqueWork(getWorkName(workflow.id))
+                .await()
+                .filter {
+                    it.state == WorkInfo.State.ENQUEUED &&
+                        (REVISION_TAG !in it.tags ||
+                            SIGNATURE_TAG_PREFIX + WorkflowSchedulePlan.identity(workflow) in
+                                it.tags)
+                }
+                .map { it.nextScheduleTimeMillis }
+                .filter { it > 0 && it < Long.MAX_VALUE }
+                .minOrNull()
         }
-    }
+
+    private fun input(workflowId: String, plan: WorkflowSchedulePlan, next: Long) =
+        workDataOf(
+            WorkflowWorker.KEY_WORKFLOW_ID to workflowId,
+            KEY_TRIGGER_NODE_ID to plan.triggerId,
+            KEY_SCHEDULE_SIGNATURE to plan.signature,
+            KEY_SCHEDULED_AT to next,
+        )
+
+    private fun oneTime(
+        workflowId: String,
+        plan: WorkflowSchedulePlan,
+        next: Long,
+    ): OneTimeWorkRequest =
+        OneTimeWorkRequestBuilder<WorkflowWorker>()
+            .setInitialDelay(
+                (next - System.currentTimeMillis()).coerceAtLeast(0),
+                TimeUnit.MILLISECONDS,
+            )
+            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+            .setInputData(input(workflowId, plan, next))
+            .addTag(workflowId)
+            .addTag(REVISION_TAG)
+            .addTag(SIGNATURE_TAG_PREFIX + plan.signature)
+            .build()
+
+    private fun getWorkName(workflowId: String) = "$WORK_NAME_PREFIX$workflowId"
 }
-

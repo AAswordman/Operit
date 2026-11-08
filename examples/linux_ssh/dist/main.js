@@ -7,7 +7,7 @@ exports.registerToolPkg = registerToolPkg;
 exports.onApplicationCreate = onApplicationCreate;
 const index_ui_js_1 = __importDefault(require("./linux_ssh_setup/index.ui.js"));
 function registerToolPkg() {
-    ToolPkg.registerToolboxUiModule({
+    ToolPkg.registerUiModule({
         id: "linux_ssh_setup",
         runtime: "compose_dsl",
         screen: index_ui_js_1.default,

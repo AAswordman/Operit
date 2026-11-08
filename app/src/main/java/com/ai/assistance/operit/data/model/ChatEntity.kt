@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.data.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.Instant
@@ -24,7 +25,11 @@ data class ChatEntity(
         val characterCardName: String? = null,
         val characterGroupId: String? = null,
         val locked: Boolean = false,
-        val pinned: Boolean = false
+        val folderId: String? = null,
+        @ColumnInfo(defaultValue = "0") val lastUsedAt: Long = 0L,
+        val pinned: Boolean = false,
+        @ColumnInfo(defaultValue = "0") val archived: Boolean = false,
+        @ColumnInfo(defaultValue = "NULL") val usageBreakdownJson: String? = null
 ) {
     /** 转换为ChatHistory对象（供UI层使用） */
     fun toChatHistory(messages: List<ChatMessage>): ChatHistory {
@@ -45,6 +50,7 @@ data class ChatEntity(
                 inputTokens = inputTokens,
                 outputTokens = outputTokens,
                 currentWindowSize = currentWindowSize,
+                usageBreakdownJson = usageBreakdownJson,
                 group = group,
                 displayOrder = displayOrder,
                 workspace = workspace,
@@ -53,7 +59,10 @@ data class ChatEntity(
                 characterCardName = characterCardName,
                 characterGroupId = characterGroupId,
                 locked = locked,
-                pinned = pinned
+                folderId = folderId,
+                lastUsedAt = lastUsedAt,
+                pinned = pinned,
+                archived = archived
         )
     }
 
@@ -79,6 +88,7 @@ data class ChatEntity(
                     inputTokens = chatHistory.inputTokens,
                     outputTokens = chatHistory.outputTokens,
                     currentWindowSize = chatHistory.currentWindowSize,
+                    usageBreakdownJson = chatHistory.usageBreakdownJson,
                     group = chatHistory.group,
                     displayOrder = if (chatHistory.displayOrder != 0L) chatHistory.displayOrder else -now,
                     workspace = chatHistory.workspace,
@@ -87,7 +97,10 @@ data class ChatEntity(
                     characterCardName = chatHistory.characterCardName,
                     characterGroupId = chatHistory.characterGroupId,
                     locked = chatHistory.locked,
-                    pinned = chatHistory.pinned
+                    folderId = chatHistory.folderId,
+                    lastUsedAt = chatHistory.lastUsedAt,
+                    pinned = chatHistory.pinned,
+                    archived = chatHistory.archived
             )
         }
     }

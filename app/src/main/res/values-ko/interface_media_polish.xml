@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">여러 파일 선택</string>
+    <string name="workspace_selection_count">%1$d개 선택됨</string>
+    <string name="workspace_delete_selected_title">선택한 항목 삭제</string>
+    <string name="workspace_delete_selected_message">선택한 파일 또는 폴더 %1$d개와 폴더 내용을 삭제할까요? 이 작업은 되돌릴 수 없습니다.</string>
+    <string name="voice_message_expired">오디오 파일이 만료되었거나 삭제되었습니다</string>
+    <string name="chat_media_file_missing">파일이 더 이상 존재하지 않습니다</string>
+    <string name="chat_media_preview_failed">이 미디어 파일을 미리 볼 수 없습니다</string>
+</resources>

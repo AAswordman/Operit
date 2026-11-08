@@ -6,6 +6,7 @@ enum class FunctionType {
     SUMMARY, // 对话总结
     TITLE_GENERATION, // AI总结标题
     MEMORY, // 记忆库处理
+    MEMORY_EMBEDDING, // 记忆向量生成与语义检索
     UI_CONTROLLER, // UI自动化控制
     TRANSLATION, // 翻译功能
     GREP, // Grep上下文检索/代码搜索规划

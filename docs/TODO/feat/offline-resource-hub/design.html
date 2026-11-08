@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Operit · 离线资源设计稿</title>
+<style>
+/* 单文件、离线可打开；主题颜色对应当前 Android 页面。 */
+:root{--bg:#101518;--panel:#181e23;--panel-2:#202930;--hover:#28343b;--text:#edf3f6;--muted:#a1b0b9;--faint:#788b97;--line:#2c363e;--primary:#96d8ed;--on-primary:#073545;--tonal:#203d49;--tonal-text:#b5e5f4;--green:#97d6bc;--green-bg:#213a32;--amber:#e9c68a;--amber-bg:#3a3224;--red:#f4aba8;--red-bg:#3b292c;--shadow:0 16px 64px #0007;--radius:20px;color-scheme:dark}
+:root[data-theme="light"]{--bg:#f5f8fa;--panel:#fff;--panel-2:#edf2f5;--hover:#e3edf1;--text:#17282f;--muted:#576b77;--faint:#758791;--line:#dce5e9;--primary:#08728b;--on-primary:#fff;--tonal:#e0f0f6;--tonal-text:#155970;--green:#257355;--green-bg:#e8f5ed;--amber:#885d19;--amber-bg:#fff3dd;--red:#ad4448;--red-bg:#fcebec;--shadow:0 16px 64px #143b4d24;color-scheme:light}
+*{box-sizing:border-box}
+html{background:var(--bg);scroll-behavior:smooth}
+body{margin:0;color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC","Microsoft YaHei",sans-serif;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit}
+button,a,input,select{touch-action:manipulation}
+button{cursor:pointer}
+button{color:inherit}
+button:disabled{cursor:default;opacity:.48}
+button,a,input,select{outline-offset:4px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary)}
+button{border:0}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+h1,h2,h3,h4,p{margin:0}
+svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.icon{display:inline-block;vertical-align:middle}
+button svg{pointer-events:none}
+[hidden]{display:none!important}
+.nowrap{white-space:nowrap}
+.muted{color:var(--muted)}
+.tiny{font-size:12px}
+.mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+.app{max-width:1040px;margin:auto;padding:0 28px 42px}
+.preview-bar{max-width:1040px;padding:15px 28px 0;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--faint);font-size:11px;letter-spacing:.04em}
+.preview-bar strong{color:var(--muted);font-weight:500}
+.preview-mark{display:inline-flex;align-items:center;gap:7px}
+.preview-dot{width:6px;height:6px;border-radius:50%;background:var(--primary)}
+.preview-hint{letter-spacing:0;font-size:11px}
+.appbar{display:flex;align-items:center;gap:12px;min-height:80px}
+.appbar h1{font-size:21px;font-weight:650;letter-spacing:.02em;flex:1}
+.icon-button{width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border-radius:50%;flex:none;color:var(--muted)}
+.icon-button:hover{background:var(--hover);color:var(--text)}
+.back{margin-left:-12px;color:var(--text)}
+.app-actions{display:flex;gap:2px}
+.hero{border:1px solid var(--line);border-radius:24px;padding:24px;background:var(--panel)}
+.hero-top{display:flex;gap:16px;align-items:flex-start}
+.hero-icon{width:52px;height:52px;border-radius:17px;background:var(--tonal);color:var(--primary);display:grid;place-items:center;flex:none}
+.hero-icon svg{width:26px;height:26px}
+.hero-copy{flex:1;min-width:0}
+.eyebrow{font-size:11px;color:var(--primary);letter-spacing:.12em;margin-bottom:5px}
+.hero h2{font-size:24px;line-height:1.4;font-weight:650;letter-spacing:.02em}
+.hero-copy p{margin-top:8px;font-size:13px;color:var(--muted);max-width:540px}
+.hero .icon-button{margin:-8px -9px 0 0}
+.hero-bottom{margin-top:20px;padding-top:16px;border-top:1px solid var(--line);display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.platform{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.platform svg{width:15px;height:15px}
+.platform span+span:before{content:"·";padding-right:7px;color:var(--faint)}
+.prepared-link{background:transparent;color:var(--primary);padding:2px 0;min-height:32px;font-size:12px;display:flex;align-items:center;gap:6px}
+.prepared-link svg{width:15px;height:15px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--panel-2);border-radius:16px;padding:5px;margin:24px 0 22px;gap:5px}
+.tab{height:48px;border-radius:12px;background:transparent;color:var(--muted);font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s,color .15s}
+.tab.active{background:var(--panel);color:var(--primary);box-shadow:0 1px 4px #0001;font-weight:600}
+.tab svg{width:18px;height:18px}
+.count{font-size:11px;line-height:20px;min-width:20px;padding:0 5px;background:var(--panel-2);border-radius:6px;display:inline-block;text-align:center;color:var(--muted);font-weight:500}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:15px}
+.search{display:flex;gap:9px;align-items:center;min-width:0;flex:1;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--panel);height:46px}
+.search svg{width:18px;height:18px;color:var(--faint)}
+.search input{min-width:0;width:100%;height:100%;border:0;outline:none;background:transparent;color:var(--text);font-size:13px}
+.search input::placeholder{color:var(--faint)}
+.btn{min-height:42px;padding:9px 17px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:22px;font-size:13px;font-weight:550;background:var(--primary);color:var(--on-primary);white-space:nowrap}
+.btn svg{width:17px;height:17px}
+.btn:hover{filter:brightness(1.07)}
+.btn.tonal{background:var(--tonal);color:var(--tonal-text)}
+.btn.outline{background:transparent;color:var(--primary);border:1px solid var(--line)}
+.btn.quiet{background:transparent;color:var(--primary);padding-left:12px;padding-right:12px}
+.btn.danger{background:var(--red-bg);color:var(--red)}
+.btn.full{width:100%}
+.source-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;color:var(--muted);font-size:12px}
+.source-picker{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;min-height:38px}
+.source-picker svg{width:15px;height:15px;color:var(--primary)}
+.source-picker .chevron{color:var(--faint);width:13px;height:13px}
+.filters{display:flex;gap:8px;overflow-x:auto;padding:1px 0 9px;margin:0 0 16px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filter{display:flex;align-items:center;gap:5px;flex:none;padding:6px 12px;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:20px;min-height:35px;font-size:12px}
+.filter.selected{background:var(--tonal);border-color:transparent;color:var(--tonal-text)}
+.filter em{font-style:normal;opacity:.72;font-size:11px}
+.section{margin-top:24px}
+.section:first-child{margin-top:0}
+.section-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;min-height:28px}
+.section-head svg{width:18px;height:18px;color:var(--primary)}
+.section-head h2{font-size:14px;font-weight:600}
+.section-head .head-action{margin-left:auto;background:transparent;color:var(--primary);font-size:12px;min-height:36px}
+.head-caption{margin:-6px 0 13px;color:var(--faint);font-size:12px}
+.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.resource-card{border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);padding:18px;min-width:0}
+.card-head{display:flex;gap:12px;align-items:flex-start}
+.resource-icon{width:43px;height:43px;border-radius:14px;background:var(--tonal);color:var(--primary);display:grid;place-items:center;flex:none}
+.resource-icon svg{width:22px;height:22px}
+.card-heading{flex:1;min-width:0;padding-top:1px}
+.card-heading h3{font-size:14px;line-height:1.5;font-weight:600;overflow-wrap:anywhere}
+.card-heading p{font-size:12px;line-height:1.6;color:var(--muted);margin-top:4px}
+.card-head .icon-button{width:30px;height:30px;margin:-3px -5px 0 0}
+.card-head .icon-button svg{width:18px;height:18px}
+.metadata{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:14px;color:var(--muted);font-size:11px}
+.meta-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:6px;background:var(--panel-2)}
+.meta-chip svg{width:12px;height:12px}
+.meta-chip.warning{background:var(--amber-bg);color:var(--amber)}
+.card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:17px;min-height:42px}
+.status{display:inline-flex;align-items:center;gap:5px;color:var(--faint);font-size:11px;min-width:0}
+.status svg{width:14px;height:14px}
+.status.ready,.status.bundled{color:var(--green)}
+.status.pending{color:var(--amber)}
+.status.error{color:var(--red)}
+.status .dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.current-tag{margin-left:5px;padding:2px 6px;background:var(--green-bg);border-radius:5px;font-size:10px}
+.resource-card .card-foot .btn{min-height:36px;padding:7px 14px;font-size:12px}
+.note{margin-top:13px;border-radius:10px;padding:10px 12px;background:var(--panel-2);font-size:12px;color:var(--muted);line-height:1.65}
+.note svg{width:15px;height:15px;margin-right:5px;vertical-align:-3px;color:var(--primary)}
+.note.blue{background:var(--tonal);color:var(--tonal-text)}
+.note.warning{background:var(--amber-bg);color:var(--amber)}
+.transfer{margin-top:12px}
+.progress-track{height:4px;background:var(--panel-2);border-radius:8px;overflow:hidden}
+.progress-fill{height:100%;background:var(--primary);border-radius:8px;transition:width .2s linear}
+.transfer-label{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;margin:8px 0}
+.transfer-label button{background:transparent;padding:0 2px;color:var(--primary)}
+.group-summary{display:flex;align-items:center;gap:9px;margin-bottom:13px;color:var(--muted);font-size:12px}
+.templates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.template{padding:14px 10px 9px;background:var(--panel);border:1px solid var(--line);border-radius:16px;min-width:0;position:relative;display:flex;flex-direction:column;align-items:flex-start}
+.template-mark{height:33px;min-width:33px;border-radius:10px;display:grid;place-items:center;padding:0 7px;font-size:13px;font-weight:700;background:var(--panel-2);color:var(--primary);letter-spacing:-.03em;margin-bottom:9px}
+.template:nth-child(3n+2) .template-mark{color:var(--green)}
+.template:nth-child(3n) .template-mark{color:var(--amber)}
+.template h3{font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.template p{font-size:10px;color:var(--faint);margin:3px 0 5px}
+.template button{background:transparent;color:var(--primary);display:flex;align-items:center;justify-content:space-between;width:100%;font-size:11px;min-height:32px;padding:4px 0 0}
+.template button svg{width:14px;height:14px}
+.template .template-state{position:absolute;right:10px;top:12px;color:var(--green)}
+.template .template-state svg{width:14px;height:14px}
+.template .progress-track{width:100%;margin-top:6px}
+.page-foot{display:flex;align-items:flex-start;justify-content:center;gap:7px;color:var(--faint);text-align:left;font-size:11px;max-width:520px;margin:28px auto 0;padding:0 8px}
+.page-foot svg{width:14px;height:14px;margin-top:2px}
+.empty{grid-column:1/-1;padding:44px 18px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px}
+.empty svg{width:30px;height:30px;margin-bottom:10px;color:var(--faint)}
+.empty h3{font-size:15px;color:var(--text);margin-bottom:6px}
+.empty p{font-size:12px}
+.ready-filter{display:flex;justify-content:space-between;align-items:center;background:var(--green-bg);color:var(--green);padding:8px 12px;font-size:12px;border-radius:10px;margin-bottom:15px}
+.ready-filter button{color:inherit;background:transparent;min-height:30px}
+.bottom-sign{height:4px;width:110px;background:var(--faint);opacity:.3;margin:40px auto 0;border-radius:4px}
+dialog{color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:26px;width:min(620px,calc(100% - 32px));max-height:88dvh;padding:0;box-shadow:var(--shadow);overflow:hidden}
+dialog::backdrop{background:#0008;backdrop-filter:blur(3px)}
+.sheet-layout{display:flex;flex-direction:column;max-height:88dvh}
+.sheet-handle{display:none}
+.sheet-head{display:flex;align-items:flex-start;gap:12px;padding:24px 22px 14px;flex:none}
+.sheet-head .title{min-width:0;flex:1}
+.sheet-head h2{font-size:20px;font-weight:600;line-height:1.45;overflow-wrap:anywhere}
+.sheet-head p{font-size:12px;color:var(--muted);margin-top:6px}
+.sheet-head .icon-button{margin:-7px -8px 0 0}
+.sheet-content{overflow-y:auto;overscroll-behavior:contain;padding:4px 22px 24px;min-height:0}
+.sheet-actions{padding:14px 22px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end;background:var(--panel);flex:none}
+.sheet-actions:empty{display:none}
+.import-tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel-2);padding:4px;border-radius:12px;gap:3px;margin-bottom:18px}
+.import-tab{min-height:40px;padding:6px;background:transparent;color:var(--muted);font-size:12px;border-radius:9px}
+.import-tab.active{background:var(--panel);color:var(--primary);font-weight:600}
+.field{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;min-width:0}
+.field label{font-size:12px;color:var(--muted)}
+.field input,.field select{width:100%;min-width:0;min-height:46px;padding:10px 12px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:11px;outline-offset:2px;font-size:13px}
+.field input::placeholder{color:var(--faint)}
+.field small{font-size:11px;color:var(--faint)}
+.field input[type=file]{font-size:12px;padding:8px}
+.field input::file-selector-button{background:var(--tonal);border:0;border-radius:7px;color:var(--tonal-text);padding:7px 9px;margin-right:10px}
+.field-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hub-result{padding:14px 0;border-bottom:1px solid var(--line)}
+.hub-result:last-child{border-bottom:0}
+.hub-result h3{font-size:13px;font-weight:600}
+.hub-result p{font-size:11px;color:var(--faint);margin-top:5px;overflow-wrap:anywhere}
+.hub-result .result-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px}
+.hub-result .btn{min-height:34px;font-size:11px;padding:6px 12px}
+.hub-search{margin-bottom:6px}
+.inline-tip{font-size:11px;color:var(--faint);margin:8px 0 14px}
+.field-error{margin:0 0 14px;color:var(--red);font-size:12px}
+.example-link{background:transparent;color:var(--primary);padding:4px 0;font-size:12px;min-height:32px}
+.review-card{margin:18px 0 0;padding:15px;background:var(--panel-2);border-radius:13px}
+.review-card h3{font-size:14px;margin-bottom:6px}
+.review-card p{font-size:12px;color:var(--muted);margin-top:5px}
+.review-card .btn{margin-top:15px}
+.details-list{margin:6px 0 18px}
+.details-row{padding:11px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:90px minmax(0,1fr);gap:12px;font-size:12px}
+.details-row dt{color:var(--faint)}
+.details-row dd{margin:0;overflow-wrap:anywhere}
+.details-list a{display:inline-flex;align-items:center;gap:5px}
+.details-list a svg{width:13px;height:13px}
+.file-list{margin:0;padding:0;list-style:none}
+.file-list li{font-size:11px;color:var(--muted);padding:8px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.details-label{font-size:12px;font-weight:600;margin:20px 0 8px}
+.choice{padding:15px 12px;width:100%;display:flex;gap:12px;align-items:center;background:transparent;border:1px solid var(--line);border-radius:13px;text-align:left;margin:9px 0}
+.choice.selected{background:var(--tonal);border-color:var(--primary)}
+.choice>svg{color:var(--primary)}
+.choice-copy{flex:1;min-width:0}
+.choice-copy strong{display:block;font-size:13px;font-weight:550}
+.choice-copy small{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.switch-row{padding:15px 0;display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--line)}
+.switch-row .copy{flex:1;min-width:0}
+.switch-row strong{font-size:13px;font-weight:500}
+.switch-row p{font-size:11px;color:var(--muted);margin-top:4px}
+.switch-row input{appearance:none;width:40px;height:24px;padding:3px;border-radius:14px;background:var(--line);cursor:pointer;flex:none;margin:0}
+.switch-row input:before{content:"";display:block;width:18px;height:18px;background:var(--faint);border-radius:50%;transition:transform .15s}
+.switch-row input:checked{background:var(--primary)}
+.switch-row input:checked:before{background:var(--on-primary);transform:translateX(16px)}
+.scenario-buttons{display:flex;gap:10px;margin:16px 0}
+.scenario-buttons .btn{flex:1;font-size:12px}
+.toast{position:fixed;bottom:calc(25px + env(safe-area-inset-bottom));left:50%;transform:translate(-50%,16px);width:max-content;max-width:calc(100% - 32px);padding:12px 18px;border:1px solid var(--line);border-radius:14px;background:var(--text);color:var(--bg);box-shadow:var(--shadow);font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:100}
+.toast.visible{opacity:1;transform:translate(-50%,0)}
+.dialog-toast{background:var(--tonal);color:var(--tonal-text);border-radius:10px;font-size:12px;padding:10px 12px;margin-top:14px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(min-width:760px){.hero{padding:27px 28px}
+.hero-copy p{max-width:none}
+.hero h2{font-size:26px}
+.tabs{max-width:470px}
+.templates{grid-template-columns:repeat(5,minmax(0,1fr))}
+.resource-card.wide{grid-column:1/-1}
+.resource-card.wide .card-foot{margin-top:13px}
+.resource-card.wide .note{max-width:700px}
+.card-heading h3{font-size:15px}
+.resource-card{padding:20px}
+.template{padding:17px 15px 10px}
+.template h3{font-size:13px}
+.template p{font-size:11px}
+}
+@media(max-width:599px){.app{padding:0 18px 30px}
+.preview-bar{padding:12px 18px 0}
+.preview-hint{display:none}
+.appbar{min-height:68px;gap:9px}
+.appbar h1{font-size:19px}
+.hero{padding:19px 17px;border-radius:21px}
+.hero-top{gap:12px}
+.hero-icon{width:43px;height:43px;border-radius:14px}
+.hero-icon svg{width:23px;height:23px}
+.hero h2{font-size:21px}
+.hero-copy p{font-size:12px;line-height:1.7}
+.hero .eyebrow{font-size:10px}
+.hero .icon-button{width:32px;height:32px;margin:-3px -5px 0 0}
+.hero-bottom{margin-top:16px;padding-top:12px;gap:5px}
+.platform{font-size:10px}
+.platform svg{width:13px;height:13px}
+.prepared-link{font-size:10px;gap:3px}
+.prepared-link svg{width:12px;height:12px}
+.tabs{margin:20px 0 18px}
+.tab{height:44px;font-size:13px}
+.tab svg{width:17px;height:17px}
+.cards{grid-template-columns:minmax(0,1fr);gap:11px}
+.resource-card{padding:16px;border-radius:18px}
+.toolbar .btn{padding:10px 14px;font-size:12px}
+.toolbar .btn svg{width:16px;height:16px}
+.source-row{font-size:11px}
+.source-picker{font-size:11px}
+.card-heading h3{font-size:14px}
+.section{margin-top:23px}
+.section-head h2{font-size:13px}
+.filters{gap:7px}
+.filter{font-size:11px;padding:6px 11px}
+.page-foot{font-size:10px}
+.template p{font-size:10px}
+.template h3{font-size:12px}
+dialog{width:100%;max-width:none;margin:auto 0 0;border-radius:25px 25px 0 0;border-bottom:0;max-height:92dvh}
+.sheet-layout{max-height:92dvh}
+.sheet-handle{display:block;width:34px;height:4px;border-radius:8px;background:var(--line);margin:10px auto 0;flex:none}
+.sheet-head{padding:15px 20px 13px}
+.sheet-head h2{font-size:19px}
+.sheet-content{padding:4px 20px 22px}
+.sheet-actions{padding-left:20px;padding-right:20px}
+.sheet-actions .btn{flex:1}
+.import-tabs{margin-bottom:16px}
+.field-pair{gap:10px}
+.details-row{grid-template-columns:72px minmax(0,1fr);font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<div class="preview-bar"><span class="preview-mark"><span class="preview-dot"></span><strong>交互设计预览 · 01</strong></span><span class="preview-hint">下载、导入与资源状态均为演示</span><button class="btn quiet tiny" style="font-size:11px;min-height:28px;padding:2px 0" data-action="preview">切换场景</button></div>
+<div class="app">
+  <header class="appbar"><button class="icon-button back" data-action="back" aria-label="返回"><span data-icon="back"></span></button><h1>离线资源</h1><div class="app-actions"><button id="themeButton" class="icon-button" data-action="theme" aria-label="切换为浅色主题"><span data-icon="sun"></span></button><button class="icon-button" data-action="preview" aria-label="预览设置"><span data-icon="sliders"></span></button></div></header>
+  <section class="hero" aria-label="资源概览"><div class="hero-top"><div class="hero-icon"><span data-icon="cloudDownload"></span></div><div class="hero-copy"><div class="eyebrow">准备一次，随时可用</div><h2>需要时，再准备</h2><p>把模型、工具和项目模板留在本地。按需下载，也能导入已有的离线备份。</p></div><button class="icon-button" data-action="refresh" aria-label="刷新资源状态"><span data-icon="refresh"></span></button></div><div class="hero-bottom"><div class="platform"><span style="display:flex;align-items:center;gap:5px"><span data-icon="android"></span>Android</span><span>arm64-v8a</span></div><button id="preparedSummary" class="prepared-link" data-action="ready-filter"></button></div></section>
+  <nav class="tabs" role="tablist" aria-label="资源类型"><button id="tab-models" class="tab active" role="tab" aria-controls="content" aria-selected="true" data-action="tab" data-value="models"><span data-icon="chip"></span>本地模型 <span class="count" id="modelCount">7</span></button><button id="tab-resources" class="tab" role="tab" aria-controls="content" aria-selected="false" data-action="tab" data-value="resources"><span data-icon="layers"></span>其他资源 <span class="count">13</span></button></nav>
+  <div id="readyBanner" hidden></div>
+  <main id="content" role="tabpanel" aria-labelledby="tab-models"></main>
+  <footer class="page-foot"><span data-icon="archive"></span><p>下载或导入的资源可保存为 ZIP，方便重装后恢复。模型和资源文件都保存在本机。</p></footer><div class="bottom-sign" aria-hidden="true"></div>
+</div>
+<dialog id="sheet" aria-labelledby="sheetTitle"><div class="sheet-layout"><div class="sheet-handle" aria-hidden="true"></div><header class="sheet-head"><div class="title"><h2 id="sheetTitle"></h2><p id="sheetSubtitle"></p></div><button class="icon-button" data-action="close" aria-label="关闭窗口"><span data-icon="close"></span></button></header><div class="sheet-content" id="sheetBody"></div><footer class="sheet-actions" id="sheetActions"></footer></div></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:24px">请使用支持 JavaScript 的浏览器打开交互设计稿。</p></noscript>
+<script>
+'use strict';
+const paths = {
+ back:'<path d="m15 5-7 7 7 7M8 12h13"/>', close:'<path d="m6 6 12 12M6 18 12-12"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.4 1.4m11.2 11.2L19 19M5 19l1.4-1.4M17.6 6.4 19 5"/>',
+ moon:'<path d="M20.5 13a9 9 0 0 1-9.5-9.5A9 9 0 1 0 20.5 13Z"/>',
+ sliders:'<path d="M4 7h9m4 0h3M4 17h3m4 0h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+ cloudDownload:'<path d="M7 18H6a4 4 0 0 1-.6-8A6.5 6.5 0 0 1 18 8.5a4.8 4.8 0 0 1 0 9.5h-1M12 11v10m-4-4 4 4 4-4"/>',
+ refresh:'<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5 8a8 8 0 0 1 13-3l2 2M4 17l2 2a8 8 0 0 0 13-3"/>',
+ android:'<path d="M5 16v-5a7 7 0 0 1 14 0v5ZM7 5 5 2m12 3 2-3M8 16v4m8-4v4M2 11v5m20-5v5"/><path d="M9 9h.01M15 9h.01" stroke-width="3"/>',
+ check:'<path d="m5 12 4 4L19 6"/>', circleCheck:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+ chip:'<rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
+ layers:'<path d="m3 7 9-5 9 5-9 5ZM3 12l9 5 9-5M3 17l9 5 9-5"/>',
+ archive:'<rect x="3" y="4" width="18" height="5" rx="1"/><path d="M5 9v11h14V9m-10 4h6"/>',
+ mic:'<rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>',
+ audio:'<path d="M4 9H2v6h2l5 4V5ZM13 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>',
+ scan:'<path d="M3 8V3h5m8 0h5v5M3 16v5h5m8 0h5v-5M7 16l5-9 5 9m-8-3h6"/>',
+ terminal:'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="m6 9 3 3-3 3m6 0h5"/>',
+ package:'<path d="m3 7 9-5 9 5v10l-9 5-9-5ZM3 7l9 5 9-5M12 12v10M7.5 4.5l9 5"/>',
+ tools:'<path d="M14.5 6.5 18 3a6 6 0 0 0-7.5 7.5L3 18l3 3 7.5-7.5A6 6 0 0 0 21 6l-3.5 3.5Z"/>',
+ folder:'<path d="M3 7V5a2 2 0 0 1 2-2h5l3 3h6a2 2 0 0 1 2 2v11H3Z"/>',
+ download:'<path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/>',
+ upload:'<path d="M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5"/>',
+ search:'<circle cx="10" cy="10" r="6.5"/><path d="m15 15 6 6"/>',
+ cloud:'<path d="M6 18a5 5 0 0 1-.5-10A7 7 0 0 1 19 8a5 5 0 0 1 0 10Z"/>',
+ chevron:'<path d="m7 10 5 5 5-5"/>', more:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ link:'<path d="m10 13 4-4m-5 7H7a4 4 0 0 1 0-8h3m4 0h3a4 4 0 0 1 0 8h-3"/>',
+ external:'<path d="M14 3h7v7m0-7L10 14M10 3H3v18h18v-7"/>',
+ shield:'<path d="m12 2 8 3v7c0 5-8 10-8 10S4 17 4 12V5Z"/><path d="m8 11 3 3 5-6"/>',
+ storage:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 10h18M3 16h18M7 6h.01M7 13h.01M7 19h.01"/>',
+ trash:'<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
+ plus:'<path d="M12 4v16M4 12h16"/>', windows:'<path d="m3 5 8-1v8H3Zm10-1 8-1v9h-8ZM3 14h8v8l-8-1Zm10 0h8v9l-8-1Z"/>',
+};
+function icon(name, cls=''){return `<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true">${paths[name]}</svg>`;}
+function esc(value){return String(value).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');}
+const $ = id=>document.getElementById(id);
+const sources={hf:{name:'Hugging Face',host:'huggingface.co',hint:'模型社区与原始仓库'},ms:{name:'ModelScope · 魔搭',host:'modelscope.cn',hint:'模型社区与国内下载源'},mirror:{name:'HF-Mirror',host:'hf-mirror.com',hint:'Hugging Face 的下载镜像'}};
+const releasePage='https://github.com/3316891527/Operit/releases/tag/resources-v1';
+const models=[
+ {id:'ncnn',kind:'stt',title:'Sherpa NCNN Zipformer',desc:'中英双语流式识别，沿用当前语音模型。',bytes:141346210,engine:'NCNN',language:'中文 / English',license:'原始来源未声明',version:'05945efc40afe4b572542f01104ca5c413a9f6e1',repo:'csukuangfj/sherpa-ncnn-streaming-zipformer-bilingual-zh-en-2023-02-13',source:'release',files:['encoder_jit_trace-pnnx.ncnn.bin','encoder_jit_trace-pnnx.ncnn.param','decoder_jit_trace-pnnx.ncnn.bin','decoder_jit_trace-pnnx.ncnn.param','joiner_jit_trace-pnnx.ncnn.bin','joiner_jit_trace-pnnx.ncnn.param','tokens.txt']},
+ {id:'zipformer',kind:'stt',title:'Sherpa ONNX Zipformer',desc:'中英双语流式识别，ONNX 模型候选。',bytes:199056205,engine:'Sherpa ONNX',language:'中文 / English',license:'Apache-2.0',version:'98590b7ed6443e77b714204da2757d75e1a642f4',repo:'csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20',msRepo:'pkufool/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20',source:'hub',files:['encoder-epoch-99-avg-1.int8.onnx','decoder-epoch-99-avg-1.onnx','joiner-epoch-99-avg-1.int8.onnx','tokens.txt']},
+ {id:'aishell',kind:'tts',title:'VITS AISHELL-3 · int8',desc:'中文多说话人语音合成，轻量量化版本。',bytes:41914738,engine:'Sherpa ONNX',language:'中文',license:'Apache-2.0',version:'e3e808eaab2385b812286c6707323362251bba65',repo:'csukuangfj/vits-zh-aishell3',msRepo:'KuaiTec-Labs/kuaitec-model-suite',msPrefix:'vits-aishell3',source:'hub',files:['vits-aishell3.int8.onnx','lexicon.txt','tokens.txt']},
+ {id:'vitsll',kind:'tts',title:'VITS zh-ll',desc:'中文五说话人语音合成。',bytes:121712242,engine:'Sherpa ONNX',language:'中文',license:'Community · 许可见来源',version:'7ddf37bcacf05ed56afee360d96835be633a5265',repo:'csukuangfj/sherpa-onnx-vits-zh-ll',msRepo:'liaowenbin/sherpa-onnx-vits-zh-ll',source:'hub',files:['model.onnx','lexicon.txt','tokens.txt','phone.fst','number.fst','date.fst','new_heteronym.fst']},
+ {id:'matcha',kind:'tts',title:'Matcha Baker',desc:'中文单说话人合成，包含独立声码器。',bytes:131104197,engine:'Sherpa ONNX',language:'中文',license:'仅限非商用',version:'75e64a57a80fb370abb18a4e4d86bb090ed46e93',repo:'csukuangfj/matcha-icefall-zh-baker',msRepo:'liaowenbin/matcha-icefall-zh-baker',source:'hub',files:['model-steps-3.onnx','tokens.txt','lexicon.txt','phone.fst','number.fst','date.fst','vocos-22khz-univ.onnx']},
+ {id:'kitten',kind:'tts',title:'Kitten nano · int8',desc:'英文八说话人语音合成，支持离线使用。',bytes:31220690,engine:'Sherpa ONNX',language:'English',license:'Apache-2.0',version:'tts-models',repo:'k2-fsa/sherpa-onnx',source:'github',files:['kitten-nano-en-v0_8-int8.tar.bz2']},
+ {id:'ocr',kind:'ocr',title:'Google ML Kit OCR',desc:'识别图片与截图中的文字。',bytes:null,engine:'ML Kit',language:'中文 / 拉丁文 / 日文 / 韩文',license:'参见 Google ML Kit 许可',version:'16.0.0',repo:'Google ML Kit · 文字识别',source:'ocr',files:[]},
+];
+const resources=[
+ {id:'ubuntu',kind:'runtime',title:'Ubuntu 终端安装归档',desc:'首次安装或重装终端时使用。',bytes:64133552,engine:'Ubuntu 24.04',language:'arm64-v8a',source:'release',version:'pd-v4.18.0',files:['ubuntu-noble-aarch64-pd-v4.18.0.tar.xz']},
+ {id:'android-export',kind:'export',title:'Android 网页应用打包器',desc:'把 HTML 网页项目打包为 APK 应用。',bytes:48139093,engine:'Android',source:'release',version:'resources-v1',files:['android.apk']},
+ {id:'windows-export',kind:'export',title:'Windows 网页应用打包器',desc:'把 HTML 网页项目打包为 Windows 程序。',bytes:11412717,engine:'Windows',source:'release',version:'resources-v1',files:['windows.zip']},
+ {id:'apktool',kind:'plugin',title:'APK 逆向工具包',desc:'APK 解包、反编译、重编译与签名。',bytes:null,estimate:'约 25 MB',engine:'内置插件',source:'planned',version:'1.1.0',pluginId:'com.operit.apk_reverse_toolkit',files:['apktool-runtime-android.jar','android-framework.jar','jadx-runtime-android.jar','apk-reverse-helper-runtime-android.jar']},
+];
+const templateSpecs=[['android','Android','A','Android 工程',4856543],['flutter','Flutter','Fl','Flutter 工程',4938919],['go','Go','Go','Go 工程',1700],['java','Java','J','Java 工程',7569],['node','Node.js','JS','Node.js 工程',2470],['office','Office','Doc','Office 项目',5052],['python','Python','Py','Python 工程',2710],['typescript','TypeScript','TS','TypeScript 工程',4019],['web','Web','</>','HTML 网页项目',3514]];
+const templates=templateSpecs.map(([key,title,mark,desc,sourceBytes])=>({id:`tpl-${key}`,kind:'template',title,mark,desc,bytes:null,sourceBytes,engine:'项目模板',source:'planned',version:'待归档',files:[],templatePath:`app/src/main/assets/templates/${key}/`}));
+const kinds={stt:{title:'语音识别',icon:'mic'},tts:{title:'语音合成',icon:'audio'},ocr:{title:'文字识别',icon:'scan'},runtime:{title:'运行环境',icon:'terminal'},export:{title:'应用打包',icon:'package'},plugin:{title:'工具插件',icon:'tools'},template:{title:'项目模板',icon:'folder'}};
+const state={tab:'models',filterModels:'all',filterResources:'all',source:'hf',readyOnly:false,query:'',bundledPlugin:true,bundledOcr:true,terminalInstalled:true,current:{stt:'ncnn',tts:null,ocr:'ocr'},itemStates:new Map(),transfers:new Map(),downloadResult:'success',importTab:'search',importNumber:0};
+const sheet=$('sheet');
+let toastTimer;
+function allItems(){return [...models,...resources,...templates];}
+allItems().forEach(item=>state.itemStates.set(item.id,item.id==='ncnn'?'ready':'missing'));
+function itemById(id){const item=allItems().find(item=>item.id===id);if(!item)throw new Error(`未知资源：${id}`);return item;}
+function statusOf(item){if(item.id==='apktool'&&state.bundledPlugin||item.id==='ocr'&&state.bundledOcr)return 'bundled';return state.itemStates.get(item.id);}
+function isReady(item){return ['ready','bundled'].includes(statusOf(item));}
+function sizeOf(item){if(item.bytes!==null)return `${(item.bytes/1048576).toFixed(1)} MiB`;if(item.estimate)return item.estimate;return item.kind==='template'?'按需准备':'体积待核验';}
+function sourceOf(item){
+ if(item.source==='hub'){
+  if(state.source==='ms')return {name:sources.ms.name,repo:item.msRepo,version:'master',url:`https://modelscope.cn/models/${item.msRepo}`,base:`https://modelscope.cn/models/${item.msRepo}/resolve/master${item.msPrefix?'/'+item.msPrefix:''}`};
+  const host=state.source==='mirror'?'https://hf-mirror.com':'https://huggingface.co';
+  return {name:sources[state.source].name,repo:item.repo,version:item.version,url:`${host}/${item.repo}`,base:`${host}/${item.repo}/resolve/${item.version}`};
+ }
+ if(item.source==='release')return {name:'Operit 资源发行版',repo:'3316891527/Operit · resources-v1',version:item.version,url:releasePage,base:'https://github.com/3316891527/Operit/releases/download/resources-v1'};
+ if(item.source==='github')return {name:'GitHub Releases',repo:item.repo,version:item.version,url:'https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models',base:'https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models'};
+ if(item.source==='ocr')return {name:'Google ML Kit',repo:item.repo,version:item.version,url:'https://developers.google.com/ml-kit/vision/text-recognition/v2',base:null};
+ if(item.source==='local')return {name:'本地文件导入',repo:item.repo,version:item.version,url:null,base:null};
+ if(item.source==='custom')return {name:sources[item.customSource].name,repo:item.repo,version:item.version,url:item.homepage,base:null};
+ return {name:'Operit 离线资源',repo:'下载清单待拆包时生成',version:item.version,url:null,base:null};
+}
+function statusMarkup(item){
+ const status=statusOf(item);
+ const text={ready:'已就绪',bundled:'包内提供 · 可用',missing:'尚未准备',pending:'已导入 · 待校验',error:'准备失败'}[status];
+ const current=isReady(item)&&state.current[item.kind]===item.id?'<span class="current-tag">当前使用</span>':'';
+ return `<span class="status ${status}">${icon(isReady(item)?'circleCheck':status==='error'?'info':'cloud')}<span>${text}</span>${current}</span>`;
+}
+function button(label,action,id='',style='',symbol=''){return `<button class="btn ${style}" data-action="${action}" data-id="${esc(id)}">${symbol?icon(symbol):''}${label}</button>`;}
+function transferMarkup(item){
+ const transfer=state.transfers.get(item.id);if(!transfer)return '';
+ return `<div class="transfer"><div class="transfer-label"><span>${transfer.progress===100?'校验文件中…':`正在下载 ${transfer.progress}%`}</span><button data-action="cancel-download" data-id="${item.id}">取消</button></div><div class="progress-track" role="progressbar" aria-label="准备进度" aria-valuenow="${transfer.progress}" aria-valuemin="0" aria-valuemax="100"><div class="progress-fill" style="width:${transfer.progress}%"></div></div></div>`;
+}
+function resourceCard(item){
+ const status=statusOf(item),transfer=state.transfers.has(item.id),type=kinds[item.kind];
+ let action;
+ if(transfer)action='';else if(status==='bundled')action=button('详情','details',item.id,'outline');else if(status==='ready'||status==='pending')action=button('管理','details',item.id,'tonal');else action=button(status==='error'?'重试':item.id==='ubuntu'&&state.terminalInstalled?'下载归档':'下载','download',item.id,'','download');
+ let note='';
+ if(item.id==='ubuntu'&&state.terminalInstalled&&!isReady(item))note=`<p class="note">${icon('terminal')}终端环境已安装，可以继续使用；安装归档尚未保存。</p>`;
+ if(item.id==='apktool'&&status==='bundled')note=`<p class="note blue">${icon('shield')}已检测到包内资源，无需重复下载。内置插件身份保持不变。</p>`;
+ if(item.id==='apktool'&&status!=='bundled')note=`<p class="note">${icon('info')}按需准备运行时资源，供内置插件使用。</p>`;
+ const engine=item.kind==='plugin'?'内置插件':item.engine;
+ const caution=item.id==='matcha'?'<span class="meta-chip warning">仅限非商用</span>':'';
+ const metadata=`<span class="meta-chip">${icon('storage')}${sizeOf(item)}</span><span class="meta-chip">${esc(engine)}</span>${item.kind==='stt'?'<span class="meta-chip">中 / 英</span>':''}${caution}`;
+ return `<article class="resource-card ${item.kind==='runtime'||item.kind==='plugin'?'wide':''}" data-resource="${item.id}"><div class="card-head"><div class="resource-icon">${icon(type.icon)}</div><div class="card-heading"><h3>${esc(item.title)}</h3><p>${esc(item.desc)}</p></div><button class="icon-button" data-action="details" data-id="${item.id}" aria-label="${esc(item.title)}详情">${icon('more')}</button></div><div class="metadata">${metadata}</div>${note}<div class="card-foot">${transfer?`<span class="status">${icon('download')}准备资源中</span>`:statusMarkup(item)}${action}</div>${transferMarkup(item)}</article>`;
+}
+function templateCard(item){
+ const ready=isReady(item),pending=statusOf(item)==='pending',transfer=state.transfers.get(item.id);
+ return `<article class="template" data-resource="${item.id}">${ready?`<span class="template-state">${icon('circleCheck')}</span>`:''}<span class="template-mark">${esc(item.mark)}</span><h3>${item.title}</h3><p>${ready?'已准备':pending?'待校验':transfer?'准备中…':'工程模板'}</p><button data-action="${ready||pending||transfer?'details':'download'}" data-id="${item.id}" aria-label="${ready?'管理':'准备'}${item.title}模板">${ready||pending?'管理':transfer?`${transfer.progress}%`:'准备'}${icon(ready?'more':transfer?'download':'plus')}</button>${transfer?`<div class="progress-track"><div class="progress-fill" style="width:${transfer.progress}%"></div></div>`:''}</article>`;
+}
+function matches(item){return (!state.readyOnly||isReady(item))&&`${item.title} ${item.desc} ${item.repo?item.repo:''}`.toLowerCase().includes(state.query.toLowerCase());}
+function emptyMarkup(){return `<div class="empty">${icon('search')}<h3>没有找到对应资源</h3><p>换个关键词，或调整上方分类。</p></div>`;}
+function renderGroups(){
+ const modelTab=state.tab==='models',selected=modelTab?state.filterModels:state.filterResources;
+ const collection=modelTab?models:[...resources,...templates];
+ const groups=modelTab?['stt','tts','ocr']:['runtime','export','plugin','template'];
+ let html='';
+ for(const kind of groups){
+  const items=collection.filter(item=>item.kind===kind&&matches(item)&&(selected==='all'||selected===kind||selected==='imported'&&item.imported));
+  if(!items.length)continue;
+  html+=`<section class="section" aria-label="${kinds[kind].title}"><div class="section-head">${icon(kinds[kind].icon)}<h2>${kinds[kind].title}</h2><span class="count">${items.length}</span>${kind==='template'?'<button class="head-action" data-action="download-templates">全部准备</button>':''}</div>${kind==='template'?'<p class="head-caption">新建项目的起点，按需选择，也可导入模板备份。</p>':''}<div class="${kind==='template'?'templates':'cards'}">${items.map(kind==='template'?templateCard:resourceCard).join('')}</div></section>`;
+ }
+ $('groups').innerHTML=html||emptyMarkup();
+}
+function render(){
+ const modelTab=state.tab==='models',collection=modelTab?models:[...resources,...templates],selected=modelTab?state.filterModels:state.filterResources;
+ $('modelCount').textContent=models.length;
+ const prepared=allItems().filter(isReady).length;
+ $('preparedSummary').innerHTML=`${icon('circleCheck')}已准备 ${prepared} / ${allItems().length} 项 ${icon('chevron')}`;
+ for(const tab of ['models','resources']){$(`tab-${tab}`).classList.toggle('active',state.tab===tab);$(`tab-${tab}`).setAttribute('aria-selected',String(state.tab===tab));$(`tab-${tab}`).tabIndex=state.tab===tab?0:-1;}
+ $('content').setAttribute('aria-labelledby',`tab-${state.tab}`);
+ $('readyBanner').hidden=!state.readyOnly;
+ $('readyBanner').innerHTML=state.readyOnly?'<div class="ready-filter"><span>只显示已经准备好的资源</span><button data-action="ready-filter">显示全部</button></div>':'';
+ const filters=[['all','全部'],...(modelTab?['stt','tts','ocr']:['runtime','export','plugin','template']).map(kind=>[kind,kinds[kind].title]),...(modelTab?[['imported','我的导入']]:[])];
+ const filterHtml=filters.map(([key,title])=>{const count=key==='all'?collection.length:collection.filter(item=>key==='imported'?item.imported:item.kind===key).length;return `<button class="filter ${key===selected?'selected':''}" data-action="filter" data-value="${key}" aria-pressed="${key===selected}">${title} <em>${count}</em></button>`;}).join('');
+ $('content').innerHTML=`<div class="toolbar"><label class="search">${icon('search')}<span class="sr-only">搜索${modelTab?'模型':'资源'}</span><input id="resourceSearch" type="search" placeholder="搜索${modelTab?'模型名称':'资源或项目模板'}" value="${esc(state.query)}"></label>${button(modelTab?'探索 / 导入':'导入资源',modelTab?'import-model':'import-resource','','tonal',modelTab?'plus':'upload')}</div>${modelTab?`<div class="source-row"><span>模型下载源</span><button class="source-picker" data-action="source">${icon('cloud')}${sources[state.source].name}${icon('chevron','chevron')}</button></div>`:`<div class="source-row"><span>按需下载，也可导入 ZIP 备份</span><span class="tiny">共 4 类</span></div>`}<div class="filters" aria-label="资源分类">${filterHtml}</div><div id="groups"></div>`;
+ renderGroups();
+}
+function toast(text){
+ clearTimeout(toastTimer);
+ if(sheet.open){let note=$('sheetNotice');if(!note){note=document.createElement('p');note.id='sheetNotice';note.className='dialog-toast';note.setAttribute('role','status');$('sheetBody').append(note);}note.textContent=text;return;}
+ $('toast').textContent=text;$('toast').classList.add('visible');toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),3200);
+}
+function showSheet(title,subtitle,body,actions=''){$('sheetTitle').textContent=title;$('sheetSubtitle').textContent=subtitle;$('sheetBody').innerHTML=body;$('sheetActions').innerHTML=actions;$('sheetBody').scrollTop=0;if(!sheet.open)sheet.showModal();}
+function closeSheet(){sheet.close();}
+function setTheme(){const light=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=light?'light':'dark';$('themeButton').innerHTML=icon(light?'moon':'sun');$('themeButton').setAttribute('aria-label',light?'切换为深色主题':'切换为浅色主题');}
+function detailRow(label,value,html=false){return `<div class="details-row"><dt>${label}</dt><dd>${html?value:esc(value)}</dd></div>`;}
+function openDetails(id){
+ const item=itemById(id),status=statusOf(item),source=sourceOf(item),ready=isReady(item);
+ let body=`<div style="display:flex;gap:10px;align-items:center;margin:2px 0 12px"><div class="resource-icon">${icon(kinds[item.kind].icon)}</div>${statusMarkup(item)}</div><p class="muted tiny">${esc(item.desc)}</p>`;
+ body+='<dl class="details-list">'+detailRow('资源类型',kinds[item.kind].title)+detailRow('文件大小',sizeOf(item))+detailRow('提供方式',status==='bundled'?'随 APK 提供':item.imported?'用户导入':'按需准备');
+ if(item.language)body+=detailRow('适用语言',item.language);
+ body+=detailRow('引擎 / 格式',item.engine)+detailRow('版本',item.version);
+ if(item.license)body+=detailRow('许可',item.license);
+ if(item.pluginId)body+=detailRow('插件身份',`内置插件 · ${item.pluginId}`);
+ body+=detailRow('资源来源',source.name);
+ if(source.url)body+=detailRow('来源页面',`<a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.repo)} ${icon('external')}</a>`,true);
+ else if(item.source==='custom'||item.source==='local')body+=detailRow('导入来源',source.repo);
+ if(item.source==='hub')body+=detailRow('下载版本',source.version)+detailRow('仓库路径',source.repo)+detailRow('下载目录',source.base);
+ if(item.id==='matcha')body+=detailRow('声码器',`<a href="https://github.com/k2-fsa/sherpa-onnx/releases/tag/vocoder-models" target="_blank" rel="noopener noreferrer">k2-fsa/sherpa-onnx · vocoder-models ${icon('external')}</a>`,true);
+ body+='</dl>';
+ if(status==='bundled')body+=`<p class="note blue">${icon('shield')}当前 APK 已包含可用资源，无需额外下载；包内资源不提供删除或重复导入。</p>`;
+ if(item.id==='ubuntu')body+=`<p class="note">${icon('terminal')}${state.terminalInstalled?'终端环境已安装。安装归档单独保存，用于重装或备份。':'准备归档后，可前往终端完成首次安装。'}</p>`;
+ if(item.id==='ocr')body+=`<p class="note">${icon('info')}OCR 外置加载仍需单独适配，当前设计不代表已经完成拆包。</p>`;
+ if(status==='pending')body+=`<p class="note warning">${icon('info')}已添加导入记录，模型或资源尚未通过校验，暂不可启用。</p>`;
+ if(item.id==='matcha')body+=`<p class="note warning">${icon('info')}模型目录标注为非商用许可，使用前请查看来源说明。</p>`;
+ if(item.files.length)body+=`<h3 class="details-label">${item.source==='local'?'选中的文件':'文件清单'}</h3><ul class="file-list">${item.files.map(file=>`<li class="mono">${esc(file)}</li>`).join('')}</ul>`;
+ if(item.kind==='template')body+=`<p class="note">支持单独准备，也可以在项目模板分组中一次准备全部九种模板。</p>`;
+ if(ready&&status!=='bundled')body+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">${button('保存备份','export',id,'outline','archive')}${button('移除文件','confirm-remove',id,'danger','trash')}</div>`;
+ if(status==='pending')body+=`<div style="margin-top:18px">${button('移除导入记录','confirm-remove',id,'danger','trash')}</div>`;
+ if(!ready&&status!=='pending'&&!state.transfers.has(id)&&status!=='bundled')body+=`<div style="margin-top:16px">${button(['stt','tts','ocr'].includes(item.kind)?'导入模型包':'导入 ZIP','import-item',id,'outline','upload')}</div>`;
+ if(state.transfers.has(id))body+=transferMarkup(item);
+ let actions=button('完成','close','','outline');
+ if(!ready&&status!=='pending'&&!state.transfers.has(id))actions+=button(item.id==='ubuntu'?'下载归档':'下载资源','download',id,'','download');
+ if(ready&&['stt','tts','ocr'].includes(item.kind)&&state.current[item.kind]!==id)actions+=button('设为当前','use-model',id,'','check');
+ showSheet(item.title,'资源详情与本地管理',body,actions);
+}
+state.sourceReturn='main';
+function openSources(origin='main'){
+ state.sourceReturn=origin;
+ const choices=Object.entries(sources).map(([key,value])=>`<button class="choice ${state.source===key?'selected':''}" data-action="choose-source" data-value="${key}">${icon('cloud')}<span class="choice-copy"><strong>${value.name}</strong><small>${value.host} · ${value.hint}</small></span>${state.source===key?icon('circleCheck'):''}</button>`).join('');
+ showSheet('选择模型下载源','仅影响支持该来源的模型。',choices+'<p class="note">直接发布的模型、声码器和应用资源使用各自的发布地址。</p>',button('完成','source-done','','outline'));
+}
+state.importDraft={repository:'',revision:'',kind:'stt',name:'',fileKind:'stt'};
+state.hubQuery='';state.review=null;state.selectedModelFile=null;
+function renderHubResults(){
+ const items=models.filter(item=>['hub','github'].includes(item.source)&&`${item.title} ${item.repo} ${item.desc}`.toLowerCase().includes(state.hubQuery.toLowerCase()));
+ $('hubResults').innerHTML=items.length?items.map(item=>{const source=sourceOf(item);return `<article class="hub-result"><h3>${esc(item.title)}</h3><p class="mono">${esc(source.repo)}</p><div class="result-foot"><span class="tiny muted">${sizeOf(item)} · ${source.name}</span>${button('查看','details',item.id,'tonal')}</div></article>`;}).join(''):'<div class="empty"><h3>预置目录中没有匹配项</h3><p>可切换到仓库地址或本地文件导入。</p></div>';
+}
+function openImport(tab='search'){
+ state.importTab=tab;state.review=null;
+ let body=`<div class="import-tabs" role="tablist" aria-label="导入方式">${[['search','搜索目录'],['repository','仓库地址'],['local','本地文件']].map(([key,title])=>`<button class="import-tab ${tab===key?'active':''}" role="tab" aria-selected="${tab===key}" data-action="import-tab" data-value="${key}">${title}</button>`).join('')}</div>`;
+ if(tab!=='local')body+=`<div class="source-row"><span>下载来源</span><button class="source-picker" data-action="import-source">${icon('cloud')}${sources[state.source].name}${icon('chevron','chevron')}</button></div>`;
+ if(tab==='search')body+=`<label class="search hub-search">${icon('search')}<span class="sr-only">搜索预置模型</span><input id="hubSearch" type="search" value="${esc(state.hubQuery)}" placeholder="名称、语言或 owner/repo"></label><p class="inline-tip">预览中搜索的是已核对的模型目录。</p><div id="hubResults"></div>`;
+ if(tab==='repository')body+=`<form id="repositoryForm"><div class="field"><label for="repoInput">模型仓库</label><input id="repoInput" name="repository" placeholder="owner/repo 或完整仓库网址" value="${esc(state.importDraft.repository)}" autocomplete="off" spellcheck="false"><small>支持 Hugging Face、ModelScope 与 HF-Mirror 地址。</small></div><div class="field-pair"><div class="field"><label for="repoRevision">分支 / 版本（选填）</label><input id="repoRevision" placeholder="${state.source==='ms'?'master':'main'}" value="${esc(state.importDraft.revision)}" spellcheck="false"></div><div class="field"><label for="repoKind">模型用途</label><select id="repoKind">${['stt','tts','ocr'].map(kind=>`<option value="${kind}" ${state.importDraft.kind===kind?'selected':''}>${kinds[kind].title}</option>`).join('')}</select></div></div><p id="repoError" class="field-error" role="alert" hidden></p><button type="submit" class="btn full">${icon('search')}解析预览</button><button type="button" class="example-link" data-action="repo-example">填入一个已核对的模型仓库</button></form><div id="repoReview"></div><p class="inline-tip">此设计稿不联网检查仓库；未知模型先展示为待校验。</p>`;
+ if(tab==='local')body+=`<div class="note blue" style="margin:0 0 18px">${icon('folder')}导入已有模型包，方便在没有网络时准备资源。</div><form id="localModelForm"><div class="field"><label for="modelFile">选择模型包</label><input id="modelFile" type="file" accept=".zip,.tar.gz,.tar.bz2,.tgz"><small id="selectedModelFile">${state.selectedModelFile?esc(state.selectedModelFile.name):'ZIP / tar.gz / tar.bz2 模型包'}</small></div><div class="field"><label for="modelName">显示名称（选填）</label><input id="modelName" placeholder="给模型起一个容易辨认的名字" value="${esc(state.importDraft.name)}"></div><div class="field"><label for="localModelKind">模型用途</label><select id="localModelKind">${['stt','tts','ocr'].map(kind=>`<option value="${kind}" ${state.importDraft.fileKind===kind?'selected':''}>${kinds[kind].title}</option>`).join('')}</select></div><p id="localError" class="field-error" role="alert" hidden></p><button type="submit" class="btn full">${icon('upload')}预览导入</button></form><p class="inline-tip">仅记录选中文件的名称和大小，不读取或校验包内模型。</p>`;
+ showSheet('探索 / 导入模型','从模型目录、仓库或本地文件开始。',body,button('关闭','close','','outline'));
+ if(tab==='search')renderHubResults();
+}
+function parseRepository(input){
+ const raw=input.trim().replace(/\/+$/,'');if(!raw)throw new Error('请先填写模型仓库。');
+ let source=state.source,parts;
+ if(/^https?:\/\//i.test(raw)){
+  const url=new URL(raw),allowed={'huggingface.co':'hf','hf-mirror.com':'mirror','modelscope.cn':'ms','www.modelscope.cn':'ms'};
+  if(!Object.hasOwn(allowed,url.hostname))throw new Error('请使用 Hugging Face、ModelScope 或 HF-Mirror 的仓库地址。');
+  source=allowed[url.hostname];parts=url.pathname.split('/').filter(Boolean);
+  if(source==='ms'){if(parts[0]!=='models')throw new Error('ModelScope 地址应包含 /models/owner/repo。');parts.shift();}
+ }else parts=raw.split('/');
+ if(parts.length<2||!parts.slice(0,2).every(part=>/^[A-Za-z0-9_.-]+$/.test(part)&&part!=='.'&&part!=='..'))throw new Error('仓库格式应为 owner/repo，例如 csukuangfj/vits-zh-aishell3。');
+ if(!/^https?:\/\//i.test(raw)&&parts.length!==2)throw new Error('请填写 owner/repo 或完整仓库网址。');
+ const repo=parts.slice(0,2).join('/');
+ const urlRevision=parts.length>=4&&['tree','resolve'].includes(parts[2])?decodeURIComponent(parts[3]):'';
+ return {source,repo,revision:state.importDraft.revision.trim()||urlRevision||(source==='ms'?'master':'main')};
+}
+function reviewRepository(){
+ try{
+  const parsed=parseRepository(state.importDraft.repository);
+  const known=models.find(item=>item.source==='hub'&&(item.repo===parsed.repo||item.msRepo===parsed.repo));
+  state.review={...parsed,knownId:known?known.id:null};
+  $('repoError').hidden=true;
+  $('repoReview').innerHTML=known?`<div class="review-card"><h3>已匹配预置模型</h3><p>${esc(known.title)} · ${sizeOf(known)}</p><p>文件与固定版本来自目录记录，可直接查看详情。</p>${button('查看目录模型','review-known',known.id,'tonal')}</div>`:`<div class="review-card"><h3>添加为待校验模型</h3><p class="mono">${esc(parsed.repo)}</p><p>${sources[parsed.source].name} · ${esc(parsed.revision)}</p><p>未读取仓库文件，添加后先保留为待校验状态。</p>${button('加入我的导入','add-repository','','tonal','plus')}</div>`;
+ }catch(error){$('repoError').hidden=false;$('repoError').textContent=error.message;$('repoReview').innerHTML='';state.review=null;}
+}
+function addImportedModel(data){
+ const id=`import-${++state.importNumber}`;
+ models.push({id,kind:data.kind,title:data.title,desc:'用户导入的模型，通过校验后才可启用。',bytes:data.bytes,engine:'待识别',language:'待确认',license:'待确认',version:data.version,repo:data.repo,source:data.source,files:data.files,imported:true,customSource:data.customSource,homepage:data.homepage});
+ state.itemStates.set(id,'pending');state.tab='models';state.filterModels='imported';state.readyOnly=false;state.query='';closeSheet();render();toast('已添加导入演示记录，状态为待校验。');
+}
+function openResourceImport(selectedId=''){
+ const items=[...resources,...templates].filter(item=>statusOf(item)!=='bundled');
+ const selected=selectedId&&items.some(item=>item.id===selectedId)?selectedId:items[0].id;
+ const choices=items.map(item=>`<option value="${item.id}" ${item.id===selected?'selected':''}>${item.kind==='template'?'项目模板 · ':''}${item.title}</option>`).join('');
+ const body=`<form id="resourceImportForm"><div class="field"><label for="resourceTarget">要准备的资源</label><select id="resourceTarget">${choices}</select></div><div class="field"><label for="resourceZip">选择离线备份</label><input id="resourceZip" type="file" accept=".zip"><small>选择对应资源的 ZIP 备份；校验完成后才标记为可用。</small></div><p id="resourceImportError" class="field-error" role="alert" hidden></p><button type="submit" class="btn full">${icon('upload')}预览导入</button></form><p class="note">包内已经提供的资源不会出现在导入列表中，避免重复安装。</p>`;
+ showSheet('导入离线资源','选择资源类型，再选择对应的 ZIP 备份。',body,button('取消','close','','outline'));
+}
+function openPreview(){
+ const switchRow=(id,label,caption,checked)=>`<label class="switch-row"><span class="copy"><strong>${label}</strong><p>${caption}</p></span><input id="${id}" type="checkbox" ${checked?'checked':''}></label>`;
+ const body=`<p class="note blue" style="margin:0 0 8px">${icon('info')}所有下载、导入与安装状态均为演示，不会实际联网下载或修改手机资源。</p>${switchRow('scenarioPlugin','APK 已含逆向工具资源','开启后只显示内置可用，不提供下载、导入或删除。',state.bundledPlugin)}${switchRow('scenarioOcr','APK 已含 OCR 模型','查看老版本保留包内模型时的状态。',state.bundledOcr)}${switchRow('scenarioTerminal','Ubuntu 环境已经安装','安装状态与安装归档是否保存分别显示。',state.terminalInstalled)}<div class="field" style="margin:18px 0"><label for="downloadResult">接下来的下载演示</label><select id="downloadResult"><option value="success" ${state.downloadResult==='success'?'selected':''}>正常完成</option><option value="network" ${state.downloadResult==='network'?'selected':''}>下载中断</option><option value="checksum" ${state.downloadResult==='checksum'?'selected':''}>校验失败</option></select></div><div class="scenario-buttons">${button('兼容已有安装','scenario-old','','outline')}${button('精简安装','scenario-lean','','outline')}</div><p class="inline-tip">“精简安装”可查看逆向插件与 OCR 都需要下载时的页面。</p>`;
+ showSheet('切换预览场景','只改变当前设计稿里的演示状态。',body,button('重置演示','reset-preview','','outline')+button('查看页面','close'));
+}
+// 下载计时器仅用于演示进度和状态，不发起任何网络请求。
+function startDownload(id,quiet=false){
+ const item=itemById(id);if(isReady(item)){if(!quiet)toast('这项资源已经可用，无需重复下载。');return;}
+ if(state.transfers.has(id))return;
+ const result=state.downloadResult;state.downloadResult='success';
+ const transfer={progress:0,timer:null,verify:null};state.transfers.set(id,transfer);
+ const finish=success=>{
+  if(state.transfers.get(id)!==transfer)return;
+  clearInterval(transfer.timer);clearTimeout(transfer.verify);state.transfers.delete(id);state.itemStates.set(id,success?'ready':'error');render();
+  if(!quiet)toast(success?'演示完成：资源已就绪。':result==='checksum'?'演示：文件校验失败，资源未标记为可用。':'演示：下载已中断，可重新下载。');
+ };
+ transfer.timer=setInterval(()=>{
+  transfer.progress+=20;
+  if(result==='network'&&transfer.progress===60){finish(false);return;}
+  renderGroups();
+  if(transfer.progress===100){clearInterval(transfer.timer);transfer.verify=setTimeout(()=>finish(result!=='checksum'),450);}
+ },260);
+ renderGroups();if(!quiet)toast('正在演示下载流程，不会实际联网。');
+}
+function cancelDownload(id,quiet=false){const transfer=state.transfers.get(id);if(!transfer)return;clearInterval(transfer.timer);clearTimeout(transfer.verify);state.transfers.delete(id);renderGroups();if(!quiet)toast('已取消本次下载演示。');}
+function confirmRemove(id){
+ const item=itemById(id);if(statusOf(item)==='bundled'){toast('包内资源不提供删除。');return;}
+ let text=`移除“${item.title}”的本地文件后，需要重新下载或导入才能继续使用。`;
+ if(state.current[item.kind]===id)text=`“${item.title}”是当前使用的模型。移除后需要重新准备模型或选择另一个模型。`;
+ if(item.id==='ubuntu')text='只移除已保存的安装归档，已有 Ubuntu 终端环境继续保留。';
+ if(item.imported||statusOf(item)==='pending')text=`移除“${item.title}”的导入演示记录。`;
+ showSheet('移除这项资源？','请确认要移除的内容。',`<p class="muted" style="margin:4px 0 12px">${esc(text)}</p>`,button('取消','details',id,'outline')+button('移除','remove',id,'danger','trash'));
+}
+function applyScenario(old,reset=false){
+ for(const id of [...state.transfers.keys()])cancelDownload(id,true);
+ if(reset){for(let i=models.length-1;i>=0;i--)if(models[i].imported){state.itemStates.delete(models[i].id);models.splice(i,1);}state.source='hf';state.downloadResult='success';state.importDraft={repository:'',revision:'',kind:'stt',name:'',fileKind:'stt'};state.selectedModelFile=null;state.hubQuery='';}
+ allItems().forEach(item=>state.itemStates.set(item.id,item.imported?'pending':old&&item.id==='ncnn'?'ready':'missing'));
+ state.bundledPlugin=old;state.bundledOcr=old;state.terminalInstalled=old;state.current={stt:old?'ncnn':null,tts:null,ocr:old?'ocr':null};state.filterModels='all';state.filterResources='all';state.query='';state.readyOnly=false;render();openPreview();
+}
+document.addEventListener('click',event=>{
+ const target=event.target.closest('[data-action]');if(!target)return;
+ const action=target.dataset.action,id=target.dataset.id,value=target.dataset.value;
+ switch(action){
+  case 'back':toast('当前为离线资源页面的独立设计预览。');break;
+  case 'close':closeSheet();break;
+  case 'theme':setTheme();break;
+  case 'preview':openPreview();break;
+  case 'refresh':render();toast('已刷新演示目录；当前状态并非手机实际资源。');break;
+  case 'tab':state.tab=value;state.query='';render();break;
+  case 'filter':if(state.tab==='models')state.filterModels=value;else state.filterResources=value;render();break;
+  case 'ready-filter':state.readyOnly=!state.readyOnly;render();break;
+  case 'details':openDetails(id);break;
+  case 'source':openSources('main');break;
+  case 'import-source':openSources('import');break;
+  case 'choose-source':state.source=value;render();if(state.sourceReturn==='import')openImport(state.importTab);else closeSheet();break;
+  case 'source-done':if(state.sourceReturn==='import')openImport(state.importTab);else closeSheet();break;
+  case 'import-model':openImport();break;
+  case 'import-tab':openImport(value);break;
+  case 'import-item':{const item=itemById(id);if(['stt','tts','ocr'].includes(item.kind)){state.importDraft.fileKind=item.kind;openImport('local');}else openResourceImport(id);break;}
+  case 'import-resource':openResourceImport(id);break;
+  case 'repo-example':state.importDraft.repository=state.source==='ms'?'csukuangfj/vits-zh-aishell3':'https://huggingface.co/csukuangfj/vits-zh-aishell3';$('repoInput').value=state.importDraft.repository;break;
+  case 'review-known':state.source=state.review.source;render();openDetails(id);break;
+  case 'add-repository':{const review=state.review;if(!review)return;const host=review.source==='ms'?`https://modelscope.cn/models/${review.repo}`:`https://${sources[review.source].host}/${review.repo}`;addImportedModel({kind:state.importDraft.kind,title:review.repo.split('/')[1],bytes:null,version:review.revision,repo:review.repo,source:'custom',files:[],customSource:review.source,homepage:host});break;}
+  case 'download':if(sheet.open)closeSheet();startDownload(id);break;
+  case 'cancel-download':if(sheet.open)closeSheet();cancelDownload(id);break;
+  case 'download-templates':{const missing=templates.filter(item=>!isReady(item)&&!state.transfers.has(item.id));missing.forEach(item=>startDownload(item.id,true));toast(missing.length?`演示准备 ${missing.length} 种模板，不会实际下载。`:'全部模板已经准备好。');break;}
+  case 'use-model':{const item=itemById(id);if(!isReady(item)){toast('请先完成资源校验。');break;}state.current[item.kind]=id;closeSheet();render();toast('演示：已设为当前使用的模型。');break;}
+  case 'export':toast('预览：此处将打开保存位置，导出对应资源的 ZIP 备份。');break;
+  case 'confirm-remove':confirmRemove(id);break;
+  case 'remove':{const item=itemById(id);if(statusOf(item)==='bundled')break;if(state.current[item.kind]===id)state.current[item.kind]=null;if(item.imported){models.splice(models.indexOf(item),1);state.itemStates.delete(id);}else state.itemStates.set(id,'missing');closeSheet();render();toast('已移除演示记录，没有删除手机文件。');break;}
+  case 'scenario-old':applyScenario(true);break;
+  case 'scenario-lean':applyScenario(false);break;
+  case 'reset-preview':applyScenario(true,true);break;
+ }
+});
+document.addEventListener('input',event=>{
+ const target=event.target;
+ if(target.id==='resourceSearch'){state.query=target.value;renderGroups();}
+ if(target.id==='hubSearch'){state.hubQuery=target.value;renderHubResults();}
+ const drafts={repoInput:'repository',repoRevision:'revision',repoKind:'kind',modelName:'name',localModelKind:'fileKind'};
+ if(Object.hasOwn(drafts,target.id))state.importDraft[drafts[target.id]]=target.value;
+ if(['repoInput','repoRevision','repoKind'].includes(target.id)&&$('repoReview')){$('repoReview').innerHTML='';state.review=null;}
+});
+document.addEventListener('change',event=>{
+ const target=event.target;
+ if(target.id==='modelFile'){state.selectedModelFile=target.files.length?target.files[0]:null;$('selectedModelFile').textContent=state.selectedModelFile?state.selectedModelFile.name:'ZIP / tar.gz / tar.bz2 模型包';}
+ if(target.id==='scenarioPlugin'){state.bundledPlugin=target.checked;if(target.checked)cancelDownload('apktool',true);render();}
+ if(target.id==='scenarioOcr'){state.bundledOcr=target.checked;if(target.checked)cancelDownload('ocr',true);if(!isReady(itemById('ocr')))state.current.ocr=null;render();}
+ if(target.id==='scenarioTerminal'){state.terminalInstalled=target.checked;render();}
+ if(target.id==='downloadResult')state.downloadResult=target.value;
+});
+document.addEventListener('submit',event=>{
+ event.preventDefault();
+ if(event.target.id==='repositoryForm')reviewRepository();
+ if(event.target.id==='localModelForm'){
+  const file=state.selectedModelFile;
+  if(!file){$('localError').hidden=false;$('localError').textContent='请先选择模型包。';return;}
+  addImportedModel({kind:state.importDraft.fileKind,title:state.importDraft.name.trim()||file.name,bytes:file.size,version:'用户导入',repo:file.name,source:'local',files:[file.name]});
+ }
+ if(event.target.id==='resourceImportForm'){
+  const file=$('resourceZip').files[0],id=$('resourceTarget').value;
+  if(!file){$('resourceImportError').hidden=false;$('resourceImportError').textContent='请先选择对应的 ZIP 备份。';return;}
+  const item=itemById(id);if(statusOf(item)==='bundled'){toast('包内资源已可用，无需重复导入。');return;}
+  if(state.transfers.has(id))cancelDownload(id,true);
+  state.itemStates.set(id,'pending');state.tab='resources';state.query='';state.readyOnly=false;state.filterResources=item.kind;closeSheet();render();toast('已添加资源导入演示，校验完成前不会标为可用。');
+ }
+});
+sheet.addEventListener('click',event=>{if(event.target===sheet){const bounds=sheet.getBoundingClientRect();if(event.clientX<bounds.left||event.clientX>bounds.right||event.clientY<bounds.top||event.clientY>bounds.bottom)closeSheet();}});
+document.querySelector('.tabs').addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();state.tab=event.key==='Home'?'models':event.key==='End'?'resources':state.tab==='models'?'resources':'models';state.query='';render();$(`tab-${state.tab}`).focus();});
+document.querySelectorAll('[data-icon]').forEach(element=>element.innerHTML=icon(element.dataset.icon));
+const params=new URLSearchParams(location.search);
+if(params.get('theme')==='light')setTheme();
+if(params.get('tab')==='resources')state.tab='resources';
+if(params.get('apk')==='lean'){state.bundledPlugin=false;state.bundledOcr=false;state.terminalInstalled=false;state.current={stt:null,tts:null,ocr:null};state.itemStates.set('ncnn','missing');}
+render();
+if(params.get('dialog')==='import')openImport();
+
+</script>
+</body>
+</html>

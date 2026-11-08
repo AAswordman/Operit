@@ -18,14 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.services.floating.FloatingWindowState
-import com.ai.assistance.operit.ui.features.chat.components.ChatToastHost
-import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatToastEvent
 import com.ai.assistance.operit.ui.floating.ui.ball.FloatingChatBallMode
 import com.ai.assistance.operit.ui.floating.ui.ball.FloatingResultDisplay
 import com.ai.assistance.operit.ui.floating.ui.ball.FloatingVoiceBallMode
@@ -129,12 +127,6 @@ fun FloatingChatWindow(
                     windowState = windowState,
                     inputProcessingState = inputProcessingState
             )
-    val chatCore = remember(chatService) { chatService?.getChatCore() }
-    val toastEventState =
-        chatCore?.getUiStateDelegate()?.toastEvent?.collectAsState(initial = null)
-            ?: remember { mutableStateOf<ChatToastEvent?>(null) }
-    val toastEvent by toastEventState
-
     // 将窗口缩放限制在合理范围内 - 已通过回调和状态源头处理，不再需要
     // LaunchedEffect(initialWindowScale) {
     //     floatContext.windowScale = initialWindowScale.coerceIn(0.5f, 1.0f)
@@ -217,17 +209,7 @@ fun FloatingChatWindow(
                 }
             }
 
-            ChatToastHost(
-                event = toastEvent,
-                onDismiss = { eventId ->
-                    chatCore?.getUiStateDelegate()?.clearToastEvent(eventId)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                maxWidth = 360.dp,
-                maxHeight = 200.dp
-            )
+
         }
     }
 }

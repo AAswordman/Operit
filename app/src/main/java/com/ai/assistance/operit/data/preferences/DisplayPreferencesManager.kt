@@ -1,7 +1,11 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
+import com.ai.assistance.operit.data.resources.ManagedResourceFiles
+import com.ai.assistance.operit.data.resources.PrivateResourceCleanup
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
@@ -47,6 +51,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         private val KEY_ENABLE_ENTER_TO_SEND = booleanPreferencesKey("enable_enter_to_send")
         private val KEY_ENABLE_NAVIGATION_ANIMATION =
             booleanPreferencesKey("enable_navigation_animation")
+        private val KEY_ORIENTATION_RELOAD_POLICY = stringPreferencesKey("orientation_reload_policy")
         private val KEY_START_WITH_NEW_CHAT =
             booleanPreferencesKey("start_with_new_chat")
 
@@ -73,6 +78,29 @@ class DisplayPreferencesManager private constructor(private val context: Context
 
         // 工具折叠设置（多个只读工具 / 多个任意工具 / 全部工具）
         private val KEY_TOOL_COLLAPSE_MODE = stringPreferencesKey("tool_collapse_mode")
+
+        /** 恢复本页显示选项，保留用户资料及不属于本页的键。 */
+        internal fun resetDisplaySettingsValues(preferences: MutablePreferences) {
+            preferences[KEY_SHOW_FPS_COUNTER] = false
+            preferences[KEY_ENABLE_REPLY_NOTIFICATION] = true
+            preferences[KEY_ENABLE_REPLY_NOTIFICATION_SOUND] = false
+            preferences[KEY_ENABLE_REPLY_NOTIFICATION_VIBRATION] = false
+            preferences[KEY_ENABLE_ENTER_TO_SEND] = false
+            preferences.remove(KEY_ENABLE_NAVIGATION_ANIMATION)
+            preferences.remove(KEY_ORIENTATION_RELOAD_POLICY)
+            preferences[KEY_START_WITH_NEW_CHAT] = false
+            // 用户资料由主题与头像入口管理，本页恢复默认时保留。
+            preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = false
+            preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = true
+            preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = false
+            preferences.remove(KEY_SCREENSHOT_FORMAT)
+            preferences.remove(KEY_SCREENSHOT_QUALITY)
+            preferences.remove(KEY_SCREENSHOT_SCALE_PERCENT)
+            preferences.remove(KEY_VISIT_WEB_WAIT_SECONDS)
+            preferences.remove(KEY_TOOLPKG_HOOK_TIMEOUT_SECONDS)
+            preferences.remove(KEY_VIRTUAL_DISPLAY_BITRATE_KBPS)
+            preferences.remove(KEY_TOOL_COLLAPSE_MODE)
+        }
     }
 
     /**
@@ -127,6 +155,11 @@ class DisplayPreferencesManager private constructor(private val context: Context
     val enableNavigationAnimation: Flow<Boolean> =
         context.displayPreferencesDataStore.data.map { preferences ->
             preferences[KEY_ENABLE_NAVIGATION_ANIMATION] ?: true
+        }
+
+    val orientationReloadPolicy: Flow<OrientationReloadPolicy> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            OrientationReloadPolicy.fromValue(preferences[KEY_ORIENTATION_RELOAD_POLICY])
         }
 
     /**
@@ -214,6 +247,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         enableReplyNotificationVibration: Boolean? = null,
         enableEnterToSend: Boolean? = null,
         enableNavigationAnimation: Boolean? = null,
+        orientationReloadPolicy: OrientationReloadPolicy? = null,
         startWithNewChat: Boolean? = null,
         globalUserAvatarUri: String? = null,
         globalUserName: String? = null,
@@ -228,7 +262,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         virtualDisplayBitrateKbps: Int? = null,
         toolCollapseMode: ToolCollapseMode? = null
     ) {
-        context.displayPreferencesDataStore.edit { preferences ->
+        editResourcePreferences { preferences ->
             showFpsCounter?.let { preferences[KEY_SHOW_FPS_COUNTER] = it }
             enableReplyNotification?.let { preferences[KEY_ENABLE_REPLY_NOTIFICATION] = it }
             enableReplyNotificationSound?.let {
@@ -240,6 +274,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
             enableEnterToSend?.let { preferences[KEY_ENABLE_ENTER_TO_SEND] = it }
             enableNavigationAnimation?.let {
                 preferences[KEY_ENABLE_NAVIGATION_ANIMATION] = it
+            }
+            orientationReloadPolicy?.let {
+                preferences[KEY_ORIENTATION_RELOAD_POLICY] = it.name
             }
             startWithNewChat?.let {
                 preferences[KEY_START_WITH_NEW_CHAT] = it
@@ -313,26 +350,24 @@ class DisplayPreferencesManager private constructor(private val context: Context
      * 重置所有显示设置为默认值
      */
     suspend fun resetDisplaySettings() {
-        context.displayPreferencesDataStore.edit { preferences ->
-            preferences[KEY_SHOW_FPS_COUNTER] = false
-            preferences[KEY_ENABLE_REPLY_NOTIFICATION] = true
-            preferences[KEY_ENABLE_REPLY_NOTIFICATION_SOUND] = false
-            preferences[KEY_ENABLE_REPLY_NOTIFICATION_VIBRATION] = false
-            preferences[KEY_ENABLE_ENTER_TO_SEND] = false
-            preferences.remove(KEY_ENABLE_NAVIGATION_ANIMATION)
-            preferences[KEY_START_WITH_NEW_CHAT] = false
-            preferences.remove(KEY_GLOBAL_USER_AVATAR_URI)
-            preferences.remove(KEY_GLOBAL_USER_NAME)
-            preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = false
-            preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = true
-            preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = false
-            preferences.remove(KEY_SCREENSHOT_FORMAT)
-            preferences.remove(KEY_SCREENSHOT_QUALITY)
-            preferences.remove(KEY_SCREENSHOT_SCALE_PERCENT)
-            preferences.remove(KEY_VISIT_WEB_WAIT_SECONDS)
-            preferences.remove(KEY_TOOLPKG_HOOK_TIMEOUT_SECONDS)
-            preferences.remove(KEY_VIRTUAL_DISPLAY_BITRATE_KBPS)
-            preferences.remove(KEY_TOOL_COLLAPSE_MODE)
-        }
+        editResourcePreferences { preferences -> resetDisplaySettingsValues(preferences) }
     }
+
+    internal suspend fun storedResourceReferences(): Set<String> {
+        val preferences = context.displayPreferencesDataStore.data.first()
+        return ManagedResourceFiles.references(preferences.asMap().mapKeys { it.key.name })
+    }
+
+    private suspend fun editResourcePreferences(
+        transform: suspend (MutablePreferences) -> Unit,
+    ): Preferences = PrivateResourceCleanup.update(
+        filesDir = context.filesDir,
+        readReferences = { storedResourceReferences() },
+        persist = { context.displayPreferencesDataStore.edit(transform) },
+        readAllReferences = {
+            storedResourceReferences() +
+                UserPreferencesManager.getInstance(context).storedResourceReferences()
+        },
+        onCleanupFailure = { AppLogger.w("PrivateResourceCleanup", "清理已替换的私有资源失败", it) },
+    )
 }

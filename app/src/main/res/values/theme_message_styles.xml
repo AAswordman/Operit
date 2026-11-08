@@ -1,0 +1,7 @@
+<resources>
+    <string name="theme_message_bubble_options">对话框设置</string>
+    <string name="theme_message_bubble_scope_user">当前应用于用户消息</string>
+    <string name="theme_message_bubble_scope_ai">当前应用于AI消息</string>
+    <string name="theme_message_bubble_scope_both">当前应用于用户、AI消息</string>
+    <string name="theme_message_style_summary">用户 · %1$s / AI · %2$s</string>
+</resources>

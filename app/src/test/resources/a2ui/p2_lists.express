@@ -1,0 +1,15 @@
+
+$/groups=[{id:"a",title:"厨房",rank:2,children:[{id:"one",title:"准备食材"},{id:"two",title:"整理台面"}]},{id:"b",title:"客厅",rank:1,children:[{id:"one",title:"整理书架"}]}]
+root=Column(children=[
+ Header(text="分组任务",label="相同子任务 ID 在不同分组中独立保存"),
+ Row(wrap=true,children=[
+  Button(child=Text(text="按顺序排列"),action=Event(name="local_action",context={op:"set",path:"/groups",value:arraySort(items=$/groups,field="rank")})),
+  Button(child=Text(text="重命名厨房"),action=Event(name="local_action",context={op:"set",path:"/groups",value:arrayUpdateByKey(items=$/groups,key="id",value="a",patch={title:"厨房与餐厅"})}))
+ ]),
+ groups
+])
+groups=Repeat(items=$/groups,key="id",child=Panel(child=Column(children=[
+ Heading(text=item(field="title")),
+ tasks
+]),background="inset"))
+tasks=Repeat(items=item(field="children"),key="id",child=CheckBox(label=item(field="title"),value=item_state(field="done",default=false)))

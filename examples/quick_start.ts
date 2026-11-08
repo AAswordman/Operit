@@ -286,7 +286,7 @@ async function simple_greeter_tool(params: { user_name: string }) {
 */
 
 // 使用IIFE模式重构我们的问候工具
-const greeterToolBox = (function () {
+const greeterModule = (function () {
     // --- 这里是私有作用域 ---
 
     // `version` 和 `logWithTimestamp` 在IIFE外部无法被访问，是我们的内部实现细节。
@@ -322,9 +322,9 @@ const greeterToolBox = (function () {
 
 })(); // 注意这里，函数被立即执行了
 
-// 现在，IIFE已经执行完毕，`greeterToolBox` 变量包含了我们返回的对象。
+// 现在，IIFE已经执行完毕，`greeterModule` 变量包含了我们返回的对象。
 // 我们可以这样导出它：
-// `exports.greet = greeterToolBox.greet;`
+// `exports.greet = greeterModule.greet;`
 
 
 // =================================================================

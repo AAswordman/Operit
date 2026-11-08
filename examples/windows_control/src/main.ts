@@ -1,10 +1,10 @@
-import toolboxUI from "./ui/windows_setup/index.ui.js";
+import packageUI from "./ui/windows_setup/index.ui.js";
 
 export function registerToolPkg() {
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "windows_setup",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     params: {},
     title: {
       zh: "Windows 一键配置",

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_user_profile">ユーザー資料</string>
+    <string name="role_user_profile_title">%1$sのユーザー資料</string>
+    <string name="role_user_profile_hint">資料はこのキャラクターに現在紐付けられた記憶スペースに保存されます。ロックは自動更新のみを禁止し、手動編集は引き続き可能です。</string>
+    <string name="memory_settings_title">記憶設定</string>
+    <string name="memory_settings_space">記憶スペース：%1$s</string>
+    <string name="memory_settings_space_missing">この記憶スペースは削除されました。別のスペースを選択してください。</string>
+    <string name="memory_settings_auto_extract_tab">自動抽出</string>
+    <string name="memory_settings_retrieval_tab">検索</string>
+    <string name="memory_settings_history_tab">履歴再構築</string>
+    <string name="memory_settings_queue">抽出キュー</string>
+    <string name="memory_settings_queue_status">待機 %1$d 件 / %2$d チャット · 処理中 %3$d 件 · 失敗 %4$d 件</string>
+    <string name="memory_settings_next_run_unset">次の確認は未予約です</string>
+    <string name="memory_settings_next_run">次の確認：約 %1$d 分後</string>
+    <string name="memory_settings_auto_extract_hint">候補が %1$d 件以上になると失敗分も含めて自動抽出します。結果はこの記憶スペースに保存されます。</string>
+    <string name="memory_settings_interval_value">%1$d 分</string>
+    <string name="memory_settings_profile_lock_hint">モデルによる user.md の自動上書きを禁止します。手動編集は可能です。</string>
+    <string name="memory_settings_cloud_embedding">クラウドベクトル</string>
+    <string name="memory_settings_cloud_embedding_hint">有効にすると、記憶と検索のテキストを紐付けられたベクトルサービスに送信します。</string>
+    <string name="memory_settings_rebuild_saved_hint">再構築には保存済みのスイッチと機能モデルの紐付けを使用します。変更は先に保存してください。</string>
+    <string name="memory_settings_threshold">関連度のしきい値</string>
+    <string name="memory_settings_simulation_hint">現在の重み、しきい値、ベクトル設定で実際に検索します。設定の下書きは保存しません。</string>
+    <string name="memory_settings_select_chats">チャットを選択</string>
+    <string name="memory_settings_no_chats">この記憶スペースに紐付けられたチャットはありません。</string>
+    <string name="memory_settings_history_hint">履歴をメッセージウィンドウに分けて記憶を追加・更新し、既存の記憶を保持します。保存済みの抽出ルールと資料ポリシーを使用します。</string>
+    <string name="memory_settings_rebuild_busy">履歴の再構築が実行中です。完了後に次の処理を開始できます。</string>
+    <string name="memory_settings_unsaved_title">未保存の設定を破棄しますか？</string>
+    <string name="memory_settings_unsaved_message">閉じると記憶設定の変更が失われます。</string>
+    <string name="memory_settings_clear_selection">選択を解除</string>
+</resources>

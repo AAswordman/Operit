@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -75,7 +77,9 @@
         <package android:name="com.ai.assistance.operit.provider" />
     </queries>
 
+    <!-- QuickJS 使用 47 位地址保存 JSValue，须在进程启动前关闭会丢失的堆顶字节标记。 -->
     <application
+        android:allowNativeHeapPointerTagging="false"
         android:name=".core.application.OperitApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -94,6 +98,10 @@
         android:largeHeap="true"
         tools:targetApi="31"
         tools:replace="android:theme,android:icon,android:roundIcon">
+        <activity
+            android:name=".ui.features.management.resources.OfflineResourcesActivity"
+            android:exported="false" />
+
 
         <!-- OpenCL 库权限声明 (Android 10+ 命名空间隔离解决方案) -->
         <uses-native-library 
@@ -114,7 +122,7 @@
             tools:node="remove" />
 
         <activity
-            android:name=".core.tools.defaultTool.websession.browser.WebSessionPermissionRequestActivity"
+            android:name=".core.tools.builtin.web.session.browser.WebSessionPermissionRequestActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:finishOnTaskLaunch="true"
@@ -122,7 +130,7 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity
-            android:name=".core.tools.defaultTool.websession.userscript.install.UserscriptImportPickerActivity"
+            android:name=".core.tools.builtin.web.session.userscript.install.UserscriptImportPickerActivity"
             android:excludeFromRecents="true"
             android:exported="false"
             android:finishOnTaskLaunch="true"
@@ -165,7 +173,7 @@
         
         <!-- Workspace Documents Provider for SAF -->
         <provider
-            android:name=".provider.WorkspaceDocumentsProvider"
+            android:name=".integrations.documents.WorkspaceDocumentsProvider"
             android:authorities="${applicationId}.documents.workspace"
             android:exported="true"
             android:grantUriPermissions="true"
@@ -176,7 +184,7 @@
         </provider>
 
         <provider
-            android:name=".provider.MemoryDocumentsProvider"
+            android:name=".integrations.documents.MemoryDocumentsProvider"
             android:authorities="${applicationId}.documents.memory"
             android:exported="true"
             android:grantUriPermissions="true"
@@ -187,7 +195,7 @@
         </provider>
 
         <provider
-            android:name=".provider.OperitDataDocumentsProvider"
+            android:name=".integrations.documents.OperitDataDocumentsProvider"
             android:authorities="${applicationId}.documents.data"
             android:exported="true"
             android:grantUriPermissions="true"
@@ -293,6 +301,9 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".data.recovery.MainProcessShutdownReceiver"
+            android:exported="false" />
         
         <activity
             android:name=".integrations.tasker.ActivityConfigAIAgentAction"
@@ -305,7 +316,7 @@
         </activity>
 
         <activity
-            android:name=".core.tools.system.ScreenCaptureActivity"
+            android:name=".core.tools.system.capture.ScreenCaptureActivity"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
             android:excludeFromRecents="true"
             android:exported="false" />
@@ -318,7 +329,7 @@
             android:foregroundServiceType="dataSync" />
 
         <service
-            android:name=".core.tools.system.ScreenCaptureService"
+            android:name=".core.tools.system.capture.ScreenCaptureService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
@@ -401,7 +412,7 @@
         
         <!-- Voice Assistant Widget Receiver -->
         <receiver
-            android:name=".widget.VoiceAssistantWidgetReceiver"
+            android:name=".integrations.appwidget.VoiceAssistantWidgetReceiver"
             android:exported="true"
             android:enabled="true">
             <intent-filter>
@@ -413,7 +424,7 @@
         </receiver>
 
         <receiver
-            android:name=".widget.ToolPkgDesktopWidgetReceiver"
+            android:name=".integrations.appwidget.ToolPkgDesktopWidgetReceiver"
             android:exported="true"
             android:enabled="true"
             android:label="@string/toolpkg_widget_host_label">
@@ -426,7 +437,7 @@
         </receiver>
 
         <activity
-            android:name=".widget.ToolPkgDesktopWidgetConfigActivity"
+            android:name=".integrations.appwidget.ToolPkgDesktopWidgetConfigActivity"
             android:exported="true"
             android:excludeFromRecents="true"
             android:label="@string/toolpkg_widget_picker_title"
@@ -467,6 +478,16 @@
             </intent-filter>
         </receiver>
         
+        <!-- 系统时间与时区变化后重新计算工作流日历计划。 -->
+        <receiver
+            android:name=".core.workflow.scheduling.WorkflowScheduleTimeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
         <!-- Boot Completed Receiver for rescheduling workflows -->
         <receiver
             android:name=".integrations.tasker.WorkflowBootReceiver"

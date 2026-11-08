@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">機能別モデルで画像入力に対応した画像認識モデルを先に設定してください。</string>
+</resources>

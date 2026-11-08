@@ -96,9 +96,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -108,7 +108,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -163,32 +162,35 @@ import androidx.webkit.ScriptHandler
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.javascript.JsEngine
 import com.ai.assistance.operit.core.tools.javascript.JsJavaBridgeDelegates
 import com.ai.assistance.operit.core.tools.javascript.extractJsExecutionErrorMessage
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslNode
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslParser
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslNode
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslParser
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
 import com.ai.assistance.operit.plugins.chatmessage.ChatMessageMenuDialogRequest
 import com.ai.assistance.operit.ui.common.displays.MarkdownTextComposable
 import com.ai.assistance.operit.ui.common.markdown.DefaultXmlRenderer
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRenderer
 import com.ai.assistance.operit.ui.components.CustomScaffold
-import com.ai.assistance.operit.ui.features.chat.screens.AIChatScreen
+import com.ai.assistance.operit.ui.features.conversation.chat.screens.AIChatScreen
 import com.ai.assistance.operit.ui.main.LocalTopBarTitleContent
 import com.ai.assistance.operit.ui.main.TopBarTitleContent
 import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import com.ai.assistance.operit.ui.main.components.LocalSetScreenSoftInputMode
 import com.ai.assistance.operit.ui.main.components.LocalSetUseScreenImePadding
-import com.ai.assistance.operit.ui.features.token.webview.WebViewConfig
+import com.ai.assistance.operit.ui.features.models.token.webview.WebViewConfig
 import com.ai.assistance.operit.ui.theme.getSystemFontFamily
 import com.ai.assistance.operit.ui.theme.loadCustomFontFamily
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.files.OperitPaths
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.stream
+import com.ai.assistance.operit.core.tools.javascript.JsTimeoutConfig
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
@@ -884,9 +886,8 @@ fun ToolPkgComposeDslToolScreen(
     var isDispatching by remember(containerPackageName, uiModuleId) { mutableStateOf(false) }
     var dispatchingCount by remember(containerPackageName, uiModuleId) { mutableStateOf(0) }
     var hasDispatchedInitialOnLoad by
-        rememberSaveable(routeInstanceId, containerPackageName, uiModuleId) {
-            mutableStateOf(false)
-        }
+        // 新引擎必须重新触发 onLoad，不能恢复上一个已销毁页面的加载标记。
+        remember(jsEngine) { mutableStateOf(false) }
     var nextDispatchTicket by remember(containerPackageName, uiModuleId) { mutableStateOf(1L) }
     var pendingTreeRerenderJob by remember(containerPackageName, uiModuleId) { mutableStateOf<Job?>(null) }
     val settledDispatchTickets = remember(containerPackageName, uiModuleId) { mutableSetOf<Long>() }
@@ -898,6 +899,9 @@ fun ToolPkgComposeDslToolScreen(
         remember(renderResult?.tree) {
             renderResult?.tree?.slots?.get("topBarTitle").orEmpty()
         }
+    // 列表滚动状态必须由宿主持有。JS 每次状态更新都会重建整棵 Compose DSL 树，
+    // 若状态只 remember 在树内部，条件分支切换或宿主重建时就会丢回顶部。
+    val scrollStateStore = rememberComposeDslScrollStateStore(routeInstanceId)
 
     fun buildModuleSpec(screenPath: String?): Map<String, Any?> =
         mapOf(
@@ -1065,7 +1069,8 @@ fun ToolPkgComposeDslToolScreen(
         actionId: String,
         payload: Any? = null,
         onSettled: (() -> Unit)? = null,
-        flushPendingTextInputs: Boolean = true
+        flushPendingTextInputs: Boolean = true,
+        timeoutSec: Long? = null
     ): Boolean {
         val normalizedActionId = actionId.trim()
         if (normalizedActionId.isBlank()) {
@@ -1079,7 +1084,8 @@ fun ToolPkgComposeDslToolScreen(
                     actionId = normalizedActionId,
                     payload = payload,
                     onSettled = onSettled,
-                    flushPendingTextInputs = false
+                    flushPendingTextInputs = false,
+                    timeoutSec = timeoutSec
                 )
             }
             return true
@@ -1101,6 +1107,7 @@ fun ToolPkgComposeDslToolScreen(
                 actionId = normalizedActionId,
                 payload = payload,
                 runtimeOptions = buildActionRuntimeOptions(),
+                timeoutSec = timeoutSec,
                 onIntermediateResult = { intermediateResult ->
                     if (settledDispatchTickets.contains(dispatchTicket)) {
                         return@dispatchComposeDslActionAsync
@@ -1306,7 +1313,7 @@ fun ToolPkgComposeDslToolScreen(
                 }
 
                 val rawResult =
-                    withContext(Dispatchers.IO) {
+                    runInterruptible(Dispatchers.IO) {
                         jsEngine.executeComposeDslScript(
                             script = scriptText,
                             runtimeOptions = buildActionRuntimeOptions()
@@ -1338,6 +1345,8 @@ fun ToolPkgComposeDslToolScreen(
                 snapshotPhase = "render_success"
                 snapshotParsedResult = parsed
                 snapshotError = null
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (e: Exception) {
                 renderResult = null
                 errorMessage = "compose_dsl runtime error: ${e.message}"
@@ -1358,9 +1367,8 @@ fun ToolPkgComposeDslToolScreen(
     }
 
     LaunchedEffect(routeInstanceId, containerPackageName, uiModuleId) {
-        scope.launch {
-            render()
-        }
+        // 加载随页面一起取消，避免离页后旧任务继续占用执行器。
+        render()
     }
 
     DisposableEffect(executionContextKey) {
@@ -1475,6 +1483,7 @@ fun ToolPkgComposeDslToolScreen(
         }
     }
 
+    RetainToolPkgComposeDslActions(jsEngine, renderResult)
     CustomScaffold { paddingValues ->
         val rootNode = renderResult?.tree
         val rootOnLoadActionId =
@@ -1497,7 +1506,10 @@ fun ToolPkgComposeDslToolScreen(
                 return@LaunchedEffect
             }
             hasDispatchedInitialOnLoad = true
-            dispatchAction(actionId = rootOnLoadActionId, payload = null)
+            dispatchActionInternal(
+                actionId = rootOnLoadActionId,
+                timeoutSec = JsTimeoutConfig.COMPOSE_DSL_LOAD_TIMEOUT_SECONDS
+            )
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1536,7 +1548,8 @@ fun ToolPkgComposeDslToolScreen(
                         LocalComposeDslFlushTextInputHandler provides ::flushTextInputSyncsAndRerender,
                         LocalComposeDslSuspendingActionHandler provides ::dispatchActionAwait,
                         LocalComposeDslRouteInstanceId provides routeInstanceId,
-                        LocalComposeDslWebViewHost provides webViewHostContext
+                        LocalComposeDslWebViewHost provides webViewHostContext,
+                        LocalComposeDslScrollStateStore provides scrollStateStore
                     ) {
                         // Let compose_dsl content own its own scrolling behavior.
                         // Wrapping the whole screen in an outer verticalScroll changes
@@ -1610,6 +1623,7 @@ fun ToolPkgComposeDslDialogHost(
     var nextDispatchTicket by remember(request) { mutableStateOf(1L) }
     var pendingTreeRerenderJob by remember(request) { mutableStateOf<Job?>(null) }
     val settledDispatchTickets = remember(request) { mutableSetOf<Long>() }
+    val scrollStateStore = rememberComposeDslScrollStateStore(routeInstanceId)
 
     fun buildModuleSpec(): Map<String, Any?> =
         linkedMapOf<String, Any?>(
@@ -1733,7 +1747,8 @@ fun ToolPkgComposeDslDialogHost(
         actionId: String,
         payload: Any? = null,
         onSettled: (() -> Unit)? = null,
-        flushPendingTextInputs: Boolean = true
+        flushPendingTextInputs: Boolean = true,
+        timeoutSec: Long? = null
     ): Boolean {
         val normalizedActionId = actionId.trim()
         if (normalizedActionId.isBlank()) {
@@ -1747,7 +1762,8 @@ fun ToolPkgComposeDslDialogHost(
                     actionId = normalizedActionId,
                     payload = payload,
                     onSettled = onSettled,
-                    flushPendingTextInputs = false
+                    flushPendingTextInputs = false,
+                    timeoutSec = timeoutSec
                 )
             }
             return true
@@ -1764,6 +1780,7 @@ fun ToolPkgComposeDslDialogHost(
                 actionId = normalizedActionId,
                 payload = payload,
                 runtimeOptions = buildActionRuntimeOptions(),
+                timeoutSec = timeoutSec,
                 onIntermediateResult = { intermediateResult ->
                     if (settledDispatchTickets.contains(dispatchTicket)) {
                         return@dispatchComposeDslActionAsync
@@ -1878,7 +1895,7 @@ fun ToolPkgComposeDslDialogHost(
                 }
 
                 val rawResult =
-                    withContext(Dispatchers.IO) {
+                    runInterruptible(Dispatchers.IO) {
                         jsEngine.executeComposeDslScript(
                             script = scriptText,
                             runtimeOptions = buildActionRuntimeOptions()
@@ -1902,6 +1919,8 @@ fun ToolPkgComposeDslDialogHost(
 
                 renderResult = parsed
                 errorMessage = null
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (error: Exception) {
                 renderResult = null
                 errorMessage = "compose_dsl dialog runtime error: ${error.message}"
@@ -1926,6 +1945,7 @@ fun ToolPkgComposeDslDialogHost(
         }
     }
 
+    RetainToolPkgComposeDslActions(jsEngine, renderResult)
     val rootNode = renderResult?.tree
     val rootOnLoadActionId =
         remember(rootNode) {
@@ -1943,7 +1963,10 @@ fun ToolPkgComposeDslDialogHost(
             return@LaunchedEffect
         }
         hasDispatchedInitialOnLoad = true
-        dispatchAction(actionId = rootOnLoadActionId, payload = null)
+        dispatchActionInternal(
+            actionId = rootOnLoadActionId,
+            timeoutSec = JsTimeoutConfig.COMPOSE_DSL_LOAD_TIMEOUT_SECONDS
+        )
     }
 
     when {
@@ -1998,7 +2021,8 @@ fun ToolPkgComposeDslDialogHost(
                 LocalComposeDslSuspendingActionHandler provides ::dispatchActionAwait,
                 LocalComposeDslDialogDismissHandler provides onDismiss,
                 LocalComposeDslRouteInstanceId provides routeInstanceId,
-                LocalComposeDslWebViewHost provides webViewHostContext
+                LocalComposeDslWebViewHost provides webViewHostContext,
+                LocalComposeDslScrollStateStore provides scrollStateStore
             ) {
                 renderComposeDslNode(
                     node = rootNode,
@@ -2018,6 +2042,7 @@ fun RenderToolPkgComposeDslNode(
     onTextInputAction: (String, String) -> Unit = { _, _ -> },
     onFlushTextInput: () -> Unit = { }
 ) {
+    val scrollStateStore = rememberComposeDslScrollStateStore("embedded")
     CompositionLocalProvider(
         LocalComposeDslActionHandler provides onAction,
         LocalComposeDslTextInputActionHandler provides onTextInputAction,
@@ -2026,7 +2051,8 @@ fun RenderToolPkgComposeDslNode(
             onAction(actionId, payload)
         },
         LocalComposeDslRouteInstanceId provides "",
-        LocalComposeDslWebViewHost provides null
+        LocalComposeDslWebViewHost provides null,
+        LocalComposeDslScrollStateStore provides scrollStateStore
     ) {
         Box(modifier = modifier) {
             renderComposeDslNode(

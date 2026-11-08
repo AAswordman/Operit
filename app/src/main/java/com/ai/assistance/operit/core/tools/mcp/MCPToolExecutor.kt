@@ -1,15 +1,15 @@
 package com.ai.assistance.operit.core.tools.mcp
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.core.tools.StringResultData
-import com.ai.assistance.operit.core.tools.ToolExecutionLimits
-import com.ai.assistance.operit.core.tools.ToolExecutor
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolResult
-import com.ai.assistance.operit.data.model.ToolValidationResult
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutionLimits
+import com.ai.assistance.operit.core.tools.runtime.ToolExecutor
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.core.tools.protocol.ToolValidationResult
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -516,6 +516,9 @@ class MCPManager(private val context: Context) {
         }
     }
 
+    /** 只检查已有会话，不在“已启动”判断中创建或重连服务。 */
+    suspend fun isSessionActive(pluginId: String): Boolean = sessionCache[pluginId]?.isActive() == true
+
     fun getOrCreateSession(pluginId: String): McpRuntimeSession? {
         val cachedSession = sessionCache[pluginId]
         if (cachedSession != null) {
@@ -528,7 +531,8 @@ class MCPManager(private val context: Context) {
                 }
             } catch (e: Exception) {
                 connectionFailureReasons[pluginId] =
-                        "Exception while reconnecting MCP runtime: ${e.message ?: e.javaClass.simpleName}"
+                        cachedSession.getLastFailureDetail()
+                                ?: "Exception while reconnecting MCP runtime: ${e.message ?: e.javaClass.simpleName}"
                 AppLogger.e(TAG, "重连 MCP runtime 失败: $pluginId", e)
             }
             sessionCache.remove(pluginId)
@@ -552,7 +556,9 @@ class MCPManager(private val context: Context) {
         return try {
             AppLogger.d(TAG, "连接 MCP runtime: $pluginId")
             if (!kotlinx.coroutines.runBlocking { session.connect() }) {
-                connectionFailureReasons[pluginId] = "MCP runtime connection failed"
+                // 保留传输层的启动或握手失败原因，供加载状态直接展示。
+                connectionFailureReasons[pluginId] =
+                        session.getLastFailureDetail() ?: "MCP runtime connection failed"
                 kotlinx.coroutines.runBlocking { session.close() }
                 null
             } else {
@@ -562,7 +568,8 @@ class MCPManager(private val context: Context) {
             }
         } catch (e: Exception) {
             connectionFailureReasons[pluginId] =
-                    "Exception while creating MCP runtime: ${e.message ?: e.javaClass.simpleName}"
+                    session.getLastFailureDetail()
+                            ?: "Exception while creating MCP runtime: ${e.message ?: e.javaClass.simpleName}"
             AppLogger.e(TAG, "创建 MCP runtime 失败: $pluginId", e)
             kotlinx.coroutines.runBlocking { session.close() }
             null

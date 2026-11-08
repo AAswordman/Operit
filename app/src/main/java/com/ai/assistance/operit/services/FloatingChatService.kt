@@ -25,26 +25,26 @@ import com.ai.assistance.operit.core.application.ForegroundServiceCompat
 import com.ai.assistance.operit.core.application.OperitApplication
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
-import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
-import com.ai.assistance.operit.api.chat.ChatRuntimeSlot
-import com.ai.assistance.operit.api.speech.SpeechServiceFactory
-import com.ai.assistance.operit.api.voice.VoiceServiceFactory
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeHolder
+import com.ai.assistance.operit.core.chat.runtime.ChatRuntimeSlot
+import com.ai.assistance.operit.api.speech.stt.SttServiceFactory
+import com.ai.assistance.operit.api.speech.tts.TtsServiceFactory
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.data.model.SerializableColorScheme
 import com.ai.assistance.operit.data.model.SerializableTypography
-import com.ai.assistance.operit.data.model.toComposeColorScheme
-import com.ai.assistance.operit.data.model.toComposeTypography
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.ui.theme.serialization.toComposeColorScheme
+import com.ai.assistance.operit.ui.theme.serialization.toComposeTypography
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.services.floating.FloatingWindowCallback
 import com.ai.assistance.operit.services.floating.FloatingWindowManager
 import com.ai.assistance.operit.services.floating.FloatingWindowState
 import com.ai.assistance.operit.services.floating.StatusIndicatorStyle
 import com.ai.assistance.operit.ui.floating.FloatingMode
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.FileUtils
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.files.FileUtils
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -627,11 +627,11 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                 CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                     try {
                         try {
-                            SpeechServiceFactory.getInstance(applicationContext).cancelRecognition()
+                            SttServiceFactory.getInstance(applicationContext).cancelRecognition()
                         } catch (_: Exception) {
                         }
                         try {
-                            VoiceServiceFactory.getInstance(applicationContext).stop()
+                            TtsServiceFactory.getInstance(applicationContext).stop()
                         } catch (_: Exception) {
                         }
                     } catch (_: Exception) {
@@ -690,10 +690,10 @@ class FloatingChatService : Service(), FloatingWindowCallback {
             serviceScope.launch(Dispatchers.IO) {
                 try {
                     try {
-                        SpeechServiceFactory.getInstance(applicationContext).cancelRecognition()
+                        SttServiceFactory.getInstance(applicationContext).cancelRecognition()
                     } catch (_: Exception) {
                     }
-                    VoiceServiceFactory.getInstance(applicationContext).stop()
+                    TtsServiceFactory.getInstance(applicationContext).stop()
                 } catch (_: Exception) {
                 }
             }
@@ -725,6 +725,8 @@ class FloatingChatService : Service(), FloatingWindowCallback {
                 // 发送消息（包含总结逻辑）
                 chatCore.sendUserMessage(
                     promptFunctionType = promptType,
+                    // 与主界面一致，发送时使用当前选中的角色而非历史绑定的默认角色。
+                    preferActiveRoleCard = true,
                     messageTextOverride = message
                 )
                 

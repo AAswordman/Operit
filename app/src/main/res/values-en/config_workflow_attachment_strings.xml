@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">Tap to edit a single key; use the arrow for the key pool</string>
+    <string name="model_workspace_open_key_pool">Key pool settings</string>
+    <string name="patch_update_no_matching_chain">No complete incremental path connects the installed APK to this version. Update using the full APK.</string>
+    <string name="patch_update_base_changed">The installed APK does not match the base required by this patch. Update using the full APK.</string>
+    <string name="workflow_run_details">Run details and history</string>
+    <string name="workflow_run_load_failed">Unable to read run records. Check access to the workflow folder.</string>
+    <string name="workflow_run_older">Older</string>
+    <string name="workflow_run_newer">Newer</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">Duration: %1$.2f s</string>
+    <string name="workflow_run_legacy">This record has no node details. New runs after updating will record full results.</string>
+    <string name="workflow_run_node_success">Succeeded</string>
+    <string name="workflow_run_node_failed">Failed</string>
+    <string name="workflow_run_node_skipped">Skipped by condition</string>
+    <string name="workflow_run_node_not_run">Not executed</string>
+    <string name="workflow_run_node_cancelled">Cancelled</string>
+    <string name="workflow_run_queued">Queued, waiting for another scheduled task</string>
+    <string name="workflow_issue_timeout">The response timed out. Check the service or node timeout.</string>
+    <string name="workflow_issue_network">The network connection failed. Check your network and service address.</string>
+    <string name="workflow_issue_auth">Service authentication failed. Check the key or account.</string>
+    <string name="workflow_issue_quota">The service quota or request limit was reached. Check balance and request rate.</string>
+    <string name="workflow_issue_permission">A required permission is missing. Check the system permissions for this tool.</string>
+    <string name="workflow_issue_tool_missing">The required tool is unavailable. Check that its package is installed and enabled.</string>
+    <string name="workflow_issue_input">The node input or action is invalid. Check its parameters.</string>
+    <string name="workflow_issue_reference">A referenced node result is unavailable. Check connections and references.</string>
+    <string name="workflow_issue_busy">The execution environment is busy. Wait for the current task to finish.</string>
+    <string name="workflow_issue_cancelled">This run was cancelled.</string>
+    <string name="workflow_issue_cycle">The node graph has a circular dependency. Adjust the connections.</string>
+    <string name="workflow_issue_trigger">No usable trigger node was found. Check the trigger settings.</string>
+    <string name="workflow_issue_runtime">The execution environment is not ready. Try again shortly.</string>
+    <string name="workflow_issue_unknown">The node could not complete its action. Check its inputs and tool settings.</string>
+    <string name="sent_image_count">%1$d images</string>
+    <string name="sent_image_expired_count">%1$d images expired</string>
+    <string name="workflow_run_failed_nodes">Failed nodes: %1$s</string>
+</resources>

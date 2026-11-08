@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="api_key_pool_cooling_remaining">临时冷却，剩余 %1$d 秒</string>
+    <string name="api_key_pool_cooling_summary">%1$d 把密钥临时冷却，最短剩余 %2$d 秒</string>
+    <string name="api_key_pool_states_cleared">已清除测试标记与临时冷却</string>
+    <string name="api_key_pool_no_available_marks">配置“%1$s”没有测试标记为可用的密钥，请先清除标记再重新测试。</string>
+    <string name="api_key_pool_all_cooling">配置“%1$s”的候选密钥正在临时冷却，最早 %2$d 秒后可重试。</string>
+    <string name="api_key_pool_already_tried">配置“%1$s”的全部候选密钥已在本次请求中尝试，请稍后重试。</string>
+    <string name="api_key_pool_no_enabled_keys">配置“%1$s”没有可用的已启用密钥，请检查密钥池配置。</string>
+    <string name="api_key_pool_endpoint_error">请求地址或方法不存在，请检查服务商类型及完整 API 路径。自定义路径（如 /v2）按原样使用，OpenAI 兼容接口通常需填写到 /chat/completions。原始错误：%1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">模型“%1$s”临时冷却，剩余 %2$d 秒</string>
+</resources>

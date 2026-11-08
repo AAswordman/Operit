@@ -10,7 +10,7 @@ import android.media.ImageReader
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import android.view.Surface
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.io.FileOutputStream
 

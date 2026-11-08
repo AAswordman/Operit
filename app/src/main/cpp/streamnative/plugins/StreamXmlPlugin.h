@@ -30,11 +30,15 @@ private:
 
     bool allowStartAfterEndTag_;
     bool allowStartAfterPunctuation_;
+    bool inlineToolOnly_ = false;
 
     std::u16string tagName_;
+    std::u16string attributes_;
     std::u16string endPattern_;
+    std::u16string alternateEndPattern_;
     bool haveEndPattern_;
     KmpMatcher endMatcher_;
+    KmpMatcher alternateEndMatcher_;
     char16_t lastChar_ = 0;
 
     bool handleDefaultCharacter(char16_t c);

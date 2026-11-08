@@ -21,6 +21,10 @@ plugins {
     id("kotlin-kapt")
 }
 
+// 此独立发行分支在 GitHub Actions 中生成固定签名的 Kong 共存包。
+val ciPreviewRelease = providers.environmentVariable("GITHUB_ACTIONS").orNull == "true"
+val ciDistributionCertificateSha256 = "5E01FFF4DD01A44BAB8318BE35107AE39C60A1261CFCE33003EA3528727EA799"
+
 val localProperties = Properties()
 val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
@@ -128,17 +132,18 @@ fun signApkWithRotation(apkFile: File) {
         "--key-pass", "env:OPERIT_NEW_KEY_PASSWORD",
     )
 
-    project.exec {
+    // 显式读取执行结果，签名命令失败时立即终止任务。
+    providers.exec {
         commandLine(listOf(config.apksigner.path) + signingArguments)
         environment("OPERIT_OLD_STORE_PASSWORD", config.oldStorePassword)
         environment("OPERIT_OLD_KEY_PASSWORD", config.oldKeyPassword)
         environment("OPERIT_NEW_STORE_PASSWORD", config.newStorePassword)
         environment("OPERIT_NEW_KEY_PASSWORD", config.newKeyPassword)
-    }
+    }.result.get().assertNormalExitValue()
 
-    project.exec {
+    providers.exec {
         commandLine(config.apksigner.path, "verify", "--verbose", "--print-certs", rotatedApk.path)
-    }
+    }.result.get().assertNormalExitValue()
 
     Files.move(
         rotatedApk.toPath(),
@@ -300,7 +305,7 @@ val syncSttModelAssets by tasks.registering {
 
     doLast {
         val manifestFile = sttModelAssetsManifestFile.asFile
-        val assets = parseSttModelAssetManifest(manifestFile)
+        val assets = parseSttModelAssetManifest(manifestFile).filter { it.targetPath == "models/silero_vad.onnx" }
         val outputRoot = generatedSttModelAssetsDir.get().asFile
         outputRoot.mkdirs()
 
@@ -344,16 +349,126 @@ val syncSttModelAssets by tasks.registering {
     }
 }
 
+// providers.exec 会捕获输出；先打印诊断再检查退出码，避免 CI 只剩 Python 退出码。
+fun runResourceScript(scriptName: String, arguments: List<String> = emptyList()) {
+    logger.lifecycle("离线资源脚本：$scriptName")
+    val execution = providers.exec {
+        commandLine(listOf("python3", rootProject.file("ci/distribution/resources/$scriptName").path) + arguments)
+        isIgnoreExitValue = true
+    }
+    val result = execution.result.get()
+    val output = execution.standardOutput.asText.get()
+    val error = execution.standardError.asText.get()
+    if (output.isNotBlank()) logger.lifecycle(output.trimEnd())
+    if (error.isNotBlank()) logger.error(error.trimEnd())
+    result.assertNormalExitValue()
+}
+
+val bundleProjectResources = providers.gradleProperty("operit.bundleProjectResources").map { it.toBooleanStrict() }.getOrElse(false)
+val ocrArtifacts = listOf("text-recognition", "text-recognition-chinese", "text-recognition-japanese", "text-recognition-korean", "text-recognition-devanagari")
+val ocrModelAars = configurations.create("ocrModelAars") {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    isTransitive = false
+}
+val strippedOcrSdkDir = layout.buildDirectory.dir("generated/offline-ocr-sdk")
+val stripOcrSdk by tasks.registering {
+    description = "Separates verified OCR model assets from the unchanged ML Kit SDK."
+    inputs.files(ocrModelAars)
+    inputs.file(file("config/mlkit-ocr-assets.json"))
+    inputs.file(rootProject.file("ci/distribution/resources/prepare_ocr_sdk.py"))
+    outputs.dir(strippedOcrSdkDir)
+    doLast {
+        val arguments = mutableListOf("--output", strippedOcrSdkDir.get().asFile.path)
+        ocrModelAars.files.sortedBy { it.name }.forEach { arguments.addAll(listOf("--aar", it.path)) }
+        runResourceScript("prepare_ocr_sdk.py", arguments)
+    }
+}
+val verifyOfflineHubDistribution by tasks.registering {
+    description = "Checks downloadable resource packaging before JVM unit tests."
+    inputs.files(
+        rootProject.file("ci/test/test_offline_hub_assets.py"),
+        rootProject.file("ci/distribution/resources/check_distribution.py"),
+        rootProject.file("ci/distribution/resources/prepare_hub.py"),
+        rootProject.file("ci/distribution/resources/builtin_packages.py"),
+        rootProject.file("ci/distribution/resources/verify_packaged_resources.py"),
+    )
+    doLast { runResourceScript("check_distribution.py") }
+}
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    dependsOn(verifyOfflineHubDistribution)
+}
+
+val generatedTerminalCommandAssetsDir = layout.buildDirectory.dir("generated/terminal-command-assets")
+val verifyTerminalCommandAssets by tasks.registering {
+    description = "Verifies the ARM64 Linux terminal commands and their asset manifests."
+    inputs.dir(generatedTerminalCommandAssetsDir)
+    inputs.files(
+        rootProject.file("tools/terminal_commands/verify_assets.py"),
+        rootProject.file("tools/native_apply_patch/package_assets.py"),
+        rootProject.file("tools/native_apply_patch/install.sh"),
+        rootProject.file("tools/web_chat_cli/package_assets.py"),
+        rootProject.file("tools/web_chat_cli/install.sh"),
+    )
+    doLast {
+        val execution = providers.exec {
+            commandLine(
+                "python3", rootProject.file("tools/terminal_commands/verify_assets.py").path,
+                "--verify", "--output", generatedTerminalCommandAssetsDir.get().asFile.path,
+            )
+        }
+        execution.result.get().assertNormalExitValue()
+    }
+}
+
 val syncMainAssets by tasks.registering(Sync::class) {
     description = "Assembles application assets with verified generated STT model files."
     group = "build setup"
-    dependsOn(syncSttModelAssets)
+    dependsOn(syncSttModelAssets, verifyTerminalCommandAssets)
 
     from("src/main/assets") {
-        exclude("models/**")
+        exclude("models/**", "subpack/**")
+        if (!bundleProjectResources) exclude("templates/**", "packages/**")
     }
     from(generatedSttModelAssetsDir)
+    from(generatedTerminalCommandAssetsDir)
+    from("config/offline-resources.properties")
+    from("config/local-speech-models.json")
+    from("config/offline-packs.json")
+    from("config/builtin-extensions.json")
+    inputs.property("bundleProjectResources", bundleProjectResources)
+    inputs.file(rootProject.file("ci/distribution/resources/prepare_hub.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/verify_hub_catalog.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/distribution_catalog.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/builtin_packages.py"))
+    inputs.file(rootProject.file("ci/distribution/resources/builtin_source_snapshot.py"))
+    inputs.file(file("config/offline-pack-sources.json"))
+    inputs.file(rootProject.file("ci/distribution/resources/prepare_extension_metadata.py"))
+    inputs.dir(rootProject.file("examples"))
+    inputs.file(rootProject.file("tools/example_packages/packages_whitelist.txt"))
+    inputs.dir(file("src/main/assets/templates"))
+    inputs.dir(rootProject.file("examples/apktool/resources/apktool"))
     into(generatedMainAssetsDir)
+    doLast {
+        runResourceScript("verify_hub_catalog.py")
+        runResourceScript("prepare_extension_metadata.py", listOf(
+            "--catalog", file("config/offline-packs.json").path,
+            "--examples", rootProject.file("examples").path,
+            "--output", File(generatedMainAssetsDir.get().asFile, "offline-extension-metadata.json").path,
+        ))
+        // 只修改生成目录，源码模板和完整插件仍保留，供独立资源发行与完整构建使用。
+        if (bundleProjectResources) {
+            val sourceRoot = file("src/main/assets/templates")
+            sourceRoot.walkTopDown().filter { it.isFile && it.name == ".gitignore" }.forEach { source ->
+                val relative = source.relativeTo(sourceRoot).invariantSeparatorsPath.split('/').joinToString("/") { if (it == ".gitignore") "gitignore" else it }
+                val target = File(generatedMainAssetsDir.get().asFile, "templates/$relative")
+                target.parentFile.mkdirs()
+                source.copyTo(target, overwrite = true)
+            }
+        } else {
+            runResourceScript("prepare_hub.py", listOf("--slim-assets", generatedMainAssetsDir.get().asFile.path))
+        }
+    }
 }
 
 android {
@@ -364,9 +479,24 @@ android {
         getByName("main") {
             assets.setSrcDirs(listOf(generatedMainAssetsDir.get().asFile))
         }
+        if (ciPreviewRelease) {
+            getByName("release") {
+                manifest.srcFile("src/kong/AndroidManifest.xml")
+                res.srcDir("src/kong/res")
+            }
+        }
     }
 
     signingConfigs {
+        if (ciPreviewRelease) {
+            create("ciDistribution") {
+                storeFile = rootProject.file(".ci-signing/operit-distribution.p12")
+                storeType = "PKCS12"
+                storePassword = providers.environmentVariable("OPERIT_DISTRIBUTION_STORE_PASSWORD").orNull
+                keyAlias = "operit-distribution"
+                keyPassword = providers.environmentVariable("OPERIT_DISTRIBUTION_STORE_PASSWORD").orNull
+            }
+        }
         val releaseKeystorePath = localProperties.getProperty("RELEASE_STORE_FILE")
         val releaseStorePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD")
         val releaseKeyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS")
@@ -397,8 +527,8 @@ android {
         applicationId = "com.ai.assistance.operit"
         minSdk = 26
         targetSdk = 34
-        versionCode = 50
-        versionName = "1.12.1+7"
+        versionCode = 79
+        versionName = "1.12.2+23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -422,13 +552,18 @@ android {
         val releaseSigningConfig = signingConfigs.findByName("release")
 
         release {
+            isDebuggable = false
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            if (releaseSigningConfig != null) {
+            if (ciPreviewRelease) {
+                // 包名和固定签名共同维持独立发行版后续覆盖安装的身份。
+                applicationIdSuffix = ".kong"
+                signingConfig = signingConfigs.getByName("ciDistribution")
+            } else if (releaseSigningConfig != null) {
                 signingConfig = releaseSigningConfig
             }
         }
@@ -461,6 +596,12 @@ android {
         }
     }
     applicationVariants.all {
+        if (buildType.name == "release" && ciPreviewRelease) {
+            outputs.all {
+                val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+                output.outputFileName = "app-kong.apk"
+            }
+        }
         if (buildType.name == "nightly") {
             outputs.all {
                 val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
@@ -552,12 +693,67 @@ val signRotatedNightlyApk by tasks.registering {
     }
 }
 
-tasks.matching { it.name == "assembleRelease" }.configureEach {
-    finalizedBy(signRotatedReleaseApk)
+if (!ciPreviewRelease) {
+    tasks.matching { it.name == "assembleRelease" }.configureEach {
+        finalizedBy(signRotatedReleaseApk)
+    }
 }
 
 tasks.matching { it.name == "assembleNightly" }.configureEach {
     finalizedBy(signRotatedNightlyApk)
+}
+
+if (ciPreviewRelease) {
+    val verifyCiPreviewRelease by tasks.registering {
+        group = "verification"
+        description = "Verifies the signed Kong coexist APK."
+        dependsOn("assembleRelease")
+        doLast {
+            val apkFile = layout.buildDirectory.file("outputs/apk/release/app-kong.apk").get().asFile
+            require(apkFile.isFile && apkFile.length() > 0) {
+                "Kong coexist APK was not produced: ${apkFile.path}"
+            }
+            val sdkDirectory = File(requiredLocalProperty("sdk.dir"))
+            val apksigner = sdkDirectory.resolve("build-tools/35.0.0/apksigner")
+            val signingVerification = providers.exec {
+                commandLine(apksigner.path, "verify", "--verbose", "--print-certs", apkFile.path)
+            }
+            signingVerification.result.get().assertNormalExitValue()
+            val signingReport = signingVerification.standardOutput.asText.get()
+            val certificateSha256 = Regex("""Signer #1 certificate SHA-256 digest: ([0-9a-fA-F]+)""")
+                .find(signingReport)?.groupValues?.get(1)
+            require(certificateSha256 != null && certificateSha256.equals(ciDistributionCertificateSha256, ignoreCase = true)) {
+                "Kong coexist APK has an unexpected signing certificate"
+            }
+            // 校验实际 APK 的包名和调试标记，避免把调试产物当作发行包上传。
+            val aapt2 = sdkDirectory.resolve("build-tools/35.0.0/aapt2")
+            // 由 Gradle 读取标准输出，避免 java 扩展遮蔽同名包而使脚本编译失败。
+            val badging = providers.exec {
+                commandLine(aapt2.path, "dump", "badging", apkFile.path)
+            }.standardOutput.asText.get()
+            require(badging.lineSequence().any {
+                it.startsWith("package: name='com.ai.assistance.operit.kong' ")
+            }) {
+                "Kong coexist APK has an unexpected package name"
+            }
+            require(badging.lineSequence().none {
+                it.startsWith("application-debuggable")
+            }) {
+                "Kong coexist APK must not be debuggable"
+            }
+            val badgingReport = layout.buildDirectory.file("reports/kong-preview/apk-badging.txt").get().asFile
+            badgingReport.parentFile.mkdirs()
+            badgingReport.writeText(badging)
+            badgingReport.resolveSibling("apk-signing.txt").writeText(signingReport)
+        }
+    }
+    // 保留现有发布入口；下载产物只保留共存 APK，避免上传规则同时收集 AAB。
+    tasks.matching { it.name == "bundleRelease" }.configureEach {
+        dependsOn(verifyCiPreviewRelease)
+        doLast {
+            project.delete(layout.buildDirectory.dir("outputs/bundle"))
+        }
+    }
 }
 
 tasks.named("preBuild") {
@@ -577,19 +773,18 @@ kotlin {
 
 dependencies {
     implementation("com.github.jelmerk:hnswlib-core:1.2.1")
-    implementation(project(":dragonbones"))
-    implementation(project(":terminal"))
+    implementation(project(":terminal")) {
+        // 终端保留独立编译依赖，应用只打包图标子集，避免完整扩展库产生重复类。
+        exclude(group = "androidx.compose.material", module = "material-icons-extended")
+        exclude(group = "androidx.compose.material", module = "material-icons-extended-android")
+    }
     implementation(project(":mnn"))
     implementation(project(":llama"))
-    implementation(project(":mmd"))
-    implementation(project(":fbx"))
     implementation(project(":showerclient"))
+    // 原生动态界面兼容层使用当前 SDK 和 Compose 版本编译。
+    implementation(project(":a2ui-compat"))
     implementation(project(":quickjs"))
 
-    // glTF runtime rendering (Filament)
-    implementation("com.google.android.filament:filament-android:1.69.2")
-    implementation("com.google.android.filament:gltfio-android:1.69.2")
-    implementation("com.google.android.filament:filament-utils-android:1.69.2")
     implementation(libs.androidx.ui.graphics.android)
     // The only vendored artifact is the custom FFmpegKit AAR.
     implementation(files("libs/ffmpeg-kit-local.aar"))
@@ -604,13 +799,26 @@ dependencies {
     // Desugaring support for modern Java APIs on older Android
     coreLibraryDesugaring(libs.desugar.jdk)
 
-    // ML Kit - 文本识别
-    implementation(libs.mlkit.text.recognition)
-    // ML Kit - 多语言识别支持
-    implementation(libs.mlkit.text.chinese)
-    implementation(libs.mlkit.text.japanese)
-    implementation(libs.mlkit.text.korean)
-    implementation(libs.mlkit.text.devanagari)
+    // 仅拆出模型资产；原 SDK 描述符、JNI 运行库和多语言识别接口继续随 APK 提供。
+    ocrArtifacts.forEach { add(ocrModelAars.name, "com.google.mlkit:$it:16.0.0") }
+    if (bundleProjectResources) {
+        implementation(libs.mlkit.text.recognition)
+        implementation(libs.mlkit.text.chinese)
+        implementation(libs.mlkit.text.japanese)
+        implementation(libs.mlkit.text.korean)
+        implementation(libs.mlkit.text.devanagari)
+    } else {
+        implementation(files(ocrArtifacts.map { artifact -> strippedOcrSdkDir.map { it.file("$artifact-16.0.0.aar").asFile } }).builtBy(stripOcrSdk))
+        implementation("com.google.mlkit:text-recognition-bundled-common:16.0.0")
+        implementation("com.google.mlkit:common:18.8.0")
+        implementation("com.google.android.gms:play-services-base:18.1.0")
+        implementation("com.google.android.gms:play-services-basement:18.1.0")
+        implementation("com.google.android.gms:play-services-mlkit-text-recognition:19.0.0")
+        implementation("com.google.android.gms:play-services-mlkit-text-recognition-common:19.0.0")
+        listOf("chinese", "japanese", "korean", "devanagari").forEach {
+            implementation("com.google.android.gms:play-services-mlkit-text-recognition-$it:16.0.0")
+        }
+    }
     
     implementation(libs.zxing.core)
     
@@ -699,8 +907,7 @@ dependencies {
     implementation(libs.hnswlib.core)
     implementation(libs.hnswlib.utils)
     
-    // 用于向量嵌入的TF Lite (如果需要自定义嵌入)
-    implementation(libs.tensorflow.lite)
+    // MediaPipe 文本任务
     implementation(libs.mediapipe.tasks.text)
     
     // ONNX Runtime for Android - 支持更强大的多语言Embedding模型
@@ -725,7 +932,7 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.activity.compose)
     // Use BOM version for all Compose dependencies
-    implementation(libs.compose.material.icons.extended)
+    implementation(project(":material-icons-subset"))
     implementation(libs.compose.animation)
     implementation(libs.compose.animation.core)
 
@@ -757,6 +964,10 @@ dependencies {
 
     // Test dependencies
     testImplementation(libs.junit)
+    // JVM 中文排序测试使用 ICU，匹配 Android 的 Collator，不打包进应用。
+    testImplementation("com.ibm.icu:icu4j:76.1")
+    // 目录迁移的 JVM 测试通过 JDBC 执行真实 SQLite SQL，需要在测试运行时提供驱动。
+    testRuntimeOnly("org.xerial:sqlite-jdbc:3.46.1.3")
     // JVM tests need a real implementation because Android's org.json methods are throwing stubs.
     testImplementation(libs.json.jvm)
     androidTestImplementation(libs.androidx.junit)
@@ -792,6 +1003,7 @@ dependencies {
     androidTestImplementation(libs.test.rules)
     
     // 协程测试依赖
+    testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.coroutines.test)
     androidTestImplementation(libs.coroutines.test)
     
@@ -842,4 +1054,29 @@ dependencies {
     // Glance for Widgets (Compose for Widgets)
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
+}
+
+// 向 JVM 回归提供明确的源码根目录，供 Compose DSL 运行时用例读取宿主脚本。
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    systemProperty("operit.repositoryRoot", rootProject.projectDir.absolutePath)
+}
+
+// 终端库使用独立仓库，宿主 JVM 检查必须一并执行其生命周期回归。
+tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
+    if (name == "testDebugUnitTest") {
+        dependsOn(":terminal:testDebugUnitTest")
+    }
+}
+
+// 开发构建使用固定资源快照，正式发行仍要求当前源码与该资源版本一致。
+val verifyCurrentOfflinePackSources by tasks.registering {
+    group = "verification"
+    doLast {
+        runResourceScript("verify_hub_catalog.py", listOf("--current-source"))
+    }
+}
+tasks.configureEach {
+    if (name == "verifyCiPreviewRelease" || name == "bundleRelease") {
+        dependsOn(verifyCurrentOfflinePackSources)
+    }
 }

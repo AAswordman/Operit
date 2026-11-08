@@ -41,6 +41,7 @@ import {
     HttpResponseData as _HttpResponseData,
     VisitWebResultData as _VisitWebResultData,
     TerminalCommandResultData as _TerminalCommandResultData,
+    TerminalTaskResultData as _TerminalTaskResultData,
     TerminalStreamEventData as _TerminalStreamEventData,
     HiddenTerminalCommandResultData as _HiddenTerminalCommandResultData,
     MusicPlaybackState as _MusicPlaybackState,
@@ -197,6 +198,7 @@ declare global {
     type HttpResponseData = _HttpResponseData;
     type VisitWebResultData = _VisitWebResultData;
     type TerminalCommandResultData = _TerminalCommandResultData;
+    type TerminalTaskResultData = _TerminalTaskResultData;
     type TerminalStreamEventData = _TerminalStreamEventData;
     type HiddenTerminalCommandResultData = _HiddenTerminalCommandResultData;
     type MusicPlaybackState = _MusicPlaybackState;

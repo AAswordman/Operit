@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">Ketik untuk mengedit satu kunci; anak panah membuka kumpulan kunci</string>
+    <string name="model_workspace_open_key_pool">Tetapan kumpulan kunci</string>
+    <string name="patch_update_no_matching_chain">Tiada laluan kemas kini tambahan lengkap daripada APK terpasang. Gunakan APK penuh.</string>
+    <string name="patch_update_base_changed">APK terpasang tidak sepadan dengan asas tampalan ini. Gunakan APK penuh.</string>
+    <string name="workflow_run_details">Butiran dan sejarah pelaksanaan</string>
+    <string name="workflow_run_load_failed">Tidak dapat membaca rekod. Semak akses ke folder aliran kerja.</string>
+    <string name="workflow_run_older">Lebih lama</string>
+    <string name="workflow_run_newer">Lebih baharu</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">Tempoh: %1$.2f saat</string>
+    <string name="workflow_run_legacy">Rekod ini tiada butiran nod. Pelaksanaan baharu akan menyimpan hasil lengkap.</string>
+    <string name="workflow_run_node_success">Berjaya</string>
+    <string name="workflow_run_node_failed">Gagal</string>
+    <string name="workflow_run_node_skipped">Dilangkau mengikut syarat</string>
+    <string name="workflow_run_node_not_run">Tidak dilaksanakan</string>
+    <string name="workflow_run_node_cancelled">Dibatalkan</string>
+    <string name="workflow_run_queued">Dalam giliran, menunggu tugas berjadual lain</string>
+    <string name="workflow_issue_timeout">Masa respons tamat. Semak perkhidmatan atau had masa nod.</string>
+    <string name="workflow_issue_network">Sambungan rangkaian gagal. Semak rangkaian dan alamat perkhidmatan.</string>
+    <string name="workflow_issue_auth">Pengesahan perkhidmatan gagal. Semak kunci atau akaun.</string>
+    <string name="workflow_issue_quota">Kuota atau had permintaan telah dicapai. Semak baki dan kekerapan panggilan.</string>
+    <string name="workflow_issue_permission">Kebenaran diperlukan belum diberikan. Semak kebenaran sistem alat ini.</string>
+    <string name="workflow_issue_tool_missing">Alat tidak tersedia. Semak pemasangan dan pengaktifan pakejnya.</string>
+    <string name="workflow_issue_input">Input atau tindakan nod tidak sah. Semak parameternya.</string>
+    <string name="workflow_issue_reference">Hasil nod rujukan tidak tersedia. Semak sambungan dan rujukan.</string>
+    <string name="workflow_issue_busy">Persekitaran pelaksanaan sibuk. Tunggu tugas semasa selesai.</string>
+    <string name="workflow_issue_cancelled">Pelaksanaan ini dibatalkan.</string>
+    <string name="workflow_issue_cycle">Terdapat kebergantungan berulang. Laraskan sambungan nod.</string>
+    <string name="workflow_issue_trigger">Tiada pencetus yang tersedia. Semak tetapan pencetus.</string>
+    <string name="workflow_issue_runtime">Persekitaran pelaksanaan belum sedia. Cuba lagi sebentar lagi.</string>
+    <string name="workflow_issue_unknown">Nod tidak dapat menyelesaikan tindakan. Semak input dan tetapan alat.</string>
+    <string name="sent_image_count">%1$d imej</string>
+    <string name="sent_image_expired_count">%1$d imej tamat tempoh</string>
+    <string name="workflow_run_failed_nodes">Nod gagal: %1$s</string>
+</resources>

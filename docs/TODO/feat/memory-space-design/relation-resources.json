@@ -1,0 +1,28 @@
+{
+  "zh": {
+    "memory_relation_uses": "使用",
+    "memory_relation_involves": "涉及",
+    "memory_relation_depends_on": "依赖",
+    "memory_relation_related_to": "相关",
+    "memory_relation_follows": "遵循",
+    "memory_relation_explains": "说明",
+    "memory_relation_part_of": "属于",
+    "memory_relation_updates": "更新",
+    "memory_relation_causes": "导致",
+    "memory_relation_corrects": "纠正",
+    "memory_relation_existing": "原有关系"
+  },
+  "en": {
+    "memory_relation_uses": "Uses",
+    "memory_relation_involves": "Involves",
+    "memory_relation_depends_on": "Depends on",
+    "memory_relation_related_to": "Related to",
+    "memory_relation_follows": "Follows",
+    "memory_relation_explains": "Explains",
+    "memory_relation_part_of": "Part of",
+    "memory_relation_updates": "Updates",
+    "memory_relation_causes": "Causes",
+    "memory_relation_corrects": "Corrects",
+    "memory_relation_existing": "Existing relationship"
+  }
+}

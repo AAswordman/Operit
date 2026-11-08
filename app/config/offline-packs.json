@@ -1,0 +1,1389 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "resources-v2-d16730007f8d94095264",
+  "packs": [
+    {
+      "id": "template-android",
+      "name": "android",
+      "version": "a107e3fb114aad2384b8",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 6404,
+          "sha256": "41237754e6f191859e2f17ab22064027f82740377d33b23f877db449300f5241",
+          "executable": false
+        },
+        {
+          "path": "app/.gitignore",
+          "bytes": 6,
+          "sha256": "5c3174b74edc6f2b9e0743594b8bd3c7f31e4f4405758cc9872b3fe1de1d28b4",
+          "executable": false
+        },
+        {
+          "path": "app/build.gradle.kts",
+          "bytes": 2126,
+          "sha256": "22257a21b6a47d327f64886554c2c9bd507e0f94488fd06c6174183f3a4f2c04",
+          "executable": false
+        },
+        {
+          "path": "app/proguard-rules.pro",
+          "bytes": 750,
+          "sha256": "56fd960cf225f6ca40f982b13a5dbb0d8bc3dfde13ff76422825c6070d0a1890",
+          "executable": false
+        },
+        {
+          "path": "app/src/androidTest/java/com/java/myapplication/ExampleInstrumentedTest.kt",
+          "bytes": 671,
+          "sha256": "ef766653991be930151930b6a57024483e08be72c1042f7fb62316a803fe478c",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/AndroidManifest.xml",
+          "bytes": 1037,
+          "sha256": "a0d8eada543705bdc9c77c92ca8cd9f04eb41d26dfd37f060d97073a5487991b",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/java/com/java/myapplication/MainActivity.kt",
+          "bytes": 1352,
+          "sha256": "9f3103250867821ba55a994352268d4de422cc1c3703c9f7cc794e3cd8de0346",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/java/com/java/myapplication/ui/theme/Color.kt",
+          "bytes": 286,
+          "sha256": "f7d4a375088b669b08c9cd61d7b43cf02f88aab354f6674c3f08c2da7ea2329f",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/java/com/java/myapplication/ui/theme/Theme.kt",
+          "bytes": 1703,
+          "sha256": "99795da5bc3a4fdb44d4f5b48ea6061103f8704ddb46056a5cb4b22e7f4bf18b",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/java/com/java/myapplication/ui/theme/Type.kt",
+          "bytes": 991,
+          "sha256": "ff30cb945e05505107ebd779ac827008178ddc347bbb077beb03b91d148a1429",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/drawable/ic_launcher_background.xml",
+          "bytes": 5606,
+          "sha256": "ed423c73a6f40a4d2909f0901e60527b3a807cd59e1b5593bcaae1808b1c6321",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/drawable/ic_launcher_foreground.xml",
+          "bytes": 1702,
+          "sha256": "01d1a6a6c1234eb7fe270d097eb283d72b9c95ae5118886f1b6573aad280f1f7",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+          "bytes": 343,
+          "sha256": "88f7653499ef524126ea5018a99baf9cc3269e7e584d6205dfdd76db39f39cc0",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+          "bytes": 343,
+          "sha256": "88f7653499ef524126ea5018a99baf9cc3269e7e584d6205dfdd76db39f39cc0",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-hdpi/ic_launcher.webp",
+          "bytes": 1404,
+          "sha256": "dd00996198640ed28fbc09cdcd7a3807cf8707f3eb255b659634da3ca6a6ff01",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-hdpi/ic_launcher_round.webp",
+          "bytes": 2898,
+          "sha256": "1ed73f5341a69d3b41c7e02e126803f50cc8c3284adf4bbb737f0c93577aef07",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-mdpi/ic_launcher.webp",
+          "bytes": 982,
+          "sha256": "846219e6f72fe9a6c104ca8919cbee36a101e7d2ff8da9da67b689a5888f060d",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-mdpi/ic_launcher_round.webp",
+          "bytes": 1772,
+          "sha256": "4e2c58b91de01130e6479e00cbbaaf6e77cd961dd2c8e303cf13cd077fa92632",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xhdpi/ic_launcher.webp",
+          "bytes": 1900,
+          "sha256": "398340dad816fc9a6338cb151a8cf1e45b926f9bfb70628b24c4bd2523cc94d4",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp",
+          "bytes": 3918,
+          "sha256": "91b490aef86574901137f0a252272e1f1add99c1ad709e0696ed68929b88d261",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher.webp",
+          "bytes": 2884,
+          "sha256": "58ae87fa0c5b5d1562d27fd648d2c061553fe20e3ed570bde588162d01ea7a27",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp",
+          "bytes": 5914,
+          "sha256": "3009fad079f5772f30ecd767f98924367fbe0f81c30048d672d4fda2d5ca7d12",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp",
+          "bytes": 3844,
+          "sha256": "f98fef5bc3bfe5b65692c40ad1cbae2bec4faf9f1b249c397626740db71b62d8",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp",
+          "bytes": 7778,
+          "sha256": "5faf033745c8c882c43bb1b372d4e4a5890caec63d9892a2e756c954108b85dc",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/values/colors.xml",
+          "bytes": 378,
+          "sha256": "b5626527d503417f0d8e5b1e08f338de7b31173bf0e122815f03e64932adbd88",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/values/strings.xml",
+          "bytes": 76,
+          "sha256": "22e88cca26de9e26e33916dce55a324dca54a842b197f191b3406f7e11a1ab90",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/values/themes.xml",
+          "bytes": 155,
+          "sha256": "e7da25bef4929044796beabbc86093f0f7687867f935066a6b5972daa3889603",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/xml/backup_rules.xml",
+          "bytes": 478,
+          "sha256": "9f7e4c84c8fd2c81478d15962383f47cc6ff55d62abcd40c8ffa6fc08a8c35b7",
+          "executable": false
+        },
+        {
+          "path": "app/src/main/res/xml/data_extraction_rules.xml",
+          "bytes": 551,
+          "sha256": "cb1fc47ab4a984530ed60e0e6ee638929c3038290e7e7e0b4b03a3a30fbe7381",
+          "executable": false
+        },
+        {
+          "path": "app/src/test/java/com/java/myapplication/ExampleUnitTest.kt",
+          "bytes": 346,
+          "sha256": "718dff4fc556de4b3b035b1cd919bf41da398dfc5d39de9112895ffc64488463",
+          "executable": false
+        },
+        {
+          "path": "build.gradle.kts",
+          "bytes": 219,
+          "sha256": "3197f6ee5ec5fc7b1be56300fd72573771794c4c51fabb41d9cef2931c41e133",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 225,
+          "sha256": "703238443066325af08e3868d1e4b571a633baf68fcc93e323f0066999a97e1b",
+          "executable": false
+        },
+        {
+          "path": "gradle.properties",
+          "bytes": 1511,
+          "sha256": "581f2ce3a8ebc5bdb95e41b1e93b74d773bdd5e2291af84921a99b7e5cc25efb",
+          "executable": false
+        },
+        {
+          "path": "gradle/libs.versions.toml",
+          "bytes": 1693,
+          "sha256": "ecb969e7dec36fe4238b50af5b1ca9de0bf3b8159bf5d01816e3b6cc1864ceb5",
+          "executable": false
+        },
+        {
+          "path": "gradle/wrapper/gradle-wrapper.jar",
+          "bytes": 59203,
+          "sha256": "e996d452d2645e70c01c11143ca2d3742734a28da2bf61f25c82bdc288c9e637",
+          "executable": false
+        },
+        {
+          "path": "gradle/wrapper/gradle-wrapper.properties",
+          "bytes": 232,
+          "sha256": "decceb61d7f3e1f74af3ab7c186a21cab17da3f83ef0a15772c8f5bf6b94afb4",
+          "executable": false
+        },
+        {
+          "path": "gradlew",
+          "bytes": 5766,
+          "sha256": "63135287117a1e6d12c84580f1f49c61d1ba02218ecd28660605e97f976e7d65",
+          "executable": false
+        },
+        {
+          "path": "gradlew.bat",
+          "bytes": 2674,
+          "sha256": "c46a27c79007746de5922b17abb6230d64ad8b1ba3ad1585ee5c6543c2a9b129",
+          "executable": false
+        },
+        {
+          "path": "settings.gradle.kts",
+          "bytes": 1108,
+          "sha256": "d7abcb0363cbc1a244f662613d4e589d2b904bd884d0719c92ca4b10b8312be0",
+          "executable": false
+        },
+        {
+          "path": "setup_android_env.sh",
+          "bytes": 19274,
+          "sha256": "603147cbab1856339647987cace95d69b16758df9ea95c0dd276224dc1fccdaf",
+          "executable": false
+        },
+        {
+          "path": "tools/aapt2/aapt2-arm64-v8a",
+          "bytes": 4706040,
+          "sha256": "e5b5ff7f0d4f6ecd7fa5d05d77fed3f09f6f1bf80f078b8aada82bc578848561",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-android-a107e3fb114aad2384b8.zip",
+        "bytes": 2117619,
+        "sha256": "8c0a0f2c930932de27b23f82d8d60d5148e68591f228e9e7776f80d2838e1567",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-android-a107e3fb114aad2384b8.zip"
+      }
+    },
+    {
+      "id": "template-flutter",
+      "name": "flutter",
+      "version": "7617ce6dc102b97a6787",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 2195,
+          "sha256": "7d968b5ecd4488685b29bdd8cedcd4753d77bd40e6bc935ea6597b9b0cf3c9b9",
+          "executable": false
+        },
+        {
+          "path": "analysis_options.yaml",
+          "bytes": 1420,
+          "sha256": "e0ea485cfdbc3e12b93efb8679a5ea73ebfe20ea4ca0c473dc594fc2fb274ed5",
+          "executable": false
+        },
+        {
+          "path": "android/.gitignore",
+          "bytes": 253,
+          "sha256": "b027c9de1011765c015e5819bf857c0d75bfcd0886fb01721c091159012e50f1",
+          "executable": false
+        },
+        {
+          "path": "android/app/build.gradle.kts",
+          "bytes": 1416,
+          "sha256": "25ec889eb4831b2d9e579038e03360f8e0d9405c653fd280115ab8483ce3c08e",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/debug/AndroidManifest.xml",
+          "bytes": 378,
+          "sha256": "30b0832ed8b92dfbd6ae2abfa939ccf26333d37600056b1572bd4a397a18a74b",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/AndroidManifest.xml",
+          "bytes": 2210,
+          "sha256": "1a9f7dfceb95ef0f1a4b7a575503465daeb497728a1889e813d06f69c4607d55",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/kotlin/com/example/operit_flutter_project/MainActivity.kt",
+          "bytes": 136,
+          "sha256": "69fc76263cfa7f25ac4c310a8f5b3b1bea36fc9e6ffa3a4b60034ed641992ad4",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/drawable-v21/launch_background.xml",
+          "bytes": 438,
+          "sha256": "7ca6d5cec2169c5a98661a119db23a6f3399c8fef2256ff04f3a642831282478",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/drawable/launch_background.xml",
+          "bytes": 434,
+          "sha256": "94433756fe10005ddd6fc55cc5c0b1e9f3c10b66a08ceac795ece6713d34e28a",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+          "bytes": 544,
+          "sha256": "6a7c8f0d703e3682108f9662f813302236240d3f8f638bb391e32bfb96055fef",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+          "bytes": 442,
+          "sha256": "c7c0c0189145e4e32a401c61c9bdc615754b0264e7afae24e834bb81049eaf81",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+          "bytes": 721,
+          "sha256": "e14aa40904929bf313fded22cf7e7ffcbf1d1aac4263b5ef1be8bfce650397aa",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+          "bytes": 1031,
+          "sha256": "4d470bf22d5c17d84edc5f82516d1ba8a1c09559cd761cefb792f86d9f52b540",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+          "bytes": 1443,
+          "sha256": "3c34e1f298d0c9ea3455d46db6b7759c8211a49e9ec6e44b635fc5c87dfb4180",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/values-night/styles.xml",
+          "bytes": 995,
+          "sha256": "8c5bad5152f217e837519f9c15211d19f39bd45f5f67faf6dd81cb4b299e518f",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/main/res/values/styles.xml",
+          "bytes": 996,
+          "sha256": "937d7c82f539c72eb94fd3a3773f29b3d3fef1997213c92cb632298cedf4bda9",
+          "executable": false
+        },
+        {
+          "path": "android/app/src/profile/AndroidManifest.xml",
+          "bytes": 378,
+          "sha256": "30b0832ed8b92dfbd6ae2abfa939ccf26333d37600056b1572bd4a397a18a74b",
+          "executable": false
+        },
+        {
+          "path": "android/build.gradle.kts",
+          "bytes": 782,
+          "sha256": "5ef00e8874cc471a601ce0712fb3bd43deb7088fb190ec6741902826a2122623",
+          "executable": false
+        },
+        {
+          "path": "android/gradle.properties",
+          "bytes": 138,
+          "sha256": "5539cf5f17c53900a72cf0065e450f0a8ba5b929dd2b364724c1296d0285d9dc",
+          "executable": false
+        },
+        {
+          "path": "android/gradle/wrapper/gradle-wrapper.properties",
+          "bytes": 201,
+          "sha256": "297c9e63b6fa6e7e8b221900fa1787c1a0e38869d8957da66389fd0f6b00f78e",
+          "executable": false
+        },
+        {
+          "path": "android/settings.gradle.kts",
+          "bytes": 1300,
+          "sha256": "70346c98183204c06086f227ebe0c0b718c41b4be8c30da42845bf367f2f7905",
+          "executable": false
+        },
+        {
+          "path": "android/setup_android_env.sh",
+          "bytes": 38706,
+          "sha256": "2e96fed085de84e3c85c7781b2e47d137bd8e422e69e8b702aedf7539c9f6359",
+          "executable": false
+        },
+        {
+          "path": "android/tools/aapt2/aapt2-arm64-v8a",
+          "bytes": 4706040,
+          "sha256": "e5b5ff7f0d4f6ecd7fa5d05d77fed3f09f6f1bf80f078b8aada82bc578848561",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 703,
+          "sha256": "4a8d984279954e0461e0ffef9b9e7455340a0a762f227c01065a53482a83a4f1",
+          "executable": false
+        },
+        {
+          "path": "ios/.gitignore",
+          "bytes": 569,
+          "sha256": "37380775aeb2499662b7aca80f4ac4c95ae827c3ba2bfa179aa3e9af4812c623",
+          "executable": false
+        },
+        {
+          "path": "ios/Flutter/AppFrameworkInfo.plist",
+          "bytes": 720,
+          "sha256": "da12038f9b2688a8a26160fea2609fa8fcb11421448c109f09c0f573efe7698d",
+          "executable": false
+        },
+        {
+          "path": "ios/Flutter/Debug.xcconfig",
+          "bytes": 30,
+          "sha256": "a82d7765b37116ee4821d2cd1d65942febf8032353757ffb0826eabde785b4a6",
+          "executable": false
+        },
+        {
+          "path": "ios/Flutter/Release.xcconfig",
+          "bytes": 30,
+          "sha256": "a82d7765b37116ee4821d2cd1d65942febf8032353757ffb0826eabde785b4a6",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcodeproj/project.pbxproj",
+          "bytes": 24202,
+          "sha256": "b850e05263ae8ff38ea16e7b3dc4cf9fa0283627ee462aae454d31430e116b3f",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata",
+          "bytes": 135,
+          "sha256": "7f3b00b5c3fdb45242d7b87e1e5c4e25d1fa8129a16c94295ecc4e8ea2235c5f",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+          "bytes": 238,
+          "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcodeproj/project.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings",
+          "bytes": 226,
+          "sha256": "11b247bc6796892d67c9a821d18604db4dd6a880981b34f38460b9866e6b247f",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme",
+          "bytes": 3840,
+          "sha256": "c39161bc87649a2aaa28b86f231a8f34f210ad744e60e4b0663cd7109222faf4",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcworkspace/contents.xcworkspacedata",
+          "bytes": 152,
+          "sha256": "46c3c9702ff7c5584e11c954d943cfb6e07fb26e3fbd072ddbc0f388aa352de1",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+          "bytes": 238,
+          "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings",
+          "bytes": 226,
+          "sha256": "11b247bc6796892d67c9a821d18604db4dd6a880981b34f38460b9866e6b247f",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/AppDelegate.swift",
+          "bytes": 539,
+          "sha256": "451c6d9ba0a2b3ff43092ea349c60fa79a91f1158b915eb29dbdd357cb95d7b8",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json",
+          "bytes": 2519,
+          "sha256": "3b1e214f466ffedff74baa5598ad5c4421130eea6bc8d57b8fe23435e8280ae4",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/Contents.json",
+          "bytes": 391,
+          "sha256": "ccc7950fd5f5b82067c85f667940a9d59189151460761ece8098ca78daa19469",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Assets.xcassets/LaunchImage.imageset/README.md",
+          "bytes": 336,
+          "sha256": "a985b626c4f7546a8ba392d135e9226c3547c8e2b46895f5f2bdf40d7b14ef9f",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Base.lproj/LaunchScreen.storyboard",
+          "bytes": 2377,
+          "sha256": "857e61203b3deafb05766d8fcda898b86a7cb6f3d5e385ecc9926c4d698215e9",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Base.lproj/Main.storyboard",
+          "bytes": 1605,
+          "sha256": "fd367b6c43006d61b730f674970dd48b9f662c8f2264e52ffc1558102a2c9f2d",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Info.plist",
+          "bytes": 2242,
+          "sha256": "8e2de005b6f352099534fa03e1a472e21e858bd3e543f2106f5fd3cd5034a9df",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/Runner-Bridging-Header.h",
+          "bytes": 38,
+          "sha256": "1a8d11d01d1cc92c650c9c9ed35299240052d4683a15a719a2315ef44185e074",
+          "executable": false
+        },
+        {
+          "path": "ios/Runner/SceneDelegate.swift",
+          "bytes": 76,
+          "sha256": "add68b905971dedfcc0d0b5b7118030de5925ba8c081ad9815463699e3a444ad",
+          "executable": false
+        },
+        {
+          "path": "ios/RunnerTests/RunnerTests.swift",
+          "bytes": 289,
+          "sha256": "5e4164f8742e5b7b52d5e795d4178eebd2e5adfae92ca2796d6cc5ef936e517f",
+          "executable": false
+        },
+        {
+          "path": "lib/main.dart",
+          "bytes": 4833,
+          "sha256": "a565a0c5e8f9ee87ba2fbf6248b5f910808fe3c4708e47951de36fd5d1a1b95d",
+          "executable": false
+        },
+        {
+          "path": "linux/.gitignore",
+          "bytes": 18,
+          "sha256": "5ded4f1a9d10d34bf6ee5beb0711d88ee2ef07b0f07ace9ed77935a246e8eb82",
+          "executable": false
+        },
+        {
+          "path": "linux/CMakeLists.txt",
+          "bytes": 4784,
+          "sha256": "3cd272d9dfe831f9837c6df99b9b7877b38bf13d5fbaafa3d116c3dcf79c7b0f",
+          "executable": false
+        },
+        {
+          "path": "linux/flutter/CMakeLists.txt",
+          "bytes": 2815,
+          "sha256": "787189e2623313cfee590a0b553338eb9fc68b3af922ddd77c5d39c75f989aeb",
+          "executable": false
+        },
+        {
+          "path": "linux/runner/CMakeLists.txt",
+          "bytes": 974,
+          "sha256": "8cdcfd911e770fd7d511c97c7bce6559486a815352a47c953f7ef632e236d2cc",
+          "executable": false
+        },
+        {
+          "path": "linux/runner/main.cc",
+          "bytes": 180,
+          "sha256": "ea23f7cdf74091d63bba29ef60486370b766157b848f0cfe62bd8b1c1695a0c1",
+          "executable": false
+        },
+        {
+          "path": "linux/runner/my_application.cc",
+          "bytes": 5483,
+          "sha256": "81c163e16c7fd2d83b0ee222025649a390cab17622cbdc9523391de7b5495692",
+          "executable": false
+        },
+        {
+          "path": "linux/runner/my_application.h",
+          "bytes": 451,
+          "sha256": "a4218d7ac0db8a9a6716daf216b2d4fc6bdc7ac647e3183078b2c962ebdfcf70",
+          "executable": false
+        },
+        {
+          "path": "macos/.gitignore",
+          "bytes": 89,
+          "sha256": "ffec1a0bbd70547186b82ad4e49089bafab2de309b89de97c776d70debb179fa",
+          "executable": false
+        },
+        {
+          "path": "macos/Flutter/Flutter-Debug.xcconfig",
+          "bytes": 48,
+          "sha256": "62290ad8e938bf410206d8c7e131262696b58a6df110d39faf3399396ffe61b1",
+          "executable": false
+        },
+        {
+          "path": "macos/Flutter/Flutter-Release.xcconfig",
+          "bytes": 48,
+          "sha256": "62290ad8e938bf410206d8c7e131262696b58a6df110d39faf3399396ffe61b1",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner.xcodeproj/project.pbxproj",
+          "bytes": 26560,
+          "sha256": "1559e48a589e1c43c42a15d8de367eb0f0af630ae4f746a205de418f7ba3ed54",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+          "bytes": 238,
+          "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme",
+          "bytes": 3754,
+          "sha256": "1c18c57a4d517e88c8c4731c85e596cb95ab30931ba420862ea0c2a1a2ea474e",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner.xcworkspace/contents.xcworkspacedata",
+          "bytes": 152,
+          "sha256": "46c3c9702ff7c5584e11c954d943cfb6e07fb26e3fbd072ddbc0f388aa352de1",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist",
+          "bytes": 238,
+          "sha256": "dfa0f9bb85b95ccba9c6811adadf8cb407fb5d52088e89db83ebc308ec448542",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/AppDelegate.swift",
+          "bytes": 311,
+          "sha256": "ce9dbe45a57c59e85519da50a26c471615b9c8cdd85a8f4a39d2e480e62a4af4",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json",
+          "bytes": 1291,
+          "sha256": "bc6ba8105ca69651aeeb77358851590de295dca04681a1d58c0f449641c242f3",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Base.lproj/MainMenu.xib",
+          "bytes": 23729,
+          "sha256": "be9e9ef8469d3262370e0f0b855ed163cbf9c8362c59e330b2ffe63b86fa42f4",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Configs/AppInfo.xcconfig",
+          "bytes": 629,
+          "sha256": "d560caa0c11f23df34b1b9d66a4b4f7ec860925853eec8c871b00d9aa99b9474",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Configs/Debug.xcconfig",
+          "bytes": 77,
+          "sha256": "8067d533ef6593760baad9a9855a786a7a77470fcc3f0925ec04fe43bc1ac4b0",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Configs/Release.xcconfig",
+          "bytes": 79,
+          "sha256": "7a6a4b4d973a23052fa0a0388dd261e32d311d7b66ba1bfc3b914b361808ac61",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Configs/Warnings.xcconfig",
+          "bytes": 580,
+          "sha256": "0e341a392b16ad302d12890aa3dac9257a6c10ece685437604259a85341645a3",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/DebugProfile.entitlements",
+          "bytes": 348,
+          "sha256": "ebaab2b9992173de422c33e1fbab7f6e31acaa2213956097ac8cefd894a91ac8",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Info.plist",
+          "bytes": 1060,
+          "sha256": "f253e89c512b3a9a81bc5cdd7a14bf932470f835f261654a808ea4549cd94aad",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/MainFlutterWindow.swift",
+          "bytes": 388,
+          "sha256": "65c9613c11bcedfa51416b16c975d8ba6ff12b405fc19d60db8755d92e86d9fe",
+          "executable": false
+        },
+        {
+          "path": "macos/Runner/Release.entitlements",
+          "bytes": 240,
+          "sha256": "b746c74b201e6af4e0864fbd1f4f629f96156a7ec4b7208bc995d0a5089bb592",
+          "executable": false
+        },
+        {
+          "path": "macos/RunnerTests/RunnerTests.swift",
+          "bytes": 294,
+          "sha256": "181a450c019a8071f6865227d358d24caa88f028829de90e7ad1eb442a7ab204",
+          "executable": false
+        },
+        {
+          "path": "pubspec.yaml",
+          "bytes": 3868,
+          "sha256": "6819ca68d031384848e2a0520116e2d342f3154b2f0d9f932070965e318b7468",
+          "executable": false
+        },
+        {
+          "path": "test/widget_test.dart",
+          "bytes": 1073,
+          "sha256": "7387a9d1929e98e0dc81b87e43fd39359df2872139c3f17baebc6d2d957ea5ff",
+          "executable": false
+        },
+        {
+          "path": "web/favicon.png",
+          "bytes": 917,
+          "sha256": "7ab2525f4b86b65d3e4c70358a17e5a1aaf6f437f99cbcc046dad73d59bb9015",
+          "executable": false
+        },
+        {
+          "path": "web/icons/Icon-192.png",
+          "bytes": 5292,
+          "sha256": "3dce99077602f70421c1c6b2a240bc9b83d64d86681d45f2154143310c980be3",
+          "executable": false
+        },
+        {
+          "path": "web/icons/Icon-512.png",
+          "bytes": 8252,
+          "sha256": "baccb205ae45f0b421be1657259b4943ac40c95094ab877f3bcbe12cd544dcbe",
+          "executable": false
+        },
+        {
+          "path": "web/icons/Icon-maskable-192.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "web/icons/Icon-maskable-512.png",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "web/index.html",
+          "bytes": 1569,
+          "sha256": "01a68df59000a5005eb88f0ba3e122e646c9f663c7234a6d032d8efeb195f94a",
+          "executable": false
+        },
+        {
+          "path": "web/manifest.json",
+          "bytes": 960,
+          "sha256": "a2a12e2355c95c1a0940b69da5ee07e9ae900015fe5590bf112854868eb1ca56",
+          "executable": false
+        },
+        {
+          "path": "windows/.gitignore",
+          "bytes": 291,
+          "sha256": "96345475f1a3c66bd32d28178fba151ab1506b35b1f7857b8f7651863093ea11",
+          "executable": false
+        },
+        {
+          "path": "windows/CMakeLists.txt",
+          "bytes": 4181,
+          "sha256": "89480e22b35a8967bdf58e386f05f927a50b857299c56c4b49fc57ea1622b59a",
+          "executable": false
+        },
+        {
+          "path": "windows/flutter/CMakeLists.txt",
+          "bytes": 3742,
+          "sha256": "1fe418971b6f41bb35ceb3d64113a835f3f6f171ecaa707bf232492b57a588d6",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/CMakeLists.txt",
+          "bytes": 1796,
+          "sha256": "34119ec122e36940235ef4bc245fcfb43b6960ed443e28af1a8d833a81209b9e",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/Runner.rc",
+          "bytes": 3085,
+          "sha256": "2079afaa4de9be378fa11a34b2a06fc82c68a189138686e92dbecbf16610876b",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/flutter_window.cpp",
+          "bytes": 2122,
+          "sha256": "dd185884c0b5301d400b58f12ebb36b1c8b326531597e531b40e44a6eeb0e943",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/flutter_window.h",
+          "bytes": 928,
+          "sha256": "38e0fcd3a0b83895852ec295cb70d90179c0dcd40d58f065eb5232a4ecd84898",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/main.cpp",
+          "bytes": 1275,
+          "sha256": "ddc91dbcdbe24cc7b74c80becfbf151ef3b6109dd36916735fea978edf35189e",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/resource.h",
+          "bytes": 432,
+          "sha256": "1fa98588b04561590ba1cf0521ab86a9db4a878312f21c9d5861d965ddd8d1ae",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/resources/app_icon.ico",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/runner.exe.manifest",
+          "bytes": 602,
+          "sha256": "825d243e9fa1542619909c1b72d09b3ed7c1f3b225bb8367c125835e5dc3f8aa",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/utils.cpp",
+          "bytes": 1797,
+          "sha256": "dc2ee94d43116f959a4abd42557f71d07acc631abbffe03b11489dbeed35bedb",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/utils.h",
+          "bytes": 672,
+          "sha256": "95a7f7dddb832997cefa937a96f89472332277e75734a5de553610760b744b03",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/win32_window.cpp",
+          "bytes": 8534,
+          "sha256": "9065f31ccf746cf8b390121f958f9e959033af864aed779597066625ed56bc36",
+          "executable": false
+        },
+        {
+          "path": "windows/runner/win32_window.h",
+          "bytes": 3522,
+          "sha256": "7dd03746b19dcf3542829b2f6e8ed40a2714ce5f2cb3b0e23f0118a2fcf62d62",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-flutter-7617ce6dc102b97a6787.zip",
+        "bytes": 2106193,
+        "sha256": "b82b4c9d8bf6bcadf2f586d28cead652a1bde9e83dbc162094d32607382fafac",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-flutter-7617ce6dc102b97a6787.zip"
+      }
+    },
+    {
+      "id": "template-go",
+      "name": "go",
+      "version": "68c1a30d281a556e8dd0",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 541,
+          "sha256": "5bca9b7df849c7ebd9dd8d06b9025e4d0cce8fd4aa1c296f25928af7996cc304",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 327,
+          "sha256": "c8e6fb4756d6a07cb846dc45684df3894cd78cb9eff2dfe74812ad71d12e91be",
+          "executable": false
+        },
+        {
+          "path": "go.mod",
+          "bytes": 35,
+          "sha256": "7bfe9d95c0d41689a42c0abeb6df88a21e06c4bb953b16ca805f9adf87c1f94e",
+          "executable": false
+        },
+        {
+          "path": "main.go",
+          "bytes": 797,
+          "sha256": "981b64604cd1437de7034374dfae7b0a0b7b550e6cab083186a4a6c31ec73924",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-go-68c1a30d281a556e8dd0.zip",
+        "bytes": 1996,
+        "sha256": "50b9439b6e364440b0717deddd496ab2508a6746788c4104e2990057c4efde9f",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-go-68c1a30d281a556e8dd0.zip"
+      }
+    },
+    {
+      "id": "template-java",
+      "name": "java",
+      "version": "75583eb777dfbb7eca06",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 2307,
+          "sha256": "c35ffa3ceef82f5952e7dd7701666a5a3c188eccf2607e3723b90073e791763e",
+          "executable": false
+        },
+        {
+          "path": "build.gradle.kts",
+          "bytes": 1052,
+          "sha256": "7ce5a433dbd7d5462c109359345d79780c3a0fdf4f4e9592e01125c4844692b8",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 514,
+          "sha256": "cf09f69dc010299bed0ee0e6cef36c1f677c504bc3bc3ee7a0ad47d79426dea5",
+          "executable": false
+        },
+        {
+          "path": "settings.gradle.kts",
+          "bytes": 41,
+          "sha256": "b617757208aae1fcdfb695f867f2e3087ab135819819fd8c4aa2081059b6a0b4",
+          "executable": false
+        },
+        {
+          "path": "src/main/java/com/operit/app/Calculator.java",
+          "bytes": 866,
+          "sha256": "b80073b9a6a9042903dfd2c3dff38905c1f2174457d0fcb6a91a9c44b57beed2",
+          "executable": false
+        },
+        {
+          "path": "src/main/java/com/operit/app/Main.java",
+          "bytes": 1099,
+          "sha256": "4709756db98ad3def9ae688fdde52f4b50fc01250e292f6aaa56462842da14fa",
+          "executable": false
+        },
+        {
+          "path": "src/main/resources/application.properties",
+          "bytes": 74,
+          "sha256": "953710f207ccadadf06be4e94abdeaff6b8785e0ad99aa649da61fc17ba80248",
+          "executable": false
+        },
+        {
+          "path": "src/test/java/com/operit/app/CalculatorTest.java",
+          "bytes": 1616,
+          "sha256": "94a8490b35ad2e0475144c40105aaf18b6255897cd373eb993527d7c43e7acec",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-java-75583eb777dfbb7eca06.zip",
+        "bytes": 5329,
+        "sha256": "649f38745ac03df2bf5d7e23ac927b214ba4e5d376012c9277b3c891d5ef764e",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-java-75583eb777dfbb7eca06.zip"
+      }
+    },
+    {
+      "id": "template-node",
+      "name": "node",
+      "version": "645dc81383f6275d631f",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 543,
+          "sha256": "d5e2cd688b6803f59d409aa512cbc8f34829bd7a11027c4cba3db7dd76e63712",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 397,
+          "sha256": "c7e81c0a22cabaa8231e5ad9067d25cfea86ead15f06cd97f33fca3b80c576e8",
+          "executable": false
+        },
+        {
+          "path": "index.js",
+          "bytes": 1153,
+          "sha256": "3c0dcce06f8c36d4faccd9d51238027eabf4d15ea268280df8b5b6eb7816aaa4",
+          "executable": false
+        },
+        {
+          "path": "package.json",
+          "bytes": 377,
+          "sha256": "1478e79e6cea4f899429c0e3c91e2bdc67735a615c5523f7ee182df4e5b026eb",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-node-645dc81383f6275d631f.zip",
+        "bytes": 2377,
+        "sha256": "b99a08fed18e40cc27dabaae208a2b8b9f749737125b3ef2bf226fc7d256a6cf",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-node-645dc81383f6275d631f.zip"
+      }
+    },
+    {
+      "id": "template-office",
+      "name": "office",
+      "version": "ddc4ac36a8e135745f4e",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 4647,
+          "sha256": "38e6a2347871c0206f87b1f5e1b87cba09dfc0406315dde23342d5de47824554",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 405,
+          "sha256": "76259af5816379138b492b754ee593c0124a1e0dc281e03c96fbda1d35a74601",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-office-ddc4ac36a8e135745f4e.zip",
+        "bytes": 2990,
+        "sha256": "e38b5c1cee19d4923f8e447041f87e3a88b866c79363fdd643091227818619c2",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-office-ddc4ac36a8e135745f4e.zip"
+      }
+    },
+    {
+      "id": "template-python",
+      "name": "python",
+      "version": "04ff0f03d098be2b83b1",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 1266,
+          "sha256": "0abc7d9769e4a47f703974de5b2e828313da40513743faae95a1a0f7f71f3aa4",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 633,
+          "sha256": "24867c9abbdbe83afe6ff466216f8901b7ab363f9c822c2d195cfbe04325e19b",
+          "executable": false
+        },
+        {
+          "path": "main.py",
+          "bytes": 697,
+          "sha256": "16b754b10fe6fe1793aef252e5e6522b996c7e54277d978e487185592e89b25d",
+          "executable": false
+        },
+        {
+          "path": "requirements.txt",
+          "bytes": 114,
+          "sha256": "de48e3d36d76b4b19b3bb411ac57b16fddd72d0a9c38d3752619b9057a9b0153",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-python-04ff0f03d098be2b83b1.zip",
+        "bytes": 2518,
+        "sha256": "f94828161ae78a286196795f21e741016bb844d58fa17a6ad846edc4a78086b9",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-python-04ff0f03d098be2b83b1.zip"
+      }
+    },
+    {
+      "id": "template-typescript",
+      "name": "typescript",
+      "version": "afe01e48428e75b1d70b",
+      "files": [
+        {
+          "path": "README.md",
+          "bytes": 1499,
+          "sha256": "086fc16a6c6148a182d7ccbe2649a3afd7b4f1ff10c8ec524a5175bcf4a67bac",
+          "executable": false
+        },
+        {
+          "path": "gitignore",
+          "bytes": 417,
+          "sha256": "1d833e218f0eacb855ce407a7e67552fed2f0e463188ada7fecbd8e010fcee88",
+          "executable": false
+        },
+        {
+          "path": "package.json",
+          "bytes": 506,
+          "sha256": "64a9087e7f4e06b7ef613113e9309a24fe42731e39168cb82bb3b9209d8035c3",
+          "executable": false
+        },
+        {
+          "path": "src/index.ts",
+          "bytes": 999,
+          "sha256": "ae51b15ab66c69b150d199705fd76f9642c56f74c72226d932b17a10ad468ca3",
+          "executable": false
+        },
+        {
+          "path": "tsconfig.json",
+          "bytes": 598,
+          "sha256": "8d60707dea7b7929568e91bbddbb3e63a01aa8889e101f5aed4cbefcd0cfb434",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-typescript-afe01e48428e75b1d70b.zip",
+        "bytes": 3196,
+        "sha256": "4455c6b6921209c742aea0da4a2016ad28369c46131521d092c776524d1e5ea8",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-typescript-afe01e48428e75b1d70b.zip"
+      }
+    },
+    {
+      "id": "template-web",
+      "name": "web",
+      "version": "de02f41663bdc4193e0d",
+      "files": [
+        {
+          "path": "gitignore",
+          "bytes": 373,
+          "sha256": "2d4ba151cb30c9a82f523fa8c9122d9aae0da66b83e6d7688630c29be39f0da3",
+          "executable": false
+        },
+        {
+          "path": "index.html",
+          "bytes": 3141,
+          "sha256": "7da86f36747d019042bedafbb5d7b912a1247e53a3abee154597ca500815d402",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-template-web-de02f41663bdc4193e0d.zip",
+        "bytes": 2096,
+        "sha256": "83480a47d755f65042ccc96fcec506266618bd01f6bc4ae2990356fe8f5aeaeb",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-template-web-de02f41663bdc4193e0d.zip"
+      }
+    },
+    {
+      "id": "engine-sherpa-onnx",
+      "name": "Sherpa ONNX 1.13.2",
+      "version": "ccf67906274d12df53ef",
+      "files": [
+        {
+          "path": "liboperit_onnxruntime.so",
+          "bytes": 25889505,
+          "sha256": "798f956100cc922bcad603cec9a047dcb8a1d88350abe576f48eb51eb8420727",
+          "executable": false
+        },
+        {
+          "path": "liboperit_sherpa_onnx_c_api.so",
+          "bytes": 4472857,
+          "sha256": "f6ac467f16bab811b4e27888960a693103fb40a1173d6244a137227ec9c47363",
+          "executable": false
+        },
+        {
+          "path": "liboperit_sherpa_onnx_cxx_api.so",
+          "bytes": 622657,
+          "sha256": "322310e9c211a53bd5a9ae115f0322ea1828f7b3ebf3027e445c6a023aa797b6",
+          "executable": false
+        },
+        {
+          "path": "liboperit_sherpa_onnx_jni.so",
+          "bytes": 4734737,
+          "sha256": "f0feae8398c853bbf7642e3e73667e38e37250dbd7ba344ccf01258dfc0b14e7",
+          "executable": false
+        },
+        {
+          "path": "licenses/onnxruntime-LICENSE.txt",
+          "bytes": 1073,
+          "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+          "executable": false
+        },
+        {
+          "path": "licenses/sherpa-onnx-LICENSE.txt",
+          "bytes": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "executable": false
+        }
+      ],
+      "loadOrder": [
+        "liboperit_onnxruntime.so",
+        "liboperit_sherpa_onnx_c_api.so",
+        "liboperit_sherpa_onnx_cxx_api.so",
+        "liboperit_sherpa_onnx_jni.so"
+      ],
+      "archive": {
+        "path": "operit-engine-sherpa-onnx-ccf67906274d12df53ef.zip",
+        "bytes": 13285622,
+        "sha256": "e03771c743ccec3a63429c181ecd2a56d870a7b8750369eac458d292e15d9b31",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-engine-sherpa-onnx-ccf67906274d12df53ef.zip"
+      }
+    },
+    {
+      "id": "ocr-google-mlkit",
+      "name": "Google ML Kit 文字识别",
+      "version": "e28758d8c36d7d510d3f",
+      "files": [
+        {
+          "path": "NOTICE.txt",
+          "bytes": 257,
+          "sha256": "34dbb1bb9c7a936ff11279f0ebf8c3f281395498c0708b754fa3f82054026b36",
+          "executable": false
+        },
+        {
+          "path": "mlkit-models.apk",
+          "bytes": 5413615,
+          "sha256": "88bd1ea66c193bc8e77d35b714fdd5b58c9db7519d1c4a8505b279367ee20205",
+          "executable": false
+        },
+        {
+          "path": "mlkit-ocr-assets.json",
+          "bytes": 1701,
+          "sha256": "67f2dd9732cce5fa87695eadb6428e1b2f0adb8fa60987e8fe7fe45ac0bc3104",
+          "executable": false
+        },
+        {
+          "path": "third_party_licenses.json",
+          "bytes": 9313,
+          "sha256": "d1ea50dc6d8db344098c896d233673aa6bf9074919da75f4d85cd2e7b03210ce",
+          "executable": false
+        },
+        {
+          "path": "third_party_licenses.txt",
+          "bytes": 1864942,
+          "sha256": "73012b14aec716d21d222083b26955ec90d693f7b6c998c5e8afcce8601a9089",
+          "executable": false
+        }
+      ],
+      "loadOrder": [],
+      "archive": {
+        "path": "operit-ocr-google-mlkit-e28758d8c36d7d510d3f.zip",
+        "bytes": 3670606,
+        "sha256": "426dbd97765ef4760e552b5eb1256ccbc63deb600454d15b0e0a1b396baf1feb",
+        "url": "https://github.com/3316891527/Operit-Kong-resources/releases/download/resources-v2-d16730007f8d94095264/operit-ocr-google-mlkit-e28758d8c36d7d510d3f.zip"
+      }
+    }
+  ]
+}

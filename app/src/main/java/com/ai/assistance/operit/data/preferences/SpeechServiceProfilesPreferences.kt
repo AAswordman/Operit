@@ -7,8 +7,8 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.api.speech.SpeechServiceFactory
-import com.ai.assistance.operit.api.voice.VoiceServiceFactory
+import com.ai.assistance.operit.api.speech.stt.SttServiceFactory
+import com.ai.assistance.operit.api.speech.tts.TtsServiceFactory
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -41,7 +41,7 @@ class SpeechServiceProfilesPreferences(private val context: Context) {
     data class TtsProfile(
         val id: String,
         val name: String,
-        val serviceType: VoiceServiceFactory.VoiceServiceType,
+        val serviceType: TtsServiceFactory.VoiceServiceType,
         val httpConfig: SpeechServicesPreferences.TtsHttpConfig,
         val vitsConfig: SpeechServicesPreferences.VitsTtsPackageConfig,
         val cleanerRegexs: List<String>,
@@ -55,7 +55,7 @@ class SpeechServiceProfilesPreferences(private val context: Context) {
     data class SttProfile(
         val id: String,
         val name: String,
-        val serviceType: SpeechServiceFactory.SpeechServiceType,
+        val serviceType: SttServiceFactory.SpeechServiceType,
         val httpConfig: SpeechServicesPreferences.SttHttpConfig,
         val createdAt: Long,
         val updatedAt: Long,

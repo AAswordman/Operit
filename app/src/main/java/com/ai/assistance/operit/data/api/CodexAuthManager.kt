@@ -5,7 +5,7 @@ import com.ai.assistance.operit.data.preferences.CodexAuthPreferences
 import com.ai.assistance.operit.data.preferences.CodexAuthState
 import com.ai.assistance.operit.data.preferences.CodexStoredUsageSnapshot
 import com.ai.assistance.operit.data.preferences.CodexUsagePreferences
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.Flow

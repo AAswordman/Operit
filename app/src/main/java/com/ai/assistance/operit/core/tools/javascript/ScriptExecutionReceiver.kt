@@ -3,8 +3,8 @@ package com.ai.assistance.operit.core.tools.javascript
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

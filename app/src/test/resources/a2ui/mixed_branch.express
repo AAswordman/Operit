@@ -1,0 +1,8 @@
+
+$/release = {plan:"稳妥"}
+root = Column(gap="md",children=[
+ Flow(label="发布流程",steps=[{title:"开发",icon:"code"},{title:"审计",icon:"search"},{title:"发布",icon:"upload",tone:"success"}]),
+ Segmented(label="选择发布方式",options=["快速","稳妥"],value=$/release/plan),
+ Conditional(visible=equals(a=$/release/plan,b="快速"),children=[InfoRow(label="快速发布",text="跳过真机验证，适合文案修改")]),
+ Conditional(visible=equals(a=$/release/plan,b="稳妥"),children=[InfoRow(label="稳妥发布",text="真机验证通过后再合并，适合功能改动",tone="success")])
+])

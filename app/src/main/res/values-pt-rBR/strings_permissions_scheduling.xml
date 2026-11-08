@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_allow_hint">executar automaticamente</string>
+    <string name="tp_ask_hint">Confirme sempre</string>
+    <string name="tp_forbid_hint">Não é permitido correr</string>
+    <string name="tp_all">Todos</string>
+    <string name="tp_search">Nome ou descrição da ferramenta de pesquisa</string>
+    <string name="tp_follow_default">siga o padrão</string>
+    <string name="tp_follow_default_with_value">Siga o padrão · %1$s</string>
+    <string name="tp_selected_count">Item %1$d selecionado</string>
+    <string name="tp_select_visible">Selecione todos os resultados atuais</string>
+    <string name="tp_no_matches">Nenhuma ferramenta de correspondência. Tente outras palavras-chave</string>
+    <string name="tp_already_configured">Configurado como uma regra de destino</string>
+    <string name="tp_apply_count">Aplicar ao item %1$d</string>
+    <string name="tp_default_title">Modo de execução padrão</string>
+    <string name="tp_default_description">Ferramentas que não são configuradas individualmente usam esta regra. Modificar o modo padrão não substituirá regras individuais.</string>
+    <string name="tp_saved">Configurações de permissão salvas</string>
+    <string name="tp_save_failed">Falha ao salvar, tente novamente</string>
+    <string name="tp_rules_count">Regra única · %1$d</string>
+    <string name="tp_batch">Gerenciamento de lote</string>
+    <string name="tp_rules_description">As regras individuais têm precedência; selecione \"Seguir padrão\" para remover esta configuração.</string>
+    <string name="tp_results_count">Mostrando itens %1$d</string>
+    <string name="tp_empty_rules">Ainda não existe uma regra única, todas as ferramentas seguem o método padrão</string>
+    <string name="tp_empty_filter">Ainda não existe uma regra individual para esta categoria</string>
+    <string name="tp_change">Modificar regras</string>
+    <string name="tp_batch_title">Modificar regras %1$d</string>
+    <string name="tp_help">O modo de execução padrão é usado para ferramentas sem regras individuais: permitir será executado automaticamente, perguntar solicitará confirmação antes de cada execução e disallow impedirá sua execução. \n\n As regras únicas sempre têm precedência e a modificação do modo padrão não as substituirá. Permitir, perguntar e proibir podem ser definidos individualmente; selecionar seguir padrão removerá regras individuais. \n\nVocê pode pesquisar nomes ou descrições de ferramentas e filtrar por status. A adição e o gerenciamento de lotes manterão a seleção em pesquisas e filtros e serão aplicados apenas às ferramentas selecionadas; cancelar não o salvará. \"Desfazer última modificação\" na área de regras pode restaurar a última alteração nesta página; use o prompt luminoso para salvar o resultado. \n\nEssa configuração gerencia apenas a confirmação de execução da ferramenta e não substitui as permissões do sistema Android.</string>
+    <string name="workflow_schedule_invalid">Verifique a configuração: o intervalo é de no mínimo 15 minutos e não pode transbordar; Cron requer cinco campos válidos; a data deve realmente existir; o plano habilitado deve ter a próxima execução antes do prazo.</string>
+    <string name="workflow_repeat_daily_hint">Após repetidas aberturas, será executado no horário local todos os dias a partir da data especificada; ele só será executado uma vez quando for fechado.</string>
+    <string name="workflow_repeat_hint">Após ativação repetida, continuará a ser executado de acordo com intervalos ou regras Cron; quando fechado, só será executado na próxima vez.</string>
+    <string name="workflow_end_time_label">Prazo (opcional)</string>
+    <string name="workflow_end_time_hint">Deixe em branco para indicar que não há corte. Use a hora local aaaa-MM-dd HH:mm:ss; a execução não terá início após o prazo ser excedido.</string>
+    <string name="workflow_schedule_timing_hint">Intervalo fixo aguarda o intervalo completo de habilitação ou modificação do agendamento, no mínimo 15 minutos; Cron corresponde ao relógio no fuso horário atual do sistema. O plano de fundo é agendado pelo WorkManager Android. O sono, a economia de energia, as restrições de segundo plano e o enfileiramento de tarefas podem atrasar a execução e a pontualidade não pode ser garantida. Após a parada forçada, você precisa reabrir o aplicativo para continuar.</string>
+    <string name="tp_undo_last">Desfazer a última modificação</string>
+    <string name="tp_restored">A última modificação foi desfeita</string>
+</resources>

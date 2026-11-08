@@ -2,7 +2,7 @@ name: PR Check
 
 on:
   pull_request:
-    branches: [development]
+    branches: [dev]
     types: [opened, synchronize, reopened, edited, ready_for_review]
 
 concurrency:
@@ -195,10 +195,18 @@ jobs:
       - name: Set up Node.js
         if: >-
           steps.plan.outputs.web == 'true' ||
-          steps.plan.outputs.toolpkg == 'true'
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check Code Runner execution isolation
+        if: >-
+          steps.plan.outputs.toolpkg == 'true' ||
+          steps.plan.outputs.ci == 'true'
+        timeout-minutes: 5
+        run: node --test ci/test/code_runner.test.cjs
 
       - name: Install JavaScript dependencies
         if: >-
@@ -244,6 +252,8 @@ jobs:
       - name: Set up Android SDK
         if: steps.plan.outputs.android_resources == 'true'
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         if: >-
@@ -310,6 +320,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         shell: bash
@@ -353,6 +365,9 @@ jobs:
             --profile full \
             --archives "$MANUAL_DEPS_DIR" \
             --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare terminal apply_patch
+        uses: ./.github/actions/terminal-commands
 
       - name: Restore native ripgrep cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
@@ -411,6 +426,12 @@ jobs:
           chmod +x ./gradlew
           ./gradlew assembleDebug --stacktrace --no-daemon
 
+      - name: Verify packaged terminal command
+        run: |
+          python3 tools/terminal_commands/verify_assets.py \
+            --verify-apks app/build/outputs/apk \
+            --output app/build/generated/terminal-command-assets
+
   android_tests:
     name: Android JVM tests
     needs: fast
@@ -451,6 +472,8 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
 
       - name: Install required Android toolchain
         shell: bash
@@ -509,6 +532,11 @@ jobs:
             --profile full \
             --archives "$MANUAL_DEPS_DIR" \
             --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare terminal apply_patch
+        uses: ./.github/actions/terminal-commands
+        with:
+          run-tests: 'true'
 
       - name: Restore native ripgrep cache
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5

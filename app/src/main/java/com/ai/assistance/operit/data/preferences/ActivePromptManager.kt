@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -100,6 +100,21 @@ class ActivePromptManager private constructor(context: Context) {
             userPreferencesManager.resetVisualThemeForPrompt(
                 target = target,
                 values = values,
+            )
+        }
+    }
+
+    suspend fun applyVisualThemeToAllCharacterCards(values: ThemePreferenceValues) {
+        themeOperations.runTransition {
+            val characterCardIds = characterCardManager.getAllCharacterCards()
+                .map { it.id }
+                .toMutableList()
+            if (characterCardIds.none { it == CharacterCardManager.DEFAULT_CHARACTER_CARD_ID }) {
+                characterCardIds.add(0, CharacterCardManager.DEFAULT_CHARACTER_CARD_ID)
+            }
+            userPreferencesManager.applyVisualThemeToCharacterCards(
+                values = values,
+                characterCardIds = characterCardIds,
             )
         }
     }

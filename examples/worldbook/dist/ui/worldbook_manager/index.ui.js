@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Screen;
 const i18n_1 = require("../../i18n");
-const worldbook_service_js_1 = require("../../shared/worldbook_service.js");
+const worldbook_client_js_1 = require("../../shared/worldbook_client.js");
 const CONTENT_SNIPPETS = [
     {
         id: "format_message_variable",
@@ -222,8 +222,8 @@ function Screen(ctx) {
         setLoading(true);
         try {
             const [fetchedEntries, fetchedGroups] = await Promise.all([
-                (0, worldbook_service_js_1.listWorldBookEntries)(),
-                (0, worldbook_service_js_1.listWorldBookGroups)()
+                (0, worldbook_client_js_1.listWorldBookEntries)(),
+                (0, worldbook_client_js_1.listWorldBookGroups)()
             ]);
             setEntries(fetchedEntries);
             setGroups(fetchedGroups);
@@ -238,7 +238,7 @@ function Screen(ctx) {
     }
     async function queryCharacterCards(showErrorToast) {
         try {
-            const cards = await (0, worldbook_service_js_1.listWorldBookCharacterCards)();
+            const cards = await (0, worldbook_client_js_1.listWorldBookCharacterCards)();
             setAvailableCards(cards);
             setHasLoadedCards(true);
             return { success: true, cards };
@@ -330,7 +330,7 @@ function Screen(ctx) {
         }
         setTogglingEntryId(id);
         try {
-            await (0, worldbook_service_js_1.toggleWorldBookEntry)(id);
+            await (0, worldbook_client_js_1.toggleWorldBookEntry)(id);
             ctx.showToast(t.toastToggleDone);
             await loadEntries(true);
         }
@@ -347,7 +347,7 @@ function Screen(ctx) {
         }
         setDeletingEntryId(id);
         try {
-            await (0, worldbook_service_js_1.deleteWorldBookEntry)(id);
+            await (0, worldbook_client_js_1.deleteWorldBookEntry)(id);
             ctx.showToast(`${t.toastDeletedPrefix}${name}`);
             await loadEntries(true);
         }
@@ -361,7 +361,7 @@ function Screen(ctx) {
     async function doEdit(id) {
         setConfirmDeleteEntryId("");
         try {
-            const entry = await (0, worldbook_service_js_1.getWorldBookEntry)(id);
+            const entry = await (0, worldbook_client_js_1.getWorldBookEntry)(id);
             setEditId(entry.id);
             setFormName(entry.name || "");
             setFormContentValue(entry.content || "");
@@ -462,7 +462,7 @@ function Screen(ctx) {
         };
         setImporting(true);
         try {
-            const result = await (0, worldbook_service_js_1.importWorldBookEntries)(payload);
+            const result = await (0, worldbook_client_js_1.importWorldBookEntries)(payload);
             ctx.showToast(t.toastImportDone(result.imported_count, result.warning_count));
             setView("list");
             resetImportForm();
@@ -507,10 +507,10 @@ function Screen(ctx) {
         }
         try {
             if (isEdit) {
-                await (0, worldbook_service_js_1.updateWorldBookEntry)(payload);
+                await (0, worldbook_client_js_1.updateWorldBookEntry)(payload);
             }
             else {
-                await (0, worldbook_service_js_1.createWorldBookEntry)(payload);
+                await (0, worldbook_client_js_1.createWorldBookEntry)(payload);
             }
             ctx.showToast(isEdit ? t.toastUpdated : t.toastCreated);
             setView("list");
@@ -804,7 +804,7 @@ function Screen(ctx) {
         }
         try {
             if (editingGroupId) {
-                await (0, worldbook_service_js_1.updateWorldBookGroup)({
+                await (0, worldbook_client_js_1.updateWorldBookGroup)({
                     id: editingGroupId,
                     name: groupFormName.trim(),
                     entry_ids: groupFormEntryIds,
@@ -813,7 +813,7 @@ function Screen(ctx) {
                 ctx.showToast(t.groupToastUpdated);
             }
             else {
-                await (0, worldbook_service_js_1.createWorldBookGroup)({
+                await (0, worldbook_client_js_1.createWorldBookGroup)({
                     name: groupFormName.trim(),
                     entry_ids: groupFormEntryIds,
                     character_card_ids: groupFormCardIds
@@ -829,7 +829,7 @@ function Screen(ctx) {
     }
     async function doDeleteGroup(deleteEntries) {
         try {
-            await (0, worldbook_service_js_1.deleteWorldBookGroup)(deletingGroupId, deleteEntries);
+            await (0, worldbook_client_js_1.deleteWorldBookGroup)(deletingGroupId, deleteEntries);
             ctx.showToast(t.groupToastDeleted);
             setView("list");
             await loadEntries(true);
@@ -845,7 +845,7 @@ function Screen(ctx) {
     }
     async function doCopyToGroup(targetGroupId) {
         try {
-            await (0, worldbook_service_js_1.copyEntryToGroup)(copyingEntryId, targetGroupId);
+            await (0, worldbook_client_js_1.copyEntryToGroup)(copyingEntryId, targetGroupId);
             ctx.showToast(t.copyToastDone);
             setView("list");
             await loadEntries(true);
@@ -1881,19 +1881,35 @@ function Screen(ctx) {
         ].filter(Boolean))
     ];
     if (view === "group_create" || view === "group_edit") {
-        return UI.LazyColumn({ fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } }, [renderGroupForm()]);
+        return UI.LazyColumn({
+            key: `worldbook_group_form:${view}:${editingGroupId}`,
+            fillMaxSize: true,
+            spacing: 12,
+            padding: { horizontal: 12, vertical: 8 }
+        }, [renderGroupForm()]);
     }
     if (view === "group_delete") {
-        return UI.LazyColumn({ fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } }, [renderGroupDeleteView()]);
+        return UI.LazyColumn({
+            key: `worldbook_group_delete:${deletingGroupId}`,
+            fillMaxSize: true,
+            spacing: 12,
+            padding: { horizontal: 12, vertical: 8 }
+        }, [renderGroupDeleteView()]);
     }
     if (view === "copy_to_group") {
-        return UI.LazyColumn({ fillMaxSize: true, spacing: 12, padding: { horizontal: 12, vertical: 8 } }, [renderCopyToGroupView()]);
+        return UI.LazyColumn({
+            key: `worldbook_copy_to_group:${copyingEntryId}`,
+            fillMaxSize: true,
+            spacing: 12,
+            padding: { horizontal: 12, vertical: 8 }
+        }, [renderCopyToGroupView()]);
     }
     if (view === "edit" || view === "create") {
         return UI.Box({
             fillMaxSize: true
         }, [
             UI.LazyColumn({
+                key: `worldbook_form:${view}:${editId}`,
                 fillMaxSize: true,
                 spacing: 12,
                 padding: { horizontal: 12, vertical: 8 }
@@ -1903,6 +1919,7 @@ function Screen(ctx) {
     }
     if (view === "import") {
         return UI.LazyColumn({
+            key: "worldbook_import",
             fillMaxSize: true,
             spacing: 12,
             padding: { horizontal: 12, vertical: 8 }
@@ -2003,6 +2020,7 @@ function Screen(ctx) {
         }
     }
     return UI.LazyColumn({
+        key: "worldbook_list",
         spacing: 10,
         padding: { horizontal: 12, vertical: 8 },
         fillMaxSize: true,

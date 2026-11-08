@@ -30,11 +30,11 @@
         {
             "name": "find_chat",
             "description": {
-                "zh": "按标题查找一个对话并返回 chat_id。",
-                "en": "Find a single chat by title and return chat_id."
+                "zh": "按标题、对话 ID 或 current 查找一个对话并返回 chat_id。",
+                "en": "Find a single chat by title, chat_id, or current, and return chat_id."
             },
             "parameters": [
-                { "name": "query", "description": { "zh": "标题关键字/正则", "en": "Title keyword/regex" }, "type": "string", "required": true },
+                { "name": "query", "description": { "zh": "标题关键字/正则、对话 ID，或 current 表示当前窗口", "en": "Title keyword/regex, chat_id, or current for the active chat" }, "type": "string", "required": true },
                 { "name": "match", "description": { "zh": "可选：contains/exact/regex（默认 contains）", "en": "Optional: contains/exact/regex (default contains)" }, "type": "string", "required": false },
                 { "name": "index", "description": { "zh": "可选：当匹配多个时选择第 N 个（默认 0）", "en": "Optional: pick Nth when multiple matches (default 0)" }, "type": "number", "required": false }
             ]
@@ -58,8 +58,8 @@
         {
             "name": "read_messages_range",
             "description": {
-                "zh": "按消息序号区间读取指定对话的消息；用于超过 read_messages 单次条数限制的大范围读取。",
-                "en": "Read messages from a chat by message index range; useful for reading beyond read_messages single-call limits."
+                "zh": "按存储消息行号区间读取指定对话；行号含库内 summary 等隐藏行，返回列表会省掉这些行。",
+                "en": "Read stored message rows by index range. Indexes include hidden summary rows that are omitted from the returned list."
             },
             "parameters": [
                 { "name": "chat_id", "description": { "zh": "目标对话 ID（可选）", "en": "Target chat id (optional)" }, "type": "string", "required": false },
@@ -145,6 +145,79 @@ const HistoryChat = (function () {
             return m;
         return 'contains';
     }
+    const CHAT_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const CURRENT_CHAT_ALIASES = new Set(['current', 'current_chat', 'currentchat', '.', '当前', '当前对话', '当前窗口']);
+    function looksLikeChatId(value) {
+        return CHAT_ID_RE.test(value.trim());
+    }
+    function isCurrentChatAlias(value) {
+        return CURRENT_CHAT_ALIASES.has(value.trim().toLowerCase());
+    }
+    function isMissingChatQueryError(message) {
+        return message.includes('Chat not found by query') || message.includes('Chat index out of range');
+    }
+    async function getCurrentChatId() {
+        const listResult = await Tools.Chat.listChats({ limit: 1 });
+        const id = (listResult?.currentChatId ?? '').toString().trim();
+        return id || null;
+    }
+    async function chatExistsById(chatId) {
+        try {
+            await Tools.Chat.agentStatus(chatId);
+            return true;
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (message.includes('Chat does not exist')) {
+                return false;
+            }
+            if (message.includes('Chat service not connected')) {
+                return true;
+            }
+            throw error;
+        }
+    }
+    async function findListedChatById(chatId) {
+        const listResult = await Tools.Chat.listChats({ limit: 200 });
+        const chats = listResult?.chats ?? [];
+        return chats.find((chat) => (chat?.id ?? '').toString() === chatId) ?? null;
+    }
+    async function findChatRobust(query, matchMode, index) {
+        if (isCurrentChatAlias(query)) {
+            const currentId = await getCurrentChatId();
+            if (!currentId) {
+                throw new Error('Current chat is not available');
+            }
+            return findChatRobust(currentId, 'exact', 0);
+        }
+        try {
+            const findParams = { query, match: matchMode, index };
+            const findResult = await Tools.Chat.findChat(findParams);
+            const picked = findResult?.chat ?? null;
+            if (picked) {
+                return { chat: picked, matchedCount: findResult?.matchedCount ?? 1 };
+            }
+        }
+        catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (!isMissingChatQueryError(message) || !looksLikeChatId(query)) {
+                throw error;
+            }
+        }
+        if (looksLikeChatId(query)) {
+            const listed = await findListedChatById(query);
+            if (listed) {
+                return { chat: listed, matchedCount: 1 };
+            }
+            if (await chatExistsById(query)) {
+                return {
+                    chat: { id: query, title: '', recoveredByIdOnly: true },
+                    matchedCount: 1,
+                };
+            }
+        }
+        throw new Error(`Chat not found by query: ${query}`);
+    }
     async function list_chats_impl(params) {
         const query = (params?.query ?? '').toString().trim();
         const matchMode = normalizeMatchMode(params?.match);
@@ -184,22 +257,13 @@ const HistoryChat = (function () {
         const matchMode = normalizeMatchMode(params?.match);
         const indexRaw = params && params.index !== undefined ? Number(params.index) : 0;
         const index = isNaN(indexRaw) ? 0 : indexRaw;
-        const findParams = { query };
-        if (matchMode)
-            findParams.match = matchMode;
-        if (index !== undefined)
-            findParams.index = index;
-        const findResult = await Tools.Chat.findChat(findParams);
-        const picked = findResult?.chat ?? null;
-        if (!picked) {
-            throw new Error(`Chat not found by query: ${query}`);
-        }
+        const found = await findChatRobust(query, matchMode, index);
         return {
             success: true,
             message: '对话查找完成',
             data: {
-                chat: picked,
-                matchedCount: findResult?.matchedCount ?? 1,
+                chat: found.chat,
+                matchedCount: found.matchedCount,
             }
         };
     }
@@ -216,16 +280,12 @@ const HistoryChat = (function () {
             throw new Error('Missing parameter: chat_id or chat_title or chat_query is required');
         }
         const needle = title || query;
-        const findParams = { query: needle };
-        findParams.match = title ? 'exact' : matchMode;
-        if (index !== undefined)
-            findParams.index = index;
-        const findResult = await Tools.Chat.findChat(findParams);
-        const picked = findResult?.chat ?? null;
-        if (!picked?.id) {
+        const found = await findChatRobust(needle, title ? 'exact' : matchMode, index);
+        const pickedId = (found.chat?.id ?? '').toString().trim();
+        if (!pickedId) {
             throw new Error(`Chat not found by query: ${needle}`);
         }
-        return picked.id;
+        return pickedId;
     }
     async function read_messages_impl(params) {
         const chatId = await resolveChatId(params || {});
@@ -356,29 +416,17 @@ const HistoryChat = (function () {
         if (!characterCardNameInput) {
             throw new Error('Missing parameter: character_card_name');
         }
-        let characterCardName = characterCardNameInput;
-        let characterCardId = '';
-        try {
-            const cardResult = await Tools.Chat.listCharacterCards();
-            const cards = cardResult.cards;
-            const targetCard = cards.find((card) => card.name === characterCardNameInput);
-            if (!targetCard) {
-                throw new Error(`Character card not found: ${characterCardNameInput}`);
-            }
-            characterCardName = targetCard.name;
-            characterCardId = targetCard.id;
+        const cardResult = await Tools.Chat.listCharacterCards();
+        const cards = cardResult.cards ?? [];
+        const needle = characterCardNameInput.toLowerCase();
+        const targetCard = cards.find((card) => card.name === characterCardNameInput) ??
+            cards.find((card) => String(card.name ?? '').toLowerCase() === needle);
+        if (!targetCard?.id) {
+            throw new Error(`Character card not found: ${characterCardNameInput}`);
         }
-        catch {
-            if (!characterCardId) {
-                throw new Error(`Character card not found: ${characterCardNameInput}`);
-            }
-        }
-        try {
-            await Tools.Chat.startService();
-        }
-        catch {
-            // ignore service start errors to avoid blocking agent message
-        }
+        const characterCardName = targetCard.name;
+        const characterCardId = targetCard.id;
+        await Tools.Chat.startService();
         let chatId = (params?.chat_id ?? '').toString().trim();
         if (!chatId) {
             const lang = (getLang() || '').toLowerCase();
@@ -390,14 +438,22 @@ const HistoryChat = (function () {
             }
         }
         else {
-            const findResult = await Tools.Chat.findChat({
-                query: chatId,
-                match: 'exact',
-                index: 0,
-            });
-            const boundName = findResult?.chat?.characterCardName ?? null;
-            if (boundName && boundName !== characterCardName) {
-                throw new Error(`Chat ${chatId} 已绑定角色 ${boundName}，不能与 ${characterCardName} 共用会话`);
+            const found = await findChatRobust(chatId, 'exact', 0);
+            const existing = found.chat;
+            if (!existing?.id) {
+                throw new Error(`Chat not found: ${chatId}`);
+            }
+            if (!existing.recoveredByIdOnly) {
+                const boundName = (existing.characterCardName ?? '').toString().trim();
+                const boundId = (existing.characterCardId ?? '').toString().trim();
+                if (!boundName && !boundId) {
+                    throw new Error(`Chat ${chatId} has no character card; one role per chat is required`);
+                }
+                const sameId = boundId && boundId === characterCardId;
+                const sameName = boundName && boundName === characterCardName;
+                if (!sameId && !sameName) {
+                    throw new Error(`Chat ${chatId} 已绑定角色 ${boundName || boundId}，不能与 ${characterCardName} 共用会话`);
+                }
             }
         }
         const timeoutRaw = params?.timeout !== undefined ? Number(params.timeout) : 180;
@@ -417,22 +473,7 @@ const HistoryChat = (function () {
             sendMessageOptions.disable_warning = params.disable_warning;
         }
         sendMessageOptions.timeout_ms = timeoutMs;
-        const sendPromise = Tools.Chat.sendMessage(message, chatId, characterCardId, getCallerName() || characterCardName, sendMessageOptions);
-        const timeoutPromise = new Promise((resolve) => {
-            setTimeout(() => resolve(null), timeoutMs);
-        });
-        const sendResult = await Promise.race([sendPromise, timeoutPromise]);
-        if (sendResult === null) {
-            return {
-                success: true,
-                message: `已发送给 ${characterCardName}，等待响应超时（${timeoutSec}s）`,
-                data: {
-                    chat_id: chatId,
-                    timeout: true,
-                    hint: '可以通过 agent_status 查看该 agent 是否已处理你的问题。',
-                },
-            };
-        }
+        const sendResult = await Tools.Chat.sendMessage(message, chatId, characterCardId, getCallerName() || characterCardName, sendMessageOptions);
         return {
             success: true,
             message: `发消息给 ${characterCardName}`,
@@ -452,7 +493,7 @@ const HistoryChat = (function () {
             console.error(`Tool ${func.name} failed unexpectedly`, error);
             complete({
                 success: false,
-                message: `读取对话消息失败: ${message}`,
+                message,
             });
         }
     }
@@ -466,7 +507,7 @@ const HistoryChat = (function () {
             console.error(`Tool ${func.name} failed unexpectedly`, error);
             complete({
                 success: false,
-                message: `读取对话消息失败: ${message}`,
+                message,
             });
         }
     }

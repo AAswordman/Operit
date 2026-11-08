@@ -1,0 +1,12 @@
+{"version":"v0.9","createSurface":{"surfaceId":"chart_line","catalogId":"https://operit.ai/a2ui/catalog/v1"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"chart_line","components":[{"id":"root","component":"Chart","label":"折线图","type":"line","labels":["A","B","C"],"series":[{"label":"演示数据","values":[32,56,42]}]}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"chart_line","path":"/","value":{}}}
+{"version":"v0.9","createSurface":{"surfaceId":"chart_bar","catalogId":"https://operit.ai/a2ui/catalog/v1"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"chart_bar","components":[{"id":"root","component":"Chart","label":"柱状图","type":"bar","labels":["A","B","C"],"series":[{"label":"演示数据","values":[32,56,42]}]}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"chart_bar","path":"/","value":{}}}
+{"version":"v0.9","createSurface":{"surfaceId":"chart_pie","catalogId":"https://operit.ai/a2ui/catalog/v1"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"chart_pie","components":[{"id":"root","component":"Chart","label":"饼图","type":"pie","labels":["A","B","C"],"series":[{"label":"演示数据","values":[32,56,42]}]}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"chart_pie","path":"/","value":{}}}
+{"version":"v0.9","createSurface":{"surfaceId":"chart_scatter","catalogId":"https://operit.ai/a2ui/catalog/v1"}}
+{"version":"v0.9","updateComponents":{"surfaceId":"chart_scatter","components":[{"id":"root","component":"Chart","label":"散点图","type":"scatter","labels":[],"series":[{"label":"演示数据","points":[{"x":1,"y":7},{"x":2,"y":12},{"x":4,"y":26}]}]}]}}
+{"version":"v0.9","updateDataModel":{"surfaceId":"chart_scatter","path":"/","value":{}}}

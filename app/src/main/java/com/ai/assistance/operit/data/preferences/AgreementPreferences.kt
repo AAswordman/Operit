@@ -6,32 +6,37 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** Manages agreement-related preferences for the application */
+/** 管理首次启动流程的完成状态，并兼容已经完成旧协议引导的用户。 */
 class AgreementPreferences(context: Context) {
-    private val PREFS_NAME = "agreement_preferences"
-    private val KEY_ACCEPTED_AGREEMENT_VERSION = "accepted_agreement_version"
-
     private val prefs: SharedPreferences =
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        context.getSharedPreferences("agreement_preferences", Context.MODE_PRIVATE)
+    private val onboardingCompletedKey = "onboarding_completed"
+    private val legacyAgreementAcceptedKey = "agreement_accepted"
+    private val legacyAgreementVersionKey = "accepted_agreement_version"
+    private val _onboardingCompletedFlow = MutableStateFlow(isOnboardingCompleted())
+    val onboardingCompletedFlow: StateFlow<Boolean> = _onboardingCompletedFlow.asStateFlow()
 
-    private val _agreementAcceptedFlow = MutableStateFlow(isAgreementAccepted())
-    val agreementAcceptedFlow: StateFlow<Boolean> = _agreementAcceptedFlow.asStateFlow()
-
-    /** Check whether the user has accepted the current agreement version. */
-    fun isAgreementAccepted(): Boolean {
-        return prefs.getString(KEY_ACCEPTED_AGREEMENT_VERSION, null) == CURRENT_AGREEMENT_VERSION
+    fun isOnboardingCompleted(): Boolean {
+        migrateLegacyCompletion()
+        return prefs.getBoolean(onboardingCompletedKey, false)
     }
 
-    /** Records acceptance of the agreement version bundled with this app release. */
-    fun acceptCurrentAgreement() {
-        prefs.edit()
-            .putString(KEY_ACCEPTED_AGREEMENT_VERSION, CURRENT_AGREEMENT_VERSION)
-            .apply()
-        _agreementAcceptedFlow.value = true
+    fun markOnboardingCompleted() {
+        prefs.edit().putBoolean(onboardingCompletedKey, true).apply()
+        _onboardingCompletedFlow.value = true
     }
 
-    companion object {
-        /** Bump this value whenever the user agreement changes substantively. */
-        const val CURRENT_AGREEMENT_VERSION = "2026-07-15"
+    private fun migrateLegacyCompletion() {
+        val hadLegacyCompletion =
+            prefs.getBoolean(legacyAgreementAcceptedKey, false) ||
+                prefs.contains(legacyAgreementVersionKey)
+        if (hadLegacyCompletion) {
+            // 旧版本已经走完首次引导，直接迁移为流程完成，不要求用户重复进入应用。
+            prefs.edit()
+                .putBoolean(onboardingCompletedKey, true)
+                .remove(legacyAgreementAcceptedKey)
+                .remove(legacyAgreementVersionKey)
+                .apply()
+        }
     }
 }

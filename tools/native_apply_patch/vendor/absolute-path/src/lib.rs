@@ -1,0 +1,758 @@
+// 派生自 OpenAI Codex 路径工具；来源见 UPSTREAM.json。
+use dirs::home_dir;
+use schemars::JsonSchema;
+use serde::Deserialize;
+use serde::Deserializer;
+use serde::Serialize;
+use serde::de::Error as SerdeError;
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::path::Display;
+use std::path::Path;
+use std::path::PathBuf;
+use ts_rs::TS;
+
+mod absolutize;
+mod system_aliases;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema, TS)]
+pub struct AbsolutePathBuf(PathBuf);
+
+impl AbsolutePathBuf {
+    fn maybe_expand_home_directory(path: &Path) -> PathBuf {
+        if let Some(path_str) = path.to_str()
+            && let Some(rest) = path_str.strip_prefix('~')
+            && let Some(home) = AbsolutePathBufGuard::home_directory()
+        {
+            if rest.is_empty() {
+                return home;
+            } else if let Some(rest) = rest.strip_prefix('/') {
+                return home.join(rest.trim_start_matches('/'));
+            } else if cfg!(windows)
+                && let Some(rest) = rest.strip_prefix('\\')
+            {
+                return home.join(rest.trim_start_matches('\\'));
+            }
+        }
+        path.to_path_buf()
+    }
+
+    pub fn resolve_path_against_base<P: AsRef<Path>, B: AsRef<Path>>(
+        path: P,
+        base_path: B,
+    ) -> Self {
+        let expanded = Self::maybe_expand_home_directory(path.as_ref());
+        let expanded = normalize_path_for_platform(&expanded);
+        let base_path = normalize_path_for_platform(base_path.as_ref());
+        Self(absolutize::absolutize_from(
+            expanded.as_ref(),
+            base_path.as_ref(),
+        ))
+    }
+
+    pub fn from_absolute_path<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        let expanded = Self::maybe_expand_home_directory(path.as_ref());
+        let expanded = normalize_path_for_platform(&expanded);
+        Ok(Self(absolutize::absolutize(expanded.as_ref())?))
+    }
+
+    pub fn from_absolute_path_checked<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        let expanded = Self::maybe_expand_home_directory(path.as_ref());
+        let expanded = normalize_path_for_platform(&expanded);
+        if !expanded.is_absolute() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("path is not absolute: {}", path.as_ref().display()),
+            ));
+        }
+
+        Ok(Self(absolutize::absolutize_from(
+            expanded.as_ref(),
+            Path::new("/"),
+        )))
+    }
+
+    pub fn current_dir() -> std::io::Result<Self> {
+        Self::from_absolute_path(std::env::current_dir()?)
+    }
+
+    pub fn relative_to_current_dir<P: AsRef<Path>>(path: P) -> std::io::Result<Self> {
+        if path.as_ref().is_absolute() {
+            return Self::from_absolute_path(path);
+        }
+
+        Ok(Self::resolve_path_against_base(
+            path,
+            std::env::current_dir()?,
+        ))
+    }
+
+    pub fn join<P: AsRef<Path>>(&self, path: P) -> Self {
+        Self::resolve_path_against_base(path, &self.0)
+    }
+
+    pub fn canonicalize(&self) -> std::io::Result<Self> {
+        dunce::canonicalize(&self.0).map(Self)
+    }
+
+    pub fn parent(&self) -> Option<Self> {
+        self.0.parent().map(|p| {
+            debug_assert!(
+                p.is_absolute(),
+                "parent of AbsolutePathBuf must be absolute"
+            );
+            Self(p.to_path_buf())
+        })
+    }
+
+    pub fn ancestors(&self) -> impl Iterator<Item = Self> + '_ {
+        self.0.ancestors().map(|p| {
+            debug_assert!(
+                p.is_absolute(),
+                "ancestor of AbsolutePathBuf must be absolute"
+            );
+            Self(p.to_path_buf())
+        })
+    }
+
+    pub fn as_path(&self) -> &Path {
+        &self.0
+    }
+
+    pub fn into_path_buf(self) -> PathBuf {
+        self.0
+    }
+
+    pub fn to_path_buf(&self) -> PathBuf {
+        self.0.clone()
+    }
+
+    pub fn to_string_lossy(&self) -> std::borrow::Cow<'_, str> {
+        self.0.to_string_lossy()
+    }
+
+    pub fn display(&self) -> Display<'_> {
+        self.0.display()
+    }
+}
+
+fn normalize_path_for_platform(path: &Path) -> Cow<'_, Path> {
+    if cfg!(windows)
+        && let Some(path) = path.to_str()
+        && let Some(normalized) = normalize_windows_device_path(path)
+    {
+        return Cow::Owned(PathBuf::from(normalized));
+    }
+
+    Cow::Borrowed(path)
+}
+
+pub fn normalize_windows_device_path(path: &str) -> Option<String> {
+    if let Some(unc) = path.strip_prefix(r"\\?\UNC\") {
+        return Some(format!(r"\\{unc}"));
+    }
+    if let Some(unc) = path.strip_prefix(r"\\.\UNC\") {
+        return Some(format!(r"\\{unc}"));
+    }
+    if let Some(path) = path.strip_prefix(r"\\?\")
+        && is_windows_drive_absolute_path(path)
+    {
+        return Some(path.to_string());
+    }
+    if let Some(path) = path.strip_prefix(r"\\.\")
+        && is_windows_drive_absolute_path(path)
+    {
+        return Some(path.to_string());
+    }
+    None
+}
+
+fn is_windows_drive_absolute_path(path: &str) -> bool {
+    let bytes = path.as_bytes();
+    bytes.len() >= 3
+        && bytes[0].is_ascii_alphabetic()
+        && bytes[1] == b':'
+        && matches!(bytes[2], b'\\' | b'/')
+}
+
+pub fn canonicalize_preserving_symlinks(path: &Path) -> std::io::Result<PathBuf> {
+    let logical = AbsolutePathBuf::from_absolute_path(path)?.into_path_buf();
+    let preserve_logical_path = should_preserve_logical_path(&logical);
+    match dunce::canonicalize(path) {
+        Ok(canonical) if preserve_logical_path && canonical != logical => Ok(logical),
+        Ok(canonical) => Ok(canonical),
+        Err(_) => Ok(logical),
+    }
+}
+
+pub fn canonicalize_existing_preserving_symlinks(path: &Path) -> std::io::Result<PathBuf> {
+    let logical = AbsolutePathBuf::from_absolute_path(path)?.into_path_buf();
+    let canonical = dunce::canonicalize(path)?;
+    if should_preserve_logical_path(&logical) && canonical != logical {
+        Ok(logical)
+    } else {
+        Ok(canonical)
+    }
+}
+
+fn should_preserve_logical_path(logical: &Path) -> bool {
+    logical.ancestors().any(|ancestor| {
+        let Ok(metadata) = std::fs::symlink_metadata(ancestor) else {
+            return false;
+        };
+        metadata.file_type().is_symlink() && ancestor.parent().and_then(Path::parent).is_some()
+    })
+}
+
+impl AsRef<Path> for AbsolutePathBuf {
+    fn as_ref(&self) -> &Path {
+        &self.0
+    }
+}
+
+impl std::ops::Deref for AbsolutePathBuf {
+    type Target = Path;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<AbsolutePathBuf> for PathBuf {
+    fn from(path: AbsolutePathBuf) -> Self {
+        path.into_path_buf()
+    }
+}
+
+pub mod test_support {
+    use super::AbsolutePathBuf;
+    use std::path::Path;
+    use std::path::PathBuf;
+
+    pub fn test_path_buf(unix_path: &str) -> PathBuf {
+        if cfg!(windows) {
+            let mut path = PathBuf::from(r"C:\");
+            path.extend(
+                unix_path
+                    .trim_start_matches('/')
+                    .split('/')
+                    .filter(|segment| !segment.is_empty()),
+            );
+            path
+        } else {
+            PathBuf::from(unix_path)
+        }
+    }
+
+    pub trait PathExt {
+        fn abs(&self) -> AbsolutePathBuf;
+    }
+
+    impl PathExt for Path {
+        #[expect(clippy::expect_used)]
+        fn abs(&self) -> AbsolutePathBuf {
+            AbsolutePathBuf::from_absolute_path_checked(self)
+                .expect("path should already be absolute")
+        }
+    }
+
+    pub trait PathBufExt {
+        fn abs(&self) -> AbsolutePathBuf;
+    }
+
+    impl PathBufExt for PathBuf {
+        fn abs(&self) -> AbsolutePathBuf {
+            self.as_path().abs()
+        }
+    }
+}
+
+impl TryFrom<&Path> for AbsolutePathBuf {
+    type Error = std::io::Error;
+
+    fn try_from(value: &Path) -> Result<Self, Self::Error> {
+        Self::from_absolute_path(value)
+    }
+}
+
+impl TryFrom<PathBuf> for AbsolutePathBuf {
+    type Error = std::io::Error;
+
+    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
+        Self::from_absolute_path(value)
+    }
+}
+
+impl TryFrom<&str> for AbsolutePathBuf {
+    type Error = std::io::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Self::from_absolute_path(value)
+    }
+}
+
+impl TryFrom<String> for AbsolutePathBuf {
+    type Error = std::io::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Self::from_absolute_path(value)
+    }
+}
+
+thread_local! {
+    static ABSOLUTE_PATH_BASE: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+    static ABSOLUTE_PATH_HOME: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
+}
+
+pub struct AbsolutePathBufGuard;
+
+impl AbsolutePathBufGuard {
+    pub fn deserialization_base(path: &Path) -> Result<Option<PathBuf>, &'static str> {
+        let base = ABSOLUTE_PATH_BASE.with(|cell| cell.borrow().clone());
+        if base.is_none() && !path.is_absolute() {
+            return Err("AbsolutePathBuf deserialized without a base path");
+        }
+        Ok(base)
+    }
+
+    pub fn home_directory() -> Option<PathBuf> {
+        ABSOLUTE_PATH_HOME
+            .with(|cell| cell.borrow().clone())
+            .or_else(home_dir)
+    }
+
+    pub fn new(base_path: &Path) -> Self {
+        ABSOLUTE_PATH_BASE.with(|cell| {
+            *cell.borrow_mut() = Some(base_path.to_path_buf());
+        });
+        Self
+    }
+
+    pub fn with_home_directory<T>(home_directory: &Path, operation: impl FnOnce() -> T) -> T {
+        let previous_home =
+            ABSOLUTE_PATH_HOME.with(|cell| cell.replace(Some(home_directory.to_path_buf())));
+        let _guard = HomeDirectoryGuard(previous_home);
+        operation()
+    }
+}
+
+impl Drop for AbsolutePathBufGuard {
+    fn drop(&mut self) {
+        ABSOLUTE_PATH_BASE.with(|cell| {
+            *cell.borrow_mut() = None;
+        });
+    }
+}
+
+struct HomeDirectoryGuard(Option<PathBuf>);
+
+impl Drop for HomeDirectoryGuard {
+    fn drop(&mut self) {
+        ABSOLUTE_PATH_HOME.with(|cell| {
+            *cell.borrow_mut() = self.0.take();
+        });
+    }
+}
+
+impl<'de> Deserialize<'de> for AbsolutePathBuf {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let path = PathBuf::deserialize(deserializer)?;
+        match AbsolutePathBufGuard::deserialization_base(&path)
+            .map_err(SerdeError::custom)?
+            .as_deref()
+        {
+            Some(base) => Ok(Self::resolve_path_against_base(path, base)),
+            None => Self::from_absolute_path(path).map_err(SerdeError::custom),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_support::test_path_buf;
+    use pretty_assertions::assert_eq;
+    use std::fs;
+    #[cfg(unix)]
+    use std::process::Command;
+    use tempfile::tempdir;
+
+    #[test]
+    fn create_with_absolute_path_ignores_base_path() {
+        let base_dir = tempdir().expect("base dir");
+        let absolute_dir = tempdir().expect("absolute dir");
+        let base_path = base_dir.path();
+        let absolute_path = absolute_dir.path().join("file.txt");
+        let abs_path_buf =
+            AbsolutePathBuf::resolve_path_against_base(absolute_path.clone(), base_path);
+        assert_eq!(abs_path_buf.as_path(), absolute_path.as_path());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn absolute_paths_do_not_read_current_dir() {
+        let status = Command::new(std::env::current_exe().expect("current test binary"))
+            .arg("absolute_paths_with_removed_current_dir_child")
+            .arg("--ignored")
+            .env("CODEX_ABSOLUTE_PATH_REMOVED_CWD_CHILD", "1")
+            .status()
+            .expect("run child test");
+
+        assert!(status.success());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    #[ignore]
+    fn absolute_paths_with_removed_current_dir_child() {
+        if std::env::var_os("CODEX_ABSOLUTE_PATH_REMOVED_CWD_CHILD").is_none() {
+            return;
+        }
+
+        let original_cwd = std::env::current_dir().expect("original cwd");
+        let temp_dir = tempdir().expect("temp dir");
+        let removed_cwd = temp_dir.path().to_path_buf();
+        std::env::set_current_dir(&removed_cwd).expect("enter temp dir");
+        std::fs::remove_dir(&removed_cwd).expect("remove current dir");
+        std::env::current_dir().expect_err("current dir should be unavailable");
+
+        let path = AbsolutePathBuf::from_absolute_path(test_path_buf(
+            "/tmp/codex/../codex-home/plugins/cache",
+        ))
+        .expect("absolute path should not require current dir");
+        let relative_to_current_dir_path = AbsolutePathBuf::relative_to_current_dir(test_path_buf(
+            "/tmp/codex/../codex-home/plugins/cache",
+        ))
+        .expect("absolute path should not require current dir");
+
+        std::env::set_current_dir(original_cwd).expect("restore cwd");
+        assert_eq!(
+            path.as_path(),
+            test_path_buf("/tmp/codex-home/plugins/cache")
+        );
+        assert_eq!(relative_to_current_dir_path, path);
+    }
+
+    #[test]
+    fn from_absolute_path_checked_rejects_relative_path() {
+        for path in [
+            "",
+            "relative/path",
+            r"C:requirements.toml",
+            r"\requirements.toml",
+        ] {
+            let err = AbsolutePathBuf::from_absolute_path_checked(path)
+                .expect_err("relative path should fail");
+
+            assert_eq!(err.kind(), std::io::ErrorKind::InvalidInput);
+        }
+    }
+
+    #[test]
+    fn normalize_windows_device_path_strips_supported_verbatim_prefixes() {
+        assert_eq!(
+            normalize_windows_device_path(r"\\?\D:\c\x\worktrees\2508\swift-base"),
+            Some(r"D:\c\x\worktrees\2508\swift-base".to_string())
+        );
+        assert_eq!(
+            normalize_windows_device_path(r"\\.\D:\c\x\worktrees\2508\swift-base"),
+            Some(r"D:\c\x\worktrees\2508\swift-base".to_string())
+        );
+        assert_eq!(
+            normalize_windows_device_path(r"\\?\UNC\server\share\workspace"),
+            Some(r"\\server\share\workspace".to_string())
+        );
+        assert_eq!(
+            normalize_windows_device_path(r"\\.\UNC\server\share\workspace"),
+            Some(r"\\server\share\workspace".to_string())
+        );
+        assert_eq!(
+            normalize_windows_device_path(r"\\?\GLOBALROOT\Device"),
+            None
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn from_absolute_path_strips_windows_verbatim_prefix() {
+        let path =
+            AbsolutePathBuf::from_absolute_path_checked(r"\\?\D:\c\x\worktrees\2508\swift-base")
+                .expect("verbatim drive path should be absolute");
+
+        assert_eq!(
+            path.as_path(),
+            Path::new(r"D:\c\x\worktrees\2508\swift-base")
+        );
+    }
+
+    #[test]
+    fn relative_path_is_resolved_against_base_path() {
+        let temp_dir = tempdir().expect("base dir");
+        let base_dir = temp_dir.path();
+        let abs_path_buf = AbsolutePathBuf::resolve_path_against_base("file.txt", base_dir);
+        assert_eq!(abs_path_buf.as_path(), base_dir.join("file.txt").as_path());
+    }
+
+    #[test]
+    fn relative_path_dots_are_normalized_against_base_path() {
+        let temp_dir = tempdir().expect("base dir");
+        let base_dir = temp_dir.path();
+        let abs_path_buf =
+            AbsolutePathBuf::resolve_path_against_base("./nested/../file.txt", base_dir);
+        assert_eq!(abs_path_buf.as_path(), base_dir.join("file.txt").as_path());
+    }
+
+    #[test]
+    fn canonicalize_returns_absolute_path_buf() {
+        let temp_dir = tempdir().expect("base dir");
+        fs::create_dir(temp_dir.path().join("one")).expect("create one dir");
+        fs::create_dir(temp_dir.path().join("two")).expect("create two dir");
+        fs::write(temp_dir.path().join("two").join("file.txt"), "").expect("write file");
+        let abs_path_buf =
+            AbsolutePathBuf::from_absolute_path(temp_dir.path().join("one/../two/./file.txt"))
+                .expect("absolute path");
+        assert_eq!(
+            abs_path_buf
+                .canonicalize()
+                .expect("path should canonicalize")
+                .as_path(),
+            dunce::canonicalize(temp_dir.path().join("two").join("file.txt"))
+                .expect("expected path should canonicalize")
+                .as_path()
+        );
+    }
+
+    #[test]
+    fn canonicalize_returns_error_for_missing_path() {
+        let temp_dir = tempdir().expect("base dir");
+        let abs_path_buf = AbsolutePathBuf::from_absolute_path(temp_dir.path().join("missing.txt"))
+            .expect("absolute path");
+
+        assert!(abs_path_buf.canonicalize().is_err());
+    }
+
+    #[test]
+    fn ancestors_returns_absolute_path_bufs() {
+        let abs_path_buf =
+            AbsolutePathBuf::from_absolute_path_checked(test_path_buf("/tmp/one/two"))
+                .expect("absolute path");
+
+        let ancestors = abs_path_buf
+            .ancestors()
+            .map(|path| path.to_path_buf())
+            .collect::<Vec<_>>();
+
+        let expected = vec![
+            test_path_buf("/tmp/one/two"),
+            test_path_buf("/tmp/one"),
+            test_path_buf("/tmp"),
+            test_path_buf("/"),
+        ];
+
+        assert_eq!(ancestors, expected);
+    }
+
+    #[test]
+    fn relative_to_current_dir_resolves_relative_path() -> std::io::Result<()> {
+        let current_dir = std::env::current_dir()?;
+        let abs_path_buf = AbsolutePathBuf::relative_to_current_dir("file.txt")?;
+        assert_eq!(
+            abs_path_buf.as_path(),
+            current_dir.join("file.txt").as_path()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn guard_used_in_deserialization() {
+        let temp_dir = tempdir().expect("base dir");
+        let base_dir = temp_dir.path();
+        let relative_path = "subdir/file.txt";
+        let abs_path_buf = {
+            let _guard = AbsolutePathBufGuard::new(base_dir);
+            serde_json::from_str::<AbsolutePathBuf>(&format!(r#""{relative_path}""#))
+                .expect("failed to deserialize")
+        };
+        assert_eq!(
+            abs_path_buf.as_path(),
+            base_dir.join(relative_path).as_path()
+        );
+    }
+
+    #[test]
+    fn home_directory_root_is_expanded_in_deserialization() {
+        let Some(home) = home_dir() else {
+            return;
+        };
+        let temp_dir = tempdir().expect("base dir");
+        let abs_path_buf = {
+            let _guard = AbsolutePathBufGuard::new(temp_dir.path());
+            serde_json::from_str::<AbsolutePathBuf>("\"~\"").expect("failed to deserialize")
+        };
+        assert_eq!(abs_path_buf.as_path(), home.as_path());
+    }
+
+    #[test]
+    fn home_directory_subpath_is_expanded_in_deserialization() {
+        let Some(home) = home_dir() else {
+            return;
+        };
+        let temp_dir = tempdir().expect("base dir");
+        let abs_path_buf = {
+            let _guard = AbsolutePathBufGuard::new(temp_dir.path());
+            serde_json::from_str::<AbsolutePathBuf>("\"~/code\"").expect("failed to deserialize")
+        };
+        assert_eq!(abs_path_buf.as_path(), home.join("code").as_path());
+    }
+
+    #[test]
+    fn explicit_home_directory_is_used_with_existing_path_guards() {
+        let home_dir = tempdir().expect("explicit home directory");
+        let base_dir = tempdir().expect("base directory");
+
+        let (home_path, relative_path) =
+            AbsolutePathBufGuard::with_home_directory(home_dir.path(), || {
+                let _guard = AbsolutePathBufGuard::new(base_dir.path());
+                let home_path = serde_json::from_str::<AbsolutePathBuf>("\"~/code\"")
+                    .expect("deserialize home-relative path");
+                let relative_path = serde_json::from_str::<AbsolutePathBuf>("\"project/file\"")
+                    .expect("deserialize relative path");
+                (home_path, relative_path)
+            });
+
+        assert_eq!(home_path.as_path(), home_dir.path().join("code"));
+        assert_eq!(
+            relative_path.as_path(),
+            base_dir.path().join("project/file")
+        );
+        assert!(serde_json::from_str::<AbsolutePathBuf>("\"project/file\"").is_err());
+    }
+
+    #[test]
+    fn nested_explicit_home_directories_restore_the_previous_home() {
+        let outer_home = tempdir().expect("outer home directory");
+        let inner_home = tempdir().expect("inner home directory");
+
+        let (inner_path, restored_path) =
+            AbsolutePathBufGuard::with_home_directory(outer_home.path(), || {
+                let inner_path =
+                    AbsolutePathBufGuard::with_home_directory(inner_home.path(), || {
+                        AbsolutePathBuf::from_absolute_path("~/project")
+                            .expect("resolve path with inner home")
+                    });
+                let restored_path = AbsolutePathBuf::from_absolute_path("~/project")
+                    .expect("resolve path with restored home");
+                (inner_path, restored_path)
+            });
+
+        assert_eq!(inner_path.as_path(), inner_home.path().join("project"));
+        assert_eq!(restored_path.as_path(), outer_home.path().join("project"));
+    }
+
+    #[test]
+    fn home_directory_double_slash_is_expanded_in_deserialization() {
+        let Some(home) = home_dir() else {
+            return;
+        };
+        let temp_dir = tempdir().expect("base dir");
+        let abs_path_buf = {
+            let _guard = AbsolutePathBufGuard::new(temp_dir.path());
+            serde_json::from_str::<AbsolutePathBuf>("\"~//code\"").expect("failed to deserialize")
+        };
+        assert_eq!(abs_path_buf.as_path(), home.join("code").as_path());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn canonicalize_preserving_symlinks_keeps_logical_symlink_path() {
+        let temp_dir = tempdir().expect("temp dir");
+        let real = temp_dir.path().join("real");
+        let link = temp_dir.path().join("link");
+        std::fs::create_dir_all(&real).expect("create real dir");
+        std::os::unix::fs::symlink(&real, &link).expect("create symlink");
+
+        let canonicalized =
+            canonicalize_preserving_symlinks(&link).expect("canonicalize preserving symlinks");
+
+        assert_eq!(canonicalized, link);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn canonicalize_preserving_symlinks_keeps_logical_missing_child_under_symlink() {
+        let temp_dir = tempdir().expect("temp dir");
+        let real = temp_dir.path().join("real");
+        let link = temp_dir.path().join("link");
+        std::fs::create_dir_all(&real).expect("create real dir");
+        std::os::unix::fs::symlink(&real, &link).expect("create symlink");
+        let missing = link.join("missing.txt");
+
+        let canonicalized =
+            canonicalize_preserving_symlinks(&missing).expect("canonicalize preserving symlinks");
+
+        assert_eq!(canonicalized, missing);
+    }
+
+    #[test]
+    fn canonicalize_existing_preserving_symlinks_errors_for_missing_path() {
+        let temp_dir = tempdir().expect("temp dir");
+        let missing = temp_dir.path().join("missing");
+
+        let err = canonicalize_existing_preserving_symlinks(&missing)
+            .expect_err("missing path should fail canonicalization");
+
+        assert_eq!(err.kind(), std::io::ErrorKind::NotFound);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn canonicalize_existing_preserving_symlinks_keeps_logical_symlink_path() {
+        let temp_dir = tempdir().expect("temp dir");
+        let real = temp_dir.path().join("real");
+        let link = temp_dir.path().join("link");
+        std::fs::create_dir_all(&real).expect("create real dir");
+        std::os::unix::fs::symlink(&real, &link).expect("create symlink");
+
+        let canonicalized =
+            canonicalize_existing_preserving_symlinks(&link).expect("canonicalize symlink");
+
+        assert_eq!(canonicalized, link);
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn home_directory_backslash_subpath_is_expanded_in_deserialization() {
+        let Some(home) = home_dir() else {
+            return;
+        };
+        let temp_dir = tempdir().expect("base dir");
+        let abs_path_buf = {
+            let _guard = AbsolutePathBufGuard::new(temp_dir.path());
+            let input =
+                serde_json::to_string(r#"~\code"#).expect("string should serialize as JSON");
+            serde_json::from_str::<AbsolutePathBuf>(&input).expect("is valid abs path")
+        };
+        assert_eq!(abs_path_buf.as_path(), home.join("code").as_path());
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn canonicalize_preserving_symlinks_avoids_verbatim_prefixes() {
+        let temp_dir = tempdir().expect("temp dir");
+
+        let canonicalized =
+            canonicalize_preserving_symlinks(temp_dir.path()).expect("canonicalize");
+
+        assert_eq!(
+            canonicalized,
+            dunce::canonicalize(temp_dir.path()).expect("canonicalize temp dir")
+        );
+        assert!(
+            !canonicalized.to_string_lossy().starts_with(r"\\?\"),
+            "expected a non-verbatim Windows path, got {canonicalized:?}"
+        );
+    }
+}

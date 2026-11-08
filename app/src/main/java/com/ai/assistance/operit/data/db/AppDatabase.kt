@@ -1,36 +1,45 @@
 package com.ai.assistance.operit.data.db
 
+import com.ai.assistance.operit.data.dao.MessageTranslationDao
+import com.ai.assistance.operit.data.model.MessageTranslationEntity
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import com.ai.assistance.operit.data.chat.folders.ChatFolder
+import com.ai.assistance.operit.data.chat.folders.ChatFolderDao
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.ai.assistance.operit.data.dao.ApiKeyAttemptDao
 import com.ai.assistance.operit.data.dao.ChatContentDao
 import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
+import com.ai.assistance.operit.data.model.ApiKeyAttemptRecordEntity
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 21
+private const val APP_DATABASE_VERSION = 29
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
     entities = [
         ChatEntity::class,
+        ChatFolder::class,
         MessageEntity::class,
         MessageVariantEntity::class,
+        MessageTranslationEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
+        ApiKeyAttemptRecordEntity::class,
     ],
     version = APP_DATABASE_VERSION,
     exportSchema = false
@@ -38,18 +47,49 @@ private const val APP_DATABASE_VERSION = 21
 abstract class AppDatabase : RoomDatabase() {
     /** 获取聊天DAO */
     abstract fun chatDao(): ChatDao
+    abstract fun chatFolderDao(): ChatFolderDao
 
     /** 获取消息DAO */
     abstract fun messageDao(): MessageDao
     abstract fun messageVariantDao(): MessageVariantDao
+    abstract fun messageTranslationDao(): MessageTranslationDao
     abstract fun chatContentDao(): ChatContentDao
     abstract fun tokenUsageDao(): TokenUsageDao
+    abstract fun apiKeyAttemptDao(): ApiKeyAttemptDao
 
     companion object {
         const val DATABASE_VERSION = APP_DATABASE_VERSION
 
         @Volatile
         private var INSTANCE: AppDatabase? = null
+
+        internal val MIGRATION_27_28 = com.ai.assistance.operit.data.chat.archive.ChatArchiveMigration
+        internal val MIGRATION_28_29 = com.ai.assistance.operit.data.chat.usage.ChatTokenUsageMigration
+
+        /** v26 → v27：新增消息翻译缓存，保留已有聊天及统计数据。 */
+        internal val MIGRATION_26_27 =
+            object : Migration(26, 27) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        """
+                            CREATE TABLE IF NOT EXISTS `message_translations` (
+                                `chatId` TEXT NOT NULL,
+                                `messageTimestamp` INTEGER NOT NULL,
+                                `targetLanguageCode` TEXT NOT NULL,
+                                `sourceTextHash` TEXT NOT NULL,
+                                `translatedText` TEXT NOT NULL,
+                                `updatedAt` INTEGER NOT NULL,
+                                PRIMARY KEY(`chatId`, `messageTimestamp`, `targetLanguageCode`),
+                                FOREIGN KEY(`chatId`) REFERENCES `chats`(`id`) ON DELETE CASCADE
+                            )
+                        """.trimIndent()
+                    )
+                    db.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_message_translations_chatId` " +
+                            "ON `message_translations` (`chatId`)"
+                    )
+                }
+            }
 
         // 定义从版本1到2的迁移
         private val MIGRATION_1_2 =
@@ -236,7 +276,80 @@ abstract class AppDatabase : RoomDatabase() {
                 }
             }
 
-        /** v20 -> v21: token statistics schema and Room-declared message indexes. */
+        /** 将已发布的单层组名转换为稳定 ID，保留全部对话及原显示顺序。 */
+        internal val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                runSql { db.execSQL(it) }
+            }
+
+            override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                runSql { sql ->
+                    val statement = connection.prepare(sql)
+                    try { statement.step() } finally { statement.close() }
+                }
+            }
+
+            private fun runSql(exec: (String) -> Unit) {
+                exec("""
+                    CREATE TABLE `chat_folders` (
+                        `id` TEXT NOT NULL PRIMARY KEY, `name` TEXT NOT NULL,
+                        `parentId` TEXT, `displayOrder` INTEGER NOT NULL,
+                        `characterCardName` TEXT, `characterGroupId` TEXT
+                    )
+                """.trimIndent())
+                exec("CREATE INDEX `index_chat_folders_parentId` ON `chat_folders` (`parentId`)")
+                exec("ALTER TABLE `chats` ADD COLUMN `folderId` TEXT")
+                exec("ALTER TABLE `chats` ADD COLUMN `lastUsedAt` INTEGER NOT NULL DEFAULT 0")
+                exec("""
+                    INSERT INTO `chat_folders` (`id`, `name`, `parentId`, `displayOrder`, `characterCardName`, `characterGroupId`)
+                    SELECT 'legacy:' || hex(`group`), `group`, NULL, MIN(displayOrder), NULL, NULL
+                    FROM `chats` WHERE `group` IS NOT NULL GROUP BY `group`
+                """.trimIndent())
+                exec("UPDATE `chats` SET `folderId` = 'legacy:' || hex(`group`) WHERE `group` IS NOT NULL")
+                exec("""
+                    UPDATE `chats` SET `lastUsedAt` = MAX(createdAt, COALESCE(
+                        (SELECT MAX(timestamp) FROM messages WHERE messages.chatId = chats.id AND sender = 'user'), 0))
+                """.trimIndent())
+            }
+        }
+
+        /** v23 -> v24: 将消息正文与候选变体迁移为结构化片段。 */
+        internal val MIGRATION_23_24 = MessageSectionsMigration
+
+        /** v24 -> v25: 为模型价格增加峰谷和长上下文倍率配置。 */
+        internal val MIGRATION_24_25 =
+            object : Migration(24, 25) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakPricingEnabled` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakScheduleJson` TEXT")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakCachedInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakCacheWriteMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `peakOutputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextPricingEnabled` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextThreshold` INTEGER")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextCachedInputMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextCacheWriteMultiplier` REAL")
+                    db.execSQL("ALTER TABLE token_stats_models ADD COLUMN `longContextOutputMultiplier` REAL")
+                }
+            }
+
+        /** v25 -> v26: 为峰谷规则增加周末和法定节假日低谷开关。 */
+        internal val MIGRATION_25_26 =
+            object : Migration(25, 26) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    db.execSQL(
+                        "ALTER TABLE token_stats_models " +
+                            "ADD COLUMN `weekendOffPeakPricingEnabled` INTEGER"
+                    )
+                    db.execSQL(
+                        "ALTER TABLE token_stats_models " +
+                            "ADD COLUMN `holidayOffPeakPricingEnabled` INTEGER"
+                    )
+                }
+            }
+
         internal val MIGRATION_20_21 =
             object : Migration(20, 21) {
                 override fun migrate(db: SupportSQLiteDatabase) {
@@ -347,6 +460,60 @@ abstract class AppDatabase : RoomDatabase() {
                             AND TRIM(`modelName`) <> ''
                             AND (`inputTokens` > 0 OR `cachedInputTokens` > 0 OR `outputTokens` > 0)
                         """.trimIndent()
+                    )
+                }
+            }
+
+
+        /** v22 -> v23: 增加密钥池请求尝试日志，接在基点文件夹迁移之后。 */
+        internal val MIGRATION_22_23 =
+            object : Migration(22, 23) {
+                override fun migrate(db: SupportSQLiteDatabase) {
+                    runSql { db.execSQL(it) }
+                }
+
+                override fun migrate(connection: androidx.sqlite.SQLiteConnection) {
+                    runSql { sql ->
+                        val stmt = connection.prepare(sql)
+                        try {
+                            stmt.step()
+                        } finally {
+                            stmt.close()
+                        }
+                    }
+                }
+
+                private fun runSql(exec: (String) -> Unit) {
+                    exec(
+                        """
+                        CREATE TABLE IF NOT EXISTS `api_key_attempt_records` (
+                            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                            `occurredAtMs` INTEGER NOT NULL,
+                            `configId` TEXT NOT NULL,
+                            `keyId` TEXT NOT NULL,
+                            `model` TEXT NOT NULL,
+                            `success` INTEGER NOT NULL,
+                            `errorClass` TEXT NOT NULL,
+                            `httpStatus` INTEGER,
+                            `ttftMs` INTEGER,
+                            `tokensPerSec` REAL,
+                            `inputTokens` INTEGER,
+                            `outputTokens` INTEGER,
+                            `cachedInputTokens` INTEGER,
+                            `attemptIndex` INTEGER NOT NULL,
+                            `stickyHit` INTEGER NOT NULL DEFAULT 0,
+                            `stream` INTEGER NOT NULL DEFAULT 1
+                        )
+                        """.trimIndent()
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS `index_api_key_attempt_records_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`occurredAtMs`)"
+                    )
+                    exec(
+                        "CREATE INDEX IF NOT EXISTS " +
+                            "`index_api_key_attempt_records_configId_keyId_model_occurredAtMs` " +
+                            "ON `api_key_attempt_records` (`configId`, `keyId`, `model`, `occurredAtMs`)"
                     )
                 }
             }
@@ -533,7 +700,15 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    MIGRATION_21_22,
+                    MIGRATION_22_23,
+                    MIGRATION_23_24,
+                    MIGRATION_24_25,
+                    MIGRATION_25_26,
+                    MIGRATION_26_27,
+                    MIGRATION_27_28,
+                    MIGRATION_28_29
                 )
                 .build()
 

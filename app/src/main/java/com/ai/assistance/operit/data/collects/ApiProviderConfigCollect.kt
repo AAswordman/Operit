@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.collects
 
-import com.ai.assistance.operit.data.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ApiProviderType
 import java.net.URI
 
 data class ProviderEndpointOption(
@@ -20,58 +20,64 @@ object ApiProviderConfigs {
     private val configs: Map<ApiProviderType, ProviderApiConfig> = listOf(
         ProviderApiConfig(
             providerType = ApiProviderType.OPENAI,
-            defaultModelName = "gpt-4o",
+            defaultModelName = "gpt-6.1-sol",
             defaultApiEndpoint = "https://api.openai.com/v1/chat/completions"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.XAI,
-            defaultModelName = "grok-4.6",
+            defaultModelName = "grok-4.7",
             defaultApiEndpoint = "https://api.x.ai/v1/chat/completions"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OPENAI_RESPONSES,
-            defaultModelName = "gpt-4o",
+            defaultModelName = "gpt-6.1-sol",
             defaultApiEndpoint = "https://api.openai.com/v1/responses"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OPENAI_CODEX,
-            defaultModelName = "gpt-5.6-luna",
+            defaultModelName = "gpt-6.1-sol",
             defaultApiEndpoint = "https://chatgpt.com/backend-api/codex/responses",
             requiresApiKey = false,
         ),
         ProviderApiConfig(
+            providerType = ApiProviderType.ANTIGRAVITY,
+            defaultModelName = "gemini-3.8-flash-high",
+            defaultApiEndpoint = "https://daily-cloudcode-pa.googleapis.com",
+            requiresApiKey = false,
+        ),
+        ProviderApiConfig(
             providerType = ApiProviderType.OPENAI_RESPONSES_GENERIC,
-            defaultModelName = "",
+            defaultModelName = "gpt-6.1-sol",
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OPENAI_GENERIC,
-            defaultModelName = "",
+            defaultModelName = "gpt-6.1-sol",
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.ANTHROPIC,
-            defaultModelName = "claude-3-opus-20240229",
+            defaultModelName = "claude-opus-4.6",
             defaultApiEndpoint = "https://api.anthropic.com/v1/messages"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.ANTHROPIC_GENERIC,
-            defaultModelName = "",
+            defaultModelName = "claude-opus-4.6",
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.GOOGLE,
-            defaultModelName = "gemini-2.0-flash",
+            defaultModelName = "gemini-3.8-flash-high",
             defaultApiEndpoint = "https://generativelanguage.googleapis.com/v1beta/models"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.GEMINI_GENERIC,
-            defaultModelName = "gemini-2.0-flash",
+            defaultModelName = "gemini-3.8-flash-high",
             defaultApiEndpoint = ""
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.DEEPSEEK,
-            defaultModelName = "deepseek-v4-flash",
+            defaultModelName = "deepseek-flash,deepseek-v4-pro",
             defaultApiEndpoint = "https://api.deepseek.com/v1/chat/completions",
             endpointOptions = listOf(
                 ProviderEndpointOption(
@@ -101,12 +107,12 @@ object ApiProviderConfigs {
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.ZHIPU,
-            defaultModelName = "glm-4.5",
+            defaultModelName = "glm-5.3",
             defaultApiEndpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
             endpointOptions = listOf(
                 ProviderEndpointOption(
                     endpoint = "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-                    label = "CN standard"
+                    label = "CN standard / AutoGLM-Phone"
                 ),
                 ProviderEndpointOption(
                     endpoint = "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
@@ -129,7 +135,7 @@ object ApiProviderConfigs {
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.MOONSHOT,
-            defaultModelName = "moonshot-v1-128k",
+            defaultModelName = "kimi-k3",
             defaultApiEndpoint = "https://api.moonshot.cn/v1/chat/completions",
             endpointOptions = listOf(
                 ProviderEndpointOption(
@@ -160,11 +166,6 @@ object ApiProviderConfigs {
             providerType = ApiProviderType.SILICONFLOW,
             defaultModelName = "yi-1.5-34b",
             defaultApiEndpoint = "https://api.siliconflow.cn/v1/chat/completions"
-        ),
-        ProviderApiConfig(
-            providerType = ApiProviderType.IFLOW,
-            defaultModelName = "TBStars2-200B-A13B",
-            defaultApiEndpoint = "https://apis.iflow.cn/v1/chat/completions"
         ),
         ProviderApiConfig(
             providerType = ApiProviderType.OPENROUTER,

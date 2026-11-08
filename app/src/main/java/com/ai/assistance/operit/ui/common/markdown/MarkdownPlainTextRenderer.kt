@@ -96,14 +96,12 @@ private fun resolvedChildrenText(node: MarkdownNodeStable, latexSegments: Mutabl
 }
 
 private fun renderCodeBlock(content: String): String {
-    val codeLines = content.trim().lines()
-    val firstLine = codeLines.firstOrNull().orEmpty()
-    val language = if (firstLine.startsWith("```")) firstLine.removePrefix("```").trim() else ""
-    val codeContent = codeLines
-        .dropWhile { it.startsWith("```") }
-        .dropLastWhile { it.endsWith("```") }
-        .joinToString("\n")
-    return if (language.isNotBlank()) "----$language-----\n$codeContent" else codeContent
+    val codeBlock = extractFencedCodeBlockContent(content)
+    return if (codeBlock.language.isNotBlank()) {
+        "----${codeBlock.language}-----\n${codeBlock.code}"
+    } else {
+        codeBlock.code
+    }
 }
 
 private fun renderTable(content: String, latexSegments: MutableList<String>): String {

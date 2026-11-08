@@ -3,11 +3,11 @@ package com.ai.assistance.operit.api.chat.llmprovider
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.core.chat.hooks.PromptTurnKind
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 import java.nio.file.Files
 import okhttp3.OkHttpClient
@@ -21,6 +21,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.mockito.kotlin.mock
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.keypool.SingleApiKeyProvider
 
 class DeepseekProviderMediaRoleTest {
 
@@ -208,7 +210,7 @@ class DeepseekProviderMediaRoleTest {
             )
         val method =
             DeepseekProvider::class.java.declaredMethods.single {
-                it.name == "createRequestBody" && it.parameterCount == 7
+                it.name == "createRequestBody" && it.parameterCount == 8
             }
         method.isAccessible = true
         val body =
@@ -218,6 +220,7 @@ class DeepseekProviderMediaRoleTest {
                 history,
                 emptyList<ModelParameter<*>>(),
                 false,
+                null, // 使用模型默认的思考选项。
                 false,
                 availableTools,
                 false
@@ -232,7 +235,7 @@ class DeepseekProviderMediaRoleTest {
         availableTools: List<ToolPrompt>
     ): JSONObject {
         val provider =
-            OpenAIResponsesProvider(
+            ExposedOpenAIResponsesProvider(
                 responsesApiEndpoint = "https://example.test/v1/responses",
                 apiKeyProvider = SingleApiKeyProvider("test-key"),
                 modelName = "openai-responses-test",
@@ -241,7 +244,7 @@ class DeepseekProviderMediaRoleTest {
                 enableToolCall = true
             )
         val body =
-            provider.createRequestBody(
+            provider.createRequestBodyForTest(
                 context = mock<Context>(),
                 chatHistory = history,
                 modelParameters = emptyList<ModelParameter<*>>(),
@@ -253,6 +256,41 @@ class DeepseekProviderMediaRoleTest {
         val buffer = Buffer()
         body.writeTo(buffer)
         return JSONObject(buffer.readUtf8())
+    }
+
+    private class ExposedOpenAIResponsesProvider(
+        responsesApiEndpoint: String,
+        apiKeyProvider: ApiKeyProvider,
+        modelName: String,
+        client: OkHttpClient,
+        supportsVision: Boolean,
+        enableToolCall: Boolean
+    ) : OpenAIResponsesProvider(
+            responsesApiEndpoint = responsesApiEndpoint,
+            apiKeyProvider = apiKeyProvider,
+            modelName = modelName,
+            client = client,
+            supportsVision = supportsVision,
+            enableToolCall = enableToolCall
+        ) {
+        fun createRequestBodyForTest(
+            context: Context,
+            chatHistory: List<PromptTurn>,
+            modelParameters: List<ModelParameter<*>>,
+            enableThinking: Boolean,
+            stream: Boolean,
+            availableTools: List<ToolPrompt>?,
+            preserveThinkInHistory: Boolean
+        ): RequestBody =
+            createRequestBody(
+                context = context,
+                chatHistory = chatHistory,
+                modelParameters = modelParameters,
+                enableThinking = enableThinking,
+                stream = stream,
+                availableTools = availableTools,
+                preserveThinkInHistory = preserveThinkInHistory
+            )
     }
 
     private companion object {

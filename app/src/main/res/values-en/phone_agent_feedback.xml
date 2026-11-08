@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">Phone assistant</string>
+    <string name="phone_agent_scanning">Scanning the screen…</string>
+    <string name="phone_agent_planning">Planning…</string>
+    <string name="phone_agent_tapping">Tapping…</string>
+    <string name="phone_agent_typing">Typing…</string>
+    <string name="phone_agent_swiping">Swiping…</string>
+    <string name="phone_agent_entering_app">Opening the app…</string>
+    <string name="phone_agent_back">Going back…</string>
+    <string name="phone_agent_home">Returning to the home screen…</string>
+    <string name="phone_agent_waiting">Waiting for the page…</string>
+    <string name="phone_agent_working">Working…</string>
+    <string name="phone_agent_paused">Paused</string>
+    <string name="phone_agent_needs_user">Waiting for your input</string>
+    <string name="phone_agent_completed">Task completed</string>
+    <string name="phone_agent_unconfirmed">Action unconfirmed. Check the current screen.</string>
+    <string name="phone_agent_pause_task">Pause task</string>
+    <string name="phone_agent_resume_task">Resume task</string>
+    <string name="phone_agent_stop_task">Stop task</string>
+    <string name="phone_agent_source_nodes">Node target</string>
+    <string name="phone_agent_source_coordinates">Coordinate action</string>
+    <string name="phone_agent_launch_confirmed">Confirmed %1$s is in the foreground. Launch task completed.</string>
+    <string name="phone_agent_launch_unconfirmed">Requested launch of %1$s, but the foreground activity was not confirmed. Task completion is unverified.</string>
+    <string name="phone_agent_screen_unavailable">Unable to read the screen right now</string>
+</resources>

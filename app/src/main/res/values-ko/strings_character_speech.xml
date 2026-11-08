@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="character_card_tab_speech">말하다</string>
+    <string name="character_speech_scope">편집 중인 역할만 구성</string>
+    <string name="character_speech_draft_hint">음성 설정은 캐릭터 카드에 저장됩니다. 취소하면 저장되지 않으며, Waifu 모드를 꺼도 구성된 콘텐츠는 지워지지 않습니다.</string>
+    <string name="character_speech_load_failed">이 캐릭터의 음성 설정을 읽을 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="character_speech_save_before_emoji">먼저 캐릭터 카드를 저장한 후 사용자 정의 표현을 관리하세요.</string>
+    <string name="character_speech_emoji_hint">해당 캐릭터의 표현 라이브러리를 관리합니다. 그룹 및 사진의 추가 및 삭제는 즉시 저장됩니다.</string>
+</resources>

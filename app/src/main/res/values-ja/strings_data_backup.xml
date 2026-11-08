@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_count_characters">キャラクターカード</string>
+    <string name="data_backup_chat_records">チャット履歴管理</string>
+    <string name="data_backup_export_logs">ログのエクスポート</string>
+    <string name="data_backup_log_filters">エクスポートのフィルタリング</string>
+    <string name="data_backup_clear_logs">ログをクリアする</string>
+    <string name="data_backup_ungrouped">グループ化されていない</string>
+
+    <!-- 补齐此前缺少的日语译文。 -->
+    <string name="data_backup_count_chats">Chat history</string>
+    <string name="data_backup_files">Backup files</string>
+    <string name="data_backup_snapshot_export">スナップショットを書き出す</string>
+    <string name="data_backup_export_app_logs">アプリのログをエクスポート</string>
+    <string name="data_backup_overview">データの概要</string>
+    <string name="data_backup_count_memories">記憶の項目</string>
+    <string name="data_backup_count_links">記憶の関連付け</string>
+    <string name="data_backup_title">データとバックアップ</string>
+    <string name="data_backup_settings_desc">バックアップ・復元、チャット管理、トークン使用量、診断ログ</string>
+    <string name="data_backup_tab_restore">バックアップと復元</string>
+    <string name="data_backup_tab_chats">チャット管理</string>
+    <string name="data_backup_tab_logs">診断ログ</string>
+    <string name="data_backup_current_profile">現在の設定 · %1$s</string>
+    <string name="data_backup_token_entry_desc">使用量、料金、モデルの統計を表示</string>
+    <string name="data_backup_never">バックアップはありません</string>
+    <string name="data_backup_recent">最近のバックアップ · %1$s</string>
+    <string name="data_backup_snapshot_title">ファイルスナップショット</string>
+    <string name="data_backup_snapshot_desc">アプリのファイルと設定をまとめます。復元後は再起動が必要です。</string>
+    <string name="data_backup_snapshot_restore">スナップショットを復元</string>
+    <string name="data_backup_daily_on">毎日の自動バックアップは有効です</string>
+    <string name="data_backup_daily_off">毎日の自動バックアップは無効です</string>
+    <string name="data_backup_db_summary">%1$s · %2$d 個を保持</string>
+    <string name="data_backup_file_count">%1$d 個</string>
+    <string name="data_backup_individual">項目別のインポート・エクスポート</string>
+    <string name="data_backup_individual_desc">チャット、キャラクターカード、記憶ライブラリ、モデル設定</string>
+    <string name="data_backup_export_directory">エクスポート先 · Download/Operit</string>
+    <string name="data_backup_help">バックアップの注意点</string>
+    <string name="data_backup_done">了解</string>
+    <string name="data_backup_snapshot_export_title">ファイルスナップショットをエクスポート</string>
+    <string name="data_backup_start_export">エクスポートを開始</string>
+    <string name="data_backup_choose_file">バックアップファイルを選択</string>
+    <string name="data_backup_choose_file_desc">復元する ZIP スナップショットを選択</string>
+    <string name="data_backup_manage_links">関連付けを管理</string>
+    <string name="data_backup_build_memory">記憶を構築</string>
+    <string name="data_backup_chat_records_desc">関連付けの一括変更、履歴の整理、記憶の構築を行います。</string>
+    <string name="data_backup_message_count_suffix"> · %1$d 件のメッセージ</string>
+    <string name="data_backup_workspace_count">%1$d 個</string>
+    <string name="data_backup_workspace_desc">以下のフォルダーは、どのチャットにも使用されていません。選択したフォルダーのみ削除します。</string>
+    <string name="data_backup_locked_notice">ロックされたチャットは削除時にスキップします</string>
+    <string name="data_backup_clear_chats">履歴を消去</string>
+    <string name="data_backup_clear_chats_confirm">ロックされていないすべてのチャットとメッセージを削除します。ロックされたチャットは保持します。続行しますか？</string>
+    <string name="data_backup_export_app_logs_desc">診断情報を残して、動作の問題を調べやすくします。</string>
+    <string name="data_backup_log_format">TXT · アプリのログをエクスポート可能</string>
+    <string name="data_backup_filters_none">全ログ · フィルターなし</string>
+    <string name="data_backup_filters_count">%1$d 個のフィルターを有効化中</string>
+    <string name="data_backup_log_directory">Download/operit に保存</string>
+    <string name="data_backup_clear_logs_confirm">現在のアプリのログを消去します。チャット履歴やトークン統計は削除しません。続行しますか？</string>
+    <string name="data_backup_memory_window_hint">1 回に 8～48 件のメッセージを処理</string>
+    <string name="data_backup_locked_chat">ロックされたチャット</string>
+    <string name="data_backup_memory_build_desc">%1$d 件のチャットを選択しました。選択したメッセージから記憶を抽出します。モデルの利用量が発生する場合があります。</string>
+</resources>

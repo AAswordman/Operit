@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">Tempoh bertenang sementara: berbaki %1$d saat</string>
+    <string name="api_key_pool_cooling_summary">%1$d kunci dalam tempoh bertenang; masa menunggu terpendek: %2$d saat</string>
+    <string name="api_key_pool_states_cleared">Tanda ujian dan cooldown sementara dibersihkan</string>
+    <string name="api_key_pool_no_available_marks">Konfigurasi \"%1$s\" tidak menguji kekunci yang ditandakan sebagai tersedia. Sila kosongkan tanda dahulu dan kemudian uji semula.</string>
+    <string name="api_key_pool_all_cooling">Kunci calon dalam \"%1$s\" sedang dalam tempoh bertenang. Cuba semula selepas %2$d saat.</string>
+    <string name="api_key_pool_already_tried">Semua kunci calon untuk konfigurasi \"%1$s\" telah dicuba dalam permintaan ini, sila cuba sebentar lagi.</string>
+    <string name="api_key_pool_no_enabled_keys">Konfigurasi \'%1$s\' tidak mempunyai kekunci yang didayakan, sila semak konfigurasi kumpulan kunci.</string>
+    <string name="api_key_pool_endpoint_error">Alamat atau kaedah permintaan tidak wujud, sila semak jenis pembekal perkhidmatan dan lengkapkan laluan API. Laluan tersuai (seperti /v2) digunakan seperti sedia ada, antara muka serasi OpenAI biasanya perlu diisi ke /chat/completions. Ralat asal: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Model \"%1$s\" dalam tempoh bertenang: berbaki %2$d saat</string>
+</resources>

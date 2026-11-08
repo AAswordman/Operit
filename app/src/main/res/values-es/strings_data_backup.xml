@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">Datos y respaldo</string>
+    <string name="data_backup_settings_desc">Copia de seguridad y recuperación, gestión de chat, uso de tokens y registros de diagnóstico</string>
+    <string name="data_backup_tab_restore">Copia de seguridad y restauración</string>
+    <string name="data_backup_tab_chats">Gestión de chats</string>
+    <string name="data_backup_tab_logs">Registro de diagnóstico</string>
+    <string name="data_backup_overview">Resumen de datos</string>
+    <string name="data_backup_current_profile">Configuración actual · %1$s</string>
+    <string name="data_backup_count_chats">Historial de chat</string>
+    <string name="data_backup_count_characters">tarjeta de personaje</string>
+    <string name="data_backup_count_memories">entrada de memoria</string>
+    <string name="data_backup_count_links">asociación de memoria</string>
+    <string name="data_backup_token_entry_desc">Ver estadísticas de uso, costos y modelos</string>
+    <string name="data_backup_never">Aún no hay copia de seguridad</string>
+    <string name="data_backup_recent">Copia de seguridad reciente · %1$s</string>
+    <string name="data_backup_files">Archivos de copia de seguridad</string>
+    <string name="data_backup_snapshot_title">Instantánea del archivo</string>
+    <string name="data_backup_snapshot_desc">Empaquete los archivos y configuraciones de la aplicación y debe reiniciarse después de la recuperación.</string>
+    <string name="data_backup_snapshot_export">Exportar instantánea</string>
+    <string name="data_backup_snapshot_restore">Restaurar instantánea</string>
+    <string name="data_backup_daily_on">La copia de seguridad automática diaria está activada</string>
+    <string name="data_backup_daily_off">La copia de seguridad automática diaria no está habilitada</string>
+    <string name="data_backup_db_summary">%1$s · Reservar copias %2$d</string>
+    <string name="data_backup_file_count">Copias %1$d</string>
+    <string name="data_backup_individual">Importación y exportación de un solo artículo</string>
+    <string name="data_backup_individual_desc">Chat, tarjetas de personajes, memoria y configuración de modelos.</string>
+    <string name="data_backup_export_directory">Exportar directorio · Descargar/Operit</string>
+    <string name="data_backup_help">Instrucciones de copia de seguridad</string>
+    <string name="data_backup_done">Lo tengo</string>
+    <string name="data_backup_snapshot_export_title">Exportar instantánea del archivo</string>
+    <string name="data_backup_start_export">Iniciar exportación</string>
+    <string name="data_backup_choose_file">Seleccionar archivo de respaldo</string>
+    <string name="data_backup_choose_file_desc">Seleccione la instantánea ZIP para restaurar</string>
+    <string name="data_backup_manage_links">Gestionar asociaciones</string>
+    <string name="data_backup_build_memory">construir memoria</string>
+    <string name="data_backup_chat_records">Gestión del historial de chat</string>
+    <string name="data_backup_chat_records_desc">Modifique asociaciones en lotes, organice registros o cree recuerdos.</string>
+    <string name="data_backup_message_count_suffix">· Mensajes %1$d</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">Las siguientes carpetas no son utilizadas por ningún chat. Eliminar solo las carpetas seleccionadas.</string>
+    <string name="data_backup_locked_notice">La eliminación omite los chats bloqueados</string>
+    <string name="data_backup_clear_chats">borrar registro</string>
+    <string name="data_backup_clear_chats_confirm">Se eliminarán todos los chats desbloqueados y sus mensajes. Los chats bloqueados se conservarán, ¿continuar?</string>
+    <string name="data_backup_export_app_logs">Exportar registros de aplicaciones</string>
+    <string name="data_backup_export_app_logs_desc">La información de diagnóstico se conserva para facilitar la localización de problemas operativos.</string>
+    <string name="data_backup_log_format">TXT · El registro de la aplicación se puede exportar</string>
+    <string name="data_backup_export_logs">Exportar registro</string>
+    <string name="data_backup_log_filters">Filtrado de exportación</string>
+    <string name="data_backup_filters_none">Registro completo · Sin filtrado habilitado</string>
+    <string name="data_backup_filters_count">Filtrado de elementos %1$d habilitado</string>
+    <string name="data_backup_log_directory">Guardar para descargar/operar</string>
+    <string name="data_backup_clear_logs">Borrar registro</string>
+    <string name="data_backup_clear_logs_confirm">Se borrará el registro de la aplicación actual. Esta operación no eliminará el historial de chat ni las estadísticas de tokens. ¿Quieres continuar?</string>
+    <string name="data_backup_memory_window_hint">Procese de 8 a 48 mensajes a la vez</string>
+    <string name="data_backup_locked_chat">chat bloqueado</string>
+    <string name="data_backup_ungrouped">No agrupado</string>
+    <string name="data_backup_memory_build_desc">Chats %1$d seleccionados. Se extraerán recuerdos de mensajes seleccionados, lo que posiblemente resulte en el uso del modelo.</string>
+</resources>

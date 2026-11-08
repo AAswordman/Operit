@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="api_key_pool_cooling_remaining">Cooldown sementara: tersisa %1$d detik</string>
+    <string name="api_key_pool_cooling_summary">%1$d kunci dalam cooldown; waktu tunggu terpendek: %2$d detik</string>
+    <string name="api_key_pool_states_cleared">Tanda uji dan cooldown sementara telah dihapus</string>
+    <string name="api_key_pool_no_available_marks">Konfigurasi \"%1$s\" tidak menguji kunci yang ditandai sebagai tersedia. Harap hapus tandanya terlebih dahulu lalu uji lagi.</string>
+    <string name="api_key_pool_all_cooling">Kunci kandidat dalam \"%1$s\" sedang dalam cooldown. Coba lagi setelah %2$d detik.</string>
+    <string name="api_key_pool_already_tried">Semua kunci kandidat untuk konfigurasi \"%1$s\" telah dicoba dalam permintaan ini, silakan coba lagi nanti.</string>
+    <string name="api_key_pool_no_enabled_keys">Konfigurasi \'%1$s\' tidak memiliki kunci yang diaktifkan, silakan periksa konfigurasi kumpulan kunci.</string>
+    <string name="api_key_pool_endpoint_error">Alamat atau metode permintaan tidak ada, silakan periksa jenis penyedia layanan dan lengkapi jalur API. Jalur khusus (seperti /v2) digunakan apa adanya, antarmuka yang kompatibel dengan OpenAI biasanya perlu diisi ke /chat/completions. Kesalahan asli: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Model \"%1$s\" dalam cooldown: tersisa %2$d detik</string>
+</resources>

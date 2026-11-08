@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">Tindakan massal</string>
+    <string name="chat_batch_exit">Keluar dari pilihan</string>
+    <string name="chat_batch_summarize">Ringkas judul</string>
+    <string name="chat_batch_progress">Memproses %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">Percakapan terkunci tidak dihapus.</string>
+    <string name="chat_batch_delete_title">Hapus percakapan terpilih</string>
+    <string name="chat_batch_delete_message">%1$d percakapan akan dihapus dan %2$d percakapan terkunci akan disimpan. Tindakan ini tidak dapat dibatalkan.</string>
+    <string name="chat_batch_result">Selesai: %1$d berhasil, %2$d dilewati, %3$d gagal</string>
+    <string name="language_follow_system">Ikuti sistem</string>
+    <string name="language_global_info">Bahasa berlaku untuk semua karakter. Aplikasi dibuka ulang setelah diganti.</string>
+    <string name="language_change_failed">Tidak dapat mengganti bahasa. Silakan coba lagi.</string>
+</resources>

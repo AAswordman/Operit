@@ -3,7 +3,7 @@
 const { assert, assertEq, test, runTests } = require('../../../../../../lib/harness');
 
 function getTtsCleanerInstance() {
-  return Java.type('com.ai.assistance.operit.util.TtsCleaner').INSTANCE;
+  return Java.type('com.ai.assistance.operit.core.speech.text.TtsCleaner').INSTANCE;
 }
 
 function getWaifuMessageProcessorInstance() {

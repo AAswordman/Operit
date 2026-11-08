@@ -7,7 +7,7 @@ import android.graphics.PixelFormat
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
@@ -64,10 +64,10 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.services.FloatingChatService
 import com.ai.assistance.operit.ui.common.displays.RainbowBorderOverlay
 import com.ai.assistance.operit.ui.floating.FloatingChatWindow
@@ -105,6 +105,7 @@ class FloatingWindowManager(
     private val TAG = "FloatingWindowManager"
     private val windowManager = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
     private var composeView: ComposeView? = null
+    private var unregisterToastWindow: (() -> Unit)? = null
     private var statusIndicatorView: ComposeView? = null
     private var focusDismissView: View? = null
     private var isViewAdded = false
@@ -185,6 +186,7 @@ class FloatingWindowManager(
 
             val params = createLayoutParams()
             windowManager.addView(composeView, params)
+            unregisterToastWindow = com.ai.assistance.operit.ui.common.oktoast.OKToast.registerWindow(requireNotNull(composeView))
             isViewAdded = true
             AppLogger.d(TAG, "Floating view added at (${params.x}, ${params.y})")
             return true
@@ -195,6 +197,8 @@ class FloatingWindowManager(
     }
 
     fun destroy() {
+        unregisterToastWindow?.invoke()
+        unregisterToastWindow = null
         hideStatusIndicator()
         if (isViewAdded) {
             composeView?.let {
@@ -704,7 +708,7 @@ class FloatingWindowManager(
         val startX = currentParams.x
         val startY = currentParams.y
         
-        com.ai.assistance.operit.util.AppLogger.d("FloatingWindowManager", 
+        com.ai.assistance.operit.util.logging.AppLogger.d("FloatingWindowManager",
             "switchMode: from=${state.currentMode.value} to=$newMode, " +
             "startPos=($startX,$startY), startSize=($startWidth,$startHeight), " +
             "screenSize=($screenWidth,$screenHeight)")
@@ -796,12 +800,12 @@ class FloatingWindowManager(
                     )
                 }
                 
-                com.ai.assistance.operit.util.AppLogger.d("FloatingWindowManager", 
+                com.ai.assistance.operit.util.logging.AppLogger.d("FloatingWindowManager",
                     "Ball target before coerce: newPos=($newX,$newY), ballSize=$ballSizeInPx")
                     val minVisible = ballSizeInPx / 2
                 val finalX = newX.coerceIn(-ballSizeInPx + minVisible, screenWidth - minVisible)
                 val finalY = newY.coerceIn(0, screenHeight - minVisible)
-                com.ai.assistance.operit.util.AppLogger.d("FloatingWindowManager", 
+                com.ai.assistance.operit.util.logging.AppLogger.d("FloatingWindowManager",
                     "Ball target after coerce: finalPos=($finalX,$finalY)")
                 TargetParams(ballSizeInPx, ballSizeInPx, finalX, finalY, flags)
                 }

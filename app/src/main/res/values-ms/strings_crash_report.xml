@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">Jalankan laporan</string>
+    <string name="crash_report_interrupted">Permohonan terganggu tanpa diduga</string>
+    <string name="crash_report_restart_hint">Mulakan semula apl untuk terus menggunakannya.</string>
+    <string name="crash_report_this_error">Ralat ini</string>
+    <string name="crash_report_keep_hint">Anda juga boleh menyimpan laporan ralat terlebih dahulu.</string>
+    <string name="crash_report_restart_compact">Mulakan semula aplikasi</string>
+    <string name="crash_report_app_logs">Log permohonan</string>
+    <string name="crash_report_app_logs_hint">Mengandungi rekod berjalan sebelum dan selepas ralat ini</string>
+    <string name="crash_report_export_logs_compact">Log eksport</string>
+    <string name="crash_report_local_only">Laporan ralat hanya disimpan secara setempat</string>
+    <string name="crash_report_no_stack">Tiada timbunan ralat tersedia.</string>
+    <string name="crash_report_unknown_exception">Pengecualian yang tidak diiktiraf</string>
+    <string name="crash_report_more_actions">Lebih banyak operasi pelaporan</string>
+    <string name="crash_report_save_report">Simpan laporan ralat</string>
+    <string name="crash_report_collapse_stack">Runtuhkan timbunan</string>
+    <string name="crash_report_expand_stack">kembangkan timbunan</string>
+    <string name="crash_report_expand_hint">Klik anak panah di penjuru kanan sebelah atas untuk mengembangkan tindanan penuh</string>
+    <string name="crash_report_stack_lines">%1$d baris · tindanan</string>
+    <string name="crash_report_wrap_stack">Pembalut talian automatik</string>
+    <string name="crash_reason_memory">Habis ingatan</string>
+    <string name="crash_reason_stack">limpahan timbunan panggilan</string>
+    <string name="crash_reason_storage">Ruang simpanan tidak mencukupi</string>
+    <string name="crash_reason_permission">Keizinan terhad</string>
+    <string name="crash_reason_network">Keabnormalan sambungan rangkaian</string>
+    <string name="crash_reason_database">Pengecualian pangkalan data</string>
+    <string name="crash_reason_file">Pengecualian membaca dan menulis fail</string>
+    <string name="crash_reason_component">Pengecualian pemuatan komponen</string>
+    <string name="crash_reason_remote">Pengecualian komunikasi proses</string>
+    <string name="crash_reason_null">Objek tidak dimulakan</string>
+    <string name="crash_reason_state">Status operasi yang tidak normal</string>
+    <string name="crash_reason_unknown">Pengecualian yang tidak diiktiraf</string>
+</resources>

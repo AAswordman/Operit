@@ -31,6 +31,10 @@ internal fun buildInitRuntimeModules(
             source = buildRuntimeErrorScript()
         ),
         JsBootstrapModule(
+            fileName = "quickjs/init/runtime-native-result.js",
+            source = buildNativeResultCallbackRuntime()
+        ),
+        JsBootstrapModule(
             fileName = "quickjs/init/runtime-tool-call.js",
             source = buildRuntimeToolCallScript(),
             globals = listOf("toolCall")

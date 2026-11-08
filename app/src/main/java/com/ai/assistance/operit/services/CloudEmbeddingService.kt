@@ -2,10 +2,15 @@ package com.ai.assistance.operit.services
 
 import android.content.Context
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.data.model.CloudEmbeddingConfig
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.embedding.isEmbeddingReady
+import com.ai.assistance.operit.data.embedding.memoryEmbeddingEndpoint
+import com.ai.assistance.operit.data.preferences.ModelConfigManager
+import com.ai.assistance.operit.api.chat.keypool.MultiApiKeyProvider
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CancellationException
 import com.ai.assistance.operit.data.model.Embedding
-import com.ai.assistance.operit.util.AppLogger
-import java.net.URL
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,6 +31,9 @@ class CloudEmbeddingService(
 
     class CloudEmbeddingException(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
 
+    private val models = ModelConfigManager(context)
+    private val keyProviders = ConcurrentHashMap<String, MultiApiKeyProvider>()
+
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
             .connectTimeout(30, TimeUnit.SECONDS)
@@ -34,44 +42,53 @@ class CloudEmbeddingService(
             .build()
     }
 
-    suspend fun generateEmbedding(config: CloudEmbeddingConfig, text: String): Embedding? = withContext(Dispatchers.IO) {
-        val normalized = config.normalized()
-        if (!normalized.isReady() || text.isBlank()) {
+    suspend fun generateEmbedding(config: ModelConfigData?, text: String): Embedding? = withContext(Dispatchers.IO) {
+        val normalized = config?.copy(apiEndpoint = config.apiEndpoint.trim(), modelName = config.modelName.trim())
+        if (!normalized.isEmbeddingReady() || text.isBlank()) {
             return@withContext null
         }
 
         try {
-            requestEmbedding(normalized, text)
+            requestEmbedding(requireNotNull(normalized), text)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
-            AppLogger.e(TAG, "Embedding request exception", e)
+            AppLogger.e(TAG, "记忆向量请求失败", e)
             null
         }
     }
 
-    suspend fun generateEmbeddingOrThrow(config: CloudEmbeddingConfig, text: String): Embedding = withContext(Dispatchers.IO) {
-        val normalized = config.normalized()
-        if (!normalized.isReady()) {
+    suspend fun generateEmbeddingOrThrow(config: ModelConfigData?, text: String): Embedding = withContext(Dispatchers.IO) {
+        val normalized = config?.copy(apiEndpoint = config.apiEndpoint.trim(), modelName = config.modelName.trim())
+        if (!normalized.isEmbeddingReady()) {
             throw CloudEmbeddingException(context.getString(R.string.memory_embedding_error_config_incomplete))
         }
         if (text.isBlank()) {
             throw CloudEmbeddingException(context.getString(R.string.memory_embedding_error_input_empty))
         }
 
-        requestEmbedding(normalized, text)
+        requestEmbedding(requireNotNull(normalized), text)
     }
 
-    private fun requestEmbedding(config: CloudEmbeddingConfig, text: String): Embedding {
+    private suspend fun requestEmbedding(config: ModelConfigData, text: String): Embedding {
+        val apiKey = if (config.useMultipleApiKeys) {
+            keyProviders.getOrPut(config.id) { MultiApiKeyProvider(config.id, models) }.getApiKey()
+        } else config.apiKey.trim()
         val requestBodyJson = JSONObject()
-            .put("model", config.model)
+            .put("model", config.modelName)
             .put("input", text)
             .toString()
 
-        val request = Request.Builder()
-            .url(completeEmbeddingsEndpoint(config.endpoint))
+        val builder = Request.Builder()
+            .url(memoryEmbeddingEndpoint(config.apiEndpoint))
             .post(requestBodyJson.toRequestBody("application/json".toMediaType()))
-            .addHeader("Authorization", "Bearer ${config.apiKey}")
-            .addHeader("Content-Type", "application/json")
-            .build()
+            .header("Authorization", "Bearer $apiKey")
+            .header("Content-Type", "application/json")
+        if (config.customHeaders.isNotBlank()) {
+            val headers = JSONObject(config.customHeaders)
+            headers.keys().forEach { name -> builder.header(name, headers.getString(name)) }
+        }
+        val request = builder.build()
 
         httpClient.newCall(request).execute().use { response ->
             val responseBody = response.body?.string().orEmpty()
@@ -117,8 +134,11 @@ class CloudEmbeddingService(
                 )
             }
 
+            // 无效维度必须报告解析失败，不能把错误响应当作有效向量写入索引。
             val vector = FloatArray(embeddingJson.length()) { index ->
-                embeddingJson.optDouble(index, 0.0).toFloat()
+                embeddingJson.getDouble(index).toFloat().also { value ->
+                    require(value.isFinite()) { "向量第 $index 维不是有限数值" }
+                }
             }
             Embedding(vector)
         } catch (e: CloudEmbeddingException) {
@@ -165,25 +185,5 @@ class CloudEmbeddingService(
     private fun truncate(text: String, maxLength: Int = 200): String {
         val singleLine = text.replace('\n', ' ').replace('\r', ' ').trim()
         return if (singleLine.length <= maxLength) singleLine else singleLine.take(maxLength) + "..."
-    }
-
-    private fun completeEmbeddingsEndpoint(endpoint: String): String {
-        val trimmed = endpoint.trim()
-        if (trimmed.endsWith("#")) {
-            return trimmed.removeSuffix("#")
-        }
-
-        val withoutSlash = trimmed.removeSuffix("/")
-
-        return try {
-            val path = URL(trimmed).path.removeSuffix("/")
-            when {
-                path.isEmpty() -> "$withoutSlash/v1/embeddings"
-                path.endsWith("/v1", ignoreCase = true) -> "$withoutSlash/embeddings"
-                else -> trimmed
-            }
-        } catch (_: Exception) {
-            trimmed
-        }
     }
 }

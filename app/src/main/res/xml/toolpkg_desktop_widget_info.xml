@@ -11,4 +11,4 @@
     android:widgetCategory="home_screen"
     android:description="@string/toolpkg_widget_host_description"
     android:previewImage="@drawable/toolpkg_widget_preview"
-    android:configure="com.ai.assistance.operit.widget.ToolPkgDesktopWidgetConfigActivity" />
+    android:configure="com.ai.assistance.operit.integrations.appwidget.ToolPkgDesktopWidgetConfigActivity" />

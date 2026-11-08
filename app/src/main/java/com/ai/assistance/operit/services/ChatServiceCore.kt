@@ -1,14 +1,14 @@
 package com.ai.assistance.operit.services
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.ui.text.input.TextFieldValue
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.data.model.AttachmentInfo
+import com.ai.assistance.operit.core.chat.attachment.AttachmentInfo
 import com.ai.assistance.operit.data.model.ChatMessage
-import com.ai.assistance.operit.data.model.ChatTurnOptions
+import com.ai.assistance.operit.core.chat.runtime.ChatTurnOptions
 import com.ai.assistance.operit.data.model.InputProcessingState
-import com.ai.assistance.operit.data.model.PromptFunctionType
+import com.ai.assistance.operit.core.config.PromptFunctionType
 import com.ai.assistance.operit.services.core.ApiConfigDelegate
 import com.ai.assistance.operit.services.core.AttachmentDelegate
 import com.ai.assistance.operit.services.core.ChatSelectionMode
@@ -16,9 +16,9 @@ import com.ai.assistance.operit.services.core.ChatHistoryDelegate
 import com.ai.assistance.operit.services.core.MessageCoordinationDelegate
 import com.ai.assistance.operit.services.core.MessageProcessingDelegate
 import com.ai.assistance.operit.services.core.TokenStatisticsDelegate
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.ui.features.chat.viewmodel.UiStateDelegate
-import com.ai.assistance.operit.ui.features.chat.webview.workspace.process.WorkspaceChangeTracker
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.UiStateDelegate
+import com.ai.assistance.operit.ui.features.conversation.workspace.process.WorkspaceChangeTracker
 import com.ai.assistance.operit.util.stream.SharedStream
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
@@ -53,6 +53,16 @@ class ChatServiceCore(
     private lateinit var uiStateDelegate: UiStateDelegate
     private lateinit var messageCoordinationDelegate: MessageCoordinationDelegate
 
+    private class MessageSpeechBinding(
+        val shouldRead: () -> Boolean,
+        val speak: (String, Boolean) -> Unit,
+    )
+    private val speechBindingLock = Any()
+    private val defaultSpeechBinding = MessageSpeechBinding(
+        shouldRead = { apiConfigDelegate.enableAutoRead.value },
+        speak = { _, _ -> },
+    )
+    @Volatile private var speechBinding = defaultSpeechBinding
     // 初始化状态
     private var initialized = false
 
@@ -60,7 +70,9 @@ class ChatServiceCore(
     private var onEnhancedAiServiceReady: ((EnhancedAIService) -> Unit)? = null
     
     // 额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景）
-    private var additionalOnTurnComplete: ((String?, Long, Long, Long) -> Unit)? = null
+    private var additionalOnTurnComplete: ((String?, Triple<Long, Long, Long>?) -> Unit)? = null
+    private var additionalOnTokenStatisticsCleared: ((String) -> Unit)? = null
+
     private var uiBridge: ChatServiceUiBridge = EmptyChatServiceUiBridge
     private val workspaceChangeTracker = WorkspaceChangeTracker.getInstance(context)
     private val workspaceTrackerOwnerId = "${selectionMode.name}@${System.identityHashCode(this)}"
@@ -106,8 +118,14 @@ class ChatServiceCore(
             coroutineScope = coroutineScope,
             selectionMode = selectionMode,
             onTokenStatisticsLoaded = { chatId, inputTokens, outputTokens, windowSize ->
-                tokenStatisticsDelegate.setActiveChatId(chatId)
                 tokenStatisticsDelegate.setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+            },
+            isTokenStatisticsLoaded = { chatId ->
+                tokenStatisticsDelegate.hasTokenStatistics(chatId)
+            },
+            onTokenStatisticsCleared = { chatId ->
+                tokenStatisticsDelegate.clearChatTokenStatistics(chatId)
+                additionalOnTokenStatisticsCleared?.invoke(chatId)
             },
             getEnhancedAiService = { enhancedAiService },
             ensureAiServiceAvailable = {
@@ -116,9 +134,9 @@ class ChatServiceCore(
                     enhancedAiService = EnhancedAIService.getInstance(context)
                 }
             },
-            getChatStatistics = {
-                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts()
-                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize()
+            getChatStatistics = { chatId ->
+                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
+                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
                 Triple(inputTokens, outputTokens, windowSize)
             },
             onScrollToBottom = {
@@ -168,10 +186,14 @@ class ChatServiceCore(
             addMessageToChat = { chatId, message ->
                 chatHistoryDelegate.addMessageToChat(message, chatId)
             },
-            saveCurrentChat = {
-                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts()
-                val windowSize = tokenStatisticsDelegate.getLastCurrentWindowSize()
-                chatHistoryDelegate.saveCurrentChat(inputTokens, outputTokens, windowSize)
+            resolveVoiceMessage = { chatId, source, text ->
+                chatHistoryDelegate.resolveVoiceMessage(chatId, source, text)
+            },
+            retractStreamingMessages = { chatId, timestamps ->
+                chatHistoryDelegate.retractStreamingMessages(chatId, timestamps)
+            },
+            saveCurrentChat = { chatId ->
+                chatHistoryDelegate.saveChatStatistics(chatId)
             },
             showErrorMessage = { error ->
                 AppLogger.e(TAG, "错误: $error")
@@ -183,32 +205,45 @@ class ChatServiceCore(
             getChatTitle = { chatId ->
                 chatHistoryDelegate.chatHistories.value.firstOrNull { it.id == chatId }?.title
             },
-            onTurnComplete = { chatId, service, nextWindowSize, turnOptions ->
-                tokenStatisticsDelegate.updateCumulativeStatistics(chatId, service)
-                val (inputTokens, outputTokens) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
+            onTurnComplete = turnComplete@ { chatId, service, nextWindowSize, turnOptions ->
+                // 首轮累加前恢复持久化统计，后台会话同样需要已有的累计基数。
+                val statisticsLoaded = if (chatId == null) {
+                    true
+                } else {
+                    try {
+                        chatHistoryDelegate.ensureTokenStatisticsLoaded(chatId)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        AppLogger.w(TAG, "会话统计恢复失败: chatId=$chatId", e)
+                        false
+                    }
+                }
+                if (!statisticsLoaded) {
+                    AppLogger.w(TAG, "会话统计尚未恢复，跳过本轮统计保存: chatId=$chatId")
+                    additionalOnTurnComplete?.invoke(chatId, null)
+                    return@turnComplete
+                }
+                val usageBreakdown = service.getCurrentTurnUsageBreakdown()
+                val (previousInput, previousOutput) = tokenStatisticsDelegate.getCumulativeTokenCounts(chatId)
+                val inputTokens = previousInput + usageBreakdown.inputTokens
+                val outputTokens = previousOutput + usageBreakdown.outputTokens
                 val windowSize = nextWindowSize ?: tokenStatisticsDelegate.getLastCurrentWindowSize(chatId)
-                tokenStatisticsDelegate.setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+                // 先将总额与分类一起入库，避免切换会话的普通保存抢先把本轮输入记入其他。
                 if (turnOptions.persistTurn) {
                     chatHistoryDelegate.saveCurrentChat(
                         inputTokens,
                         outputTokens,
                         windowSize,
-                        chatIdOverride = chatId
+                        chatIdOverride = chatId,
+                        usageBreakdown = usageBreakdown,
                     )
                 }
-                additionalOnTurnComplete?.invoke(
-                    chatId,
-                    inputTokens,
-                    outputTokens,
-                    windowSize
-                )
+                tokenStatisticsDelegate.setTokenCounts(chatId, inputTokens, outputTokens, windowSize)
+                additionalOnTurnComplete?.invoke(chatId, Triple(inputTokens, outputTokens, windowSize))
             },
-            getIsAutoReadEnabled = {
-                apiConfigDelegate.enableAutoRead.value
-            },
-            speakMessageHandler = { text, _ ->
-                AppLogger.d(TAG, "朗读消息: $text")
-            },
+            getIsAutoReadEnabled = { speechBinding.shouldRead() },
+            speakMessageHandler = { text, interrupt -> speechBinding.speak(text, interrupt) },
             onTokenLimitExceeded = { chatId, roleCardId, isGroupOrchestrationTurn, groupParticipantNamesText ->
                 messageCoordinationDelegate.handleTokenLimitExceeded(
                     chatId = chatId,
@@ -239,7 +274,7 @@ class ChatServiceCore(
             messageProcessingDelegate.cancelMessageForDestructiveMutation(chatId)
         }
         chatHistoryDelegate.setAfterDestructiveHistoryMutation { chatId ->
-            messageCoordinationDelegate.refreshStableContextWindow(chatId = chatId)
+            messageCoordinationDelegate.scheduleStableContextWindowRefresh(chatId = chatId)
         }
 
         initialized = true
@@ -441,8 +476,6 @@ class ChatServiceCore(
     val chatHistories: StateFlow<List<com.ai.assistance.operit.data.model.ChatHistory>>
         get() = chatHistoryDelegate.chatHistories
 
-    val showChatHistorySelector: StateFlow<Boolean>
-        get() = chatHistoryDelegate.showChatHistorySelector
 
     // API 配置相关
     val enableThinkingMode: StateFlow<Boolean>
@@ -483,8 +516,6 @@ class ChatServiceCore(
     val attachments: StateFlow<List<AttachmentInfo>>
         get() = attachmentDelegate.attachments
 
-    val attachmentToastEvent: SharedFlow<String>
-        get() = attachmentDelegate.toastEvent
 
     // ========== 其他方法 ==========
 
@@ -515,8 +546,13 @@ class ChatServiceCore(
     }
     
     /** 设置额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景） */
-    fun setAdditionalOnTurnComplete(callback: ((chatId: String?, inputTokens: Long, outputTokens: Long, windowSize: Long) -> Unit)?) {
+    fun setAdditionalOnTurnComplete(callback: ((chatId: String?, statistics: Triple<Long, Long, Long>?) -> Unit)?) {
         additionalOnTurnComplete = callback
+    }
+
+    /** 同步显式清空后的统计，防止其他运行时重新保存旧累计。 */
+    fun setAdditionalOnTokenStatisticsCleared(callback: (String) -> Unit) {
+        additionalOnTokenStatisticsCleared = callback
     }
 
     fun setUiBridge(uiBridge: ChatServiceUiBridge) {
@@ -527,8 +563,23 @@ class ChatServiceCore(
     }
 
     fun setSpeakMessageHandler(handler: (String, Boolean) -> Unit) {
-        if (::messageProcessingDelegate.isInitialized) {
-            messageProcessingDelegate.setSpeakMessageHandler(handler)
+        synchronized(speechBindingLock) {
+            speechBinding = MessageSpeechBinding(defaultSpeechBinding.shouldRead, handler)
+        }
+    }
+
+    /** 通话只绑定本运行时的朗读条件，不改写普通聊天的自动朗读偏好。 */
+    fun bindMessageSpeech(
+        shouldRead: () -> Boolean,
+        speak: (String, Boolean) -> Unit,
+    ): () -> Unit {
+        val binding = MessageSpeechBinding(shouldRead, speak)
+        synchronized(speechBindingLock) { speechBinding = binding }
+        return {
+            synchronized(speechBindingLock) {
+                // 旧界面释放时不能清掉后来绑定的新界面。
+                if (speechBinding === binding) speechBinding = defaultSpeechBinding
+            }
         }
     }
     

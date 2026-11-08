@@ -10,6 +10,33 @@ import com.ai.assistance.operit.util.stream.plugins.*
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.ai.assistance.operit.util.stream.Stream
+import com.ai.assistance.operit.util.stream.StreamGroup
+import com.ai.assistance.operit.util.stream.StreamProcessor
+import com.ai.assistance.operit.util.stream.StreamRollbackPrefix
+import com.ai.assistance.operit.util.stream.TextStreamEventCarrier
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownBlockBracketLaTeXPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownBlockLaTeXPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownBlockQuotePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownBoldPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownFencedCodeBlockPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownHeaderPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownHorizontalRulePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownImagePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownInlineCodePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownInlineLaTeXPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownInlineParenLaTeXPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownItalicPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownLinkPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownOrderedListPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownStrikethroughPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownTablePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownUnderlinePlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamMarkdownUnorderedListPlugin
+import com.ai.assistance.operit.util.stream.plugins.StreamPlugin
+import com.ai.assistance.operit.util.stream.stream
+import com.ai.assistance.operit.util.stream.withRollbackPrefix
+import com.ai.assistance.operit.util.stream.withTextEventChannel
 
 /** 字符串收集处理器 - 简单地将流收集为字符串 */
 class StringCollectorProcessor : StreamProcessor<String, String> {

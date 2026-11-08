@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_user_profile">用户资料</string>
+    <string name="role_user_profile_title">%1$s的用户资料</string>
+    <string name="role_user_profile_hint">资料保存在此角色当前绑定的记忆空间中。锁定仅阻止自动更新，仍可手动编辑。</string>
+    <string name="memory_settings_title">记忆设置</string>
+    <string name="memory_settings_space">记忆空间：%1$s</string>
+    <string name="memory_settings_space_missing">此记忆空间已被删除，请重新选择。</string>
+    <string name="memory_settings_auto_extract_tab">自动提取</string>
+    <string name="memory_settings_retrieval_tab">检索</string>
+    <string name="memory_settings_history_tab">历史重建</string>
+    <string name="memory_settings_queue">自动提取队列</string>
+    <string name="memory_settings_queue_status">待处理 %1$d 条 / %2$d 个聊天 · 处理中 %3$d 条 · 失败 %4$d 条</string>
+    <string name="memory_settings_next_run_unset">尚未安排下次检查</string>
+    <string name="memory_settings_next_run">下次检查：约 %1$d 分钟后</string>
+    <string name="memory_settings_auto_extract_hint">至少积累 %1$d 个候选后自动提取，失败候选会重试；提取结果写入此记忆空间。</string>
+    <string name="memory_settings_interval_value">%1$d 分钟</string>
+    <string name="memory_settings_profile_lock_hint">阻止模型自动覆盖 user.md，不影响手动编辑。</string>
+    <string name="memory_settings_cloud_embedding">云端向量</string>
+    <string name="memory_settings_cloud_embedding_hint">启用后，记忆和检索文本将发送给所绑定的向量模型服务。</string>
+    <string name="memory_settings_rebuild_saved_hint">向量重建使用已保存的开关和功能模型绑定；修改后请先保存。</string>
+    <string name="memory_settings_threshold">相关性阈值</string>
+    <string name="memory_settings_simulation_hint">使用当前权重、阈值和向量开关执行真实搜索，不保存设置草稿。</string>
+    <string name="memory_settings_select_chats">选择聊天</string>
+    <string name="memory_settings_no_chats">此记忆空间暂无绑定聊天。</string>
+    <string name="memory_settings_history_hint">从聊天历史按窗口提取记忆，追加或更新内容，保留现有记忆。重建使用已保存的提取规则与资料策略。</string>
+    <string name="memory_settings_rebuild_busy">已有历史重建任务正在进行，结束后可启动下一次。</string>
+    <string name="memory_settings_unsaved_title">放弃未保存的设置？</string>
+    <string name="memory_settings_unsaved_message">关闭后，本次对记忆设置的修改将丢失。</string>
+    <string name="memory_settings_clear_selection">取消全选</string>
+</resources>

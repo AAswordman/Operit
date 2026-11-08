@@ -244,10 +244,14 @@
 }
 */
 
+var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __propIsEnum = Object.prototype.propertyIsEnumerable;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
@@ -263,20 +267,56 @@ var __spreadValues = (a, b) => {
   return a;
 };
 var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
+var __commonJS = (cb, mod) => function __require() {
+  return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+
+// src/utils/toolFailure.js
+var require_toolFailure = __commonJS({
+  "src/utils/toolFailure.js"(exports2, module2) {
+    function toolFailure2(error, failMessage) {
+      const objectError = typeof error === "object" && error !== null;
+      const detail = objectError && typeof error.message === "string" ? error.message : String(error);
+      const result = {
+        success: false,
+        message: `${failMessage}: ${detail}`,
+        error_stack: objectError && typeof error.stack === "string" ? error.stack : ""
+      };
+      if (objectError && "data" in error) {
+        result.data = error.data;
+      }
+      return result;
+    }
+    module2.exports = { toolFailure: toolFailure2 };
+  }
+});
 
 // src/utils/wrap.ts
+var import_toolFailure = __toESM(require_toolFailure());
 async function wrap(func, params, successMessage, failMessage) {
   try {
     const data = await func(params);
     const result = { success: true, message: successMessage, data };
     complete(result);
   } catch (error) {
-    const result = {
-      success: false,
-      message: `${failMessage}: ${String(error && error.message ? error.message : error)}`,
-      error_stack: String(error && error.stack ? error.stack : "")
-    };
-    complete(result);
+    console.error(`[github] ${failMessage}`, error);
+    complete((0, import_toolFailure.toolFailure)(error, failMessage));
   }
 }
 

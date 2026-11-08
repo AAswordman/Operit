@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_transfer_copying">Menyalin...</string>
+    <string name="workspace_transfer_moving">Memindahkan...</string>
+    <string name="workspace_transfer_scanning">Menghitung file...</string>
+    <string name="workspace_transfer_processing">Memproses...</string>
+    <string name="workspace_transfer_finishing">Menghapus sumber...</string>
+    <string name="workspace_transfer_name">Nama</string>
+    <string name="workspace_transfer_source">Dari</string>
+    <string name="workspace_transfer_destination">Ke</string>
+    <string name="workspace_transfer_copied">Disalin</string>
+    <string name="workspace_transfer_remaining">Tersisa</string>
+    <string name="workspace_transfer_speed">Kecepatan</string>
+    <string name="workspace_transfer_item">Item %1$d / %2$d · Progres item saat ini</string>
+    <string name="workspace_transfer_files">File: %1$d / %2$d</string>
+    <string name="workspace_transfer_percent">%1$d%%</string>
+    <string name="workspace_transfer_cancelling">Membatalkan...</string>
+    <string name="workspace_transfer_deleting">Menghapus...</string>
+    <string name="workspace_transfer_deleted_items">%1$d / %2$d item dihapus</string>
+    <string name="workspace_transfer_delete_scope">Progres menghitung item yang dipilih, bukan file di dalam setiap folder.</string>
+    <string name="workspace_transfer_delete_cancel_note">Pembatalan menghentikan item berikutnya setelah penghapusan saat ini selesai. Konten yang dihapus tidak dipulihkan.</string>
+</resources>

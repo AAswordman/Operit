@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.backup
 
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 
 object OperitBackupDirs {

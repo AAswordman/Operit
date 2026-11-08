@@ -1,6 +1,9 @@
 package com.ai.assistance.operit.core.tools
 
-import com.ai.assistance.operit.api.voice.HttpTtsResponsePipelineStep
+import com.ai.assistance.operit.core.performance.PerformanceEntityKind
+import com.ai.assistance.operit.core.performance.PerformanceEntitySample
+import com.ai.assistance.operit.core.performance.PerformanceSnapshot
+import com.ai.assistance.operit.api.speech.tts.HttpTtsResponsePipelineStep
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -32,11 +35,21 @@ sealed class ToolResultData {
 data class BooleanResultData(val value: Boolean) : ToolResultData() {
     override fun toString(): String = value.toString()
 }
-
 @Serializable
 data class StringResultData(val value: String) : ToolResultData() {
     override fun toString(): String = value
 }
+
+@Serializable
+data class ToolPermissionModeResultData(
+        val permissionLevel: String,
+        val previousPermissionLevel: String? = null,
+        val changed: Boolean = false
+) : ToolResultData() {
+    // 让文本型工具调用也能直接看到当前权限模式。
+    override fun toString(): String = permissionLevel
+}
+
 
 @Serializable
 data class SleepResultData(
@@ -266,7 +279,8 @@ data class TerminalCommandResultData(
         val output: String,
         val exitCode: Int,
         val sessionId: String,
-        val timedOut: Boolean = false
+        val timedOut: Boolean = false,
+        val contextPreserved: Boolean? = null
 ) : ToolResultData() {
     override fun toString(): String {
         val sb = StringBuilder()
@@ -274,6 +288,7 @@ data class TerminalCommandResultData(
         sb.appendLine("Command: $command")
         sb.appendLine("Session: $sessionId")
         sb.appendLine("Exit Code: $exitCode")
+        contextPreserved?.let { sb.appendLine("Context Preserved: $it") }
         if (timedOut) {
             sb.appendLine("Timed Out: true")
         }
@@ -749,6 +764,105 @@ data class AppUsageTimeResultData(
         if (seconds > 0 || parts.isEmpty()) parts.add("${seconds}s")
         return parts.joinToString(" ")
     }
+}
+
+/** 单个性能实体的对外指标。 */
+@Serializable
+data class PerformanceMetricsEntityData(
+        val id: String,
+        val kind: String,
+        val displayName: String,
+        val cpuPercent: Double,
+        val memoryKb: Long,
+        val rxBytesPerSec: Long? = null,
+        val txBytesPerSec: Long? = null,
+        val detail: String? = null
+)
+
+/** 性能查询中的设备级指标。 */
+@Serializable
+data class PerformanceMetricsDeviceData(
+        val cpuPercent: Double?,
+        val totalMemMb: Long,
+        val availMemMb: Long,
+        val rxBytesPerSec: Long?,
+        val txBytesPerSec: Long?
+)
+
+/** get_performance_metrics 工具返回的结构化结果。 */
+@Serializable
+data class PerformanceMetricsResultData(
+        val scope: String,
+        val requestedPluginId: String? = null,
+        val pluginFound: Boolean? = null,
+        val sampledAtMs: Long,
+        val sampleAgeMs: Long,
+        val sampleValid: Boolean,
+        val cpuCoreCount: Int,
+        val device: PerformanceMetricsDeviceData,
+        val app: PerformanceMetricsEntityData?,
+        val plugins: List<PerformanceMetricsEntityData>,
+        val terminals: List<PerformanceMetricsEntityData>
+) : ToolResultData() {
+    override fun toString(): String {
+        val target = requestedPluginId?.let { "plugin $it" } ?: "software"
+        val pluginState = pluginFound?.let { ", found=$it" }.orEmpty()
+        return "Performance metrics for $target: valid=$sampleValid, age=${sampleAgeMs}ms$pluginState"
+    }
+
+    companion object {
+        fun from(snapshot: PerformanceSnapshot, requestedPluginId: String?): PerformanceMetricsResultData {
+            val normalizedPluginId = requestedPluginId?.trim()?.takeIf { it.isNotEmpty() }
+            val allPlugins = snapshot.entities.filter { it.kind == PerformanceEntityKind.PLUGIN }
+            val selectedPlugin = normalizedPluginId?.let { id ->
+                allPlugins.firstOrNull { it.id == id }
+            }
+            val visiblePlugins = if (normalizedPluginId == null) {
+                allPlugins
+            } else {
+                listOfNotNull(selectedPlugin)
+            }
+            val visibleTerminals = if (normalizedPluginId == null) {
+                snapshot.entities.filter { it.kind == PerformanceEntityKind.TERMINAL }
+            } else {
+                emptyList()
+            }
+
+            return PerformanceMetricsResultData(
+                    scope = if (normalizedPluginId == null) "software" else "plugin",
+                    requestedPluginId = normalizedPluginId,
+                    pluginFound = normalizedPluginId?.let { selectedPlugin != null },
+                    sampledAtMs = snapshot.timestampMs,
+                    sampleAgeMs = (System.currentTimeMillis() - snapshot.timestampMs).coerceAtLeast(0L),
+                    sampleValid = snapshot.deltaValid,
+                    cpuCoreCount = snapshot.cpuCoreCount,
+                    device = PerformanceMetricsDeviceData(
+                            cpuPercent = snapshot.deviceCpuPercent,
+                            totalMemMb = snapshot.deviceTotalMemMb,
+                            availMemMb = snapshot.deviceAvailMemMb,
+                            rxBytesPerSec = snapshot.deviceRxBytesPerSec,
+                            txBytesPerSec = snapshot.deviceTxBytesPerSec
+                    ),
+                    app = snapshot.entities.firstOrNull { it.kind == PerformanceEntityKind.APP }
+                            ?.toPerformanceMetricsData(),
+                    plugins = visiblePlugins.map { it.toPerformanceMetricsData() },
+                    terminals = visibleTerminals.map { it.toPerformanceMetricsData() }
+            )
+        }
+    }
+}
+
+private fun PerformanceEntitySample.toPerformanceMetricsData(): PerformanceMetricsEntityData {
+    return PerformanceMetricsEntityData(
+            id = id,
+            kind = kind.name,
+            displayName = displayName,
+            cpuPercent = cpuPercent,
+            memoryKb = memoryKb,
+            rxBytesPerSec = rxBytesPerSec,
+            txBytesPerSec = txBytesPerSec,
+            detail = detail
+    )
 }
 
 /** Bluetooth adapter state. */
@@ -1385,7 +1499,18 @@ data class MemoryQueryResultData(
         val tags: List<String>,
         val createdAt: String,
         val chunkInfo: String? = null,
-        val chunkIndices: List<Int>? = null
+        val chunkIndices: List<Int>? = null,
+        val score: ScoreInfo? = null
+    )
+
+    @Serializable
+    data class ScoreInfo(
+        val total: Double,
+        val keyword: Double,
+        val tag: Double,
+        val reverseContainment: Double,
+        val semantic: Double,
+        val edge: Double
     )
 
     override fun toString(): String {
@@ -1730,34 +1855,21 @@ data class GrepResultData(
                 matchesToShow.forEach { lineMatch ->
                     // If context is available, show full context
                     if (lineMatch.matchContext != null && lineMatch.matchContext.isNotBlank()) {
-                        val contextLines = lineMatch.matchContext.lines()
-                        val isPreNumberedContext =
-                            contextLines.any { it.isNotBlank() } &&
-                                contextLines.all { it.isBlank() || parsePreNumberedLineNumber(it) != null }
-
-                        if (isPreNumberedContext) {
-                            contextLines.forEach { contextLine ->
-                                val renderedLine =
-                                    if (parsePreNumberedLineNumber(contextLine) == lineMatch.lineNumber) {
-                                        markPreNumberedContextLine(contextLine)
-                                    } else {
-                                        contextLine
-                                    }
-                                sb.appendLine(renderedLine)
-                            }
-                        } else {
-                            val centerIndex = contextLines.size / 2
-
-                            contextLines.forEachIndexed { idx, contextLine ->
-                                val actualLineNum = lineMatch.lineNumber - centerIndex + idx
-                                val lineNumStr = String.format("%6d", actualLineNum)
-
-                                if (idx == centerIndex) {
-                                    sb.appendLine("$lineNumStr|>${contextLine}")
+                        // Context lines carry their real source line numbers inline
+                        // ("<number>|<text>", matched lines additionally marked with ">").
+                        // Render each line by its embedded number; never derive numbers
+                        // from the line position, because context windows are clamped at
+                        // file start/end and merged multi-match blocks are non-contiguous.
+                        // Lines without a number (blank separators, truncation markers)
+                        // are printed verbatim.
+                        lineMatch.matchContext.lines().forEach { contextLine ->
+                            val renderedLine =
+                                if (parsePreNumberedLineNumber(contextLine) == lineMatch.lineNumber) {
+                                    markPreNumberedContextLine(contextLine)
                                 } else {
-                                    sb.appendLine("$lineNumStr| ${contextLine}")
+                                    contextLine
                                 }
-                            }
+                            sb.appendLine(renderedLine)
                         }
                         sb.appendLine() // Add blank line after each match block
                     } else {
@@ -1866,8 +1978,8 @@ data class WorkflowDetailResultData(
     val id: String,
     val name: String,
     val description: String,
-    val nodes: List<com.ai.assistance.operit.data.model.WorkflowNode>,
-    val connections: List<com.ai.assistance.operit.data.model.WorkflowNodeConnection>,
+    val nodes: List<com.ai.assistance.operit.core.workflow.model.WorkflowNode>,
+    val connections: List<com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection>,
     val enabled: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
@@ -1889,35 +2001,35 @@ data class WorkflowDetailResultData(
         sb.appendLine("Nodes (${nodes.size}):")
         nodes.forEach { node ->
             when (node) {
-                is com.ai.assistance.operit.data.model.TriggerNode -> {
+                is com.ai.assistance.operit.core.workflow.model.TriggerNode -> {
                     sb.appendLine("  - [Trigger] ${node.name} (${node.id})")
                     sb.appendLine("    Type: ${node.triggerType}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ExecuteNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ExecuteNode -> {
                     sb.appendLine("  - [Execute] ${node.name} (${node.id})")
                     sb.appendLine("    Action: ${node.actionType}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ConditionNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ConditionNode -> {
                     sb.appendLine("  - [Condition] ${node.name} (${node.id})")
                     sb.appendLine("    Operator: ${node.operator}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.LogicNode -> {
+                is com.ai.assistance.operit.core.workflow.model.LogicNode -> {
                     sb.appendLine("  - [Logic] ${node.name} (${node.id})")
                     sb.appendLine("    Operator: ${node.operator}")
                     if (node.description.isNotBlank()) {
                         sb.appendLine("    Description: ${node.description}")
                     }
                 }
-                is com.ai.assistance.operit.data.model.ExtractNode -> {
+                is com.ai.assistance.operit.core.workflow.model.ExtractNode -> {
                     sb.appendLine("  - [Extract] ${node.name} (${node.id})")
                     sb.appendLine("    Mode: ${node.mode}")
                     if (node.expression.isNotBlank()) {
@@ -2338,7 +2450,8 @@ data class SpeechTtsHttpConfigResultItem(
 data class SpeechTtsVitsPackageConfigResultItem(
     val packagePath: String,
     val speakerId: String,
-    val options: Map<String, String>
+    val options: Map<String, String>,
+    val installedModelKey: String = "",
 )
 
 /** 语音服务 STT HTTP 配置条目 */
@@ -2347,7 +2460,8 @@ data class SpeechSttHttpConfigResultItem(
     val endpointUrl: String,
     val apiKeySet: Boolean,
     val apiKeyPreview: String,
-    val modelName: String
+    val modelName: String,
+    val localModelKey: String = "",
 )
 
 /** 获取语音服务配置结果 */

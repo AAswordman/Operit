@@ -5,24 +5,20 @@
 ## 目录总览
 
 ```text
-Operit-follow-up/
-├── app/             主 Android 应用
-├── avator/          角色与模型 Android 模块
-│   ├── dragonbones/  DragonBones 动画 Android 库
-│   ├── fbx/          FBX 模型 Android 原生库
-│   └── mmd/          MMD 模型运行时与预览模块
-├── ci/              CI 与本地自动化脚本
-├── docs/            项目文档与文档资源
-├── examples/        JavaScript/TypeScript 工具包示例
-├── gradle/          Gradle Wrapper 与版本目录
-├── llm/             本地大模型 Android 模块
-│   ├── llama/        llama.cpp 本地推理 Android 模块
-│   └── mnn/          MNN 本地推理 Android 模块
-├── quickjs/         QuickJS JNI 模块
-├── showerclient/    Shower 虚拟显示客户端库
-├── terminal/        OperitTerminalCore Git 子模块
-├── tools/           开发、调试与构建辅助工具
-└── web-chat/        React + Vite Web Chat 前端
+Operit/
+	app/             主 Android 应用
+	ci/              CI 与本地自动化脚本
+	docs/            项目文档与文档资源
+	examples/        JavaScript/TypeScript 工具包示例
+	gradle/          Gradle Wrapper 与版本目录
+	llm/             本地大模型 Android 模块
+		llama/        llama.cpp 本地推理 Android 模块
+		mnn/          MNN 本地推理 Android 模块
+	quickjs/         QuickJS JNI 模块
+	showerclient/    Shower 虚拟显示客户端库
+	terminal/        OperitTerminalCore Git 子模块
+	tools/           开发、调试与构建辅助工具
+	web-chat/        应用集成的 Web Chat 界面
 ```
 
 ## 各目录说明
@@ -39,21 +35,9 @@ Operit-follow-up/
 
 这是项目文档与文档资源目录，包含核心开发指南、脚本和工具包开发说明、架构与协议文档，以及 README 使用的图片等静态资源。
 
-### [`avator`](avator/)
-
-这是角色与模型相关 Android 模块的集中目录。Gradle 仍以原来的模块名接入这些子目录。
-
-### [`avator/dragonbones`](avator/dragonbones/)
-
-这是 DragonBones Android 库模块。它通过 C++、OpenGL 和 JNI 提供 DragonBones 骨骼动画模型的加载、渲染和动画控制，并向 Android View 与 Compose 使用场景提供封装。
-
 ### [`examples`](examples/)
 
 这是工具包和脚本示例集合，主要使用 JavaScript 和 TypeScript，覆盖聊天、搜索、绘图、浏览器自动化、系统控制、地图等扩展场景。同名的 `.ts` 和 `.js` 文件通常分别用于源码示例和可执行版本。
-
-### [`avator/fbx`](avator/fbx/)
-
-这是 FBX Android 原生运行时模块。它通过 `ufbx` C 库解析 FBX 模型，为应用中的 FBX 虚拟形象和模型展示提供基础能力。`ufbx` 由 CMake 从上游仓库获取，默认使用 `main`。
 
 ### [`gradle`](gradle/)
 
@@ -66,10 +50,6 @@ Operit-follow-up/
 ### [`llm/llama`](llm/llama/)
 
 这是 llama.cpp Android 原生集成模块。它通过 CMake/JNI 接入 llama.cpp，为应用提供 GGUF 等本地大语言模型的推理能力。上游 llama.cpp 源码由 CMake 从 ggml-org 仓库获取，默认使用上游主分支。
-
-### [`avator/mmd`](avator/mmd/)
-
-这是 MMD 模型 Android 运行时和预览模块，包含模型渲染相关的原生集成，并使用 Bullet3 等第三方组件。Bullet3 由 CMake 从上游仓库获取，默认使用上游主分支。`UPSTREAM_SABA_VIEWER_MAPPING.md` 记录了上游 Saba Viewer 的映射关系。
 
 ### [`llm/mnn`](llm/mnn/)
 
@@ -99,5 +79,5 @@ Operit-follow-up/
 
 ## 相关说明
 
-- `app`、`avator/dragonbones`、`terminal`、`llm/mnn`、`llm/llama`、`avator/mmd`、`avator/fbx`、`showerclient`、`quickjs` 是根 `settings.gradle.kts` 声明的 Gradle 模块。
+- `app`、`terminal`、`llm/mnn`、`llm/llama`、`showerclient`、`quickjs` 是根 `settings.gradle.kts` 声明的 Gradle 模块。
 - 仍作为 Git 子模块维护的第三方目录，以根目录的 `.gitmodules` 为准。

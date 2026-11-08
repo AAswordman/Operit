@@ -1,0 +1,660 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "5efa22eceb33738ca57dcca528eafb2b7c118797",
+  "payloadPrefixes": [
+    "app/",
+    "examples/",
+    "tools/toolpkg/"
+  ],
+  "payloadPaths": [
+    "tools/string/chinese_strings_detailed.txt"
+  ],
+  "moves": {
+    "app/src/main/java/com/ai/assistance/operit/plugins/toolbox/ToolboxPlugin.kt": "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgLifecyclePlugin.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/automation/ffmpeg/FFmpegToolboxScreen.kt": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/ffmpeg/FFmpegScreen.kt"
+  },
+  "replacements": {
+    "com.ai.assistance.operit.widget": "com.ai.assistance.operit.integrations.appwidget",
+    "com.ai.assistance.operit.ui.features.resources.OfflineResourcesActivity": "com.ai.assistance.operit.ui.features.management.resources.OfflineResourcesActivity",
+    "package com.ai.assistance.operit.ui.features.resources": "package com.ai.assistance.operit.ui.features.management.resources",
+    "\".ui.features.resources.OfflineResourcesActivity\"": "\".ui.features.management.resources.OfflineResourcesActivity\"",
+    "\".provider.MemoryDocumentsProvider\"": "\".integrations.documents.MemoryDocumentsProvider\"",
+    "\".provider.OperitDataDocumentsProvider\"": "\".integrations.documents.OperitDataDocumentsProvider\"",
+    "\".provider.WorkspaceDocumentsProvider\"": "\".integrations.documents.WorkspaceDocumentsProvider\"",
+    "\".widget.VoiceAssistantWidgetReceiver\"": "\".integrations.appwidget.VoiceAssistantWidgetReceiver\"",
+    "\".widget.ToolPkgDesktopWidgetReceiver\"": "\".integrations.appwidget.ToolPkgDesktopWidgetReceiver\"",
+    "\".widget.ToolPkgDesktopWidgetConfigActivity\"": "\".integrations.appwidget.ToolPkgDesktopWidgetConfigActivity\"",
+    "com.ai.assistance.operit.plugins.toolbox": "com.ai.assistance.operit.plugins.toolpkg",
+    "plugins/toolbox/": "plugins/toolpkg/",
+    "builtin.toolbox.toolpkg-app-lifecycle": "builtin.toolpkg.app-lifecycle",
+    "builtin.toolbox": "builtin.toolpkg.lifecycle",
+    "ToolboxPlugin": "ToolPkgLifecyclePlugin",
+    "TOOLPKG_REGISTRATION_TOOLBOX_UI_MODULE": "TOOLPKG_REGISTRATION_UI_MODULE",
+    "TOOLPKG_NAV_SURFACE_TOOLBOX": "TOOLPKG_NAV_SURFACE_PACKAGE_DETAILS",
+    "ToolPkgToolboxUiModule": "ToolPkgUiModule",
+    "ToolboxUiModuleRegistration": "UiModuleRegistration",
+    "buildToolPkgToolboxUiModules": "buildToolPkgUiModules",
+    "registeredAsToolboxUiModule": "registeredAsUiModule",
+    "registerToolPkgToolboxUiModule": "registerToolPkgUiModule",
+    "registerToolboxUiModule": "registerUiModule",
+    "appendToolboxUiModule": "appendUiModule",
+    "toolboxUiModules": "uiModules",
+    "toolboxRouteIds": "packageDetailsRouteIds",
+    "TOOLBOX_UI": "UI_MODULE",
+    "\"toolbox\"": "\"package_details\"",
+    "'toolbox'": "'package_details'",
+    "worldbook_manager_toolbox": "worldbook_manager_details",
+    "windows_dashboard_toolbox": "windows_dashboard_details",
+    "demo_toolbox": "demo_ui",
+    "toolboxUI": "packageUI",
+    "toolboxTitle": "settingsTitle",
+    "toolboxSubtitle": "settingsSubtitle",
+    "toolboxBanner": "settingsBanner",
+    "toolbox settings screen": "package settings screen",
+    "greeterToolBox": "greeterModule",
+    "FFmpegToolbox": "FFmpeg",
+    "hidden.ffmpeg_toolbox": "hidden.ffmpeg",
+    "native.ffmpeg_toolbox": "native.ffmpeg",
+    "screen_title_ffmpeg_toolbox": "screen_title_ffmpeg",
+    "toolbox.agreement": "support.agreement",
+    "ui\\features\\toolbox\\screens\\autoglm": "ui\\features\\automation\\autoglm",
+    "ui\\features\\toolbox\\screens\\logcat": "ui\\features\\management\\databackup\\logcat",
+    "com.ai.assistance.operit.provider.MemoryDocumentsProvider": "com.ai.assistance.operit.integrations.documents.MemoryDocumentsProvider",
+    "com.ai.assistance.operit.provider.OperitDataDocumentsProvider": "com.ai.assistance.operit.integrations.documents.OperitDataDocumentsProvider",
+    "com.ai.assistance.operit.provider.WorkspaceDocumentsProvider": "com.ai.assistance.operit.integrations.documents.WorkspaceDocumentsProvider"
+  },
+  "fileReplacements": {
+    "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt": [
+      {
+        "before": "// 旧注册函数只生成 UI route；显式导航声明单独校验，但工具箱入口不再发布。",
+        "after": "// 界面模块生成包内路由；导航声明按插件详情或主侧边栏的挂载面分别校验。"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/ui/main/screens/ScreenRouteRegistry.kt": [
+      {
+        "before": "// 移除工具箱卡片后保留页面路由，供现有内部入口和插件导航使用。",
+        "after": "// 原生功能页面提供独立路由，供内部入口和插件导航使用。"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/ui/main/screens/OperitScreens.kt": [
+      {
+        "before": "// FFmpeg Toolbox screen",
+        "after": "// FFmpeg 命令页面"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/ui/features/automation/ffmpeg/FFmpegToolboxScreen.kt": [
+      {
+        "before": "FFmpeg工具箱主屏幕 - 直接提供自定义命令功能",
+        "after": "FFmpeg 命令页面，提供自定义命令执行功能"
+      }
+    ],
+    "examples/types/toolpkg.d.ts": [
+      {
+        "before": "// 兼容旧声明，宿主不再发布此导航入口",
+        "after": "// 在插件详情中展示界面入口"
+      },
+      {
+        "before": "/** 兼容旧注册函数，只注册 UI route，不再自动生成工具箱入口。 @since ToolPkg API 1.0.0 */",
+        "after": "/** 注册可从插件详情打开的界面模块。 @since ToolPkg API 1.0.0 */"
+      },
+      {
+        "before": "    export interface UiRouteRegistration {",
+        "after": "    /** @deprecated 仅保留旧插件类型声明，旧注册调用不产生界面或导航。 */\n    export type ToolboxUiModuleRegistration = UiModuleRegistration;\n\n    export interface UiRouteRegistration {"
+      },
+      {
+        "before": "        | \"package_details\" // 在插件详情中展示界面入口",
+        "after": "        | \"package_details\" // 在插件详情中展示界面入口\n        | \"toolbox\" // 兼容旧声明，调用后忽略，不发布入口"
+      },
+      {
+        "before": "        registerUiModule(definition: UiModuleRegistration): void;",
+        "after": "        registerUiModule(definition: UiModuleRegistration): void;\n        /** @deprecated 兼容空操作，不返回内容，也不注册界面或导航。 */\n        registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;"
+      },
+      {
+        "before": "    function registerToolPkgUiModule(definition: ToolPkg.UiModuleRegistration): void;",
+        "after": "    function registerToolPkgUiModule(definition: ToolPkg.UiModuleRegistration): void;\n    /** @deprecated 兼容空操作，不返回内容，也不注册界面或导航。 */\n    function registerToolPkgToolboxUiModule(definition: ToolPkg.ToolboxUiModuleRegistration): void;"
+      }
+    ],
+    "examples/types/core.d.ts": [
+      {
+        "before": "Register a toolbox UI module for current toolpkg main registration session.",
+        "after": "在当前 ToolPkg 主入口注册会话中声明插件界面模块。"
+      },
+      {
+        "before": "@param specJson - JSON object string describing a toolbox UI module",
+        "after": "@param specJson - 描述插件界面模块的 JSON 对象字符串"
+      },
+      {
+        "before": "    function registerToolPkgUiModule(specJson: string): void;",
+        "after": "    function registerToolPkgUiModule(specJson: string): void;\n\n    /** @deprecated 旧工具箱注册入口为空操作，不返回内容或注册任何内容。 */\n    function registerToolPkgToolboxUiModule(specJson: string): void;"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/MemoryDocumentsProvider.kt": [
+      {
+        "before": "package com.ai.assistance.operit.provider",
+        "after": "package com.ai.assistance.operit.integrations.documents"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/OperitDataDocumentsProvider.kt": [
+      {
+        "before": "package com.ai.assistance.operit.provider",
+        "after": "package com.ai.assistance.operit.integrations.documents"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/WorkspaceDocumentsProvider.kt": [
+      {
+        "before": "package com.ai.assistance.operit.provider",
+        "after": "package com.ai.assistance.operit.integrations.documents"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManagerToolPkgFacade.kt": [
+      {
+        "before": "// 接受旧插件声明，但不再向导航目录发布工具箱入口。",
+        "after": "// 插件详情入口由界面模块列表展示，主导航目录只发布主侧边栏入口。"
+      }
+    ],
+    "examples/message_insert/manifest.json": [
+      {
+        "before": "并提供工具箱设置界面与菜单开关",
+        "after": "并提供插件设置界面与菜单开关"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgRegistration.kt": [
+      {
+        "before": "                _m: captureMarketOrigin,",
+        "after": "                _m: captureMarketOrigin,\n                // 旧插件的工具箱注册保持空操作，不触发参数处理或 Native 注册。\n                registerToolboxUiModule: function(definition) {},"
+      },
+      {
+        "before": "            installGlobal('ToolPkg', api);",
+        "after": "            installGlobal('ToolPkg', api);\n            installGlobal('registerToolPkgToolboxUiModule', api.registerToolboxUiModule);"
+      },
+      {
+        "before": "            installGlobal('ToolPkg', api);",
+        "after": "            installGlobal('ToolPkg', api);\n            installGlobal('registerToolPkgUiModule', api.registerUiModule);"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsEngine.kt": [
+      {
+        "before": "        @JavascriptInterface\n        fun registerToolPkgUiModule(specJson: String) {\n            toolPkgRegistrationSession.appendUiModule(specJson)\n        }",
+        "after": "        @JavascriptInterface\n        fun registerToolPkgUiModule(specJson: String) {\n            toolPkgRegistrationSession.appendUiModule(specJson)\n        }\n\n        // 旧工具箱入口仅兼容调用，不收集或注册界面与导航项。\n        @Suppress(\"UNUSED_PARAMETER\")\n        @JavascriptInterface\n        fun registerToolPkgToolboxUiModule(specJson: String) {}"
+      }
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt": [
+      {
+        "before": "            val surface = item.optString(\"surface\").trim().lowercase()",
+        "after": "            val surface = item.optString(\"surface\").trim().lowercase()\n            // 旧工具箱导航不生成入口，也不校验已经停用的界面路由。\n            if (surface == \"toolbox\") {\n                return@forEachIndexed\n            }"
+      }
+    ],
+    "tools/toolpkg/toolpkg_hook_runner.js": [
+      {
+        "before": "    registerUiModule() {},",
+        "after": "    registerUiModule() {},\n    registerToolboxUiModule() {},"
+      },
+      {
+        "before": "  global.registerToolPkgUiModule = global.ToolPkg.registerUiModule;",
+        "after": "  global.registerToolPkgUiModule = global.ToolPkg.registerUiModule;\n  global.registerToolPkgToolboxUiModule = global.ToolPkg.registerToolboxUiModule;"
+      }
+    ]
+  },
+  "removedStringKeys": [
+    "nav_toolbox",
+    "toolbox",
+    "tool_ffmpeg_toolbox",
+    "tool_ffmpeg_toolbox_desc",
+    "ffmpeg_toolbox_title"
+  ],
+  "componentFiles": [
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/MemoryDocumentsProvider.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/OperitDataDocumentsProvider.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/documents/WorkspaceDocumentsProvider.kt",
+    "app/src/main/java/com/ai/assistance/operit/ui/features/management/resources/OfflineResourcesActivity.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopGlanceWidget.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetConfigActivity.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetReceiver.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantGlanceWidget.kt",
+    "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantWidgetReceiver.kt"
+  ],
+  "allowedToolboxDataPaths": [
+    "app/src/main/java/com/ai/assistance/operit/ui/common/icons/LucideIconData.kt"
+  ],
+  "files": [
+    {
+      "oldPath": "app/src/main/AndroidManifest.xml",
+      "newPath": "app/src/main/AndroidManifest.xml",
+      "originalSha256": "da719af9a8ddb5f0962610140834d2c23331e6ad5c9d3778c5d8f65cc2cce185",
+      "expectedSha256": "3b479b8a66619fabcb544dee7a8e4a15566536fdfa9e2a9bcf6431c1e8fe90c1"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsEngine.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsEngine.kt",
+      "originalSha256": "ddac28784cc5d0863e86d82f5ce2899f3f5072df09885a37de77dc7451ae9c09",
+      "expectedSha256": "c731028c224fc38155239d100a6b5e1be10a9e628d253a19f5675d68979c19f0"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgRegistration.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgRegistration.kt",
+      "originalSha256": "22049e6e77b0f680d39adccc75401b03b7a5497b050d6ba89b1c64c211767eeb",
+      "expectedSha256": "bbd701bbcb7f895d7ffdd30e4b5b6604374eedf5f40e4192fadb31c0c2dec562"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManager.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManager.kt",
+      "originalSha256": "0d748daf2271bc77d16610922f07093b3e34bd9e34c9bc0554077ae78c083743",
+      "expectedSha256": "91a028af9abe14383c45c040136b112f80b893178d24674c7933d530a0d332a6"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManagerToolPkgFacade.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManagerToolPkgFacade.kt",
+      "originalSha256": "35341df30fe531a152dd78af1bd311c15690c7746afd8cd6b11f238ffd0b86ed",
+      "expectedSha256": "e129b9e9735ccb23f8ae6843f15878b7d064bf7d0b5adb414deb795ebe685103"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageTemplateFactory.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageTemplateFactory.kt",
+      "originalSha256": "d2201de9ea436e19b70ce8d251daa7d937bfbdc19e621ad080ec2d3479bbf7c1",
+      "expectedSha256": "1ad69beee67364b4e3e1609f9ec79c21089451a69f4f1cd940e56d2819dcb549"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgCommonPluginConstants.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgCommonPluginConstants.kt",
+      "originalSha256": "4e851105367d1904f3bfe0ea09e6990346a4f1f5b7f24a87b0cab125a127f36f",
+      "expectedSha256": "43e54dd3a4bbd173aa7910b5a3f7fe0824495b00c7daeabe92888590470eb01b"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt",
+      "originalSha256": "b72549893cb084ccefeb047b33cf3257f4624c8180f62f38e27ba57d0d022637",
+      "expectedSha256": "d9481fe46c859ea3dd5ddacb705cd02af2ac1604d0220b53787d0ad11597c415"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt",
+      "originalSha256": "bc00eaf43cfc69841b84e8227fed86884b82e9e2e009223b0fb2b386d70344d3",
+      "expectedSha256": "d3fb8f689da940852e923c357408fa459a688dd232ff371e93c957698cd4f9b0"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopGlanceWidget.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopGlanceWidget.kt",
+      "originalSha256": "88bda723ab4a49e04db5543904828ee29ba5f84736eafaf676d79e72e45b9c75",
+      "expectedSha256": "968185bd12c7218692af152b22adb3481e52b27fc369c35a6e4c25912f6494d4"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetConfigActivity.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetConfigActivity.kt",
+      "originalSha256": "6f71bdc400b8d5a0466c14aa3758a4be775a98c3b0dea614ee4f40c136dab351",
+      "expectedSha256": "eee39c7c4646bfeeab619ad96b5232edf984d91789dc9f6e3913575bcd710e4f"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetHost.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetHost.kt",
+      "originalSha256": "2749926e8597b3a3cc3c670a6a6440a1151a36bffed45d4cb541e0fbb707f801",
+      "expectedSha256": "af5667bbc5d313fd8550b72bf446bc31a7c527d1458c0c13b8b59dd1c6b8ad77"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetReceiver.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/ToolPkgDesktopWidgetReceiver.kt",
+      "originalSha256": "aef07b0889c9345bfe7ae03f5ea2849f3d142b2718fa3fdf519a12e95beb3c81",
+      "expectedSha256": "d8fc8310cd5a9a04d04c6654ed70698221aaa084247e25331857ea4b6ef3f288"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantGlanceWidget.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantGlanceWidget.kt",
+      "originalSha256": "a477616ae3783af1de69fa691b5725ed44781056cc1cb6dc8c44e4bf19fed6e5",
+      "expectedSha256": "280a08c60c071a64c41487fceb263ff95a1f503d371aae9fdf6eeb48104fe60c"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantWidgetReceiver.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/appwidget/VoiceAssistantWidgetReceiver.kt",
+      "originalSha256": "c10eebfb6d39c182a9bc60ddd13183eea810164a6ff90e4dedd6737b8e1acc09",
+      "expectedSha256": "1ebc6ef6f78d116f6bc3a53f1b142ed9a5d2a383c83d767078b049b51afed86a"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/MemoryDocumentsProvider.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/MemoryDocumentsProvider.kt",
+      "originalSha256": "b5858ddc026d6fc2deddf78280cf496caf86a748bc9126bc063731edaf31abd3",
+      "expectedSha256": "f05f08639abc41fd36dada1f8dad7f349984cd7ef663fd5dc30d5e6097bb6d68"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/OperitDataDocumentsProvider.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/OperitDataDocumentsProvider.kt",
+      "originalSha256": "aec1864e6b684d9ea2763c7e016796e41d81d08d0f788f46c0a79c96daf54d97",
+      "expectedSha256": "01811ab9aa7c82d6fe7aaf8ea72e426678b92793fa7fad3c2bacd878a5174f1d"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/WorkspaceDocumentsProvider.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/integrations/documents/WorkspaceDocumentsProvider.kt",
+      "originalSha256": "4fe7a1e61be1ee76b8b63580bca5f6a587c992e6821a41131bccc26ab900ebe0",
+      "expectedSha256": "174c89be76f5f426b972fa39f783b527e75ee5b2463693a2793c735ae54c449b"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/plugins/PluginRegistry.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/plugins/PluginRegistry.kt",
+      "originalSha256": "09da10d6ebf803661929d3012d0e9ed6e02f4bf9fbcd75e9f7d04d8263216121",
+      "expectedSha256": "228d79f2c9fadae9314ac5c3e63e99548376be24a2ac9961b88fe3d980129f24"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/plugins/toolbox/ToolboxPlugin.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/plugins/toolpkg/ToolPkgLifecyclePlugin.kt",
+      "originalSha256": "b3a850dcea96dddacf3c34904d341980a4d2dd067df2bf8176c15b0fb86a9b79",
+      "expectedSha256": "6232f896e4b9bdb76fa1e943d80aa6aa06a2d7589f55dddb9770ae50a2125c4d"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/ffmpeg/FFmpegToolboxScreen.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/ffmpeg/FFmpegScreen.kt",
+      "originalSha256": "42820882b52a6b8409087dbb4ae20558b072be90f8cd80e13c5c48e0edf58095",
+      "expectedSha256": "b3d5d737bae6c4785edb344bbe82bd21ac989d09f2b2680b420ba4df418ee332"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/terminal/TerminalEntryScreen.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/automation/terminal/TerminalEntryScreen.kt",
+      "originalSha256": "ed8487d7bf66a887055ecac6c7cbfaec89dcd750899be11efc3dcbb91ef579d9",
+      "expectedSha256": "e6dda3021e712265aeb97ded5978fd40a84a4c5c2a73b4d6a998fd6842955ac4"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/export/htmlpackager/PackagerResources.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/export/htmlpackager/PackagerResources.kt",
+      "originalSha256": "c70c250e49df64da47031c5a0a896fcb4f3aa55d782029b15c545ce4462658e1",
+      "expectedSha256": "11d78353c4b235c17d54d620addf804ea2de6a1b3d966b1657d3d8a3d20aa915"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceSetup.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/webview/workspace/WorkspaceSetup.kt",
+      "originalSha256": "8fae288f806b9b215b040465ba3a31990fda81d5e742fc86e05bb9705d3c6a3a",
+      "expectedSha256": "02bbc3347d7811c94ef1d6fcfebc90af7fcd4eaaadda7c2941969bac5d7be59a"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubScreen.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/conversation/chat/workspace/WorkspaceHubScreen.kt",
+      "originalSha256": "b177b05ccec98567f5f52e98b66f6eca58f375fbf46ba580d8a236718658b85f",
+      "expectedSha256": "cc5c38c88290af567d222ae1448a946dfa14619aea42027467bf620ad0a72709"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/dialogs/PackageDetailsDialog.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/dialogs/PackageDetailsDialog.kt",
+      "originalSha256": "4b9626db63aaa7912b9de85040374183736cb5038d5fe88f7e6614bc9fd592fe",
+      "expectedSha256": "9b5f3ac8d39c7edd76a6f3db58faca33c2cac895b065fbb7c468eb7bf28d686b"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/screens/PackageManagerScreen.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/screens/PackageManagerScreen.kt",
+      "originalSha256": "33ebb707d527836657c2e37e5b7789275ebd2dfb4c6ebb0be664a0792181f912",
+      "expectedSha256": "111ee310e98993554be0f9846856a8eefb1d25530d00a34650d18cb38975a828"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/screens/PackageSearch.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/extensions/packages/screens/PackageSearch.kt",
+      "originalSha256": "1e508d90a3c5b15c1da6288831376d371eae25301208eabdc1b1ed1c766a781b",
+      "expectedSha256": "6fbe3b3fb929f72ed273dea9e742a0db6394a106c0a3c6e6f94f398a08d5fa47"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/resources/OfflineResourcesActivity.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/resources/OfflineResourcesActivity.kt",
+      "originalSha256": "3a91ceb43a3e9c3758061dcc5a0ca8135a98090a6f99c3cbb5e757e2de2b1587",
+      "expectedSha256": "b72a6b5ca22d04a2722f66000541d104192eb3fd07b29fa9038416281855f2c3"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/components/speech/workbench/InstalledSpeechModelField.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/components/speech/workbench/InstalledSpeechModelField.kt",
+      "originalSha256": "395e94ce877d9b7c8d20232b9e7b40c0b6d34029b81974dfa7f431c2268038b5",
+      "expectedSha256": "c96ec134fca1cfeb040961ad83a10097f9135df1a821ec98ceb53b5877de1923"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/screens/SettingsScreen.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/features/management/settings/screens/SettingsScreen.kt",
+      "originalSha256": "a5706f5bcba75a11195fbc4b1cb1b1ecd3131e5b33a766772b5186469c79233d",
+      "expectedSha256": "4a7ad00c7fd93c5a045920d6dd831611b72618f76a4a33e82aafdaf7321c17a1"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/main/screens/OperitScreens.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/main/screens/OperitScreens.kt",
+      "originalSha256": "b90b999bc8b25e2a749e954e65aa05566fb1f1a791080a1cf4da4807256dd0d1",
+      "expectedSha256": "5ee8162449107abecfe228fd7071153b75cb62dc37bc4dfd9bb8be4b17d3e038"
+    },
+    {
+      "oldPath": "app/src/main/java/com/ai/assistance/operit/ui/main/screens/ScreenRouteRegistry.kt",
+      "newPath": "app/src/main/java/com/ai/assistance/operit/ui/main/screens/ScreenRouteRegistry.kt",
+      "originalSha256": "f4232db62087e51f034901408badf3285c5079589d4a4903fd6c8ce330ac973c",
+      "expectedSha256": "8a43c5f38b3340ba431edfb831081e7a3e5f02ce5e0e8c1afda0508aaa058098"
+    },
+    {
+      "oldPath": "app/src/main/res/values-en/strings.xml",
+      "newPath": "app/src/main/res/values-en/strings.xml",
+      "originalSha256": "3a7fa23d9f1c0d9e405a2a1a1afbdee3561ecab23ed01a9b7cb4e124f887f522",
+      "expectedSha256": "75198976a0e05765e193a7eaeb739d6e0d93538ac50f70ba9c280e96aea64cbe"
+    },
+    {
+      "oldPath": "app/src/main/res/values-es/strings.xml",
+      "newPath": "app/src/main/res/values-es/strings.xml",
+      "originalSha256": "803a43c9207e607adff27aefef2d73d62ae2a4d47362d60adefff5fd44c9071e",
+      "expectedSha256": "f80058310f063e6f0046d9a857bde63e7ae33cbaa78ce95bfa3927f29610bd9d"
+    },
+    {
+      "oldPath": "app/src/main/res/values-id/strings.xml",
+      "newPath": "app/src/main/res/values-id/strings.xml",
+      "originalSha256": "4a69d1902ecec4dbadd77a147d287069ba52382c47e7bbc862ec7580168f4eac",
+      "expectedSha256": "052db232f488a57cc6ff72a4c9ab3f4f4716448e8d39a89cd6beacd8c7498214"
+    },
+    {
+      "oldPath": "app/src/main/res/values-ja/strings.xml",
+      "newPath": "app/src/main/res/values-ja/strings.xml",
+      "originalSha256": "2f2d90308e66716682fc69db16724115d8e9adf95e072899f4a04f9a9fcbac3a",
+      "expectedSha256": "b482c012197e29ae1ea16f168845859ccd39bd57ca3e38f3d160378c96127f88"
+    },
+    {
+      "oldPath": "app/src/main/res/values-ko/strings.xml",
+      "newPath": "app/src/main/res/values-ko/strings.xml",
+      "originalSha256": "24e7db24a4a052d05428ee5c59544df7be042b63cc12edf33be6c2eb13cc1ed2",
+      "expectedSha256": "0de60c01c4b0d52cfdf736e0efe285841692b2b537840a225cf71d527eadca18"
+    },
+    {
+      "oldPath": "app/src/main/res/values-ms/strings.xml",
+      "newPath": "app/src/main/res/values-ms/strings.xml",
+      "originalSha256": "251b51395493a4c2a7ce00593620bca09e0d302bd578fa527c0aeeed99c40ba6",
+      "expectedSha256": "54b861a16d8a462dbc7d0f5d51d266063fc71e644d4a0c6cc1a2a457f2c85904"
+    },
+    {
+      "oldPath": "app/src/main/res/values-pt-rBR/strings.xml",
+      "newPath": "app/src/main/res/values-pt-rBR/strings.xml",
+      "originalSha256": "3450c21c957bf144314ef99be64344c856a76c0511cfb886867404b681654409",
+      "expectedSha256": "3aaec35df6a45228ac6a3615c9b589618e2cb08ef9074a6f7e48f30f9fba9afc"
+    },
+    {
+      "oldPath": "app/src/main/res/values-ro/strings.xml",
+      "newPath": "app/src/main/res/values-ro/strings.xml",
+      "originalSha256": "8090e099b40629f7e33c952d2d28f612075c598be8f27637a879a2a7e340e726",
+      "expectedSha256": "b6dd0fa45625705fb6702870532d533e4e5e96037662927f086d42666c3202bb"
+    },
+    {
+      "oldPath": "app/src/main/res/values/strings.xml",
+      "newPath": "app/src/main/res/values/strings.xml",
+      "originalSha256": "9134aaa2982bb8836d7db55e9eddbf3403ec4ba620bab6840ccca8a36bb27b86",
+      "expectedSha256": "95afcc89869986aa2c5528444b7aaa08c5664ce5d9e4a820f368ed4b7c83ba33"
+    },
+    {
+      "oldPath": "app/src/main/res/xml/toolpkg_desktop_widget_info.xml",
+      "newPath": "app/src/main/res/xml/toolpkg_desktop_widget_info.xml",
+      "originalSha256": "1e5c5c70d011366569806298cd7ffa93d6ea3280023f9799dfb8503711fe31c9",
+      "expectedSha256": "a08ad285d3ccc3c9911fc5d3d5c514384d96597be7d4cd8023c4fcf4fd5013af"
+    },
+    {
+      "oldPath": "examples/deepsearching/dist/plugin/deep-search-plugin.js",
+      "newPath": "examples/deepsearching/dist/plugin/deep-search-plugin.js",
+      "originalSha256": "77e409743e536c21d4c91e60a46e7739d1128340fdde7c8bfc7a8ce1f314f52e",
+      "expectedSha256": "bb330945fe259874d65c8555b625ea83093cbbaf2a58ebdb40e25ecee3a1f7ec"
+    },
+    {
+      "oldPath": "examples/deepsearching/src/plugin/deep-search-plugin.ts",
+      "newPath": "examples/deepsearching/src/plugin/deep-search-plugin.ts",
+      "originalSha256": "8ad7f1b9599d614c8c360028dc1686ff7c3eb9f25f7642ab4b30e73de63c2e64",
+      "expectedSha256": "06469484ad6a6a729a04c2823e74a5ebf74a9b45e6db58fc58624c7c5c00277e"
+    },
+    {
+      "oldPath": "examples/linux_ssh/dist/main.js",
+      "newPath": "examples/linux_ssh/dist/main.js",
+      "originalSha256": "2a63f910fb018c321fec6c0bf44a7b7a4407f6d9bd7263a7980db2f7cb96a781",
+      "expectedSha256": "2eb60946e9744a33832c97ee5084f56455bd0730d10114e954d556325274f0de"
+    },
+    {
+      "oldPath": "examples/linux_ssh/src/main.ts",
+      "newPath": "examples/linux_ssh/src/main.ts",
+      "originalSha256": "3309e67db78b4c1e04f8f7447382f6d9f2cd7276b792393d6c4d03f516d0f11a",
+      "expectedSha256": "b9af1bf4feba3dc7baa7035cd08af70c1da5687fc27f07b45cabedde36266d8d"
+    },
+    {
+      "oldPath": "examples/message_insert/dist/main.js",
+      "newPath": "examples/message_insert/dist/main.js",
+      "originalSha256": "f40f406f496b57efbe88d837753191aea7669270c7dcbf3c529ca1e3d2e541bc",
+      "expectedSha256": "8cbe9c57678f11a8358ae106492523e55cba5826414c64667a807b83fbbbf968"
+    },
+    {
+      "oldPath": "examples/message_insert/dist/shared.js",
+      "newPath": "examples/message_insert/dist/shared.js",
+      "originalSha256": "3eb87af8b0c6e6f1b8230f1532af8643dc0a5696dc0d184560f634f201c003dc",
+      "expectedSha256": "fbb479e44ccfcc4b24dc867c8720d24371ab1faf4dba730026d86856103aef30"
+    },
+    {
+      "oldPath": "examples/message_insert/dist/ui/index.ui.js",
+      "newPath": "examples/message_insert/dist/ui/index.ui.js",
+      "originalSha256": "2dc24e3967cca917c5d2ecc779bdcbcd5c06742064035e3384d678d1f3a0ecf7",
+      "expectedSha256": "00540a8938e6e892173f9e28d60ea727bd367145d3861a95b508303c19a9c61d"
+    },
+    {
+      "oldPath": "examples/message_insert/manifest.json",
+      "newPath": "examples/message_insert/manifest.json",
+      "originalSha256": "3a9da9af2a1030564f4711c84364076e70dc8417b028977c88ef90ed1a297787",
+      "expectedSha256": "ba37ec57a0ab8eb5ce822eea3191a16bc1775504f226cccd6e1f46ecb1fccf84"
+    },
+    {
+      "oldPath": "examples/message_insert/src/main.ts",
+      "newPath": "examples/message_insert/src/main.ts",
+      "originalSha256": "111bbf07bc7adcad4a162b8e854dc982a83ad34ea56d12249250e22e3f01f9c7",
+      "expectedSha256": "1d9a52626a5d895b52507ce5bb9212e2e7d10218ace8012e1f0d91e6e927bc99"
+    },
+    {
+      "oldPath": "examples/message_insert/src/shared.ts",
+      "newPath": "examples/message_insert/src/shared.ts",
+      "originalSha256": "88957a776dfd2c8c6bd0f1e437ed1ece7debbf1b9d5f16a31b099bc1cb570c4d",
+      "expectedSha256": "4285fadfae438b58fdb885ba3a216a9c46ee49448cc385c99a50cf8abb186fa7"
+    },
+    {
+      "oldPath": "examples/message_insert/src/ui/index.ui.ts",
+      "newPath": "examples/message_insert/src/ui/index.ui.ts",
+      "originalSha256": "ae060d533ef9fab34395ec701ee6c2d71eac8b65890c2c73d1c6d0b24db10630",
+      "expectedSha256": "d6198b2786a56639f18959e8865cc68b6d0a966364c31b1e899ceadfdd1f97d0"
+    },
+    {
+      "oldPath": "examples/qqbot/dist/main.js",
+      "newPath": "examples/qqbot/dist/main.js",
+      "originalSha256": "d175bf964ef6f334b4aa8458c48508a22567483523cb335fdde702851d0b7c02",
+      "expectedSha256": "01d4794ef5f4ad86c8595c63038f8c7c821b3cc11fc831a237d7d5be715ab6a9"
+    },
+    {
+      "oldPath": "examples/qqbot/src/main.ts",
+      "newPath": "examples/qqbot/src/main.ts",
+      "originalSha256": "3c648c1fc4087676217df3854c4b77602c4d56357ca0379a23ebe94d2843f11a",
+      "expectedSha256": "14f1885c872bfec5790c8fa5bc8425439f855f1b3e8b97125279d629b14f2ff3"
+    },
+    {
+      "oldPath": "examples/quick_start.js",
+      "newPath": "examples/quick_start.js",
+      "originalSha256": "643b80fdbc7ab7a26822ad9f7b7e89fcbcb074ad38453ed52a5a462c80f1221e",
+      "expectedSha256": "ceaa9140fa755a15d8b2f18fc748aef302495b9f5703808b0450cbe7d5ee3034"
+    },
+    {
+      "oldPath": "examples/quick_start.ts",
+      "newPath": "examples/quick_start.ts",
+      "originalSha256": "e8ddfb561742f50a20926f8c63789be479860c8eec59359facce17416bff81ef",
+      "expectedSha256": "20715c684203a1cb5caf25b36ef346600318ef0442cb526ff820b3235dcba257"
+    },
+    {
+      "oldPath": "examples/remote_operit/dist/main.js",
+      "newPath": "examples/remote_operit/dist/main.js",
+      "originalSha256": "70ce4991b42dc47975de32a600ab1fff6264af9f19d552c461e02d4606311f52",
+      "expectedSha256": "f015c73bc0f2b00bd8ab52f9b7da55c4a54406ec27a809abe03440f1eab9272c"
+    },
+    {
+      "oldPath": "examples/remote_operit/src/main.ts",
+      "newPath": "examples/remote_operit/src/main.ts",
+      "originalSha256": "deb85184f1cb71ed77370e5b4d96fc53705184d0c9fe795f92a80703ea2602d8",
+      "expectedSha256": "aca8373e2a527a75892794c1b1c61150c063f296981d7e52113a115d67c00cbd"
+    },
+    {
+      "oldPath": "examples/types/core.d.ts",
+      "newPath": "examples/types/core.d.ts",
+      "originalSha256": "3a23b79e50b49c4b17f641f06e5c4141400d7cebfe0226a011a8cb8db874ef63",
+      "expectedSha256": "8717b2bc3f20cdf79fd92608e934eef297ffd4fa4f86fe780503f6c15dfd7696"
+    },
+    {
+      "oldPath": "examples/types/toolpkg.d.ts",
+      "newPath": "examples/types/toolpkg.d.ts",
+      "originalSha256": "715f668207a27465673bd0299d86aecc087102c7e641844f098c87b4492dcae0",
+      "expectedSha256": "6c7ccf581545c96c85d6aa9b98cecdf90c74a22290f61a52b9f1e13524837f3e"
+    },
+    {
+      "oldPath": "examples/windows_control/dist/main.js",
+      "newPath": "examples/windows_control/dist/main.js",
+      "originalSha256": "ad709bfeaadf2fbf458c4d95a8d16f26bf74741586dc2f4bf89c7511f323b85e",
+      "expectedSha256": "554c83dadde4289318cc05cb708fc203c2b3296e164723be5b7ea6af9ec4156c"
+    },
+    {
+      "oldPath": "examples/windows_control/src/main.ts",
+      "newPath": "examples/windows_control/src/main.ts",
+      "originalSha256": "96ea3bbf5e8c9021212796cc9162664074c13cb9d16be7357e0878e6f217ada2",
+      "expectedSha256": "a38dce78afa7f3d7455ebab8b2e98d81dcc9720d0d8239ea30e057e63552768b"
+    },
+    {
+      "oldPath": "examples/worldbook/dist/main.js",
+      "newPath": "examples/worldbook/dist/main.js",
+      "originalSha256": "582f70984a05b3e6faf6160655d2f822673342f7c62720034243e0ab8fac1ae1",
+      "expectedSha256": "ddda9f9c045dda4eafef8bccff3962b9ee50be8d1c589303658787243ed3b690"
+    },
+    {
+      "oldPath": "examples/worldbook/src/main.ts",
+      "newPath": "examples/worldbook/src/main.ts",
+      "originalSha256": "a91531a1fc9ee382db3264d7430e76757337f6fb8bee784e284af6e2d8fd8dcd",
+      "expectedSha256": "6db664622a1673d74309650b2a10467fd664ce6df12405f3b981290b991e4ee9"
+    },
+    {
+      "oldPath": "tools/string/chinese_strings_detailed.txt",
+      "newPath": "tools/string/chinese_strings_detailed.txt",
+      "originalSha256": "a5fd024ca16cbac00dad7627c68eb88ab6bc43084d69d8b0c7687ddb98f70701",
+      "expectedSha256": "4bc383e67234286300b2ee816569d652f85ad5758b3b9a891652541d8fd07610"
+    },
+    {
+      "oldPath": "tools/toolpkg/toolpkg_hook_runner.js",
+      "newPath": "tools/toolpkg/toolpkg_hook_runner.js",
+      "originalSha256": "d9637ab8036e734f4f1708be6c800a336f348f7ced153f010f8aee6351f532d0",
+      "expectedSha256": "7944382af43477d075f4168d0655731cfec08ace86aba196a68933b61942f575"
+    }
+  ],
+  "compatibilityBlocks": {
+    "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsToolPkgRegistration.kt": [
+      "                // 旧插件的工具箱注册保持空操作，不触发参数处理或 Native 注册。\n                registerToolboxUiModule: function(definition) {},",
+      "            installGlobal('registerToolPkgToolboxUiModule', api.registerToolboxUiModule);"
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/javascript/JsEngine.kt": [
+      "\n        // 旧工具箱入口仅兼容调用，不收集或注册界面与导航项。\n        @Suppress(\"UNUSED_PARAMETER\")\n        @JavascriptInterface\n        fun registerToolPkgToolboxUiModule(specJson: String) {}"
+    ],
+    "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt": [
+      "            // 旧工具箱导航不生成入口，也不校验已经停用的界面路由。\n            if (surface == \"toolbox\") {\n                return@forEachIndexed\n            }"
+    ],
+    "examples/types/toolpkg.d.ts": [
+      "    /** @deprecated 仅保留旧插件类型声明，旧注册调用不产生界面或导航。 */\n    export type ToolboxUiModuleRegistration = UiModuleRegistration;\n",
+      "        | \"toolbox\" // 兼容旧声明，调用后忽略，不发布入口",
+      "        /** @deprecated 兼容空操作，不返回内容，也不注册界面或导航。 */\n        registerToolboxUiModule(definition: ToolboxUiModuleRegistration): void;",
+      "    /** @deprecated 兼容空操作，不返回内容，也不注册界面或导航。 */\n    function registerToolPkgToolboxUiModule(definition: ToolPkg.ToolboxUiModuleRegistration): void;"
+    ],
+    "examples/types/core.d.ts": [
+      "\n    /** @deprecated 旧工具箱注册入口为空操作，不返回内容或注册任何内容。 */\n    function registerToolPkgToolboxUiModule(specJson: string): void;"
+    ],
+    "tools/toolpkg/toolpkg_hook_runner.js": [
+      "    registerToolboxUiModule() {},",
+      "  global.registerToolPkgToolboxUiModule = global.ToolPkg.registerToolboxUiModule;"
+    ]
+  },
+  "compatibilityContract": {
+    "legacyUiRegistration": "no-op, undefined/void, no module or navigation registration",
+    "legacyNavigationSurface": "ignored before route validation",
+    "defaultActiveUiRuntime": "compose_dsl",
+    "desktopComponentNames": "use new Android packages without old component aliases"
+  }
+}

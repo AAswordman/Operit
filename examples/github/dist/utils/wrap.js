@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.wrap = wrap;
+const toolFailure_1 = require("./toolFailure");
 async function wrap(func, params, successMessage, failMessage) {
     try {
         const data = await func(params);
@@ -8,11 +9,7 @@ async function wrap(func, params, successMessage, failMessage) {
         complete(result);
     }
     catch (error) {
-        const result = {
-            success: false,
-            message: `${failMessage}: ${String(error && error.message ? error.message : error)}`,
-            error_stack: String(error && error.stack ? error.stack : '')
-        };
-        complete(result);
+        console.error(`[github] ${failMessage}`, error);
+        complete((0, toolFailure_1.toolFailure)(error, failMessage));
     }
 }
