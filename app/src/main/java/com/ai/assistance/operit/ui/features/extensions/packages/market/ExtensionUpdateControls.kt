@@ -1,6 +1,8 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.market
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -22,38 +24,62 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 @Composable
-fun ExtensionUpdateToolbar(manager: PackageManager, modifier: Modifier = Modifier) {
+fun ExtensionUpdateToolbar(manager: PackageManager, scope: ExtensionUpdateScope = ExtensionUpdateScope(), modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     val updates by ExtensionUpdates.available.collectAsState()
     val checking by ExtensionUpdates.checking.collectAsState()
-    val hasChecked by ExtensionUpdates.hasChecked.collectAsState()
-    val failures by ExtensionUpdates.failures.collectAsState()
+    val checked by ExtensionUpdates.checkedScopes.collectAsState()
     val updating by PackageUpdateState.updating.collectAsState()
-    var failed by remember { mutableStateOf(false) }
-    Column(modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            if (hasChecked) Text(stringResource(R.string.extension_updates_count, updates.size), Modifier.weight(1f),
-                style = MaterialTheme.typography.bodySmall)
-            else Spacer(Modifier.weight(1f))
-            TextButton(enabled = !checking && updating.isEmpty(), onClick = {
-                scope.launch {
-                    failed = false
-                    try { ExtensionUpdates.check(context, manager) }
-                    catch (cancelled: CancellationException) { throw cancelled }
-                    catch (error: Exception) {
-                        AppLogger.e("ExtensionUpdates", "Update check failed", error)
-                        failed = true
-                    }
-                }
-            }) {
-                if (checking) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                else Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.pkg_check_update))
-            }
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (checked.any { (it.type.isEmpty() || it.type == scope.type) && (!it.builtInOnly || scope.builtInOnly) }) {
+            Text(stringResource(R.string.extension_updates_count, updates.values.count(scope::accepts)),
+                Modifier.widthIn(max = 80.dp), style = MaterialTheme.typography.labelSmall, maxLines = 2)
         }
-        if (failed || failures > 0) Text(stringResource(R.string.extension_updates_partial_failure),
-            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+        FilledTonalButton(enabled = !checking && updating.isEmpty(),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(999.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+            onClick = { coroutineScope.launch { ExtensionUpdates.check(context, manager, scope) } }) {
+            if (checking) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            else Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(stringResource(R.string.pkg_check_update), style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        }
+    }
+}
+
+@Composable
+fun ExtensionUpdateFailureNotice(scope: ExtensionUpdateScope, modifier: Modifier = Modifier) {
+    val failures by ExtensionUpdates.failures.collectAsState()
+    val errors = failures[scope].orEmpty()
+    var expanded by remember(scope) { mutableStateOf(false) }
+    if (errors.isNotEmpty()) {
+        TextButton(onClick = { expanded = true }, modifier = modifier) {
+            Text(stringResource(R.string.extension_updates_partial_failure), color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        if (expanded) AlertDialog(onDismissRequest = { expanded = false },
+            title = { Text(stringResource(R.string.extension_updates_partial_failure)) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    errors.forEach { error -> Text("${error.source}: ${error.reason}") }
+                }
+            }, confirmButton = { TextButton(onClick = { expanded = false }) { Text(stringResource(R.string.pkg_ok)) } })
+    }
+}
+
+/** Installed rows keep the version and the update marker together, without a clipped description. */
+@Composable
+fun ExtensionListVersion(packageName: String, version: String, builtIn: Boolean = false) {
+    val updates by ExtensionUpdates.available.collectAsState()
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (builtIn) Text(stringResource(R.string.builtin), style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (version.isNotBlank()) Text("v$version", style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+            modifier = Modifier.weight(1f, fill = false), overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+        if (packageName in updates) Text(stringResource(R.string.extension_new_version),
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
     }
 }
 

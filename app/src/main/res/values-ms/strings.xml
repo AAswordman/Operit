@@ -8486,11 +8486,30 @@
     <string name="extension_detail_downloads">Muat turun</string>
     <string name="extension_detail_likes">Suka</string>
     <string name="extension_detail_format">Format</string>
-    <string name="extension_updates_count">%1$d kemas kini sambungan tersedia</string>
-    <string name="extension_updates_partial_failure">Sesetengah sumber tidak dapat disemak. Cuba lagi.</string>
+    <string name="extension_updates_count">%1$d kemas kini</string>
+    <string name="extension_updates_partial_failure">Sesetengah sumber gagal; ketik untuk butiran</string>
     <string name="extension_update_now">Kemas kini</string>
     <string name="extension_updating">Mengemas kini</string>
     <string name="extension_update_failed">Kemas kini gagal. Cuba lagi.</string>
     <string name="extension_install">Muat turun</string>
     <string name="extension_installed">Dipasang</string>
+
+    <string name="extension_new_version">Versi baharu</string>
+    <string name="script_filter_all">Semua skrip</string>
+    <string name="script_filter_enabled">Skrip aktif</string>
+    <string name="script_filter_disabled">Skrip tidak aktif</string>
+    <string name="script_list_count">%1$d skrip</string>
+    <string name="studio_resources_imported">%1$d sumber diimport</string>
+    <string name="studio_import_resource_hint">Pilih beberapa imej PNG, JPEG, WebP, SVG statik atau fon TTF dan OTF</string>
+    <string name="extension_detail_plugin">Pemalam</string>
+    <string name="extension_detail_script">Skrip</string>
+    <string name="builtin_market_type">Jenis</string>
+    <string name="builtin_market_download_size">Saiz muat turun</string>
+    <string name="builtin_market_packages">Sambungan disertakan</string>
+    <string name="builtin_market_open_installed">Lihat yang dipasang</string>
+    <string name="builtin_market_about">Perihal</string>
+    <string name="builtin_market_description">Sumber terbina dalam Operit. Selepas dimuat turun, urus, aktifkan dan lihat alatnya dalam senarai pemalam atau skrip.</string>
+    <string name="builtin_market_information">Maklumat</string>
+    <string name="builtin_market_source">Sumber</string>
+    <string name="builtin_market_resource_version">Versi sumber</string>
 </resources>

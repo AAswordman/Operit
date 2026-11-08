@@ -269,6 +269,7 @@ sealed class Screen(
         ) {
             UnifiedMarketScreen(
                 initialTab = initialTab,
+                onNavigateToBuiltInDetail = { navigateTo(BuiltInMarketDetail(it)) },
                 onNavigateToArtifactPublish = { navigateTo(ArtifactPublish) },
                 onNavigateToRepoPublish = { type -> navigateTo(RepoPublish(type)) },
                 onNavigateToMarketManage = { navigateTo(MarketManage) },
@@ -328,6 +329,24 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             UnifiedMarketNotificationsScreen()
+        }
+    }
+
+    data class BuiltInMarketDetail(val resourceId: String) : Screen(navItem = NavItem.Packages, titleRes = R.string.builtin) {
+        @Composable
+        override fun Content(
+            navController: NavController,
+            navigateTo: ScreenNavigationHandler,
+            onGoBack: () -> Unit,
+            hasBackgroundImage: Boolean,
+            onLoading: (Boolean) -> Unit,
+            onError: (String) -> Unit,
+            onGestureConsumed: (Boolean) -> Unit,
+        ) {
+            com.ai.assistance.operit.ui.features.extensions.packages.market.BuiltInMarketDetailScreen(
+                resourceId = resourceId,
+                onOpenInstalled = { name, title -> navigateTo(PackageDetail(name, title)) },
+            )
         }
     }
 

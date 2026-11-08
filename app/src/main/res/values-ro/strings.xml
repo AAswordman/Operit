@@ -9080,11 +9080,30 @@
     <string name="extension_detail_downloads">Descărcări</string>
     <string name="extension_detail_likes">Aprecieri</string>
     <string name="extension_detail_format">Format</string>
-    <string name="extension_updates_count">%1$d actualizări de extensii disponibile</string>
-    <string name="extension_updates_partial_failure">Unele surse nu au putut fi verificate. Încearcă din nou.</string>
+    <string name="extension_updates_count">%1$d actualizări</string>
+    <string name="extension_updates_partial_failure">Unele surse au eșuat; apasă pentru detalii</string>
     <string name="extension_update_now">Actualizează</string>
     <string name="extension_updating">Se actualizează</string>
     <string name="extension_update_failed">Actualizarea a eșuat. Încearcă din nou.</string>
     <string name="extension_install">Descarcă</string>
     <string name="extension_installed">Instalat</string>
+
+    <string name="extension_new_version">Versiune nouă</string>
+    <string name="script_filter_all">Toate scripturile</string>
+    <string name="script_filter_enabled">Scripturi active</string>
+    <string name="script_filter_disabled">Scripturi dezactivate</string>
+    <string name="script_list_count">%1$d scripturi</string>
+    <string name="studio_resources_imported">%1$d resurse importate</string>
+    <string name="studio_import_resource_hint">Selectează mai multe imagini PNG, JPEG, WebP, SVG statice sau fonturi TTF și OTF</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Tip</string>
+    <string name="builtin_market_download_size">Dimensiune descărcare</string>
+    <string name="builtin_market_packages">Extensii incluse</string>
+    <string name="builtin_market_open_installed">Vezi instalarea</string>
+    <string name="builtin_market_about">Despre</string>
+    <string name="builtin_market_description">Resursă integrată Operit. După descărcare, o poți gestiona, activa și îi poți vedea instrumentele în lista de pluginuri sau scripturi.</string>
+    <string name="builtin_market_information">Informații</string>
+    <string name="builtin_market_source">Sursă</string>
+    <string name="builtin_market_resource_version">Versiunea resursei</string>
 </resources>

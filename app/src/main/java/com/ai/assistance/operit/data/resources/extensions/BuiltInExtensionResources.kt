@@ -57,17 +57,13 @@ object BuiltInExtensionResources {
             check(it.isSuccessful) { "Built-in catalog discovery failed: HTTP ${it.code}" }
             json.parseToJsonElement(requireNotNull(it.body).string()).jsonArray
         }
-        val asset = releases.map { it.jsonObject }.sortedByDescending { it["published_at"]?.jsonPrimitive?.content.orEmpty() }.asSequence()
-            .filter { it["draft"]?.jsonPrimitive?.boolean == false && it["prerelease"]?.jsonPrimitive?.boolean == false }
-            .flatMap { it.getValue("assets").jsonArray.asSequence() }
-            .map { it.jsonObject }.first { it.getValue("name").jsonPrimitive.content == "builtin-extensions.json" }
-        val url = asset.getValue("browser_download_url").jsonPrimitive.content
-        require(url.startsWith("https://github.com/3316891527/Operit-Kong-resources/releases/download/"))
+        val release = BuiltInCatalogDiscovery.select(releases)
+        val url = release.url
         val text = client.newCall(Request.Builder().url(url).build()).execute().use {
             check(it.isSuccessful) { "Built-in catalog download failed: HTTP ${it.code}" }
             requireNotNull(it.body).string()
         }
-        val catalog = json.decodeFromString<ResourcePackCatalog>(text)
+        val catalog = BuiltInCatalogDiscovery.decode(text, release)
         validate(context, catalog)
         val history = File(context.filesDir, "builtin-extension-history.json")
         val previous = historicalSpecs(context) + specs(context)
@@ -75,7 +71,7 @@ object BuiltInExtensionResources {
             ResourcePackCatalog(1, catalog.releaseTag, previous.distinctBy { it.id to it.version })))
         val target = saved(context)
         val staged = File(context.filesDir, "builtin-extensions.pending.json")
-        staged.writeText(text)
+        staged.writeText(json.encodeToString(ResourcePackCatalog.serializer(), catalog))
         check(staged.renameTo(target)) { "Could not persist built-in catalog" }
         currentCache = catalog.packs
         PackResources.invalidateCatalog()

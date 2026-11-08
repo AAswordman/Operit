@@ -317,16 +317,8 @@ private fun PackageListItemWithTag(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    val description = toolPackage?.description?.resolve(context).orEmpty()
-                    if (description.isNotBlank()) {
-                        Text(
-                            text = description,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionListVersion(
+                        packageName, toolPackage?.version.orEmpty(), toolPackage?.isBuiltIn == true)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(

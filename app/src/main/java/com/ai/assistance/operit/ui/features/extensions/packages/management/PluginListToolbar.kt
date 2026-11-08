@@ -23,6 +23,8 @@ fun PluginListToolbar(
     onSortChanged: (PluginSortSelection) -> Unit,
     onFilterChanged: (PluginFilter) -> Unit,
     showSorting: Boolean = true,
+    scripts: Boolean = false,
+    updateControls: (@Composable () -> Unit)? = null,
 ) {
     var showSort by remember { mutableStateOf(false) }
     var showFilter by remember { mutableStateOf(false) }
@@ -31,15 +33,16 @@ fun PluginListToolbar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(filterLabel(filter)), style = MaterialTheme.typography.titleSmall)
-            Text(stringResource(R.string.plugin_list_count, count),
+            Text(stringResource(filterLabel(filter, scripts)), style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            Text(stringResource(if (scripts) R.string.script_list_count else R.string.plugin_list_count, count),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (showSorting) IconButton(onClick = { showSort = true }) {
+        updateControls?.invoke()
+        if (showSorting) IconButton(onClick = { showSort = true }, modifier = Modifier.size(40.dp)) {
             Icon(Icons.Default.Sort, contentDescription = stringResource(R.string.plugin_sort_action))
         }
-        IconButton(onClick = { showFilter = true }) {
+        IconButton(onClick = { showFilter = true }, modifier = Modifier.size(40.dp)) {
             Icon(Icons.Default.Tune, contentDescription = stringResource(R.string.plugin_filter_action),
                 tint = if (filter == PluginFilter.ALL) MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.onSurface)
@@ -72,7 +75,7 @@ fun PluginListToolbar(
     if (showFilter) {
         ActionSheet(stringResource(R.string.plugin_filter_action), onDismissRequest = { showFilter = false }) {
             PluginFilter.entries.forEach { option ->
-                ActionSheetItem(stringResource(filterLabel(option)),
+                ActionSheetItem(stringResource(filterLabel(option, scripts)),
                     when (option) {
                         PluginFilter.ALL -> Icons.Default.Apps
                         PluginFilter.ENABLED -> Icons.Default.ToggleOn
@@ -105,9 +108,9 @@ private fun sortLabel(mode: PluginSortMode): Int = when (mode) {
     PluginSortMode.ENABLED -> R.string.plugin_sort_enabled
 }
 
-private fun filterLabel(filter: PluginFilter): Int = when (filter) {
-    PluginFilter.ALL -> R.string.plugin_filter_all
-    PluginFilter.ENABLED -> R.string.plugin_filter_enabled
-    PluginFilter.DISABLED -> R.string.plugin_filter_disabled
+private fun filterLabel(filter: PluginFilter, scripts: Boolean): Int = when (filter) {
+    PluginFilter.ALL -> if (scripts) R.string.script_filter_all else R.string.plugin_filter_all
+    PluginFilter.ENABLED -> if (scripts) R.string.script_filter_enabled else R.string.plugin_filter_enabled
+    PluginFilter.DISABLED -> if (scripts) R.string.script_filter_disabled else R.string.plugin_filter_disabled
     PluginFilter.BUILT_IN -> R.string.hub_filter_builtin
 }

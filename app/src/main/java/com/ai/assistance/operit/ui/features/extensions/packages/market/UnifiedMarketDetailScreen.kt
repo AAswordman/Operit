@@ -1148,7 +1148,7 @@ fun splitMarketTags(raw: String): List<String> {
 private const val MARKET_COMMENT_BODY_COLLAPSED_LINES = 8
 
 @Composable
-private fun BindUnifiedMarketDetailTopBarTitle(
+internal fun BindUnifiedMarketDetailTopBarTitle(
     title: String,
     visible: Boolean
 ) {

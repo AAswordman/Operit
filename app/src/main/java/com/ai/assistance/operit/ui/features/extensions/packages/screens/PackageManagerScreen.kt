@@ -778,6 +778,10 @@ fun PackageManagerScreen(
                         count = filteredPluginContainers.size,
                         sort = pluginSort,
                         filter = pluginFilter,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("package"))
+                        },
                         onSortChanged = {
                             pluginSort = it
                             pluginListPreferences.saveSort(it)
@@ -793,13 +797,18 @@ fun PackageManagerScreen(
                 Box(Modifier.padding(horizontal = 16.dp)) {
                     PluginListToolbar(
                         count = filteredAvailablePackages.size, sort = pluginSort, filter = sandboxFilter,
-                        onSortChanged = {}, onFilterChanged = { sandboxFilterName = it.name }, showSorting = false,
+                        onSortChanged = {}, onFilterChanged = { sandboxFilterName = it.name }, showSorting = false, scripts = true,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("script"))
+                        },
                     )
                 }
             }
             if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
-                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(
-                    packageManager, Modifier.padding(horizontal = 16.dp))
+                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateFailureNotice(
+                    com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope(
+                        if (selectedTab == PackageTab.PLUGINS) "package" else "script"), Modifier.padding(horizontal = 16.dp))
             }
             if ((selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) && packageLoadErrors.value.isNotEmpty()) {
                 TextButton(

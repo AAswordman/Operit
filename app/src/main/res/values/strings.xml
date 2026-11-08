@@ -9211,11 +9211,30 @@
     <string name="extension_detail_downloads">下载</string>
     <string name="extension_detail_likes">喜欢</string>
     <string name="extension_detail_format">格式</string>
-    <string name="extension_updates_count">%1$d 个扩展可更新</string>
-    <string name="extension_updates_partial_failure">部分来源检查失败，请重试</string>
+    <string name="extension_updates_count">发现 %1$d 个更新</string>
+    <string name="extension_updates_partial_failure">部分来源检查失败，点击查看</string>
     <string name="extension_update_now">更新</string>
     <string name="extension_updating">更新中</string>
     <string name="extension_update_failed">更新失败，请重试</string>
     <string name="extension_install">下载</string>
     <string name="extension_installed">已安装</string>
+
+    <string name="extension_new_version">有新版本</string>
+    <string name="script_filter_all">全部脚本</string>
+    <string name="script_filter_enabled">已启用脚本</string>
+    <string name="script_filter_disabled">已停用脚本</string>
+    <string name="script_list_count">%1$d 个脚本</string>
+    <string name="studio_resources_imported">已导入 %1$d 项资源</string>
+    <string name="studio_import_resource_hint">支持多选 PNG、JPEG、WebP、静态 SVG 图片和 TTF、OTF 字体</string>
+    <string name="extension_detail_plugin">插件</string>
+    <string name="extension_detail_script">脚本</string>
+    <string name="builtin_market_type">类型</string>
+    <string name="builtin_market_download_size">下载大小</string>
+    <string name="builtin_market_packages">包含的扩展</string>
+    <string name="builtin_market_open_installed">查看已安装</string>
+    <string name="builtin_market_about">简介</string>
+    <string name="builtin_market_description">来自 Operit 内置资源。下载后可在插件或脚本列表中管理、启用并查看工具。</string>
+    <string name="builtin_market_information">信息</string>
+    <string name="builtin_market_source">来源</string>
+    <string name="builtin_market_resource_version">资源版本</string>
 </resources>

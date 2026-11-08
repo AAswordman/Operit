@@ -8324,11 +8324,30 @@
     <string name="extension_detail_downloads">ダウンロード</string>
     <string name="extension_detail_likes">お気に入り</string>
     <string name="extension_detail_format">形式</string>
-    <string name="extension_updates_count">%1$d 件の拡張を更新できます</string>
-    <string name="extension_updates_partial_failure">一部の配信元を確認できませんでした。再試行してください。</string>
+    <string name="extension_updates_count">%1$d 件の更新</string>
+    <string name="extension_updates_partial_failure">一部の配布元の確認に失敗しました。タップして詳細を表示</string>
     <string name="extension_update_now">更新</string>
     <string name="extension_updating">更新中</string>
     <string name="extension_update_failed">更新に失敗しました。再試行してください。</string>
     <string name="extension_install">ダウンロード</string>
     <string name="extension_installed">インストール済み</string>
+
+    <string name="extension_new_version">新しいバージョン</string>
+    <string name="script_filter_all">すべてのスクリプト</string>
+    <string name="script_filter_enabled">有効なスクリプト</string>
+    <string name="script_filter_disabled">無効なスクリプト</string>
+    <string name="script_list_count">%1$d 個のスクリプト</string>
+    <string name="studio_resources_imported">%1$d 個のリソースをインポートしました</string>
+    <string name="studio_import_resource_hint">PNG、JPEG、WebP、静的SVG画像、TTF・OTFフォントを複数選択できます</string>
+    <string name="extension_detail_plugin">プラグイン</string>
+    <string name="extension_detail_script">スクリプト</string>
+    <string name="builtin_market_type">種類</string>
+    <string name="builtin_market_download_size">ダウンロード容量</string>
+    <string name="builtin_market_packages">含まれる拡張機能</string>
+    <string name="builtin_market_open_installed">インストール済みを表示</string>
+    <string name="builtin_market_about">概要</string>
+    <string name="builtin_market_description">Operitの内蔵リソースです。ダウンロード後、プラグインまたはスクリプト一覧で管理、有効化、ツールの確認ができます。</string>
+    <string name="builtin_market_information">情報</string>
+    <string name="builtin_market_source">配布元</string>
+    <string name="builtin_market_resource_version">リソースバージョン</string>
 </resources>

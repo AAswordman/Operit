@@ -8327,11 +8327,30 @@
     <string name="extension_detail_downloads">Downloads</string>
     <string name="extension_detail_likes">Curtidas</string>
     <string name="extension_detail_format">Formato</string>
-    <string name="extension_updates_count">%1$d atualizações de extensões disponíveis</string>
-    <string name="extension_updates_partial_failure">Não foi possível verificar algumas fontes. Tente novamente.</string>
+    <string name="extension_updates_count">%1$d atualizações</string>
+    <string name="extension_updates_partial_failure">Falha em algumas origens; toque para ver detalhes</string>
     <string name="extension_update_now">Atualizar</string>
     <string name="extension_updating">Atualizando</string>
     <string name="extension_update_failed">Falha na atualização. Tente novamente.</string>
     <string name="extension_install">Baixar</string>
     <string name="extension_installed">Instalado</string>
+
+    <string name="extension_new_version">Nova versão</string>
+    <string name="script_filter_all">Todos os scripts</string>
+    <string name="script_filter_enabled">Scripts ativos</string>
+    <string name="script_filter_disabled">Scripts desativados</string>
+    <string name="script_list_count">%1$d scripts</string>
+    <string name="studio_resources_imported">%1$d recursos importados</string>
+    <string name="studio_import_resource_hint">Selecione várias imagens PNG, JPEG, WebP, SVG estáticas ou fontes TTF e OTF</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Tipo</string>
+    <string name="builtin_market_download_size">Tamanho do download</string>
+    <string name="builtin_market_packages">Extensões incluídas</string>
+    <string name="builtin_market_open_installed">Ver instalação</string>
+    <string name="builtin_market_about">Sobre</string>
+    <string name="builtin_market_description">Recurso integrado do Operit. Após baixar, gerencie, ative e consulte suas ferramentas na lista de plugins ou scripts.</string>
+    <string name="builtin_market_information">Informações</string>
+    <string name="builtin_market_source">Origem</string>
+    <string name="builtin_market_resource_version">Versão do recurso</string>
 </resources>

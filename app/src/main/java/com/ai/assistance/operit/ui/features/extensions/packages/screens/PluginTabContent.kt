@@ -191,26 +191,8 @@ fun PluginTabContent(
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-                                if (details.isBuiltIn) Text(
-                                    stringResource(R.string.builtin), style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                                if (details.description.isNotBlank()) {
-                                    Text(
-                                        text = details.description,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 2,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                if (details.subpackages.isNotEmpty()) {
-                                    Text(
-                                        text = stringResource(R.string.plugin_subpackage_count, details.subpackages.size),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-                                    )
-                                }
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionListVersion(
+                                    packageName, details.version, details.isBuiltIn)
                             }
                             com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(packageName, isEnabled, onToggle = { onTogglePlugin(details, it) })
                         }

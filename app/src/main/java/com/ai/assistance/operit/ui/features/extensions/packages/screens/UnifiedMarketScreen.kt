@@ -181,7 +181,8 @@ fun UnifiedMarketScreen(
     onNavigateToMarketManage: () -> Unit = {},
     onNavigateToDetail: (MarketV2Entry) -> Unit = {},
     onNavigateToCategory: (String) -> Unit = {},
-    onNavigateToNotifications: () -> Unit = {}
+    onNavigateToNotifications: () -> Unit = {},
+    onNavigateToBuiltInDetail: ((String) -> Unit)? = null,
 ) {
     var selectedTab by rememberSaveable(initialTab) { mutableStateOf(initialTab) }
     var showMarketAgreementDialog by remember { mutableStateOf(false) }
@@ -202,7 +203,8 @@ fun UnifiedMarketScreen(
                     },
                     config = UnifiedMarketBrowseConfig,
                     viewModelKeyFactory = { selectedType -> "market-all-${selectedType.name}" },
-                    onOpenEntry = openEntry
+                    onOpenEntry = openEntry,
+                    onOpenBuiltInDetail = onNavigateToBuiltInDetail,
                 )
 
                 MarketHomeTab.CATEGORIES -> MarketCategoryIndexPane(
@@ -283,7 +285,8 @@ private fun UnifiedMarketListPane(
     scope: UnifiedMarketBrowseScope,
     config: com.ai.assistance.operit.ui.features.extensions.packages.market.MarketBrowseSectionConfig,
     viewModelKey: String,
-    onOpenEntry: (MarketV2Entry) -> Unit
+    onOpenEntry: (MarketV2Entry) -> Unit,
+    onOpenBuiltInDetail: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val viewModel: UnifiedMarketBrowseViewModel =
@@ -326,6 +329,7 @@ private fun UnifiedMarketListPane(
 
     MarketBrowseSection(
         builtInType = scope.type.takeIf { it in setOf("", "script", "package") },
+        onOpenBuiltInDetail = onOpenBuiltInDetail,
         items = entries,
         isLoading = isLoading,
         isLoadingMore = isLoadingMore,
@@ -501,7 +505,8 @@ private fun MarketTypedListPane(
     scopeFactory: (MarketCategoryTypeFilter) -> UnifiedMarketBrowseScope,
     config: com.ai.assistance.operit.ui.features.extensions.packages.market.MarketBrowseSectionConfig,
     viewModelKeyFactory: (MarketCategoryTypeFilter) -> String,
-    onOpenEntry: (MarketV2Entry) -> Unit
+    onOpenEntry: (MarketV2Entry) -> Unit,
+    onOpenBuiltInDetail: ((String) -> Unit)? = null,
 ) {
     var selectedType by rememberSaveable(stateKey) { mutableStateOf(MarketCategoryTypeFilter.ALL) }
 
@@ -529,7 +534,8 @@ private fun MarketTypedListPane(
             scope = scopeFactory(selectedType),
             config = config,
             viewModelKey = viewModelKeyFactory(selectedType),
-            onOpenEntry = onOpenEntry
+            onOpenEntry = onOpenEntry,
+            onOpenBuiltInDetail = onOpenBuiltInDetail
         )
     }
 }

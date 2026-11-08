@@ -31,4 +31,4 @@ Build 工作流在白名单扩展构建后调用 `prepare_signing.py`，签名�
 
 插件与脚本的 40 项元数据位于 app/config/builtin-extensions.json，由市场内置来源展示；offline-packs.json 保留模板、引擎和模型。运行时沿用既有已验证安装目录。两份目录共享发行标签和源码快照，资源附件继续按文件大小与 SHA-256 校验。
 
-资源准备生成 resources-v3 标签，作为双目录布局的独立发行；既有 resources-v2 公开附件不改写。签名构建的资源准备、产物校验与发布复用都必须包括 builtin-extensions.json。应用显式检查更新时查询维护者资源仓库的正式发行，选择最新发布且包含该目录的版本；尚未发布新目录时应报告检查来源失败。
+资源准备生成 resources-v3 标签，作为双目录布局的独立发行；既有 resources-v2 公开附件不改写。签名构建的资源准备、产物校验与发布复用都必须包括 builtin-extensions.json。应用显式检查更新时选择维护者资源仓库最新正式资源发行，v2 读取 offline-packs.json 中的扩展，v3 读取 builtin-extensions.json。选择的发行必须带对应目录，目录缺失、标签不符或身份校验失败时报告错误。

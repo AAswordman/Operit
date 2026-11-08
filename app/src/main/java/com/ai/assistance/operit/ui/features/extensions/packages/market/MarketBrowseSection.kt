@@ -41,10 +41,12 @@ fun <T> MarketBrowseSection(
     onScrollPositionChanged: (Int, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     builtInType: String? = null,
+    onOpenBuiltInDetail: ((String) -> Unit)? = null,
 ) {
     MarketBrowseList(
         items = items,
         builtInType = builtInType,
+        onOpenBuiltInDetail = onOpenBuiltInDetail,
         isLoading = isLoading,
         isLoadingMore = isLoadingMore,
         hasMore = hasMore,

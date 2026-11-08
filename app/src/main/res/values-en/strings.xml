@@ -9235,11 +9235,30 @@
     <string name="extension_detail_downloads">Downloads</string>
     <string name="extension_detail_likes">Likes</string>
     <string name="extension_detail_format">Format</string>
-    <string name="extension_updates_count">%1$d extension updates available</string>
-    <string name="extension_updates_partial_failure">Some sources could not be checked. Please retry.</string>
+    <string name="extension_updates_count">%1$d updates</string>
+    <string name="extension_updates_partial_failure">Some sources failed; tap for details</string>
     <string name="extension_update_now">Update</string>
     <string name="extension_updating">Updating</string>
     <string name="extension_update_failed">Update failed. Please retry.</string>
     <string name="extension_install">Download</string>
     <string name="extension_installed">Installed</string>
+
+    <string name="extension_new_version">New version</string>
+    <string name="script_filter_all">All scripts</string>
+    <string name="script_filter_enabled">Enabled scripts</string>
+    <string name="script_filter_disabled">Disabled scripts</string>
+    <string name="script_list_count">%1$d scripts</string>
+    <string name="studio_resources_imported">Imported %1$d resources</string>
+    <string name="studio_import_resource_hint">Select multiple PNG, JPEG, WebP, static SVG images or TTF and OTF fonts</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Type</string>
+    <string name="builtin_market_download_size">Download size</string>
+    <string name="builtin_market_packages">Included extensions</string>
+    <string name="builtin_market_open_installed">View installed</string>
+    <string name="builtin_market_about">About</string>
+    <string name="builtin_market_description">Provided with Operit built-in resources. After downloading, manage and enable it and view its tools in the plugin or script list.</string>
+    <string name="builtin_market_information">Information</string>
+    <string name="builtin_market_source">Source</string>
+    <string name="builtin_market_resource_version">Resource version</string>
 </resources>

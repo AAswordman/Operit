@@ -14,4 +14,12 @@ class PackageDetailRouteTest {
         assertEquals(screen, rebuilt)
         assertEquals(screen.navItem, rebuilt?.navItem)
     }
+    @Test
+    fun builtInMarketDetailCanBeReconstructedFromItsResourceId() {
+        val screen = Screen.BuiltInMarketDetail("sandbox-code-runner")
+        val rebuilt = ScreenRouteRegistry.buildScreen(ScreenRouteRegistry.routeIdOf(screen),
+            mapOf("resourceId" to "sandbox-code-runner"))
+        assertEquals(screen, rebuilt)
+        assertEquals(screen.navItem, rebuilt?.navItem)
+    }
 }

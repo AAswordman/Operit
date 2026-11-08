@@ -43,6 +43,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.Surface
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -77,6 +78,7 @@ data class MarketBrowseCardModel(
     val showAction: Boolean = true,
     val actionState: MarketBrowseActionState = MarketBrowseActionState.Available,
     val installProgress: MarketInstallProgress? = null,
+    val showStats: Boolean = true,
 )
 
 sealed interface MarketBrowseActionState {
@@ -121,6 +123,7 @@ fun <T> MarketBrowseList(
     onScrollPositionChanged: (Int, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     builtInType: String? = null,
+    onOpenBuiltInDetail: ((String) -> Unit)? = null,
 ) {
     val listState = rememberLazyListState(
         initialFirstVisibleItemIndex = initialFirstVisibleItemIndex,
@@ -128,7 +131,7 @@ fun <T> MarketBrowseList(
     )
     val pullToRefreshState = rememberPullToRefreshState()
     val showInitialLoading = isLoading && items.isEmpty()
-    val builtInSelected = remember { mutableStateOf(false) }
+    val builtInSelected = rememberSaveable { mutableStateOf(false) }
     val lastLoadMoreIndex = remember { mutableStateOf(-1) }
     val isRefreshing = isLoading && items.isNotEmpty() && searchQuery.isBlank()
 
@@ -159,7 +162,7 @@ fun <T> MarketBrowseList(
             onSortOptionChanged = onSortOptionChanged,
             featuredOnly = featuredOnly,
             onFeaturedOnlyChanged = { builtInSelected.value = false; onFeaturedOnlyChanged(it) },
-            showBuiltIn = builtInType != null,
+            showBuiltIn = builtInType != null && onOpenBuiltInDetail != null,
             builtInSelected = builtInSelected.value,
             onBuiltInChanged = { selected -> if (selected) onFeaturedOnlyChanged(false); builtInSelected.value = selected },
             searchPlaceholderRes = searchPlaceholderRes,
@@ -167,8 +170,8 @@ fun <T> MarketBrowseList(
         )
 
         Box(modifier = Modifier.fillMaxSize()) {
-            if (builtInSelected.value && builtInType != null) {
-                BuiltInMarketPanel(searchQuery, builtInType)
+            if (builtInSelected.value && builtInType != null && onOpenBuiltInDetail != null) {
+                BuiltInMarketPanel(searchQuery, builtInType, onOpenBuiltInDetail)
             } else if (showInitialLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else {
@@ -410,7 +413,7 @@ fun MarketBrowseCard(
                 }
 
                 Spacer(modifier = Modifier.height(6.dp))
-                MarketBrowseMetaRow(
+                if (model.showStats) MarketBrowseMetaRow(
                     ownerUsername = model.ownerUsername,
                     downloads = model.downloads,
                     thumbsUpCount = model.thumbsUpCount,

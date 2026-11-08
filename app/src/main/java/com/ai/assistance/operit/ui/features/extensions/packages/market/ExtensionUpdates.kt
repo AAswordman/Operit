@@ -29,15 +29,25 @@ sealed interface ExtensionUpdate {
     data class BuiltIn(val spec: ResourcePackSpec) : ExtensionUpdate
 }
 
+data class ExtensionUpdateScope(val type: String = "", val builtInOnly: Boolean = false) {
+    fun acceptsType(value: String): Boolean = type.isEmpty() || type == value
+    fun accepts(update: ExtensionUpdate): Boolean = when (update) {
+        is ExtensionUpdate.Market -> !builtInOnly && acceptsType(update.entry.type.lowercase())
+        is ExtensionUpdate.BuiltIn -> acceptsType(if (update.spec.extension!!.kind == "plugin") "package" else "script")
+    }
+}
+
+data class ExtensionUpdateFailure(val source: String, val reason: String)
+
 /** One check result shared by installed lists and details; installation itself has a runtime gate. */
 object ExtensionUpdates {
     private val mutable = MutableStateFlow<Map<String, ExtensionUpdate>>(emptyMap())
     val available = mutable.asStateFlow()
-    private val checked = MutableStateFlow(false)
-    val hasChecked = checked.asStateFlow()
+    private val checked = MutableStateFlow<Set<ExtensionUpdateScope>>(emptySet())
+    val checkedScopes = checked.asStateFlow()
     private val busy = MutableStateFlow(false)
     val checking = busy.asStateFlow()
-    private val failed = MutableStateFlow(0)
+    private val failed = MutableStateFlow<Map<ExtensionUpdateScope, List<ExtensionUpdateFailure>>>(emptyMap())
     val failures = failed.asStateFlow()
 
     @Synchronized private fun beginCheck(): Boolean {
@@ -46,17 +56,20 @@ object ExtensionUpdates {
         return true
     }
 
-    suspend fun check(context: Context, manager: PackageManager) {
+    suspend fun check(context: Context, manager: PackageManager, scope: ExtensionUpdateScope = ExtensionUpdateScope()) {
         if (!beginCheck()) return
+        val errors = mutableListOf<ExtensionUpdateFailure>()
         try {
-            val names = withContext(Dispatchers.IO) { manager.getTopLevelAvailablePackages().keys.toList() }
+            val packages = withContext(Dispatchers.IO) {
+                manager.getTopLevelAvailablePackages().filterKeys { name ->
+                    scope.acceptsType(if (manager.isToolPkgContainer(name)) "package" else "script")
+                }.toMap()
+            }
             val results = coroutineScope {
                 val limit = Semaphore(4)
-                names.map { name -> async(Dispatchers.IO) {
+                packages.keys.filter { !scope.builtInOnly }.map { name -> async(Dispatchers.IO) {
                     limit.withPermit {
-                        val result = try {
-                            checkMarketUpdate(readMarketInstallMarkerForPackage(manager, name))
-                        }
+                        val result = try { checkMarketUpdate(readMarketInstallMarkerForPackage(manager, name)) }
                         catch (cancelled: CancellationException) { throw cancelled }
                         catch (error: Exception) {
                             AppLogger.e("ExtensionUpdates", "Check failed: $name", error)
@@ -66,30 +79,51 @@ object ExtensionUpdates {
                     }
                 } }.awaitAll()
             }
-            var errors = results.count { it.second == MarketUpdateCheckResult.Failed || it.second == MarketUpdateCheckResult.EntryMissing }
-            val updates = results.mapNotNull { (name, result) ->
+            for ((name, result) in results) {
+                if (result == MarketUpdateCheckResult.Failed || result == MarketUpdateCheckResult.EntryMissing) {
+                    errors += ExtensionUpdateFailure(name,
+                        context.getString(if (result == MarketUpdateCheckResult.EntryMissing)
+                            com.ai.assistance.operit.R.string.pkg_check_update_entry_missing
+                        else com.ai.assistance.operit.R.string.pkg_check_update_failed))
+                }
+            }
+            val updates: MutableMap<String, ExtensionUpdate> = results.mapNotNull { (name, result) ->
                 (result as? MarketUpdateCheckResult.UpdateAvailable)?.let { name to ExtensionUpdate.Market(it.entry) }
-            }.toMap().toMutableMap<String, ExtensionUpdate>()
+            }.toMap().toMutableMap()
             try {
                 withContext(Dispatchers.IO) {
-                    BuiltInExtensionResources.refreshCatalog(context)
-                    for (spec in BuiltInExtensionResources.specs(context)) {
-                        if (PackResources.isReady(context, spec.id) && !PackResources.isCurrentReady(context, spec.id, true)) {
-                            val root = spec.extension!!.packageNames.first()
-                            updates[root] = ExtensionUpdate.BuiltIn(spec)
+                    val installed = BuiltInExtensionResources.specs(context).filter { spec ->
+                        scope.accepts(ExtensionUpdate.BuiltIn(spec)) && PackResources.isReady(context, spec.id)
+                    }
+                    // Installed lists only check their own sources; the built-in market also refreshes its catalog.
+                    if (scope.builtInOnly || installed.isNotEmpty()) {
+                        BuiltInExtensionResources.refreshCatalog(context)
+                        for (spec in BuiltInExtensionResources.specs(context)) {
+                            if (scope.accepts(ExtensionUpdate.BuiltIn(spec)) && PackResources.isReady(context, spec.id) &&
+                                !PackResources.isCurrentReady(context, spec.id, true)) {
+                                updates[spec.extension!!.packageNames.first()] = ExtensionUpdate.BuiltIn(spec)
+                            }
                         }
                     }
                 }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                errors++
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (error: Exception) {
                 AppLogger.e("ExtensionUpdates", "Built-in catalog check failed", error)
+                errors += ExtensionUpdateFailure(context.getString(com.ai.assistance.operit.R.string.builtin),
+                    error.message ?: error.javaClass.simpleName)
             }
-            mutable.value = updates
-            failed.value = errors
-            checked.value = true
-        } finally { busy.value = false; PackageUpdateState.endCatalogCheck() }
+            mutable.update { current -> current.filterValues { !scope.accepts(it) } + updates }
+            checked.update { it + scope }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (error: Exception) {
+            AppLogger.e("ExtensionUpdates", "Update check failed", error)
+            errors += ExtensionUpdateFailure(context.getString(com.ai.assistance.operit.R.string.pkg_check_update),
+                error.message ?: error.javaClass.simpleName)
+        } finally {
+            failed.update { it + (scope to errors.toList()) }
+            busy.value = false
+            PackageUpdateState.endCatalogCheck()
+        }
     }
 
     suspend fun install(context: Context, manager: PackageManager, name: String, update: ExtensionUpdate) {
