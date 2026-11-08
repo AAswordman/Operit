@@ -1,7 +1,7 @@
 ---
 fork: https://github.com/3316891527/Operit
 branch: fix/worldbook-storage-integrity
-status: implemented; remote verification in progress
+status: implemented; Android CI and device verification pending
 ---
 # 世界书存储完整性修复
 
