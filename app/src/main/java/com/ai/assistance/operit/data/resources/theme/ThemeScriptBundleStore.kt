@@ -110,6 +110,17 @@ object ThemeScriptBundleStore {
         }
     }
 
+    /** Parameter sharing reads configuration only, without loading the media payload. */
+    fun readManifest(file: File): ThemeScriptManifest {
+        require(file.isFile && file.length() <= ThemeScriptContract.MAX_BUNDLE_BYTES + 131072L) { "Invalid theme script bundle" }
+        return ZipFile(file).use { zip ->
+            val entry = requireNotNull(zip.getEntry("manifest.json")) { "Theme script manifest is missing" }
+            ThemeScriptContract.decodeManifest(
+                decodeUtf8(zip.getInputStream(entry).use { readLimited(it, ThemeScriptContract.MAX_MANIFEST_BYTES) }),
+            )
+        }
+    }
+
     fun read(file: File): ThemeScriptBundle {
         require(file.isFile && file.length() <= ThemeScriptContract.MAX_BUNDLE_BYTES + 131072L) { "Invalid theme script bundle" }
         return ZipFile(file).use { zip ->

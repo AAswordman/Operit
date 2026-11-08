@@ -301,10 +301,12 @@ internal object A2uiProtocol {
                 require(widths is JsonArray && widths.size == columns.size &&
                     widths.all { it is JsonPrimitive && !it.isString && it.intOrNull in 64..480 }) { "Invalid table column widths" }
             }
+            // Bindings and calculations may occur in each cell or return whole rows.
+            // Validate scalar cells after evaluation in validateExpanded, just like Chart
+            // validates its evaluated series; inspecting raw expression objects rejects
+            // otherwise valid tables before their initial data can be applied.
             (c["rows"] as? JsonArray)?.let { rows ->
-                require(rows.size <= 32 && rows.all { row ->
-                    row is JsonArray && row.size == columns.size && row.all { it is JsonPrimitive }
-                }) { "Invalid table rows" }
+                require(rows.size <= 32) { "Invalid table rows" }
             }
         }
     }

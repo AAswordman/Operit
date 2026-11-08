@@ -11,22 +11,42 @@ class TextStreamRevisionTracker(initialContent: String = "") {
 
     private data class DiscardedRange(val start: Int, val end: Int)
 
+    internal val rawContentLength: Int get() = rawBuffer.length
+
+    internal fun contentRange(start: Int, end: Int): String = visibleBuffer.substring(start, end)
+
+    /** Converts producer offsets to retained text offsets, merging overlapping discarded ranges. */
+    internal fun visibleOffsetAt(rawOffset: Int): Int {
+        val limit = rawOffset.coerceIn(0, rawBuffer.length)
+        var removed = 0
+        var consumed = 0
+        for (range in discardedRanges) {
+            val start = maxOf(consumed, range.start)
+            val end = minOf(limit, range.end)
+            if (end > start) removed += end - start
+            consumed = maxOf(consumed, end)
+            if (consumed >= limit) break
+        }
+        return limit - removed
+    }
+
     fun currentContent(): SmartString = visibleBuffer
 
     fun append(chunk: String): SmartString {
         val start = rawBuffer.length
         rawBuffer.append(chunk)
         val end = start + chunk.length
-        val intersectsDiscardedRange =
-            discardedRanges.any { range -> range.start < end && range.end > start }
-        if (intersectsDiscardedRange) {
-            rebuildVisibleContent()
-        } else {
-            visibleBuffer.append(chunk)
+        var cursor = start
+        for (range in discardedRanges) {
+            if (range.end <= cursor) continue
+            if (range.start >= end) break
+            val retainedEnd = minOf(range.start, end)
+            if (retainedEnd > cursor) visibleBuffer.append(chunk.substring(cursor - start, retainedEnd - start))
+            cursor = maxOf(cursor, minOf(end, range.end))
         }
+        if (cursor < end) visibleBuffer.append(chunk.substring(cursor - start))
         return visibleBuffer
     }
-
     fun savepoint(id: String, contentLength: Int) {
         savepoints[id] = contentLength
     }
@@ -34,14 +54,17 @@ class TextStreamRevisionTracker(initialContent: String = "") {
     fun rollback(id: String, contentLength: Int, discardedLength: Int): SmartString? {
         if (savepoints[id] == null) return null
         if (discardedLength > 0) {
+            // Map against the existing ranges before adding this interval; overlapping retries
+            // must only remove characters still present in the retained buffer.
+            val start = visibleOffsetAt(contentLength)
+            val end = visibleOffsetAt(contentLength + discardedLength)
+            visibleBuffer.removeRange(start, end)
             discardedRanges += DiscardedRange(contentLength, contentLength + discardedLength)
             discardedRanges.sortBy { it.start }
-            rebuildVisibleContent()
         }
         savepoints.entries.removeAll { it.value > contentLength }
         return visibleBuffer
     }
-
     fun replace(content: String) {
         rawBuffer.replace(content)
         visibleBuffer.replace(content)
@@ -55,10 +78,15 @@ class TextStreamRevisionTracker(initialContent: String = "") {
         events.forEach { event ->
             when (event.eventType) {
                 TextStreamEventType.SAVEPOINT -> savepoint(event.id, event.contentLength)
-                TextStreamEventType.ROLLBACK ->
-                    rollback(event.id, event.contentLength, event.discardedLength)
+                TextStreamEventType.ROLLBACK -> if (event.id in savepoints) {
+                    if (event.discardedLength > 0) {
+                        discardedRanges += DiscardedRange(event.contentLength, event.contentLength + event.discardedLength)
+                    }
+                    savepoints.entries.removeAll { it.value > event.contentLength }
+                }
             }
         }
+        discardedRanges.sortBy { it.start }
         rebuildVisibleContent()
         return visibleBuffer
     }

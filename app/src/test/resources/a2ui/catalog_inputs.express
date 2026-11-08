@@ -1,0 +1,5 @@
+$/plan = {title:"GPU 入门",gpu:40,cuda:35,done:false}
+root = Column(children=[table,reset,submit])
+table = Table(columns=["主题","分钟","完成"],rows=[["GPU",formatNumber(value=$/plan/gpu,decimals=0),$/plan/done],["CUDA",add(a=$/plan/cuda,b=5),false]],columnWidths=[120,80,80],maxHeight=180)
+reset = Button(child=Text(text="重置学习计划"),action=Event(name="local_action",context={op:"set",path:"/plan",value:{title:"GPU 入门",gpu:40,cuda:35,done:false,details:{nextMinutes:add(a=$/plan/gpu,b=5)},tasks:[{title:"了解 GPU",done:false}]}}))
+submit = Button(child=Text(text="讲解 CUDA"),action=Event(name="ai_submit",context={instruction:"结合我的计划讲解 CUDA",plan:{title:$/plan/title,minutes:{gpu:$/plan/gpu,cuda:$/plan/cuda,total:add(a=$/plan/gpu,b=$/plan/cuda)},tasks:[{title:"了解 GPU",done:$/plan/done}]}}))

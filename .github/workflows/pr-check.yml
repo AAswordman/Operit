@@ -386,6 +386,9 @@ jobs:
           export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
           rustup toolchain install "$RUST_VERSION" --profile minimal
           rustup target add --toolchain "$RUST_VERSION" aarch64-linux-android
+          cargo "+$RUST_VERSION" test \
+            --manifest-path tools/native_ripgrep/Cargo.toml \
+            --locked
           cargo "+$RUST_VERSION" build \
             --manifest-path tools/native_ripgrep/Cargo.toml \
             --release \
@@ -578,7 +581,7 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x ./gradlew
-          tasks=(":app:testDebugUnitTest")
+          tasks=(":app:testDebugUnitTest" ":terminal:testDebugUnitTest")
           if [[ "$INSTRUMENTATION_REQUIRED" == "true" ]]; then
             tasks+=(":app:compileDebugAndroidTestKotlin" ":app:compileDebugAndroidTestJavaWithJavac")
           fi

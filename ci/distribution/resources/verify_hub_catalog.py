@@ -2,6 +2,7 @@
 from __future__ import annotations
 import hashlib
 import json
+from distribution_catalog import load_catalog
 from builtin_packages import whitelist, source_fingerprint
 from builtin_source_snapshot import load_snapshot, fingerprint as source_snapshot_fingerprint
 from pathlib import Path
@@ -16,7 +17,7 @@ def sha(path: Path) -> str:
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 def main(*, current_source: bool = False) -> None:
-    catalog = json.loads((ROOT / 'app/config/offline-packs.json').read_text())
+    catalog = load_catalog(ROOT / 'app/config')
     snapshot = load_snapshot(ROOT / 'app/config/offline-pack-sources.json', catalog['releaseTag'])
     sources = snapshot['sources']
     source_files = dict(snapshot['files'])
@@ -61,7 +62,7 @@ def main(*, current_source: bool = False) -> None:
             raise ValueError('固定资源地址与发行标签不一致')
     without_urls = [{**p, 'archive': {k: v for k, v in p['archive'].items() if k != 'url'}} for p in packs]
     fingerprint = hashlib.sha256(json.dumps(without_urls, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:20]
-    if catalog['releaseTag'] != 'resources-v2-' + fingerprint:
+    if catalog['releaseTag'] not in {'resources-v2-' + fingerprint, 'resources-v3-' + fingerprint}:
         raise ValueError('资源发行标签与目录内容不一致')
     print(json.dumps({'packs': len(packs), 'source_files_verified': checked, 'tag': catalog['releaseTag']}, ensure_ascii=False))
 

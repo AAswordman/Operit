@@ -29,6 +29,8 @@ import java.security.MessageDigest
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
@@ -328,20 +330,36 @@ internal class ThemeStudioState(
         val paths = current.manifest.assets - id
         current.copy(manifest = current.manifest.copy(assets = paths), assets = current.assets.filterKeys { it in paths.values })
     }
-    suspend fun importResource(uri: Uri) = task {
-        val added = withContext(Dispatchers.IO) {
-            val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
-                require(cursor.moveToFirst()) { "Resource name is missing" }; cursor.getString(0)
-            } ?: error("Cannot read resource name")
-            val path = "$currentFolder/$name"
-            require(ThemeAssetPaths.isFile(path) && name.substringAfterLast('.').lowercase() in setOf("png", "jpg", "jpeg", "webp", "svg", "ttf", "otf")) { "Expected PNG, JPEG, WebP, SVG, TTF or OTF" }
-            require(path !in bundle.assets && path != bundle.manifest.entry) { "A resource with this name already exists" }
-            val bytes = requireNotNull(context.contentResolver.openInputStream(uri)).use { ThemeScriptBundleStore.readLimited(it, ThemeScriptContract.MAX_ASSET_BYTES) }
-            val id = "asset_" + UUID.randomUUID().toString().replace("-", "")
-            bundle.copy(manifest = bundle.manifest.copy(assets = bundle.manifest.assets + (id to path)), assets = bundle.assets + (path to bytes)).also(ThemeScriptBundleStore::validate)
+    suspend fun importResources(uris: List<Uri>): Boolean {
+        if (uris.isEmpty() || busy) return false
+        return task {
+            val original = bundle
+            val folder = currentFolder
+            val added = withContext(Dispatchers.IO) {
+                var next = original
+                for (uri in uris.distinct()) {
+                    currentCoroutineContext().ensureActive()
+                    val name = context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                        require(cursor.moveToFirst()) { "Resource name is missing" }; cursor.getString(0)
+                    } ?: error("Cannot read resource name")
+                    try {
+                        val path = "$folder/$name"
+                        require(ThemeAssetPaths.isFile(path) && name.substringAfterLast('.').lowercase() in setOf("png", "jpg", "jpeg", "webp", "svg", "ttf", "otf")) { "Expected PNG, JPEG, WebP, SVG, TTF or OTF" }
+                        require(path !in next.assets && path != next.manifest.entry) { "A resource with this name already exists" }
+                        val bytes = requireNotNull(context.contentResolver.openInputStream(uri)).use {
+                            ThemeScriptBundleStore.readLimited(it, ThemeScriptContract.MAX_ASSET_BYTES)
+                        }
+                        val id = "asset_" + UUID.randomUUID().toString().replace("-", "")
+                        next = next.copy(manifest = next.manifest.copy(assets = next.manifest.assets + (id to path)),
+                            assets = next.assets + (path to bytes)).also(ThemeScriptBundleStore::validate)
+                    } catch (cancelled: CancellationException) { throw cancelled }
+                    catch (failure: Exception) { throw IllegalArgumentException("$name: ${failure.message}", failure) }
+                }
+                next
+            }
+            val prepared = withContext(Dispatchers.IO) { ThemeScriptAssets.prepare(added, fontDirectory, original, images) }
+            check(edit(decoded = prepared) { added }) { error.orEmpty() }
         }
-        val prepared = withContext(Dispatchers.IO) { ThemeScriptAssets.prepare(added, fontDirectory, bundle, images) }
-        edit(decoded = prepared) { added }
     }
     fun setSource(value: String) { sourceText = value; sourceDirty = true }
     fun refreshSource() {

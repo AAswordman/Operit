@@ -1,5 +1,5 @@
 import {
-  ensureWorldBookStorage,
+  withWorldBookStorage,
   readWorldBookEntries,
   readWorldBookGroups,
   writeWorldBookEntries,
@@ -696,185 +696,195 @@ export function toWorldBookListEntry(entry: WorldBookEntry): WorldBookListEntry 
 }
 
 export async function listWorldBookEntries(): Promise<WorldBookListEntry[]> {
-  const entries = await loadEntries();
-  return entries
-    .map(toWorldBookListEntry)
-    .sort((left, right) => right.priority - left.priority);
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    return entries
+      .map(toWorldBookListEntry)
+      .sort((left, right) => right.priority - left.priority);
+  });
 }
 
 export async function getWorldBookEntry(id: string): Promise<WorldBookEntry> {
-  const entries = await loadEntries();
-  return entries[findEntryIndex(entries, id)];
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    return entries[findEntryIndex(entries, id)];
+  });
 }
 
 export async function createWorldBookEntry(params: WorldBookMutationParams): Promise<WorldBookEntry> {
-  const entries = await loadEntries();
-  const now = new Date().toISOString();
-  const injectTarget = normalizeInjectTarget(params.inject_target);
-  const injectPosition =
-    injectTarget === "assistant" ? "at_depth" : normalizeInjectPosition(params.inject_position);
-  const entry: WorldBookEntry = {
-    id: generateId(),
-    name: String(params.name || ""),
-    content: String(params.content || ""),
-    keywords: splitKeywords(params.keywords),
-    is_regex: params.is_regex === true,
-    case_sensitive: params.case_sensitive === true,
-    always_active: params.always_active === true,
-    enabled: params.enabled !== false,
-    priority: normalizeNumber(params.priority, 50),
-    scan_depth: normalizeNumber(params.scan_depth, 0),
-    inject_target: injectTarget,
-    inject_position: injectPosition,
-    insertion_depth: normalizeNumber(params.insertion_depth, 0),
-    character_card_id: String(params.character_card_id || "").trim(),
-    created_at: now,
-    updated_at: now
-  };
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    const now = new Date().toISOString();
+    const injectTarget = normalizeInjectTarget(params.inject_target);
+    const injectPosition =
+      injectTarget === "assistant" ? "at_depth" : normalizeInjectPosition(params.inject_position);
+    const entry: WorldBookEntry = {
+      id: generateId(),
+      name: String(params.name || ""),
+      content: String(params.content || ""),
+      keywords: splitKeywords(params.keywords),
+      is_regex: params.is_regex === true,
+      case_sensitive: params.case_sensitive === true,
+      always_active: params.always_active === true,
+      enabled: params.enabled !== false,
+      priority: normalizeNumber(params.priority, 50),
+      scan_depth: normalizeNumber(params.scan_depth, 0),
+      inject_target: injectTarget,
+      inject_position: injectPosition,
+      insertion_depth: normalizeNumber(params.insertion_depth, 0),
+      character_card_id: String(params.character_card_id || "").trim(),
+      created_at: now,
+      updated_at: now
+    };
 
-  entries.push(entry);
-  await saveEntries(entries);
-  return entry;
+    entries.push(entry);
+    await saveEntries(entries);
+    return entry;
+  });
 }
 
 export async function importWorldBookEntries(params: WorldBookImportParams): Promise<WorldBookImportResult> {
-  const rawContent = String(params.content || "").trim();
-  let sourceContent = rawContent;
+  return await withWorldBookStorage(async () => {
+    const rawContent = String(params.content || "").trim();
+    let sourceContent = rawContent;
 
-  if (!sourceContent) {
-    const path = String(params.path || "").trim();
-    if (!path) {
-      throw worldBookError("IMPORT_PATH_REQUIRED", "导入路径不能为空");
-    }
-    const fileResult = await Tools.Files.read(path);
-    sourceContent = String(fileResult?.content || "").trim();
     if (!sourceContent) {
-      throw worldBookError("IMPORT_FILE_EMPTY", "导入文件为空");
+      const path = String(params.path || "").trim();
+      if (!path) {
+        throw worldBookError("IMPORT_PATH_REQUIRED", "导入路径不能为空");
+      }
+      const fileResult = await Tools.Files.read(path);
+      sourceContent = String(fileResult?.content || "").trim();
+      if (!sourceContent) {
+        throw worldBookError("IMPORT_FILE_EMPTY", "导入文件为空");
+      }
     }
-  }
 
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(sourceContent);
-  } catch (error) {
-    throw worldBookError(
-      "INVALID_JSON",
-      `导入文件不是有效的 JSON: ${(error as { message: string }).message}`
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(sourceContent);
+    } catch (error) {
+      throw worldBookError(
+        "INVALID_JSON",
+        `导入文件不是有效的 JSON: ${(error as { message: string }).message}`
+      );
+    }
+
+    const parsedPayload = parseImportedWorldBookPayload(parsedJson);
+    if (parsedPayload.entries.length === 0) {
+      throw worldBookError("NO_IMPORTABLE_ENTRIES", "没有可导入的世界书条目");
+    }
+
+    const entries = await loadEntries();
+    const now = new Date().toISOString();
+    const characterCardId = String(params.character_card_id || "").trim();
+    const importedEntries = parsedPayload.entries.map((entry) =>
+      buildImportedEntry(entry, characterCardId, now)
     );
-  }
 
-  const parsedPayload = parseImportedWorldBookPayload(parsedJson);
-  if (parsedPayload.entries.length === 0) {
-    throw worldBookError("NO_IMPORTABLE_ENTRIES", "没有可导入的世界书条目");
-  }
+    entries.push(...importedEntries);
+    await saveEntries(entries);
 
-  const entries = await loadEntries();
-  const now = new Date().toISOString();
-  const characterCardId = String(params.character_card_id || "").trim();
-  const importedEntries = parsedPayload.entries.map((entry) =>
-    buildImportedEntry(entry, characterCardId, now)
-  );
-
-  entries.push(...importedEntries);
-  await saveEntries(entries);
-
-  return {
-    source_type: parsedPayload.sourceType,
-    imported_count: importedEntries.length,
-    warning_count: parsedPayload.warnings.length,
-    warnings: parsedPayload.warnings,
-    entries: importedEntries
-  };
+    return {
+      source_type: parsedPayload.sourceType,
+      imported_count: importedEntries.length,
+      warning_count: parsedPayload.warnings.length,
+      warnings: parsedPayload.warnings,
+      entries: importedEntries
+    };
+  });
 }
 
 export async function updateWorldBookEntry(params: WorldBookMutationParams): Promise<WorldBookEntry> {
-  const entries = await loadEntries();
-  const index = findEntryIndex(entries, params.id);
-  const nextEntry = { ...entries[index] };
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    const index = findEntryIndex(entries, params.id);
+    const nextEntry = { ...entries[index] };
 
-  if (params.name != null) {
-    nextEntry.name = String(params.name);
-  }
-  if (params.content != null) {
-    nextEntry.content = String(params.content);
-  }
-  if (params.keywords != null) {
-    nextEntry.keywords = splitKeywords(params.keywords);
-  }
-  if (params.is_regex != null) {
-    nextEntry.is_regex = params.is_regex === true;
-  }
-  if (params.case_sensitive != null) {
-    nextEntry.case_sensitive = params.case_sensitive === true;
-  }
-  if (params.always_active != null) {
-    nextEntry.always_active = params.always_active === true;
-  }
-  if (params.enabled != null) {
-    nextEntry.enabled = params.enabled !== false;
-  }
-  if (params.priority != null) {
-    nextEntry.priority = normalizeNumber(params.priority, nextEntry.priority);
-  }
-  if (params.scan_depth != null) {
-    nextEntry.scan_depth = normalizeNumber(params.scan_depth, nextEntry.scan_depth);
-  }
-  if (params.inject_target != null) {
-    nextEntry.inject_target = normalizeInjectTarget(params.inject_target);
-  }
-  if (params.inject_position != null) {
-    nextEntry.inject_position = normalizeInjectPosition(params.inject_position);
-  }
-  if (params.insertion_depth != null) {
-    nextEntry.insertion_depth = normalizeNumber(params.insertion_depth, nextEntry.insertion_depth ?? 0);
-  }
-  if (nextEntry.inject_target === "assistant") {
-    nextEntry.inject_position = "at_depth";
-  }
-  if (params.character_card_id != null) {
-    nextEntry.character_card_id = String(params.character_card_id || "").trim();
-  }
+    if (params.name != null) {
+      nextEntry.name = String(params.name);
+    }
+    if (params.content != null) {
+      nextEntry.content = String(params.content);
+    }
+    if (params.keywords != null) {
+      nextEntry.keywords = splitKeywords(params.keywords);
+    }
+    if (params.is_regex != null) {
+      nextEntry.is_regex = params.is_regex === true;
+    }
+    if (params.case_sensitive != null) {
+      nextEntry.case_sensitive = params.case_sensitive === true;
+    }
+    if (params.always_active != null) {
+      nextEntry.always_active = params.always_active === true;
+    }
+    if (params.enabled != null) {
+      nextEntry.enabled = params.enabled !== false;
+    }
+    if (params.priority != null) {
+      nextEntry.priority = normalizeNumber(params.priority, nextEntry.priority);
+    }
+    if (params.scan_depth != null) {
+      nextEntry.scan_depth = normalizeNumber(params.scan_depth, nextEntry.scan_depth);
+    }
+    if (params.inject_target != null) {
+      nextEntry.inject_target = normalizeInjectTarget(params.inject_target);
+    }
+    if (params.inject_position != null) {
+      nextEntry.inject_position = normalizeInjectPosition(params.inject_position);
+    }
+    if (params.insertion_depth != null) {
+      nextEntry.insertion_depth = normalizeNumber(params.insertion_depth, nextEntry.insertion_depth ?? 0);
+    }
+    if (nextEntry.inject_target === "assistant") {
+      nextEntry.inject_position = "at_depth";
+    }
+    if (params.character_card_id != null) {
+      nextEntry.character_card_id = String(params.character_card_id || "").trim();
+    }
 
-  nextEntry.updated_at = new Date().toISOString();
-  entries[index] = nextEntry;
-  await saveEntries(entries);
-  return nextEntry;
+    nextEntry.updated_at = new Date().toISOString();
+    entries[index] = nextEntry;
+    await saveEntries(entries);
+    return nextEntry;
+  });
 }
 
 export async function deleteWorldBookEntry(id: string): Promise<WorldBookEntry> {
-  const entries = await loadEntries();
-  const index = findEntryIndex(entries, id);
-  const [removed] = entries.splice(index, 1);
-  await saveEntries(entries);
-
-  // Clean up group references
-  const groups = await readWorldBookGroups<WorldBookGroup>();
-  let groupsDirty = false;
-  for (const group of groups) {
-    const idx = group.entry_ids.indexOf(id);
-    if (idx !== -1) {
-      group.entry_ids.splice(idx, 1);
-      groupsDirty = true;
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    const groups = await readWorldBookGroups<WorldBookGroup>();
+    const index = findEntryIndex(entries, id);
+    const [removed] = entries.splice(index, 1);
+    let groupsDirty = false;
+    for (const group of groups) {
+      const remaining = group.entry_ids.filter((entryId) => entryId !== id);
+      if (remaining.length !== group.entry_ids.length) {
+        group.entry_ids = remaining;
+        groupsDirty = true;
+      }
     }
-  }
-  if (groupsDirty) {
-    await writeWorldBookGroups(groups);
-  }
-
-  return removed;
+    // References first: an interrupted later write may retain an ungrouped entry, not lose other entries.
+    if (groupsDirty) await writeWorldBookGroups(groups);
+    await saveEntries(entries);
+    return removed;
+  });
 }
 
 export async function toggleWorldBookEntry(id: string): Promise<WorldBookListEntry> {
-  const entries = await loadEntries();
-  const index = findEntryIndex(entries, id);
-  const nextEntry: WorldBookEntry = {
-    ...entries[index],
-    enabled: !entries[index].enabled,
-    updated_at: new Date().toISOString()
-  };
-  entries[index] = nextEntry;
-  await saveEntries(entries);
-  return toWorldBookListEntry(nextEntry);
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
+    const index = findEntryIndex(entries, id);
+    const nextEntry: WorldBookEntry = {
+      ...entries[index],
+      enabled: !entries[index].enabled,
+      updated_at: new Date().toISOString()
+    };
+    entries[index] = nextEntry;
+    await saveEntries(entries);
+    return toWorldBookListEntry(nextEntry);
+  });
 }
 
 export async function listWorldBookCharacterCards(): Promise<CharacterCardOption[]> {
@@ -927,93 +937,91 @@ function normalizeWorldBookGroupName(name: string): string {
 }
 
 export async function listWorldBookGroups(): Promise<WorldBookGroup[]> {
-  const groups = await readWorldBookGroups<WorldBookGroup>();
-  return groups.sort((a, b) => a.name.localeCompare(b.name));
+  return await withWorldBookStorage(async () => {
+    const groups = await readWorldBookGroups<WorldBookGroup>();
+    return groups.sort((a, b) => a.name.localeCompare(b.name));
+  });
 }
 
 export async function createWorldBookGroup(params: WorldBookGroupCreateParams): Promise<WorldBookGroup> {
-  const groups = await readWorldBookGroups<WorldBookGroup>();
-  const now = new Date().toISOString();
-  const group: WorldBookGroup = {
-    id: generateGroupId(),
-    name: normalizeWorldBookGroupName(params.name),
-    entry_ids: params.entry_ids,
-    character_card_ids: params.character_card_ids,
-    created_at: now,
-    updated_at: now
-  };
-  groups.push(group);
-  await writeWorldBookGroups(groups);
-  return group;
+  return await withWorldBookStorage(async () => {
+    const groups = await readWorldBookGroups<WorldBookGroup>();
+    const now = new Date().toISOString();
+    const group: WorldBookGroup = {
+      id: generateGroupId(),
+      name: normalizeWorldBookGroupName(params.name),
+      entry_ids: params.entry_ids,
+      character_card_ids: params.character_card_ids,
+      created_at: now,
+      updated_at: now
+    };
+    groups.push(group);
+    await writeWorldBookGroups(groups);
+    return group;
+  });
 }
 
 export async function deleteWorldBookGroup(id: string, deleteEntries: boolean): Promise<{ removedGroup: WorldBookGroup; removedEntries: WorldBookEntry[] }> {
-  const groups = await readWorldBookGroups<WorldBookGroup>();
-  const index = groups.findIndex((g) => g.id === id);
-  if (index === -1) throw worldBookError("GROUP_NOT_FOUND", "分组不存在");
-  const [removedGroup] = groups.splice(index, 1);
-  await writeWorldBookGroups(groups);
-
-  let removedEntries: WorldBookEntry[] = [];
-  if (deleteEntries) {
-    const entries = await loadEntries();
-    const remaining: WorldBookEntry[] = [];
-    for (const entry of entries) {
-      if (removedGroup.entry_ids.includes(entry.id)) {
-        removedEntries.push(entry);
-      } else {
-        remaining.push(entry);
-      }
+  return await withWorldBookStorage(async () => {
+    const groups = await readWorldBookGroups<WorldBookGroup>();
+    const index = groups.findIndex((group) => group.id === id);
+    if (index === -1) throw worldBookError("GROUP_NOT_FOUND", "分组不存在");
+    const [removedGroup] = groups.splice(index, 1);
+    const entries = deleteEntries ? await loadEntries() : [];
+    const referenced = new Set(groups.flatMap((group) => group.entry_ids));
+    const removedEntries = entries.filter((entry) => removedGroup.entry_ids.includes(entry.id) && !referenced.has(entry.id));
+    const removedIds = new Set(removedEntries.map((entry) => entry.id));
+    await writeWorldBookGroups(groups);
+    if (removedEntries.length > 0) {
+      await saveEntries(entries.filter((entry) => !removedIds.has(entry.id)));
     }
-    await saveEntries(remaining);
-  }
-  return { removedGroup, removedEntries };
+    return { removedGroup, removedEntries };
+  });
 }
 
 export async function copyEntryToGroup(entryId: string, targetGroupId: string): Promise<{ newEntry: WorldBookEntry }> {
-  const entries = await loadEntries();
-  const sourceIndex = findEntryIndex(entries, entryId);
-  const originalEntry = entries[sourceIndex];
-  const now = new Date().toISOString();
-  const newEntry: WorldBookEntry = {
-    ...originalEntry,
-    id: `wb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
-    name: `${originalEntry.name}(副本)`,
-    created_at: now,
-    updated_at: now
-  };
-  entries.push(newEntry);
-  await saveEntries(entries);
-
-  if (targetGroupId) {
+  return await withWorldBookStorage(async () => {
+    const entries = await loadEntries();
     const groups = await readWorldBookGroups<WorldBookGroup>();
-    const targetIndex = groups.findIndex((g) => g.id === targetGroupId);
-    if (targetIndex !== -1) {
-      groups[targetIndex].entry_ids.push(newEntry.id);
-      groups[targetIndex].updated_at = now;
+    const target = targetGroupId ? groups.find((group) => group.id === targetGroupId) : undefined;
+    if (targetGroupId && !target) throw worldBookError("GROUP_NOT_FOUND", "分组不存在");
+    const originalEntry = entries[findEntryIndex(entries, entryId)];
+    const now = new Date().toISOString();
+    const newEntry: WorldBookEntry = {
+      ...originalEntry,
+      id: generateId(),
+      name: `${originalEntry.name}(副本)`,
+      created_at: now,
+      updated_at: now
+    };
+    entries.push(newEntry);
+    await saveEntries(entries);
+    if (target) {
+      target.entry_ids.push(newEntry.id);
+      target.updated_at = now;
       await writeWorldBookGroups(groups);
     }
-  }
-  return { newEntry };
+    return { newEntry };
+  });
 }
 
 export async function updateWorldBookGroup(params: WorldBookGroupMutationParams): Promise<WorldBookGroup> {
-  const groups = await readWorldBookGroups<WorldBookGroup>();
-  const index = groups.findIndex((g) => g.id === params.id);
-  if (index === -1) throw worldBookError("GROUP_NOT_FOUND", "分组不存在");
-  const now = new Date().toISOString();
-  if (params.name != null) {
-    groups[index].name = normalizeWorldBookGroupName(params.name);
-  }
-  if (params.entry_ids != null) {
-    groups[index].entry_ids = params.entry_ids;
-  }
-  if (params.character_card_ids != null) {
-    groups[index].character_card_ids = params.character_card_ids;
-  }
-  groups[index].updated_at = now;
-  await writeWorldBookGroups(groups);
-  return groups[index];
+  return await withWorldBookStorage(async () => {
+    const groups = await readWorldBookGroups<WorldBookGroup>();
+    const index = groups.findIndex((g) => g.id === params.id);
+    if (index === -1) throw worldBookError("GROUP_NOT_FOUND", "分组不存在");
+    const now = new Date().toISOString();
+    if (params.name != null) {
+      groups[index].name = normalizeWorldBookGroupName(params.name);
+    }
+    if (params.entry_ids != null) {
+      groups[index].entry_ids = params.entry_ids;
+    }
+    if (params.character_card_ids != null) {
+      groups[index].character_card_ids = params.character_card_ids;
+    }
+    groups[index].updated_at = now;
+    await writeWorldBookGroups(groups);
+    return groups[index];
+  });
 }
-
-void ensureWorldBookStorage();

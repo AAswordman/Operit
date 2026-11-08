@@ -1,5 +1,8 @@
 package com.ai.assistance.operit.core.speech.text
 
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.MessageSectionCodec
+import com.ai.assistance.operit.data.model.MessageSection
 import com.ai.assistance.operit.util.logging.AppLogger
 
 object TtsCleaner {
@@ -67,5 +70,31 @@ object TtsCleaner {
         
         AppLogger.d(TAG, "clean(list): Final result='$cleanedText'")
         return cleanedText
+    }
+
+    /**
+     * Converts runtime markup at the speech boundary using the local section codec.
+     * Stored chat records use sections; streamed speech segments still arrive as strings.
+     * The codec preserves token-paired thinking boundaries before user regexes can erase them.
+     */
+    fun cleanForSpeech(text: String, regexPatterns: List<String>): String =
+        cleanForSpeech(MessageSectionCodec.parse(text), regexPatterns)
+
+    /**
+     * Selects reply text from the message sections before applying user cleaner patterns.
+     * Thinking, tool, protocol, search and status sections never enter the regex pipeline.
+     * Markdown stays intact for user patterns and is flattened by the existing speech caller.
+     */
+    fun cleanForSpeech(sections: List<MessageSection>, regexPatterns: List<String>): String {
+        val replyBody = sections.filterIsInstance<MessageSection.Text>()
+            .joinToString(separator = "") { it.content }
+            // Emotion markers remain part of Text and must disappear before tag-removal patterns.
+            .replace(ChatMarkupRegex.emotionTag, "")
+            .trim()
+        AppLogger.d(
+            TAG,
+            "cleanForSpeech: selected text sections before user patterns | sections=${sections.size} bodyLen=${replyBody.length}"
+        )
+        return clean(replyBody, regexPatterns)
     }
 }

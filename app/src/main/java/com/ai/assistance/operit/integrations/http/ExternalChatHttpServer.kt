@@ -253,7 +253,7 @@ class ExternalChatHttpServer(
 
         val streamJob: Job =
             serviceScope.launch(Dispatchers.IO) {
-                pipeOutput.bufferedWriter(StandardCharsets.UTF_8).use { writer ->
+                withSseWriter(pipeOutput, "requestId=$resolvedRequestId") { writer ->
                     try {
                         when (
                             val startResult =

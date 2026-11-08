@@ -142,6 +142,31 @@ class DistributionReleaseResolverTest {
         assertEquals("Operit-Kong-patch", DistributionReleaseResolver.REPOSITORY)
     }
 
+    @Test
+    fun fullApkAndPatchPathsCarryTheirOwnPublishedDigestsAndSizes() {
+        val digests = mapOf("app-kong.apk" to "a".repeat(64),
+            "apkrawpatch_old_to_new.zip" to "b".repeat(64), "patch_old_to_new.json" to "c".repeat(64))
+        fun withDigests(version: String) = release(version, patch = true).let { release ->
+            release.copy(assets = release.assets.map { it.copy(digest = "sha256:${digests.getValue(it.name)}") })
+        }
+        val patch = DistributionReleaseResolver.resolve("1.12.2+1", true, listOf(withDigests("1.12.2+2"))) as UpdateStatus.PatchAvailable
+        assertEquals("a".repeat(64), patch.fullApkSha256)
+        assertEquals(1024L, patch.fullApkSize)
+        assertEquals("b".repeat(64), patch.patchSha256)
+        assertEquals("c".repeat(64), patch.metaSha256)
+        val full = DistributionReleaseResolver.resolve("1.12.2+1", true, listOf(withDigests("1.12.3+1"))) as UpdateStatus.Available
+        assertEquals("a".repeat(64), full.downloadSha256)
+        assertEquals(1024L, full.downloadSize)
+        assertTrue(full.downloadUrl.contains("3316891527/Operit-Kong-patch/"))
+    }
+
+    @Test
+    fun legacyAssetsWithoutDigestStillCarryTheirPublishedSize() {
+        val full = DistributionReleaseResolver.resolve("1.12.2+1", true, listOf(release("1.12.3"))) as UpdateStatus.Available
+        assertEquals(null, full.downloadSha256)
+        assertEquals(1024L, full.downloadSize)
+    }
+
     private fun release(version: String, patch: Boolean = false): GitHubRelease = GitHubRelease(
         id = 1L,
         tag_name = "v$version",

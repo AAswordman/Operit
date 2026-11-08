@@ -166,6 +166,8 @@ const finalResult = await toolCall(
 | `test_model_config_connection` | `ModelConfigConnectionTestResultData` |
 | `trigger_tasker_event` | `string` |
 
+BLE 写入按特征的写属性选择模式：支持 `write_no_response` 时使用无响应写入，只有 `write` 时使用带响应写入，没有写属性时返回失败。无响应负载按当前 MTU 减去 3 字节 ATT 头分片，同一会话的完整写入串行执行；全部片段的本地 GATT 回调成功后，`bytesWritten` 才返回原始负载长度。无响应写入的成功不表示外设已处理命令。读取或写入超时属于工具失败，不作为成功的空内容返回。
+
 ### UI 操作
 
 | 工具名 | 返回数据类型 |

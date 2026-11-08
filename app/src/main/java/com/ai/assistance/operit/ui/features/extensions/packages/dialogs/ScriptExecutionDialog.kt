@@ -49,6 +49,7 @@ fun ScriptExecutionDialog(
     tool: PackageTool,
     environmentVariables: List<EnvVar>,
     packageManager: PackageManager,
+    packageEnabled: Boolean,
     initialResult: ToolResult?,
     onExecuted: (ToolResult) -> Unit,
     onDismiss: () -> Unit,
@@ -57,6 +58,8 @@ fun ScriptExecutionDialog(
     val scope = rememberCoroutineScope()
     val latestOnExecuted by rememberUpdatedState(onExecuted)
     val fullToolId = "$packageName:${tool.name}"
+    val updating by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.updating.collectAsState()
+    val canExecute = packageEnabled && packageName !in updating && packageManager.packageAvailabilityError(packageName) == null
     var paramValues by remember(packageName, tool) {
         mutableStateOf(tool.parameters.associate { it.name to "" })
     }
@@ -197,7 +200,7 @@ fun ScriptExecutionDialog(
         ) {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.pkg_close)) }
             Button(
-                enabled = !executing,
+                enabled = canExecute && !executing,
                 onClick = {
                     val missingParams = tool.parameters
                         .filter { it.required && paramValues.getValue(it.name).isEmpty() }

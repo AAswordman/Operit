@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.core.tools.builtin.system
 
 import android.content.Context
+import android.content.Intent
 import com.ai.assistance.operit.core.tools.AppOperationData
 import com.ai.assistance.operit.core.tools.NotificationData
 import com.ai.assistance.operit.core.tools.StringResultData
@@ -311,9 +312,8 @@ open class AdminSystemOperationTools(private val context: Context) : StandardSys
         return try {
             val command: String
             if (activity.isBlank()) {
-                // 使用 am start 命令而不是 monkey，避免修改系统设置（如屏幕旋转）
-                // 先获取应用的主 Activity，然后使用 -n 参数启动
-                val resolveCmd = "cmd package resolve-activity --brief $packageName 2>/dev/null | tail -n 1"
+                // Resolve the actual launcher entry, then use launcher flags to preserve its task.
+                val resolveCmd = "cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER $packageName 2>/dev/null | tail -n 1"
                 val resolveResult = AndroidShellExecutor.executeShellCommand(resolveCmd)
 
                 if (resolveResult.success && resolveResult.stdout.isNotBlank()) {
@@ -323,13 +323,13 @@ open class AdminSystemOperationTools(private val context: Context) : StandardSys
                     val lines = output.lines().filter { it.isNotBlank() && !it.startsWith("name=") }
                     val mainActivity = lines.lastOrNull()?.trim() ?: output.trim()
 
-                    // 如果返回的是完整组件名（package/activity），直接使用
-                    command = if (mainActivity.contains('/')) {
-                        "am start -n $mainActivity"
+                    val component = if (mainActivity.contains('/')) {
+                        mainActivity
                     } else {
-                        // 如果只返回了 Activity 名，拼接包名
-                        "am start -n $packageName/$mainActivity"
+                        "$packageName/$mainActivity"
                     }
+                    val launchFlags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+                    command = "am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -f $launchFlags -n $component"
                     AppLogger.d(TAG, "Resolved main Activity: $mainActivity, using command: $command")
                 } else {
                     // 如果无法解析 Activity，返回错误

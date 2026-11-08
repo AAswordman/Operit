@@ -63,16 +63,9 @@ fun PackageItem(
                         }
 
             // 开关
-                        Switch(
+                        ExtensionSwitch(
                                 checked = isImported,
                                 onCheckedChange = onToggleImport,
-                modifier = Modifier.size(width = 32.dp, height = 20.dp),
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = MaterialTheme.colorScheme.primary,
-                    checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                        )
                         )
                 }
         }

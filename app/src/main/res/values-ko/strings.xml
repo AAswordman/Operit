@@ -786,7 +786,7 @@
     <string name="package_tools">포함된 도구</string>
     <string name="package_import_success">패키지를 성공적으로 가져왔습니다.</string>
     <string name="package_import_error">패키지 가져오기 실패</string>
-    <string name="no_packages_available">사용 가능한 패키지가 없습니다.</string>
+    <string name="no_packages_available">사용 가능한 스크립트가 없습니다</string>
     <string name="no_plugins_available">사용 가능한 플러그인이 없습니다</string>
     <string name="no_packages_imported">아직 가져온 패키지가 없습니다.</string>
     <string name="remove_package">패키지 제거</string>
@@ -807,19 +807,19 @@
     <string name="package_js_only">JavaScript(.js) 및 ToolPkg(.toolpkg) 파일만 지원됩니다.</string>
     <string name="package_script_only">HJSON(.hjson), JavaScript(.js), TypeScript(.ts) 파일만 지원합니다</string>
     <string name="package_add_dialog_title_plugin">플러그인 추가</string>
-    <string name="package_add_dialog_title_package">샌드박스 패키지 추가</string>
+    <string name="package_add_dialog_title_package">스크립트 추가</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">기존 스크립트를 가져오거나 주석이 포함된 JS 템플릿을 만듭니다.</string>
     <string name="package_add_import_existing_plugin">기존 플러그인 가져오기</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">기존 샌드박스 패키지 가져오기</string>
+    <string name="package_add_import_existing_package">기존 스크립트 가져오기</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">JS 템플릿 만들기</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">TypeScript 템플릿 만들기</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">JS 템플릿 만들기</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">METADATA와 예제 도구가 포함된 .js 스크립트를 만듭니다.</string>
     <string name="package_template_identity_title">새 템플릿</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -838,7 +838,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">플러그인 또는 샌드박스 패키지로 가져오기</string>
+    <string name="package_share_choice_import">플러그인 또는 스크립트로 가져오기</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">채팅 첨부 파일로 추가</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -3048,7 +3048,6 @@
     <string name="config_renamed">구성 이름이 변경됨</string>
     <string name="api_settings">API 구성</string>
     <string name="api_endpoint">API 엔드포인트</string>
-    <string name="api_endpoint_placeholder">예: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">실제 요청 URL: %s</string>
     <string name="endpoint_completion_hint">힌트: 기본 URL을 입력하면 시스템이 자동으로 경로를 완성합니다. 비활성화하려면 URL 끝에 #을 추가하세요.</string>
     <string name="api_key">API 키</string>
@@ -3480,7 +3479,7 @@
     <string name="login_github_to_manage_packages">GitHub에 로그인하여 패키지를 게시하고 관리하세요.</string>
     <string name="browse">둘러보기</string>
     <string name="my_tab">내</string>
-    <string name="market_tab_artifact">샌드박스 패키지</string>
+    <string name="market_tab_artifact">스크립트</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">스킬</string>
     <string name="market_tab_mine">내 항목</string>
@@ -3502,11 +3501,11 @@
     <string name="no_matching_plugins_found">일치하는 플러그인을 찾을 수 없습니다.</string>
     <string name="no_matching_skills_found">일치하는 스킬을 찾을 수 없습니다.</string>
     <string name="no_matching_scripts_found">일치하는 스크립트가 없습니다.</string>
-    <string name="no_matching_packages_found">일치하는 패키지를 찾을 수 없습니다.</string>
+    <string name="no_matching_packages_found">일치하는 스크립트가 없습니다</string>
     <string name="skill_market_search_placeholder">스킬 또는 작성자 검색</string>
     <string name="script_market_search_placeholder">스크립트 이름, 설명, 작성자 검색...</string>
     <string name="plugin_market_search_placeholder">플러그인 검색</string>
-    <string name="package_market_search_placeholder">패키지 이름, 설명, 작성자 검색...</string>
+    <string name="package_market_search_placeholder">스크립트 이름, 설명, 작성자 검색…</string>
     <string name="mcp_market_search_placeholder">MCP 검색</string>
     <string name="skill_repo_url_not_found">저장소 URL을 찾을 수 없습니다.</string>
     <string name="skill_repo_url_not_found_cannot_install">저장소 URL을 찾을 수 없어 설치할 수 없습니다.</string>
@@ -5638,10 +5637,6 @@
     <string name="phone_agent_virtual_screen_create_failed">가상 화면 생성에 실패했습니다.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">가상 화면 사전 준비 실패: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">가상 화면을 시작하지 못하여 메인 화면에서 작업을 피하기 위해 중단되었습니다.</string>
-    <string name="phone_agent_thinking">생각 중...</string>
-    <string name="phone_agent_completed">완료됨</string>
-    <string name="phone_agent_executing_action">%1$s 실행 중...</string>
-    <string name="phone_agent_executing">실행 중...</string>
     <string name="workflow_skip">건너뛰기</string>
     <string name="workflow_condition_type_mismatch">조건 유형 불일치: 왼쪽=\'%1$s\', 오른쪽=\'%2$s\'</string>
     <string name="workflow_condition_not_met">조건이 충족되지 않음</string>
@@ -6875,9 +6870,8 @@
     <string name="github_login_method_external">외부 브라우저로 로그인</string>
     <string name="github_login_starting">GitHub 인증 준비 중...</string>
     <string name="artifact_publish_toolpkg_version_readonly">ToolPkg 릴리스 버전은 패키지 내 매니페스트에서 가져오므로 게시 전에 수동으로 수정할 수 없습니다</string>
-    <string name="market_version_incompatible_title">다운로드 불가: 클라이언트 버전이 지원되지 않음</string>
-    <string name="market_version_too_low_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최소 요구 버전 %2$s보다 낮습니다. 클라이언트를 업데이트한 후 다시 다운로드하세요.</string>
-    <string name="market_version_too_high_message">현재 클라이언트 버전 %1$s이(가) 이 리소스의 최대 지원 버전 %2$s보다 높습니다. 지원되는 클라이언트 버전을 사용하세요.</string>
+    <string name="market_toolpkg_api_incompatible_title">설치 불가: ToolPkg API가 지원되지 않음</string>
+    <string name="market_toolpkg_api_incompatible_message">이 플러그인은 ToolPkg API %1$s을(를) 선언합니다. 이 기기에서 지원하는 버전은 %2$s이므로 설치할 수 없습니다.</string>
     <string name="search_group_title">검색</string>
     <string name="thinking_search_group_title">생각하고 검색</string>
     <string name="thinking_search_tools_group_title_with_count">생각, 검색 및 도구 호출(%1$d)</string>
@@ -7199,7 +7193,7 @@
     <string name="data_storage_extension_scripts">스크립트</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">스킬</string>
-    <string name="data_storage_extension_plugin_source">플러그인 소스</string>
+    <string name="data_storage_extension_plugin_data">플러그인 데이터</string>
     <string name="data_storage_extension_dev_package">개발 패키지</string>
     <string name="data_storage_extension_themes">테마 패키지</string>
     <string name="data_storage_extension_bridge">MCP 브리지</string>
@@ -7208,7 +7202,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">플러그인 데이터 없음</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -7291,7 +7285,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">플러그인 마켓</string>
-    <string name="package_market">패키지 마켓</string>
+    <string name="package_market">스크립트 마켓</string>
     <string name="plugin_sort_action">정렬</string>
     <string name="plugin_sort_custom">사용자 지정 순서</string>
     <string name="plugin_sort_name">이름</string>
@@ -7310,7 +7304,7 @@
     <string name="plugin_manage_load_errors">로딩 오류 (%1$d)</string>
     <string name="plugin_import_format_help">가져오기 형식 안내</string>
     <string name="plugin_import_format_description">플러그인은 manifest.json 또는 manifest.hjson과 선언된 진입 파일 및 리소스가 포함된 .toolpkg 파일을 지원합니다.</string>
-    <string name="sandbox_import_format_description">샌드박스 패키지는 .js, .ts, .hjson 파일을 지원합니다. 스크립트에는 METADATA가 필요하며 TypeScript는 별도로 컴파일해야 합니다.</string>
+    <string name="sandbox_import_format_description">독립 스크립트는 .js, .ts, .hjson을 지원합니다. METADATA가 필요하며 TypeScript는 별도로 컴파일해야 합니다.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">AI 메시지</string>
@@ -8208,7 +8202,7 @@
     <string name="theme_transfer_author">작성자</string>
     <string name="theme_transfer_code">코드 공유</string>
     <string name="theme_transfer_file">테마 파일 .oktheme</string>
-    <string name="theme_transfer_full_contents">테마 매개변수, 배경 사진 또는 비디오, 양측의 버블 사진, 사용자 정의 글꼴, 아바타 및 재료 조정을 포함합니다.</string>
+    <string name="theme_transfer_full_contents">모든 테마 리소스를 포함합니다.</string>
     <string name="theme_transfer_paste">코드 또는 주제 링크 공유</string>
     <string name="theme_transfer_choose_file">테마 파일 선택</string>
     <string name="theme_transfer_generate">공유 코드 생성</string>
@@ -8287,4 +8281,81 @@
     <string name="data_storage_detail_model_engines">실행 엔진</string>
     <string name="pkg_delete_failed">확장 파일을 삭제할 수 없습니다. 파일 권한을 확인하거나 의존 플러그인을 비활성화한 후 다시 시도하세요.</string>
     <string name="pkg_delete_success">확장 설치 파일을 삭제했습니다</string>
+
+    <string name="extension_interfaces">인터페이스</string>
+    <string name="extension_description_title">설명</string>
+    <string name="extension_description_expand">전체 보기</string>
+    <string name="extension_description_collapse">접기</string>
+    <string name="extension_detail_load_failed">확장 기능 정보를 불러올 수 없습니다. 설치 상태를 확인하거나 다시 시도하세요.</string>
+    <string name="extension_toggle_failed">활성화 상태를 변경할 수 없습니다. 종속성과 환경 설정을 확인한 후 다시 시도하세요.</string>
+    <string name="extension_detail_retry">다시 시도</string>
+
+    <string name="extension_detail_brief">소개</string>
+    <string name="extension_detail_description">상세 설명</string>
+    <string name="extension_detail_information">정보</string>
+    <string name="extension_detail_manage">관리</string>
+    <string name="extension_detail_contents">포함 내용</string>
+    <string name="extension_detail_dependencies">종속성</string>
+    <string name="extension_detail_subpackages">하위 패키지</string>
+    <string name="extension_detail_type">유형</string>
+    <string name="extension_detail_status">상태</string>
+    <string name="extension_detail_version">버전</string>
+    <string name="extension_detail_source">출처</string>
+    <string name="extension_detail_imported">수동 가져오기</string>
+    <string name="extension_detail_market_source">마켓 설치</string>
+    <string name="extension_detail_remove">확장 기능 삭제</string>
+    <string name="extension_detail_remove_hint">이 확장 기능과 파일을 삭제합니다</string>
+    <string name="extension_detail_resources">리소스</string>
+    <string name="extension_detail_wasm">WASM 모듈</string>
+    <string name="extension_detail_workflows">워크플로 템플릿</string>
+    <string name="extension_detail_workspaces">작업 공간 템플릿</string>
+    <string name="extension_detail_developers">개발자</string>
+    <string name="extension_detail_updated">업데이트</string>
+    <string name="extension_detail_entry">진입점</string>
+    <string name="extension_detail_path">경로</string>
+    <string name="extension_detail_market_entry">마켓 항목</string>
+    <string name="extension_detail_enabled">활성화됨</string>
+    <string name="extension_detail_disabled">비활성화됨</string>
+    <string name="extension_detail_other_versions">다른 버전</string>
+    <string name="extension_detail_empty_subpackages">이 플러그인에는 하위 패키지가 없습니다.</string>
+    <string name="extension_detail_tools">도구</string>
+    <string name="extension_detail_navigation">탐색 항목</string>
+    <string name="extension_detail_widgets">바탕 화면 위젯</string>
+    <string name="extension_detail_default_state">기본 상태</string>
+    <string name="extension_detail_source_unavailable">출처를 읽을 수 없음</string>
+    <string name="extension_detail_install_config">설치 구성</string>
+
+    <string name="extension_detail_downloads">다운로드</string>
+    <string name="extension_detail_likes">좋아요</string>
+    <string name="extension_detail_format">형식</string>
+    <string name="extension_updates_count">업데이트 %1$d개</string>
+    <string name="extension_update_now">업데이트</string>
+    <string name="extension_updating">업데이트 중</string>
+    <string name="extension_install">다운로드</string>
+    <string name="extension_installed">설치됨</string>
+
+    <string name="extension_new_version">새 버전</string>
+    <string name="script_filter_all">모든 스크립트</string>
+    <string name="script_filter_enabled">활성 스크립트</string>
+    <string name="script_filter_disabled">비활성 스크립트</string>
+    <string name="script_list_count">스크립트 %1$d개</string>
+    <string name="studio_resources_imported">리소스 %1$d개를 가져왔습니다</string>
+    <string name="studio_import_resource_hint">PNG, JPEG, WebP, 정적 SVG 이미지와 TTF, OTF 글꼴을 여러 개 선택할 수 있습니다</string>
+    <string name="extension_detail_plugin">플러그인</string>
+    <string name="extension_detail_script">스크립트</string>
+    <string name="builtin_market_type">유형</string>
+    <string name="builtin_market_download_size">다운로드 크기</string>
+    <string name="builtin_market_packages">포함된 확장 기능</string>
+    <string name="builtin_market_open_installed">설치 항목 보기</string>
+    <string name="builtin_market_about">소개</string>
+    <string name="builtin_market_description">Operit 내장 리소스입니다. 다운로드 후 플러그인 또는 스크립트 목록에서 관리하고 활성화하며 도구를 확인할 수 있습니다.</string>
+    <string name="builtin_market_information">정보</string>
+    <string name="builtin_market_source">출처</string>
+    <string name="builtin_market_resource_version">리소스 버전</string>
+    <string name="builtin_resource_import">내장 리소스 가져오기</string>
+    <string name="builtin_resource_import_hint">해당 플러그인 또는 스크립트를 선택한 후 해당 ZIP 리소스 패키지를 가져오세요.</string>
+    <string name="builtin_resource_no_targets">가져올 수 있는 내장 리소스가 없습니다.</string>
+    <string name="builtin_market_version">리소스 버전 %1$s</string>
+    <string name="extension_updates_no_sources">업데이트 출처를 확인할 플러그인이나 스크립트가 없습니다. 마켓 출처 없이 직접 가져온 항목은 확인할 수 없습니다.</string>
+    <string name="data_storage_extension_plugin_data_desc">월드북과 플러그인 설정이 포함됩니다. 해당 플러그인에서 관리하세요.</string>
 </resources>

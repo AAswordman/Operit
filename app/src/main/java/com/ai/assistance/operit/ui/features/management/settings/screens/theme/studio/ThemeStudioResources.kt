@@ -131,6 +131,8 @@ internal fun StudioResources(state: ThemeStudioState, onImport: () -> Unit) {
                 }
             }
         }
+        Text(stringResource(R.string.studio_import_resource_hint), Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         HorizontalDivider(color = StudioLine)
         Text(stringResource(R.string.studio_resource_count, files.size, all.size), Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

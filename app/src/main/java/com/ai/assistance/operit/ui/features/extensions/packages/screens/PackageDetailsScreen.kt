@@ -1,4 +1,4 @@
-package com.ai.assistance.operit.ui.features.extensions.packages.dialogs
+package com.ai.assistance.operit.ui.features.extensions.packages.screens
 
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.util.logging.AppLogger
@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -23,11 +22,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import androidx.compose.ui.window.Dialog
+import com.ai.assistance.operit.ui.features.extensions.packages.components.*
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.api.MarketStatsApiService
 import com.ai.assistance.operit.data.api.MarketV2Entry
 import com.ai.assistance.operit.ui.features.extensions.packages.market.readMarketInstallMarkerForPackage
+import com.ai.assistance.operit.ui.features.extensions.packages.market.BuiltInResourceDetailActions
+import com.ai.assistance.operit.ui.features.extensions.packages.market.builtInResourceForPackage
+import com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdates
+import com.ai.assistance.operit.ui.features.extensions.packages.market.extensionErrorDetails
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.EnvVar
 import com.ai.assistance.operit.ui.features.extensions.packages.components.dialogs.packageui.PackageDialogHeader
@@ -42,33 +50,28 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import kotlin.math.abs
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private sealed interface PackageUpdateCheckState {
-    data object UpToDate : PackageUpdateCheckState
-    data class UpdateAvailable(
-        val entry: MarketV2Entry,
-        val latestVersion: String
-    ) : PackageUpdateCheckState
-    data object NotFromMarket : PackageUpdateCheckState
-    data object EntryMissing : PackageUpdateCheckState
-    data object Failed : PackageUpdateCheckState
-}
+private data class InstalledExtensionOrigin(val marketEntryId: String?, val scriptPath: String?)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PackageDetailsDialog(
+internal fun PackageDetailsScreen(
         packageName: String,
         packageDescription: String,
         toolPackage: ToolPackage?,
         packageManager: PackageManager,
+        deletionScope: CoroutineScope,
         isContainerEnabled: Boolean,
+        isToggling: Boolean,
+        toggleError: String?,
+        onToggleEnabled: (Boolean) -> Unit,
         onRunScript: (String, PackageTool) -> Unit,
         onOpenToolPkgPluginConfig: (String, String, String, Boolean) -> Unit,
-        onDismiss: () -> Unit,
         onPackageDeleted: () -> Unit,
         onOpenMarketDetail: (MarketV2Entry) -> Unit
 ) {
@@ -79,63 +82,18 @@ fun PackageDetailsDialog(
     var showRuntimeMonitorDialog by remember(packageName) { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    var updateCheckState by remember(packageName) { mutableStateOf<PackageUpdateCheckState?>(null) }
-    var isCheckingUpdate by remember { mutableStateOf(false) }
-
-    fun runUpdateCheck() {
-        if (isCheckingUpdate) return
-        isCheckingUpdate = true
-        updateCheckState = null
-        scope.launch {
-            try {
-                val marker =
-                    withContext(Dispatchers.IO) {
-                        readMarketInstallMarkerForPackage(packageManager, packageName)
-                    }
-                if (marker == null) {
-                    updateCheckState = PackageUpdateCheckState.NotFromMarket
-                    return@launch
-                }
-                val entryResult =
-                    withContext(Dispatchers.IO) {
-                        MarketStatsApiService().getEntry(marker.entryId)
-                    }
-                if (entryResult.isFailure) {
-                    updateCheckState = PackageUpdateCheckState.Failed
-                    return@launch
-                }
-                val entry = entryResult.getOrNull()
-                if (entry == null) {
-                    updateCheckState = PackageUpdateCheckState.EntryMissing
-                    return@launch
-                }
-                val latest = entry.latestVersion
-                if (latest == null || latest.id.isBlank() || latest.id == marker.versionId) {
-                    updateCheckState = PackageUpdateCheckState.UpToDate
-                } else {
-                    updateCheckState =
-                        PackageUpdateCheckState.UpdateAvailable(
-                            entry = entry,
-                            latestVersion = latest.version.ifBlank { latest.id }
-                        )
-                }
-            } catch (error: Exception) {
-                AppLogger.e("PackageDetailsDialog", "Update check failed", error)
-                updateCheckState = PackageUpdateCheckState.Failed
-            } finally {
-                isCheckingUpdate = false
-            }
-        }
-    }
-
-    val resolvedPackage by produceState<ToolPackage?>(initialValue = toolPackage, packageName, toolPackage) {
+    val updating by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.updating.collectAsState()
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    val updates by com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdates.available.collectAsState()
+    val isUpdating = packageName in updating
+    val resolvedPackage by produceState<ToolPackage?>(initialValue = toolPackage, packageName, toolPackage, updateRevision) {
         value = toolPackage
 
         val resolved =
             try {
                 withContext(Dispatchers.IO) { packageManager.resolvePackageForDisplay(packageName) }
             } catch (e: Exception) {
-                AppLogger.e("PackageDetailsDialog", "Failed to load package details", e)
+                AppLogger.e("PackageDetailsScreen", "Failed to load package details", e)
                 null
             }
 
@@ -156,7 +114,10 @@ fun PackageDetailsDialog(
     var subpackageDialogEnv by remember { mutableStateOf<List<EnvVar>>(emptyList()) }
     var isLoadingSubpackageTools by remember { mutableStateOf(false) }
 
-    LaunchedEffect(packageName, toolPackage, isContainerEnabled) {
+    val isCurrentScreen = LocalIsCurrentScreen.current
+    LaunchedEffect(packageName, toolPackage, isContainerEnabled, isCurrentScreen, updateRevision) {
+        if (!isCurrentScreen) return@LaunchedEffect
+        // A retained detail route must reread child states after its configuration UI closes.
         toolPkgDetails =
             try {
                 withContext(Dispatchers.IO) {
@@ -166,7 +127,7 @@ fun PackageDetailsDialog(
                     )
                 }
             } catch (e: Exception) {
-                AppLogger.e("PackageDetailsDialog", "Failed to load toolpkg details", e)
+                AppLogger.e("PackageDetailsScreen", "Failed to load toolpkg details", e)
                 null
             }
     }
@@ -184,7 +145,7 @@ fun PackageDetailsDialog(
                 try {
                     withContext(Dispatchers.IO) { packageManager.readToolPkgLogoBytes(packageName) }
                 } catch (error: Exception) {
-                    AppLogger.e("PackageDetailsDialog", "Failed to load toolpkg logo", error)
+                    AppLogger.e("PackageDetailsScreen", "Failed to load toolpkg logo", error)
                     null
                 }
             }
@@ -195,7 +156,7 @@ fun PackageDetailsDialog(
             bytes = logo?.bytes,
             mimeType = logo?.mimeType,
             fileName = logo?.fileName,
-            size = 28.dp
+            size = 80.dp
         )
 
     val activeStateId by produceState<String?>(initialValue = null, packageName, resolvedPackage) {
@@ -208,7 +169,7 @@ fun PackageDetailsDialog(
     }
 
     val metaPackage = toolPackage ?: resolvedPackage
-    val isToolPkgContainer = toolPkgDetails != null
+    val isToolPkgContainer = remember(packageName) { packageManager.isToolPkgContainer(packageName) }
     val packageDisplayName =
         toolPkgDetails?.displayName?.takeIf { it.isNotBlank() }
             ?: metaPackage
@@ -239,7 +200,7 @@ fun PackageDetailsDialog(
             title = { Text(stringResource(R.string.pkg_confirm_delete)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(R.string.pkg_delete_warning, packageName))
+                    Text(stringResource(if (resolvedPackage?.isBuiltIn == true) R.string.resource_delete_confirm else R.string.pkg_delete_warning, packageName))
                     if (deleteFailed) Text(
                         stringResource(R.string.pkg_delete_failed),
                         color = MaterialTheme.colorScheme.error,
@@ -248,13 +209,21 @@ fun PackageDetailsDialog(
             },
             confirmButton = {
                 Button(
-                    enabled = !isDeleting,
+                    enabled = !isDeleting && !isUpdating,
                     onClick = {
                         isDeleting = true
                         deleteFailed = false
-                        scope.launch {
+                        // Resource refresh can remove this child before deletion resumes.
+                        // Keep success navigation in the enclosing detail route's scope.
+                        deletionScope.launch {
                             try {
-                                val deleted = withContext(Dispatchers.IO) { packageManager.deletePackage(packageName) }
+                                val deleted = withContext(Dispatchers.IO) {
+                                    if (resolvedPackage?.isBuiltIn == true) {
+                                        ExtensionUpdates.deleteBuiltIn(context, packageManager,
+                                            builtInResourceForPackage(context, packageManager, packageName))
+                                        true
+                                    } else packageManager.deletePackage(packageName)
+                                }
                                 if (deleted) {
                                     showDeleteConfirmDialog = false
                                     onPackageDeleted()
@@ -262,7 +231,8 @@ fun PackageDetailsDialog(
                             } catch (error: kotlinx.coroutines.CancellationException) {
                                 throw error
                             } catch (error: Exception) {
-                                AppLogger.e("PackageDetailsDialog", "Package deletion failed: $packageName", error)
+                                AppLogger.e("PackageDetailsScreen", "Package deletion failed: $packageName", error)
+                                OKToast.error(context, extensionErrorDetails(error), OKToast.LENGTH_LONG).show()
                                 deleteFailed = true
                             } finally {
                                 isDeleting = false
@@ -289,279 +259,121 @@ fun PackageDetailsDialog(
         )
     }
 
-    val currentUpdateCheckState = updateCheckState
-    if (currentUpdateCheckState != null) {
-        AlertDialog(
-            onDismissRequest = { updateCheckState = null },
-            title = { Text(stringResource(R.string.pkg_check_update)) },
-            text = {
-                Text(
-                    when (currentUpdateCheckState) {
-                        is PackageUpdateCheckState.UpToDate ->
-                            stringResource(R.string.pkg_check_update_up_to_date)
-                        is PackageUpdateCheckState.UpdateAvailable ->
-                            stringResource(
-                                R.string.pkg_check_update_available,
-                                currentUpdateCheckState.latestVersion
-                            )
-                        PackageUpdateCheckState.NotFromMarket ->
-                            stringResource(R.string.pkg_check_update_not_market)
-                        PackageUpdateCheckState.EntryMissing ->
-                            stringResource(R.string.pkg_check_update_entry_missing)
-                        PackageUpdateCheckState.Failed ->
-                            stringResource(R.string.pkg_check_update_failed)
-                    }
-                )
-            },
-            confirmButton = {
-                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
-                    Button(
-                        onClick = {
-                            updateCheckState = null
-                            onOpenMarketDetail(currentUpdateCheckState.entry)
-                        }
-                    ) {
-                        Text(stringResource(R.string.pkg_check_update_go))
-                    }
-                } else {
-                    Button(onClick = { updateCheckState = null }) {
-                        Text(stringResource(R.string.pkg_ok))
-                    }
-                }
-            },
-            dismissButton = {
-                if (currentUpdateCheckState is PackageUpdateCheckState.UpdateAvailable) {
-                    TextButton(onClick = { updateCheckState = null }) {
-                        Text(stringResource(R.string.pkg_cancel))
-                    }
-                }
+    val details = toolPkgDetails
+    val resolvedAuthors = (details?.author ?: metaPackage?.author.orEmpty()).map(String::trim).filter(String::isNotBlank)
+    val resolvedDescription = if (isToolPkgContainer && details != null) details.description else packageDescription
+    val version = if (isToolPkgContainer) details?.version.orEmpty() else metaPackage?.version.orEmpty()
+    val typeLabel = stringResource(if (isToolPkgContainer) R.string.nav_group_plugins else R.string.packages)
+    val enabledLabel = stringResource(if (isContainerEnabled) R.string.extension_detail_enabled else R.string.extension_detail_disabled)
+    var origin by remember(packageName) { mutableStateOf<InstalledExtensionOrigin?>(null) }
+    var originFailed by remember(packageName) { mutableStateOf(false) }
+    var showInterfacePicker by remember(packageName) { mutableStateOf(false) }
+    LaunchedEffect(packageName, isCurrentScreen, updateRevision) {
+        if (!isCurrentScreen) return@LaunchedEffect
+        try {
+            origin = withContext(Dispatchers.IO) {
+                val marker = readMarketInstallMarkerForPackage(packageManager, packageName)
+                val scriptPath = if (!isToolPkgContainer) {
+                    packageManager.getPublishablePackageSources().firstOrNull { it.packageName == packageName }?.sourcePath
+                } else null
+                InstalledExtensionOrigin(marker?.entryId, scriptPath)
             }
+            originFailed = false
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            AppLogger.e("PackageDetailsScreen", "Failed to read installed metadata for $packageName", error)
+            originFailed = true
+        }
+    }
+    val sourceLabel = when {
+        metaPackage?.isBuiltIn == true -> stringResource(R.string.builtin)
+        originFailed -> stringResource(R.string.extension_detail_source_unavailable)
+        origin == null -> "…"
+        origin?.marketEntryId != null -> stringResource(R.string.extension_detail_market_source)
+        else -> stringResource(R.string.extension_detail_imported)
+    }
+    val modules = details?.uiModules.orEmpty()
+    val canRunTools = isContainerEnabled && !isToggling && !isDeleting && !isUpdating
+    fun openModule(module: PackageManager.ToolPkgUiModule) {
+        if (!canRunTools || packageManager.packageAvailabilityError(packageName) != null) return
+        onOpenToolPkgPluginConfig(module.containerPackageName, module.uiModuleId, module.title, module.keepAlive)
+    }
+    if (showInterfacePicker) {
+        AlertDialog(
+            onDismissRequest = { showInterfacePicker = false },
+            title = { Text(stringResource(R.string.extension_interfaces)) },
+            text = {
+                Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
+                    modules.forEach { module ->
+                        TextButton(enabled = canRunTools, onClick = { showInterfacePicker = false; openModule(module) }) { Text(module.title) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showInterfacePicker = false }) { Text(stringResource(R.string.pkg_close)) } },
         )
     }
 
-    PackageDialogLayout(onDismiss = onDismiss) { compact ->
-        val resolvedAuthors = metaPackage?.author?.map(String::trim)?.filter(String::isNotBlank).orEmpty()
-        PackageDialogHeader(
-            title = packageDisplayName,
-            icon = Icons.Default.Extension,
-            compact = compact,
-            onDismiss = onDismiss,
-            logo = if (logoPainter != null) {
-                {
-                    Image(
-                        painter = logoPainter,
-                        contentDescription = packageDisplayName,
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-            } else null,
-        )
-        Spacer(Modifier.height(if (compact) 8.dp else 20.dp))
-        val resolvedDescription = toolPkgDetails?.description?.takeIf { it.isNotBlank() } ?: packageDescription
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            modifier = Modifier.weight(1f, fill = false).verticalScroll(contentScrollState),
+            Modifier.fillMaxSize().verticalScroll(contentScrollState).padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(26.dp),
         ) {
-            Text(
-                text = "ID: $packageName",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (resolvedAuthors.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.pkg_details_authors, resolvedAuthors.joinToString(", ")),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (metaPackage != null) {
-                Text(
-                    text = stringResource(R.string.pkg_details_category, metaPackage.category),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.pkg_details_source,
-                        stringResource(if (metaPackage.isBuiltIn) R.string.builtin else R.string.external),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.pkg_details_default_state,
-                        stringResource(
-                            if (metaPackage.enabledByDefault) R.string.pkg_details_default_enabled else R.string.pkg_details_default_disabled
-                        ),
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (resolvedDescription.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = resolvedDescription,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            if (metaPackage != null && metaPackage.env.isNotEmpty()) {
-                Spacer(Modifier.height(20.dp))
-                PackageEnvironmentSection(metaPackage.env)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = if (isToolPkgContainer) {
-                    stringResource(R.string.pkg_toolpkg_subpackages)
-                } else {
-                    stringResource(R.string.pkg_tool_list)
+            ExtensionDetailHeader(
+                title = packageDisplayName,
+                subtitle = sourceLabel,
+                badges = buildList { add(typeLabel); if (version.isNotBlank()) add("v$version") },
+                logo = logoPainter,
+                logoEnabled = isContainerEnabled && !isUpdating,
+                actions = {
+                    ExtensionDetailActions(
+                        displayName = packageDisplayName,
+                        checked = isContainerEnabled,
+                        showOpen = details?.hasConfigurableUi == true,
+                        openEnabled = canRunTools && modules.isNotEmpty(),
+                        toggleEnabled = !isToggling && !isDeleting && !isUpdating,
+                        onOpen = {
+                            if (modules.size == 1) openModule(modules.single()) else showInterfacePicker = true
+                        },
+                        onToggle = onToggleEnabled,
+                        updateAction = if (packageName in updates || isUpdating) ({
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateAction(
+                                packageName, isContainerEnabled, !isToggling && !isDeleting, onToggleEnabled)
+                        }) else null,
+                    )
                 },
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (isToolPkgContainer) {
-                val details = toolPkgDetails
-                if (details == null) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateProgress(packageName)
+            if (toggleError != null) Text(toggleError, color = MaterialTheme.colorScheme.error)
+            ExtensionDetailStats(buildList {
+                add(ExtensionDetailStat(stringResource(R.string.extension_detail_type), typeLabel,
+                    if (isToolPkgContainer) Icons.Default.Extension else Icons.Default.Code))
+                add(ExtensionDetailStat(stringResource(R.string.extension_detail_status), enabledLabel))
+                add(ExtensionDetailStat(stringResource(R.string.extension_detail_version), version.ifBlank { "—" }))
+                if (isToolPkgContainer) {
+                    add(ExtensionDetailStat(stringResource(R.string.extension_detail_subpackages), details?.subpackages?.size?.toString() ?: "…"))
+                    add(ExtensionDetailStat(stringResource(R.string.extension_interfaces), details?.uiModuleCount?.toString() ?: "…"))
                 } else {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                            )
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_api_version, details.apiVersion),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (details.version.isNotBlank()) {
-                                    Text(
-                                        text = stringResource(R.string.pkg_toolpkg_version, details.version),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_resources, details.resourceCount),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_wasm_modules, details.wasmModuleCount),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_ui_modules, details.uiModuleCount),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_workflow_templates, details.workflowTemplateCount),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = stringResource(R.string.pkg_toolpkg_workspace_templates, details.workspaceTemplateCount),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (details.requires.isNotEmpty()) {
-                                    Text(
-                                        text = stringResource(
-                                            R.string.pkg_toolpkg_requires,
-                                            details.requires.joinToString(", ") { requirement ->
-                                                buildString {
-                                                    append(requirement.id)
-                                                    if (requirement.description.isNotBlank()) {
-                                                        append(" — ")
-                                                        append(requirement.description)
-                                                    }
-                                                    val versionRange = when {
-                                                        requirement.minVersion != null && requirement.maxVersion != null ->
-                                                            "${requirement.minVersion} - ${requirement.maxVersion}"
-                                                        requirement.minVersion != null -> ">= ${requirement.minVersion}"
-                                                        requirement.maxVersion != null -> "<= ${requirement.maxVersion}"
-                                                        else -> null
-                                                    }
-                                                    if (versionRange != null) {
-                                                        append(" [")
-                                                        append(versionRange)
-                                                        append("]")
-                                                    }
-                                                }
-                                            }
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-
-                        if (details.uiModules.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            ToolPkgPluginConfigCard(
-                                modules = details.uiModules,
-                                onOpenToolPkgPluginConfig = onOpenToolPkgPluginConfig
-                            )
-                        }
-
-                        if (!toolPkgToggleError.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = toolPkgToggleError.orEmpty(),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-
-                        if (details.workflowTemplates.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = stringResource(R.string.pkg_toolpkg_registered_workflow_templates),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            ToolPkgWorkflowTemplatesCard(
-                                templates = details.workflowTemplates
-                            )
-                        }
-
-                        if (details.workspaceTemplates.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Text(
-                                text = stringResource(R.string.pkg_toolpkg_registered_workspace_templates),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            ToolPkgWorkspaceTemplatesCard(
-                                templates = details.workspaceTemplates
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
+                    add(ExtensionDetailStat(stringResource(R.string.extension_detail_tools), resolvedPackage?.tools?.size?.toString() ?: "…"))
+                }
+            })
+            if (resolvedDescription.isNotBlank()) {
+                ExtensionDetailDescription(stringResource(R.string.extension_detail_brief), resolvedDescription,
+                    stateKey = "$packageName:description", previewLines = 4, markdown = true)
+            }
+            if (modules.isNotEmpty()) {
+                ExtensionDetailSection(stringResource(R.string.extension_interfaces), modules.size) {
+                    ToolPkgPluginConfigCard(modules, onOpenToolPkgPluginConfig)
+                }
+            }
+            if (metaPackage != null && metaPackage.env.isNotEmpty()) PackageEnvironmentSection(metaPackage.env)
+            if (isToolPkgContainer) {
+                ExtensionDetailSection(stringResource(R.string.extension_detail_subpackages), details?.subpackages?.size) {
+                    if (details == null) {
+                        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+                    } else {
                         if (details.subpackages.isEmpty()) {
-                            EmptyToolsCard(message = stringResource(R.string.pkg_toolpkg_empty_subpackages))
+                            ExtensionDetailEmpty(stringResource(R.string.extension_detail_empty_subpackages))
                         } else {
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
@@ -570,7 +382,7 @@ fun PackageDetailsDialog(
                                 details.subpackages.forEach { subpackage ->
                                     fun applySubpackageToggle(enabled: Boolean) {
                                         // 父插件未启用时禁止改动子包，避免开关先亮起又被有效状态刷新关闭。
-                                        if (!isContainerEnabled) return
+                                        if (!isContainerEnabled || isToggling || isUpdating) return
                                         toolPkgToggleError = null
                                         val previousDetails = details
                                         toolPkgDetails =
@@ -625,7 +437,8 @@ fun PackageDetailsDialog(
                                             }
                                         },
                                         modifier = Modifier.fillMaxWidth(),
-                                        color = MaterialTheme.colorScheme.surface
+                                        shape = RoundedCornerShape(16.dp),
+                                        color = MaterialTheme.colorScheme.surfaceContainerLow
                                     ) {
                                         Row(
                                             modifier = Modifier
@@ -659,11 +472,11 @@ fun PackageDetailsDialog(
                                                 }
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
-                                            Switch(
+                                            ExtensionSwitch(
                                                 checked = isContainerEnabled && subpackage.enabled,
                                                 onCheckedChange = { enabled -> applySubpackageToggle(enabled) },
-                                                enabled = isContainerEnabled,
-                                                modifier = Modifier.scale(0.8f)
+                                                enabled = isContainerEnabled && !isToggling && !isUpdating,
+                                                modifier = Modifier.semantics { contentDescription = subpackage.displayName }
                                             )
                                         }
                                     }
@@ -672,178 +485,226 @@ fun PackageDetailsDialog(
                         }
                     }
                 }
-            } else if (!hasStates) {
-                val tools = resolvedPackage?.tools.orEmpty()
-                if (tools.isEmpty()) {
-                    EmptyToolsCard(message = stringResource(R.string.pkg_no_tools))
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        tools.forEach { tool ->
-                            PackageToolCard(
-                                tool = tool,
-                                toolIdPrefix = packageName,
-                                onExecute = { onRunScript(packageName, tool) }
-                            )
+                if (!toolPkgToggleError.isNullOrBlank()) Text(toolPkgToggleError.orEmpty(), color = MaterialTheme.colorScheme.error)
+                if (details != null) {
+                    if (details.requires.isNotEmpty()) {
+                        ExtensionDetailSection(stringResource(R.string.extension_detail_dependencies), details.requires.size) {
+                            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                                Column(Modifier.padding(horizontal = 16.dp)) {
+                                    details.requires.forEachIndexed { index, requirement ->
+                                        Row(Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.size(22.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(requirement.id, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
+                                                val description = buildString {
+                                                    if (requirement.description.isNotBlank()) append(requirement.description)
+                                                    requirement.minVersion?.let { append("  ≥ "); append(it) }
+                                                    requirement.maxVersion?.let { append("  ≤ "); append(it) }
+                                                }.trim()
+                                                if (description.isNotEmpty()) Text(description, style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                        if (index < details.requires.lastIndex) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    ExtensionDetailContents(listOf(
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_resources), details.resourceCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_wasm), details.wasmModuleCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_interfaces), details.uiModuleCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_navigation), details.navigationEntryCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_widgets), details.desktopWidgetCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_workflows), details.workflowTemplateCount.toString()),
+                        ExtensionDetailStat(stringResource(R.string.extension_detail_workspaces), details.workspaceTemplateCount.toString()),
+                    ))
+                    if (details.workflowTemplates.isNotEmpty()) {
+                        ExtensionDetailSection(stringResource(R.string.pkg_toolpkg_registered_workflow_templates)) {
+                            ToolPkgWorkflowTemplatesCard(details.workflowTemplates)
+                        }
+                    }
+                    if (details.workspaceTemplates.isNotEmpty()) {
+                        ExtensionDetailSection(stringResource(R.string.pkg_toolpkg_registered_workspace_templates)) {
+                            ToolPkgWorkspaceTemplatesCard(details.workspaceTemplates)
                         }
                     }
                 }
             } else {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    ScrollableTabRow(
-                        selectedTabIndex = selectedTabIndex,
-                        edgePadding = 0.dp
-                    ) {
-                        Tab(
-                            selected = selectedTabIndex == 0,
-                            onClick = { selectedTabIndex = 0 }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                ExtensionDetailSection(stringResource(R.string.pkg_tool_list)) {
+                    if (!hasStates) {
+                        val tools = resolvedPackage?.tools.orEmpty()
+                        if (tools.isEmpty()) {
+                            EmptyToolsCard(message = stringResource(R.string.pkg_no_tools))
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(text = stringResource(R.string.default_option))
-                                if (activeStateId.isNullOrBlank()) {
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp)
+                                tools.forEach { tool ->
+                                    PackageToolCard(
+                                        tool = tool,
+                                        toolIdPrefix = packageName,
+                                        enabled = canRunTools,
+                                        onExecute = { onRunScript(packageName, tool) }
                                     )
                                 }
                             }
                         }
-
-                        states.forEachIndexed { index, state ->
-                            val tabIndex = index + 1
-                            val isActive = activeStateId == state.id
-                            Tab(
-                                selected = selectedTabIndex == tabIndex,
-                                onClick = { selectedTabIndex = tabIndex }
+                    } else {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            ScrollableTabRow(
+                                selectedTabIndex = selectedTabIndex,
+                                edgePadding = 0.dp
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                Tab(
+                                    selected = selectedTabIndex == 0,
+                                    onClick = { selectedTabIndex = 0 }
                                 ) {
-                                    Text(text = state.id)
-                                    if (isActive) {
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(14.dp)
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = stringResource(R.string.default_option))
+                                        if (activeStateId.isNullOrBlank()) {
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                states.forEachIndexed { index, state ->
+                                    val tabIndex = index + 1
+                                    val isActive = activeStateId == state.id
+                                    Tab(
+                                        selected = selectedTabIndex == tabIndex,
+                                        onClick = { selectedTabIndex = tabIndex }
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(text = state.id)
+                                            if (isActive) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            val toolsForTab = remember(selectedTabIndex, states, baseTools) {
+                                if (selectedTabIndex == 0) {
+                                    baseTools
+                                } else {
+                                    val state = states.getOrNull(selectedTabIndex - 1)
+                                    if (state == null) {
+                                        emptyList()
+                                    } else {
+                                        val toolMap = linkedMapOf<String, PackageTool>()
+                                        if (state.inheritTools) {
+                                            baseTools.forEach { toolMap[it.name] = it }
+                                        }
+                                        state.excludeTools.forEach { toolMap.remove(it) }
+                                        state.tools.forEach { toolMap[it.name] = it }
+                                        toolMap.values.toList()
+                                    }
+                                }
+                            }
+
+                            if (toolsForTab.isEmpty()) {
+                                EmptyToolsCard(message = stringResource(R.string.mcp_no_available_tools))
+                            } else {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    toolsForTab.forEach { tool ->
+                                        PackageToolCard(
+                                            tool = tool,
+                                            toolIdPrefix = packageName,
+                                            enabled = canRunTools,
+                                            onExecute = { onRunScript(packageName, tool) }
                                         )
                                     }
                                 }
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    val toolsForTab = remember(selectedTabIndex, states, baseTools) {
-                        if (selectedTabIndex == 0) {
-                            baseTools
-                        } else {
-                            val state = states.getOrNull(selectedTabIndex - 1)
-                            if (state == null) {
-                                emptyList()
-                            } else {
-                                val toolMap = linkedMapOf<String, PackageTool>()
-                                if (state.inheritTools) {
-                                    baseTools.forEach { toolMap[it.name] = it }
-                                }
-                                state.excludeTools.forEach { toolMap.remove(it) }
-                                state.tools.forEach { toolMap[it.name] = it }
-                                toolMap.values.toList()
+                }
+            }
+            ExtensionDetailFacts(stringResource(R.string.extension_detail_information), buildList {
+                add(ExtensionDetailFact("ID", packageName, monospace = true))
+                add(ExtensionDetailFact(stringResource(R.string.extension_detail_type), typeLabel))
+                if (version.isNotBlank()) add(ExtensionDetailFact(stringResource(R.string.extension_detail_version), version))
+                add(ExtensionDetailFact(stringResource(R.string.extension_detail_source), sourceLabel))
+                if (resolvedAuthors.isNotEmpty()) add(ExtensionDetailFact(stringResource(R.string.market_detail_author_role), resolvedAuthors.joinToString(", ")))
+                if (isToolPkgContainer) {
+                    add(ExtensionDetailFact(stringResource(R.string.market_detail_category_label), "ToolPkg"))
+                    if (details != null) {
+                        add(ExtensionDetailFact("ToolPkg API", details.apiVersion))
+                        if (details.mainEntry.isNotEmpty()) add(ExtensionDetailFact(stringResource(R.string.extension_detail_entry), details.mainEntry, true))
+                        if (details.sourcePath.isNotEmpty()) add(ExtensionDetailFact(stringResource(R.string.extension_detail_path), details.sourcePath, true))
+                    }
+                } else {
+                    metaPackage?.let { add(ExtensionDetailFact(stringResource(R.string.market_detail_category_label), it.category)) }
+                    origin?.scriptPath?.let { add(ExtensionDetailFact(stringResource(R.string.extension_detail_path), it, true)) }
+                }
+                origin?.marketEntryId?.let { add(ExtensionDetailFact(stringResource(R.string.extension_detail_market_entry), it, true)) }
+                metaPackage?.let {
+                    add(ExtensionDetailFact(stringResource(R.string.extension_detail_default_state),
+                        stringResource(if (it.enabledByDefault) R.string.pkg_details_default_enabled else R.string.pkg_details_default_disabled)))
+                }
+            })
+            ExtensionDetailSection(stringResource(R.string.extension_detail_manage)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { showRuntimeMonitorDialog = true }) {
+                        Icon(Icons.Default.Speed, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.pkg_runtime_monitor_action))
+                    }
+                    BuiltInResourceDetailActions(packageName, metaPackage, packageManager, isDeleting || isUpdating) {
+                        deleteFailed = false
+                        showDeleteConfirmDialog = true
+                    }
+                }
+                if (metaPackage != null && !metaPackage.isBuiltIn) {
+                    Surface(onClick = { deleteFailed = false; showDeleteConfirmDialog = true },
+                        enabled = !isDeleting && !isUpdating && packageManager.isTopLevelPackage(packageName),
+                        shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(stringResource(R.string.extension_detail_remove), fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.extension_detail_remove_hint), style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            Text(stringResource(R.string.pkg_delete), color = MaterialTheme.colorScheme.error)
                         }
                     }
-
-                    if (toolsForTab.isEmpty()) {
-                        EmptyToolsCard(message = stringResource(R.string.mcp_no_available_tools))
-                    } else {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            toolsForTab.forEach { tool ->
-                                PackageToolCard(
-                                    tool = tool,
-                                    toolIdPrefix = packageName,
-                                    onExecute = { onRunScript(packageName, tool) }
-                                )
-                            }
-                        }
-                    }
                 }
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-        Spacer(Modifier.height(16.dp))
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = { showRuntimeMonitorDialog = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Speed,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(stringResource(R.string.pkg_runtime_monitor_action))
-            }
-
-            if (metaPackage != null && !metaPackage.isBuiltIn) {
-                OutlinedButton(
-                    onClick = { runUpdateCheck() },
-                    enabled = !isCheckingUpdate
-                ) {
-                    if (isCheckingUpdate) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(14.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Refresh,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.pkg_check_update))
-                }
-                OutlinedButton(
-                    onClick = { deleteFailed = false; showDeleteConfirmDialog = true },
-                    enabled = packageManager.isTopLevelPackage(packageName),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.pkg_delete))
-                }
-            }
-
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.pkg_close))
             }
         }
     }
 
     if (showSubpackageToolsDialog) {
+        val subpackageCanRun = canRunTools && (details?.subpackages?.any {
+            it.packageName == subpackageDialogPackageName && it.enabled
+        } == true)
         val dismissSubpackage = {
             showSubpackageToolsDialog = false
             subpackageDialogPackageName = null
@@ -892,6 +753,7 @@ fun PackageDetailsDialog(
                         PackageToolCard(
                             tool = tool,
                             toolIdPrefix = subpackageDialogPackageName.orEmpty(),
+                            enabled = subpackageCanRun,
                             onExecute = {
                                 val targetPackage = subpackageDialogPackageName
                                 if (!targetPackage.isNullOrBlank()) onRunScript(targetPackage, tool)
@@ -1479,7 +1341,7 @@ private fun ToolPkgPluginConfigCard(
                         shape = RoundedCornerShape(999.dp)
                     ) {
                         Text(
-                            text = stringResource(R.string.pkg_plugin_config_open_action),
+                            text = stringResource(R.string.open),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)

@@ -177,11 +177,13 @@ fun ConfigurationResourceStorageScreen() {
                                 StorageSelectableRow(
                                     selected = group.category.name in state.selectedIds ||
                                         (group.items.isNotEmpty() && group.items.all { it.id in state.selectedIds }),
-                                    enabled = !empty && !state.job.running,
-                                    locked = false,
+                                    enabled = !empty && !group.locked && !state.job.running,
+                                    locked = group.locked,
                                     empty = empty,
                                     title = stringResource(group.category.titleRes),
-                                    subtitle = if (empty) {
+                                    subtitle = if (group.locked) {
+                                        stringResource(R.string.data_storage_extension_plugin_data_desc)
+                                    } else if (empty) {
                                         stringResource(R.string.data_storage_nothing_deletable)
                                     } else {
                                         stringResource(R.string.data_storage_extension_item_count, group.itemCount)
@@ -280,8 +282,8 @@ private fun ExtensionItemRow(
     )
     StorageSelectableRow(
         selected = selected,
-        enabled = enabled,
-        locked = false,
+        enabled = enabled && !entry.locked,
+        locked = entry.locked,
         indent = true,
         title = entry.name,
         subtitle = entry.subtitle,
@@ -306,7 +308,7 @@ private val ExtensionCategory.titleRes: Int
         ExtensionCategory.SCRIPT -> R.string.data_storage_extension_scripts
         ExtensionCategory.MCP -> R.string.data_storage_extension_mcp
         ExtensionCategory.SKILL -> R.string.data_storage_extension_skills
-        ExtensionCategory.PLUGIN_SOURCE -> R.string.data_storage_extension_plugin_source
+        ExtensionCategory.PLUGIN_DATA -> R.string.data_storage_extension_plugin_data
         ExtensionCategory.DEV_PACKAGE -> R.string.data_storage_extension_dev_package
         ExtensionCategory.THEME -> R.string.data_storage_extension_themes
         ExtensionCategory.MCP_BRIDGE -> R.string.data_storage_extension_bridge
@@ -318,7 +320,7 @@ private val ExtensionCategory.emptyRes: Int
         ExtensionCategory.SCRIPT -> R.string.data_storage_extension_scripts_empty
         ExtensionCategory.MCP -> R.string.data_storage_extension_mcp_empty
         ExtensionCategory.SKILL -> R.string.data_storage_extension_skills_empty
-        ExtensionCategory.PLUGIN_SOURCE -> R.string.data_storage_extension_plugin_source_empty
+        ExtensionCategory.PLUGIN_DATA -> R.string.data_storage_extension_plugin_data_empty
         ExtensionCategory.DEV_PACKAGE -> R.string.data_storage_extension_dev_package_empty
         ExtensionCategory.THEME -> R.string.data_storage_extension_themes_empty
         ExtensionCategory.MCP_BRIDGE -> R.string.data_storage_extension_bridge_empty
@@ -330,7 +332,7 @@ private val ExtensionCategory.icon: ImageVector
         ExtensionCategory.SCRIPT -> Icons.Default.Code
         ExtensionCategory.MCP -> Icons.Default.Hub
         ExtensionCategory.SKILL -> Icons.Default.AutoAwesome
-        ExtensionCategory.PLUGIN_SOURCE -> Icons.Default.Folder
+        ExtensionCategory.PLUGIN_DATA -> Icons.Default.Folder
         ExtensionCategory.DEV_PACKAGE -> Icons.Default.Build
         ExtensionCategory.THEME -> Icons.Default.Palette
         ExtensionCategory.MCP_BRIDGE -> Icons.Default.Cable

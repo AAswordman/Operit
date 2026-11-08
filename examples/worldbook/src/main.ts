@@ -1,5 +1,6 @@
 import worldbookManagerScreen from "./ui/worldbook_manager/index.ui.js";
-import { ensureWorldBookStorage, readWorldBookEntries } from "./shared/worldbook_storage.js";
+import { registerWorldBookStorageService } from "./shared/worldbook_rpc.js";
+import { readWorldBookEntries } from "./shared/worldbook_storage.js";
 import {
   renderWorldBookContent,
   syncWorldBookVariableContext,
@@ -396,7 +397,7 @@ export async function finalizeHook(
 }
 
 export function registerToolPkg() {
-  void ensureWorldBookStorage();
+  registerWorldBookStorageService();
 
   ToolPkg.registerUiRoute({
     id: "worldbook_manager",

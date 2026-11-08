@@ -99,7 +99,7 @@ object SystemToolPrompts {
             ),
             ToolPrompt(
                 name = "read_file",
-                description = "Read the content of a file. For image files (jpg, jpeg, png, gif, bmp), it automatically extracts text using OCR.",
+                description = "Read the content of a file. For image files (jpg, jpeg, png, gif, bmp), it extracts text using local OCR by default.",
                 parametersStructured = listOf(
                     ToolParameterSchema(
                         name = "path",
@@ -251,7 +251,7 @@ object SystemToolPrompts {
             ),
             ToolPrompt(
                 name = "read_file",
-                description = "读取文件内容。对于图片文件(jpg, jpeg, png, gif, bmp)，自动使用OCR提取文本。",
+                description = "读取文件内容。对于图片文件(jpg, jpeg, png, gif, bmp)，默认在本机使用 OCR 提取文本。",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
                     ToolParameterSchema(
@@ -515,7 +515,7 @@ object SystemToolPrompts {
 
                 val filteredParams = (tool.parametersStructured ?: emptyList()).filter { param ->
                     when (param.name) {
-                        "direct_image" -> false
+                        "direct_image" -> chatModelHasDirectImage
                         "direct_audio" -> false
                         "direct_video" -> false
                         "intent" -> shouldExposeIntent
@@ -523,12 +523,21 @@ object SystemToolPrompts {
                     }
                 }
 
-                val adjustedDescription =
-                    if (shouldExposeIntent) {
-                        "Read the content of a file. For media files, you can also provide an 'intent' parameter to use a backend recognition model for analysis."
-                    } else {
-                        tool.description
+                // 原生识图必须暴露直传参数；后端识图必须明确要求分析问题，否则读图只会执行 OCR。
+                val adjustedDescription = buildString {
+                    append(tool.description)
+                    if (chatModelHasDirectImage) {
+                        append(" To view an image or analyze its visual content, set direct_image=true to receive the image itself.")
                     }
+                    if (hasBackendImageRecognition && !chatModelHasDirectImage) {
+                        append(" For image analysis, you must provide a non-empty intent stating your specific question. This sends both the image and your question to the configured image recognition model. Omitting intent performs local OCR and returns extracted text only.")
+                    }
+                    if ((hasBackendAudioRecognition && !chatModelHasDirectAudio) ||
+                        (hasBackendVideoRecognition && !chatModelHasDirectVideo)
+                    ) {
+                        append(" For audio/video analysis, provide intent to use the corresponding configured backend recognition model.")
+                    }
+                }
 
                 tool.copy(
                     description = adjustedDescription + buildSafBookmarksSectionEn(safBookmarkNames),
@@ -591,7 +600,7 @@ object SystemToolPrompts {
 
                 val filteredParams = (tool.parametersStructured ?: emptyList()).filter { param ->
                     when (param.name) {
-                        "direct_image" -> false
+                        "direct_image" -> chatModelHasDirectImage
                         "direct_audio" -> false
                         "direct_video" -> false
                         "intent" -> shouldExposeIntent
@@ -599,12 +608,21 @@ object SystemToolPrompts {
                     }
                 }
 
-                val adjustedDescription =
-                    if (shouldExposeIntent) {
-                        "读取文件内容。对于媒体文件，你也可以提供 intent 参数，使用后端识别模型进行分析。"
-                    } else {
-                        tool.description
+                // 原生识图必须暴露直传参数；后端识图必须明确要求分析问题，否则读图只会执行 OCR。
+                val adjustedDescription = buildString {
+                    append(tool.description)
+                    if (chatModelHasDirectImage) {
+                        append(" 需要查看图片或分析画面时，请设置 direct_image=true，取得图片后直接分析。")
                     }
+                    if (hasBackendImageRecognition && !chatModelHasDirectImage) {
+                        append(" 需要分析图片时，必须提供非空的 intent，写明具体要分析的问题；工具会把图片和问题一起发送给已配置的图片识别模型。不传 intent 时，仅在本机执行 OCR，返回提取的文字。")
+                    }
+                    if ((hasBackendAudioRecognition && !chatModelHasDirectAudio) ||
+                        (hasBackendVideoRecognition && !chatModelHasDirectVideo)
+                    ) {
+                        append(" 需要分析音频或视频时，请提供 intent，使用对应的已配置后端识别模型。")
+                    }
+                }
 
                 tool.copy(
                     description = adjustedDescription + buildSafBookmarksSectionCn(safBookmarkNames),

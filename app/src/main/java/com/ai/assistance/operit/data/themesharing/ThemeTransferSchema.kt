@@ -265,9 +265,12 @@ internal object ThemeTransferSchema {
         layout: ChatLayoutSettings,
         full: Boolean,
         script: ThemeScriptManifest? = null,
+        appearance: JsonObject? = null,
     ): ThemeTransferDocument {
         checkValue(script == null || full)
         script?.let(ThemeScriptContract::validate)
+        checkValue(appearance == null || !full)
+        appearance?.let(ThemeAppearanceParameters::validate)
         var fields = if (full) allKeys else ordinaryKeys
         if (!full) {
             // 文件字体的选择属于媒体设置，分享码不携带它的启用状态。
@@ -276,7 +279,7 @@ internal object ThemeTransferSchema {
                 .forEach { fields = fields - fontKeys(it) }
         }
         val document =
-            ThemeTransferDocument(name.trim(), author.trim(), values, fields, layout, full, script)
+            ThemeTransferDocument(name.trim(), author.trim(), values, fields, layout, full, script, appearance)
         return decode(encode(document), full)
     }
 
@@ -302,6 +305,11 @@ internal object ThemeTransferSchema {
                     checkValue(document.full)
                     ThemeScriptContract.validate(it)
                     put("script", ThemeScriptContract.json.encodeToJsonElement(ThemeScriptManifest.serializer(), it))
+                }
+                document.appearance?.let {
+                    checkValue(!document.full)
+                    ThemeAppearanceParameters.validate(it)
+                    put("appearance", it)
                 }
                 put("name", document.name)
                 put("author", document.author)
@@ -343,12 +351,17 @@ internal object ThemeTransferSchema {
                 if (schema.intOrNull != SCHEMA) throw ThemeTransferException(ThemeTransferError.UNSUPPORTED_VERSION)
             }
             val hasScript = current && full && "script" in root
+            val hasAppearance = current && !full && "appearance" in root
             val required = setOf("format", "name", "author", "config", "layout") +
-                (if (current) setOf("schema") else emptySet()) + (if (hasScript) setOf("script") else emptySet())
+                (if (current) setOf("schema") else emptySet()) + (if (hasScript) setOf("script") else emptySet()) +
+                (if (hasAppearance) setOf("appearance") else emptySet())
             checkValue(root.keys == required)
             val script = if (hasScript) {
                 ThemeScriptContract.json.decodeFromJsonElement(ThemeScriptManifest.serializer(), root.getValue("script"))
                     .also(ThemeScriptContract::validate)
+            } else null
+            val appearance = if (hasAppearance) {
+                (root.getValue("appearance") as? JsonObject ?: invalid()).also(ThemeAppearanceParameters::validate)
             } else null
             val name = text(root.getValue("name"))
             val author = text(root.getValue("author"))
@@ -440,7 +453,7 @@ internal object ThemeTransferSchema {
             return ThemeTransferDocument(
                 name, author, values,
                 config.keys + com.ai.assistance.operit.data.preferences.messagestyle.MessageStylePreferences.sideKeys,
-                settings, full, script,
+                settings, full, script, appearance,
             )
         } catch (e: ThemeTransferException) {
             throw e
@@ -547,7 +560,7 @@ internal object ThemeTransferSchema {
             else -> invalid()
         }
 
-    // 协议只有两层对象，限制嵌套深度以防止损坏配置耗尽解析栈。
+    // 外观和工程嵌入传输根对象后增加一层，沿用主题契约的嵌套预算。
     private fun checkJsonDepth(bytes: ByteArray) {
         var depth = 0
         var quoted = false
@@ -566,7 +579,7 @@ internal object ThemeTransferSchema {
                     '{',
                     '[' -> {
                         depth++
-                        checkValue(depth <= 8)
+                        checkValue(depth <= ThemeScriptContract.MAX_JSON_DEPTH + 1)
                     }
                     '}',
                     ']' -> {

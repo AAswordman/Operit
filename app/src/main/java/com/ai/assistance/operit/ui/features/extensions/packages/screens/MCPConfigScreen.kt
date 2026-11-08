@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+
+import com.ai.assistance.operit.ui.features.extensions.packages.components.ExtensionSwitch
 import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
@@ -30,7 +32,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -1620,17 +1621,10 @@ private fun PluginListItem(
                 }
 
                 // 紧凑的开关
-                Switch(
+                ExtensionSwitch(
                     checked = isEnabled,
                     onCheckedChange = onEnabledChange,
                     enabled = isConfigValid,
-                    modifier = Modifier.scale(0.8f),
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = MaterialTheme.colorScheme.primary,
-                        checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
                 )
             }
 

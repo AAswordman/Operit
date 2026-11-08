@@ -48,6 +48,10 @@ public interface IShowerService extends IInterface {
 
     void setVideoSink(int displayId, IBinder sink) throws RemoteException;
 
+    void registerInputClient(IBinder client) throws RemoteException;
+
+    void unregisterInputClient(IBinder client) throws RemoteException;
+
     abstract class Stub extends Binder implements IShowerService {
 
         private static final String DESCRIPTOR = "com.ai.assistance.shower.IShowerService";
@@ -64,6 +68,8 @@ public interface IShowerService extends IInterface {
         static final int TRANSACTION_injectKeyWithMeta = IBinder.FIRST_CALL_TRANSACTION + 10;
         static final int TRANSACTION_setVideoSink = IBinder.FIRST_CALL_TRANSACTION + 11;
         static final int TRANSACTION_injectTouchEvent = IBinder.FIRST_CALL_TRANSACTION + 12;
+        static final int TRANSACTION_registerInputClient = IBinder.FIRST_CALL_TRANSACTION + 13;
+        static final int TRANSACTION_unregisterInputClient = IBinder.FIRST_CALL_TRANSACTION + 14;
 
         public Stub() {
             attachInterface(this, DESCRIPTOR);
@@ -229,6 +235,18 @@ public interface IShowerService extends IInterface {
                             deviceId,
                             edgeFlags
                     );
+                    reply.writeNoException();
+                    return true;
+                }
+                case TRANSACTION_registerInputClient: {
+                    data.enforceInterface(DESCRIPTOR);
+                    registerInputClient(data.readStrongBinder());
+                    reply.writeNoException();
+                    return true;
+                }
+                case TRANSACTION_unregisterInputClient: {
+                    data.enforceInterface(DESCRIPTOR);
+                    unregisterInputClient(data.readStrongBinder());
                     reply.writeNoException();
                     return true;
                 }
@@ -486,6 +504,40 @@ public interface IShowerService extends IInterface {
                     data.writeInt(displayId);
                     data.writeStrongBinder(sink);
                     remote.transact(TRANSACTION_setVideoSink, data, reply, 0);
+                    reply.readException();
+                } finally {
+                    reply.recycle();
+                    data.recycle();
+                }
+            }
+
+            @Override
+            public void registerInputClient(IBinder client) throws RemoteException {
+                Parcel data = Parcel.obtain();
+                Parcel reply = Parcel.obtain();
+                try {
+                    data.writeInterfaceToken(DESCRIPTOR);
+                    data.writeStrongBinder(client);
+                    if (!remote.transact(TRANSACTION_registerInputClient, data, reply, 0)) {
+                        throw new RemoteException("Shower server does not support input client leases");
+                    }
+                    reply.readException();
+                } finally {
+                    reply.recycle();
+                    data.recycle();
+                }
+            }
+
+            @Override
+            public void unregisterInputClient(IBinder client) throws RemoteException {
+                Parcel data = Parcel.obtain();
+                Parcel reply = Parcel.obtain();
+                try {
+                    data.writeInterfaceToken(DESCRIPTOR);
+                    data.writeStrongBinder(client);
+                    if (!remote.transact(TRANSACTION_unregisterInputClient, data, reply, 0)) {
+                        throw new RemoteException("Shower server does not support input client leases");
+                    }
                     reply.readException();
                 } finally {
                     reply.recycle();

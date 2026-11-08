@@ -3,15 +3,15 @@
     name: "Automatic_ui_subagent"
 
     display_name: {
-      zh: "自动化AutoGLM子代理"
-      en: "Automated AutoGLM Sub-agent"
+      zh: "UI 控制器子代理"
+      en: "UI Controller Sub-agent"
     }description: { 
         zh: '''
-兼容AutoGLM，提供基于独立UI控制器模型（例如 autoglm-phone-9b）的高层UI自动化子代理工具，用于根据自然语言意图自动规划并执行点击/输入/滑动等一系列界面操作。
+使用单独配置的 UI 控制器模型，提供通用的高层 UI 自动化子代理工具，用于根据自然语言意图自动规划并执行点击/输入/滑动等一系列界面操作。
 当用户提出需要帮忙完成某个界面操作任务（例如打开应用、搜索内容、在多个页面之间完成一套步骤）时，可以调用本包由子代理自动规划和执行具体步骤。
 ''', 
         en: '''
-Compatible with AutoGLM. Provides a high-level UI automation sub-agent based on an independent UI-controller model (e.g. autoglm-phone-9b). It can plan and execute a sequence of UI actions (tap/type/swipe) from natural-language intent.
+Provides a general-purpose UI automation sub-agent using the separately configured UI controller model. It can plan and execute a sequence of UI actions (tap/type/swipe) from natural-language intent.
 When the user asks you to complete a UI task (e.g. open an app, search content, or finish a multi-step workflow across pages), you can call this package and let the sub-agent plan and execute the steps.
 ''' 
     }

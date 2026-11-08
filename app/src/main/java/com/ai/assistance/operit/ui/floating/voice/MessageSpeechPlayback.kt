@@ -59,7 +59,7 @@ internal class MessageSpeechPlayback(
                     }
                     val profile = checkNotNull(roundProfile)
                     val cleaned = WaifuMessageProcessor.cleanContentForWaifu(
-                        TtsCleaner.clean(text, profile.cleanerRegexs)
+                        TtsCleaner.cleanForSpeech(text, profile.cleanerRegexs)
                     )
                     if (cleaned.isBlank()) return@launch
                     val currentService = serviceFor(profile)

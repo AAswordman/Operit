@@ -46,12 +46,15 @@ object PackResources {
 
     fun catalog(context: Context): ResourcePackCatalog {
         cachedCatalog?.let { return it }
-        return context.assets.open("offline-packs.json").bufferedReader().use { json.decodeFromString<ResourcePackCatalog>(it.readText()) }.also {
+        val resources = context.assets.open("offline-packs.json").bufferedReader().use { json.decodeFromString<ResourcePackCatalog>(it.readText()) }
+        return resources.copy(packs = resources.packs + com.ai.assistance.operit.data.resources.extensions.BuiltInExtensionResources.specs(context)).also {
             require(it.schemaVersion == 1 && it.packs.map(ResourcePackSpec::id).distinct().size == it.packs.size)
             it.packs.forEach(ResourcePackInstallations::validateSpec)
             cachedCatalog = it
         }
     }
+
+    fun invalidateCatalog() { cachedCatalog = null; cachedHistory = null; bundledCache.clear() }
 
     fun spec(context: Context, id: String): ResourcePackSpec = catalog(context).packs.first { it.id == id }
     private fun directoryFor(context: Context, pack: ResourcePackSpec): File {
@@ -61,7 +64,7 @@ object PackResources {
     }
 
     private fun history(context: Context): List<ResourcePackSpec> {
-        cachedHistory?.let { return it.packs }
+        cachedHistory?.let { return it.packs + com.ai.assistance.operit.data.resources.extensions.BuiltInExtensionResources.historicalSpecs(context) }
         val loaded = context.assets.open("offline-pack-installations.json").bufferedReader().use {
             json.decodeFromString<ResourcePackInstallHistory>(it.readText())
         }
@@ -69,14 +72,20 @@ object PackResources {
         require(loaded.packs.map { it.id to it.version }.distinct().size == loaded.packs.size)
         loaded.packs.forEach(ResourcePackInstallations::validateSpec)
         cachedHistory = loaded
-        return loaded.packs
+        return loaded.packs + com.ai.assistance.operit.data.resources.extensions.BuiltInExtensionResources.historicalSpecs(context)
     }
 
     private fun installed(context: Context, id: String, force: Boolean = false): InstalledResourcePack? =
         ResourcePackInstallations.find(spec(context, id), history(context), { directoryFor(context, it) }, force)
 
+    fun installedSpec(context: Context, id: String): ResourcePackSpec? = installed(context, id)?.spec
+
     fun directory(context: Context, id: String): File =
         installed(context, id)?.directory ?: directoryFor(context, spec(context, id))
+
+    /** Include incomplete and older installs so import cannot silently replace existing extension files. */
+    fun hasLocalData(context: Context, id: String): Boolean =
+        directoryFor(context, spec(context, id)).parentFile!!.exists()
 
     /** 使用检查覆盖整个版本组，旧版本的运行引用也会阻止替换和删除。 */
     fun isInUse(context: Context, id: String): Boolean =
@@ -143,7 +152,15 @@ object PackResources {
 
     suspend fun importArchive(context: Context, id: String, input: InputStream, name: String, progress: (Long, Long) -> Unit) = withContext(Dispatchers.IO) {
         check(!isBundled(context, id)) { "包内资源无需导入" }
-        locks.getOrPut(id) { Mutex() }.withLock { input.use { importLocked(context, id, it, name, progress) } }
+        locks.getOrPut(id) { Mutex() }.withLock {
+            input.use {
+                // Recheck under the install lock: another download may finish while the picker is open.
+                check(spec(context, id).extension == null || !hasLocalData(context, id)) {
+                    context.getString(com.ai.assistance.operit.R.string.hub_extension_remove_before_import)
+                }
+                importLocked(context, id, it, name, progress)
+            }
+        }
     }
 
     private suspend fun importLocked(context: Context, id: String, input: InputStream, name: String, progress: (Long, Long) -> Unit) {

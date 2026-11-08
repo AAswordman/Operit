@@ -17,6 +17,7 @@ import com.ai.assistance.operit.data.skill.SkillRepository
 import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 class MarketEntryInstallController(
@@ -31,18 +32,41 @@ class MarketEntryInstallController(
 
     suspend fun install(
         entry: MarketV2Entry,
+        heldUpdateNames: Set<String> = emptySet(),
         onProgress: MarketInstallProgressReporter = { _, _ -> }
     ) {
-        onProgress(MarketInstallStage.CONNECTING, null)
-        when (entry.type.lowercase()) {
-            "skill" -> installSkillEntry(entry, onProgress)
-            "mcp" -> installMcpEntry(entry, onProgress)
-            "script",
-            "package" -> installArtifactEntry(entry, onProgress)
-            else -> throw IllegalArgumentException("Unsupported market entry type: ${entry.type}")
+        entry.resolveToolPkgApiCompatibility()?.let { incompatibility ->
+            throw IllegalArgumentException(
+                context.getString(
+                    R.string.market_toolpkg_api_incompatible_message,
+                    incompatibility.requiredApiVersion,
+                    incompatibility.supportedApiVersions
+                )
+            )
+        }
+        val localNames = if (entry.type.lowercase() in setOf("script", "package") && heldUpdateNames.isEmpty()) {
+            withContext(Dispatchers.IO) {
+                packageManager.getTopLevelAvailablePackages().keys.filter { name ->
+                    readMarketInstallMarkerForPackage(packageManager, name)?.entryId == entry.id
+                }.flatMap { packageManager.updatePackageNames(it) }.toSet()
+            }
+        } else emptySet()
+        val ownsGate = localNames.isNotEmpty()
+        if (ownsGate) check(com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.start(localNames,
+            if (entry.type.lowercase() == "package") localNames else emptySet())) { "Update already running" }
+        try {
+            if (ownsGate) withContext(Dispatchers.IO) { packageManager.preparePackageUpdate(localNames) }
+            onProgress(MarketInstallStage.CONNECTING, null)
+            when (entry.type.lowercase()) {
+                "skill" -> installSkillEntry(entry, onProgress)
+                "mcp" -> installMcpEntry(entry, onProgress)
+                "script", "package" -> installArtifactEntry(entry, onProgress, heldUpdateNames + localNames)
+                else -> throw IllegalArgumentException("Unsupported market entry type: ${entry.type}")
+            }
+        } finally {
+            if (ownsGate) withContext(NonCancellable + Dispatchers.IO) { packageManager.completePackageUpdate(localNames) }
         }
     }
-
     private suspend fun installSkillEntry(
         entry: MarketV2Entry,
         onProgress: MarketInstallProgressReporter
@@ -184,22 +208,34 @@ class MarketEntryInstallController(
 
     private suspend fun installArtifactEntry(
         entry: MarketV2Entry,
-        onProgress: MarketInstallProgressReporter
+        onProgress: MarketInstallProgressReporter,
+        heldUpdateNames: Set<String>,
     ) {
         onProgress(MarketInstallStage.FETCHING_METADATA, null)
         val project = marketStatsApiService.artifactProjectFromEntry(entry)
         val defaultVersion =
             project.versions.firstOrNull { it.versionId == project.defaultVersionId }
                 ?: throw IllegalStateException("Default artifact version not found")
-        installArtifactProjectVersion(
-            context = appContext,
-            packageManager = packageManager,
-            projectVersions = project.versions,
-            version = defaultVersion,
-            onProgress = onProgress
-        )
-        withContext(Dispatchers.IO) {
-            writeMarketInstallMarker(artifactMarketMarkerRoot(packageManager, defaultVersion.runtimePackageId), entry)
+        val updateNames = packageManager.updatePackageNames(defaultVersion.runtimePackageId)
+        val alreadyHeld = updateNames.all { it in heldUpdateNames }
+        check(alreadyHeld || com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.start(updateNames,
+            if (entry.type.lowercase() == "package") updateNames else emptySet())) {
+            "Artifact update already running"
+        }
+        try {
+            if (!alreadyHeld) withContext(Dispatchers.IO) { packageManager.preparePackageUpdate(updateNames) }
+            installArtifactProjectVersion(
+                context = appContext,
+                packageManager = packageManager,
+                projectVersions = project.versions,
+                version = defaultVersion,
+                onProgress = onProgress
+            )
+            withContext(Dispatchers.IO) {
+                writeMarketInstallMarker(artifactMarketMarkerRoot(packageManager, defaultVersion.runtimePackageId), entry)
+            }
+        } finally {
+            if (!alreadyHeld) withContext(NonCancellable + Dispatchers.IO) { packageManager.completePackageUpdate(updateNames) }
         }
         OKToast.success(context, context.getString(R.string.external_package_imported), OKToast.LENGTH_SHORT).show()
     }

@@ -739,7 +739,7 @@
     <string name="package_tools">Alat yang Disertakan</string>
     <string name="package_import_success">Paket berhasil diimpor</string>
     <string name="package_import_error">Gagal mengimpor paket</string>
-    <string name="no_packages_available">Tidak ada paket yang tersedia</string>
+    <string name="no_packages_available">Tidak ada skrip tersedia</string>
     <string name="no_packages_imported">Belum ada paket yang diimpor</string>
     <string name="remove_package">Hapus Paket</string>
     <string name="package_removed">Paket telah dihapus</string>
@@ -3106,7 +3106,6 @@
 
     <string name="api_settings">Pengaturan API</string>
     <string name="api_endpoint">Endpoint API</string>
-    <string name="api_endpoint_placeholder">Contoh: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">URL permintaan aktual: %s</string>
     <string name="endpoint_completion_hint">Petunjuk: Jika Anda memasukkan URL dasar, sistem akan melengkapi jalurnya secara otomatis. Untuk menonaktifkan, tambahkan tanda # di akhir URL.</string>
     <string name="api_key">Kunci API</string>
@@ -3457,10 +3456,10 @@
     <string name="no_matching_plugins_found">Tidak ditemukan plugin yang cocok</string>
     <string name="no_matching_skills_found">Tidak ditemukan Skill yang cocok</string>
     <string name="no_matching_scripts_found">Tidak ditemukan skrip yang cocok</string>
-    <string name="no_matching_packages_found">Tidak ditemukan paket alat yang cocok</string>
+    <string name="no_matching_packages_found">Tidak ada skrip yang cocok</string>
     <string name="skill_market_search_placeholder">Cari nama Skill, deskripsi, penulis...</string>
     <string name="script_market_search_placeholder">Cari nama skrip, deskripsi, penulis...</string>
-    <string name="package_market_search_placeholder">Cari nama paket alat, deskripsi, penulis...</string>
+    <string name="package_market_search_placeholder">Cari nama, deskripsi, atau penulis skrip…</string>
     <string name="skill_repo_url_not_found">URL repositori tidak ditemukan</string>
     <string name="skill_repo_url_not_found_cannot_install">URL repositori tidak ditemukan, tidak dapat menginstal</string>
     <string name="no_available_mcp_plugins">Belum ada plugin MCP yang tersedia</string>
@@ -5490,10 +5489,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Gagal membuat layar virtual.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Gagal memanaskan layar virtual: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">Layar virtual gagal dimulai, dibatalkan untuk menghindari operasi di layar utama.</string>
-    <string name="phone_agent_thinking">Sedang berpikir...</string>
-    <string name="phone_agent_completed">Selesai</string>
-    <string name="phone_agent_executing_action">Sedang mengeksekusi %1$s...</string>
-    <string name="phone_agent_executing">Sedang mengeksekusi operasi...</string>
     <string name="workflow_skip">Lewati</string>
     <string name="workflow_condition_type_mismatch">Jenis perbandingan kondisi tidak konsisten: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">Kondisi tidak terpenuhi</string>
@@ -6310,7 +6305,7 @@
     <string name="chat_previous_variant">Jawaban sebelumnya</string>
     <string name="chat_next_variant">Jawaban berikutnya</string>
     <string name="provider_nous_portal">Nous Portal (Nous Research)</string>
-    <string name="market_tab_artifact">Paket Sandbox</string>
+    <string name="market_tab_artifact">Skrip</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Milik Saya</string>
@@ -6523,19 +6518,19 @@
     <string name="import_external_plugin">Impor Plugin Eksternal</string>
     <string name="package_script_only">Hanya mendukung file HJSON (.hjson), JavaScript (.js), dan TypeScript (.ts)</string>
     <string name="package_add_dialog_title_plugin">Tambah plugin</string>
-    <string name="package_add_dialog_title_package">Tambah paket sandbox</string>
+    <string name="package_add_dialog_title_package">Tambah skrip</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Impor skrip yang ada atau buat templat JS dengan komentar.</string>
     <string name="package_add_import_existing_plugin">Impor plugin yang ada</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Impor paket sandbox yang ada</string>
+    <string name="package_add_import_existing_package">Impor skrip yang ada</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Buat templat JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Buat templat TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Buat templat JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Buat skrip .js dengan METADATA dan contoh alat.</string>
     <string name="package_template_identity_title">Templat baru</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -6554,7 +6549,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Impor sebagai plugin atau paket sandbox</string>
+    <string name="package_share_choice_import">Impor sebagai plugin atau skrip</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Tambahkan sebagai lampiran obrolan</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -7028,9 +7023,8 @@
     <string name="github_login_method_external">Masuk dengan browser eksternal</string>
     <string name="github_login_starting">Menyiapkan otorisasi GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versi rilis ToolPkg berasal dari manifest dalam paket, tidak dapat dimodifikasi secara manual sebelum rilis</string>
-    <string name="market_version_incompatible_title">Tidak dapat mengunduh: versi klien tidak didukung</string>
-    <string name="market_version_too_low_message">Versi klien saat ini %1$s lebih rendah dari versi minimum yang diperlukan %2$s. Silakan perbarui klien sebelum mengunduh.</string>
-    <string name="market_version_too_high_message">Versi klien saat ini %1$s lebih tinggi dari versi maksimum yang didukung %2$s. Gunakan versi klien yang didukung.</string>
+    <string name="market_toolpkg_api_incompatible_title">Tidak dapat menginstal: API ToolPkg tidak didukung</string>
+    <string name="market_toolpkg_api_incompatible_message">Plugin ini mendeklarasikan API ToolPkg %1$s. Perangkat ini mendukung %2$s, sehingga plugin ini tidak dapat diinstal.</string>
     <string name="search_group_title">Cari</string>
     <string name="thinking_search_group_title">Berpikir dan cari</string>
     <string name="thinking_search_tools_group_title_with_count">Berpikir, cari, dan panggil alat (%1$d)</string>
@@ -7352,7 +7346,7 @@
     <string name="data_storage_extension_scripts">Skrip</string>
     <string name="data_storage_extension_mcp">Model Context Protocol</string>
     <string name="data_storage_extension_skills">Skill</string>
-    <string name="data_storage_extension_plugin_source">Sumber plugin</string>
+    <string name="data_storage_extension_plugin_data">Data plugin</string>
     <string name="data_storage_extension_dev_package">Paket pengembangan</string>
     <string name="data_storage_extension_themes">Paket tema</string>
     <string name="data_storage_extension_bridge">Jembatan MCP</string>
@@ -7361,7 +7355,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">Tidak ada data plugin</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -7444,7 +7438,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Pasar plugin</string>
-    <string name="package_market">Pasar paket</string>
+    <string name="package_market">Pasar skrip</string>
     <string name="plugin_sort_action">Urutkan</string>
     <string name="plugin_sort_custom">Urutan khusus</string>
     <string name="plugin_sort_name">Nama</string>
@@ -7463,7 +7457,7 @@
     <string name="plugin_manage_load_errors">Kesalahan pemuatan (%1$d)</string>
     <string name="plugin_import_format_help">Format impor</string>
     <string name="plugin_import_format_description">Plugin menerima berkas .toolpkg yang berisi manifest.json atau manifest.hjson serta berkas utama dan sumber daya yang dinyatakan.</string>
-    <string name="sandbox_import_format_description">Paket sandbox menerima .js, .ts dan .hjson. Skrip memerlukan METADATA; TypeScript harus dikompilasi secara terpisah.</string>
+    <string name="sandbox_import_format_description">Skrip mandiri mendukung .js, .ts, dan .hjson. METADATA diperlukan; TypeScript harus dikompilasi terpisah.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Pesan AI</string>
@@ -8361,7 +8355,7 @@
     <string name="theme_transfer_author">Penulis</string>
     <string name="theme_transfer_code">berbagi kode</string>
     <string name="theme_transfer_file">File tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Termasuk parameter tema, gambar latar belakang atau video, gambar gelembung kedua belah pihak, font khusus, avatar, dan penyesuaian materi.</string>
+    <string name="theme_transfer_full_contents">Mencakup semua sumber daya tema.</string>
     <string name="theme_transfer_paste">Bagikan kode atau tautan topik</string>
     <string name="theme_transfer_choose_file">Pilih file tema</string>
     <string name="theme_transfer_generate">Hasilkan kode berbagi</string>
@@ -8440,4 +8434,81 @@
     <string name="data_storage_detail_model_engines">Mesin runtime</string>
     <string name="pkg_delete_failed">File ekstensi tidak dapat dihapus. Periksa akses file atau nonaktifkan plugin yang bergantung padanya.</string>
     <string name="pkg_delete_success">File ekstensi telah dihapus</string>
+
+    <string name="extension_interfaces">Antarmuka</string>
+    <string name="extension_description_title">Deskripsi</string>
+    <string name="extension_description_expand">Baca selengkapnya</string>
+    <string name="extension_description_collapse">Tutup</string>
+    <string name="extension_detail_load_failed">Detail ekstensi tidak dapat dimuat. Periksa pemasangannya atau coba lagi.</string>
+    <string name="extension_toggle_failed">Aktivasi tidak dapat diubah. Periksa dependensi dan pengaturan lingkungan.</string>
+    <string name="extension_detail_retry">Coba lagi</string>
+
+    <string name="extension_detail_brief">Ringkasan</string>
+    <string name="extension_detail_description">Deskripsi lengkap</string>
+    <string name="extension_detail_information">Informasi</string>
+    <string name="extension_detail_manage">Kelola</string>
+    <string name="extension_detail_contents">Isi</string>
+    <string name="extension_detail_dependencies">Dependensi</string>
+    <string name="extension_detail_subpackages">Subpaket</string>
+    <string name="extension_detail_type">Jenis</string>
+    <string name="extension_detail_status">Status</string>
+    <string name="extension_detail_version">Versi</string>
+    <string name="extension_detail_source">Sumber</string>
+    <string name="extension_detail_imported">Diimpor manual</string>
+    <string name="extension_detail_market_source">Dipasang dari pasar</string>
+    <string name="extension_detail_remove">Hapus ekstensi</string>
+    <string name="extension_detail_remove_hint">Hapus ekstensi ini beserta berkasnya</string>
+    <string name="extension_detail_resources">Sumber daya</string>
+    <string name="extension_detail_wasm">Modul WASM</string>
+    <string name="extension_detail_workflows">Templat alur kerja</string>
+    <string name="extension_detail_workspaces">Templat ruang kerja</string>
+    <string name="extension_detail_developers">Pengembang</string>
+    <string name="extension_detail_updated">Diperbarui</string>
+    <string name="extension_detail_entry">Titik masuk</string>
+    <string name="extension_detail_path">Jalur</string>
+    <string name="extension_detail_market_entry">Entri pasar</string>
+    <string name="extension_detail_enabled">Diaktifkan</string>
+    <string name="extension_detail_disabled">Dinonaktifkan</string>
+    <string name="extension_detail_other_versions">Versi lain</string>
+    <string name="extension_detail_empty_subpackages">Plugin ini tidak memiliki subpaket.</string>
+    <string name="extension_detail_tools">Alat</string>
+    <string name="extension_detail_navigation">Entri navigasi</string>
+    <string name="extension_detail_widgets">Widget desktop</string>
+    <string name="extension_detail_default_state">Status bawaan</string>
+    <string name="extension_detail_source_unavailable">Sumber tidak tersedia</string>
+    <string name="extension_detail_install_config">Konfigurasi pemasangan</string>
+
+    <string name="extension_detail_downloads">Unduhan</string>
+    <string name="extension_detail_likes">Suka</string>
+    <string name="extension_detail_format">Format</string>
+    <string name="extension_updates_count">%1$d pembaruan</string>
+    <string name="extension_update_now">Perbarui</string>
+    <string name="extension_updating">Memperbarui</string>
+    <string name="extension_install">Unduh</string>
+    <string name="extension_installed">Terpasang</string>
+
+    <string name="extension_new_version">Versi baru</string>
+    <string name="script_filter_all">Semua skrip</string>
+    <string name="script_filter_enabled">Skrip aktif</string>
+    <string name="script_filter_disabled">Skrip nonaktif</string>
+    <string name="script_list_count">%1$d skrip</string>
+    <string name="studio_resources_imported">%1$d sumber daya diimpor</string>
+    <string name="studio_import_resource_hint">Pilih beberapa gambar PNG, JPEG, WebP, SVG statis atau font TTF dan OTF</string>
+    <string name="extension_detail_plugin">Plugin</string>
+    <string name="extension_detail_script">Skrip</string>
+    <string name="builtin_market_type">Jenis</string>
+    <string name="builtin_market_download_size">Ukuran unduhan</string>
+    <string name="builtin_market_packages">Ekstensi yang disertakan</string>
+    <string name="builtin_market_open_installed">Lihat yang terpasang</string>
+    <string name="builtin_market_about">Tentang</string>
+    <string name="builtin_market_description">Sumber daya bawaan Operit. Setelah diunduh, kelola, aktifkan, dan lihat alatnya melalui daftar plugin atau skrip.</string>
+    <string name="builtin_market_information">Informasi</string>
+    <string name="builtin_market_source">Sumber</string>
+    <string name="builtin_market_resource_version">Versi sumber daya</string>
+    <string name="builtin_resource_import">Impor sumber daya bawaan</string>
+    <string name="builtin_resource_import_hint">Pilih plugin atau skrip yang sesuai, lalu impor paket sumber daya ZIP yang sesuai.</string>
+    <string name="builtin_resource_no_targets">Tidak ada sumber daya bawaan yang dapat diimpor.</string>
+    <string name="builtin_market_version">Versi sumber daya %1$s</string>
+    <string name="extension_updates_no_sources">Tidak ada plugin atau skrip dengan sumber pembaruan. Item yang diimpor manual tanpa sumber pasar tidak dapat diperiksa.</string>
+    <string name="data_storage_extension_plugin_data_desc">Berisi buku dunia dan pengaturan plugin. Kelola data ini di plugin terkait.</string>
 </resources>

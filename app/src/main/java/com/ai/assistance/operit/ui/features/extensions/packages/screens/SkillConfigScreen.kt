@@ -1,4 +1,6 @@
 package com.ai.assistance.operit.ui.features.extensions.packages.screens
+
+import com.ai.assistance.operit.ui.features.extensions.packages.components.ExtensionSwitch
 import com.ai.assistance.operit.data.preferences.glass.GlassRegion
 
 import com.ai.assistance.operit.ui.common.oktoast.OKToast
@@ -50,7 +52,6 @@ import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as O
 import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
@@ -64,7 +65,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -1094,8 +1094,7 @@ private fun SkillListItem(
                 }
             }
 
-            Switch(
-                modifier = Modifier.scale(0.8f),
+            ExtensionSwitch(
                 checked = visibleToAi,
                 onCheckedChange = { checked ->
                     visibleToAi = checked

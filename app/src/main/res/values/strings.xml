@@ -890,7 +890,7 @@
     <string name="tag_count_locked_status">已选择 %1$d / 上限 %2$d</string>
 
     <!-- Package Manager Screen -->
-    <string name="packages">沙盒包</string>
+    <string name="packages">脚本</string>
     <string name="skills">技能</string>
     <string name="package_tab_skills">技能</string>
     <string name="quick_plugin_creator_title">快速创作你的插件</string>
@@ -913,7 +913,7 @@
     <string name="package_tools">包含工具</string>
     <string name="package_import_success">成功导入包</string>
     <string name="package_import_error">导入包失败</string>
-    <string name="no_packages_available">没有可用的包</string>
+    <string name="no_packages_available">没有可用的脚本</string>
     <string name="no_plugins_available">暂无可用插件</string>
     <string name="no_packages_imported">尚未导入任何包</string>
     <string name="remove_package">移除包</string>
@@ -934,19 +934,19 @@
     <string name="package_js_only">仅支持 JavaScript(.js) 和 ToolPkg(.toolpkg) 文件</string>
     <string name="package_script_only">仅支持 HJSON(.hjson)、JavaScript(.js) 和 TypeScript(.ts) 文件</string>
     <string name="package_add_dialog_title_plugin">添加插件</string>
-    <string name="package_add_dialog_title_package">添加沙盒包</string>
+    <string name="package_add_dialog_title_package">添加脚本</string>
     <string name="package_add_dialog_message_plugin">导入现有 .toolpkg，或新建一份可直接加载的模板。</string>
-    <string name="package_add_dialog_message_package">导入现有沙盒包，或新建一份带完整注释的 JS 模板。</string>
+    <string name="package_add_dialog_message_package">导入现有脚本，或新建一份带完整注释的 JS 模板。</string>
     <string name="package_add_import_existing_plugin">导入现有插件</string>
     <string name="package_add_import_existing_plugin_hint">选择一个 .toolpkg 文件并导入到外部包目录。</string>
-    <string name="package_add_import_existing_package">导入现有沙盒包</string>
+    <string name="package_add_import_existing_package">导入现有脚本</string>
     <string name="package_add_import_existing_package_hint">选择 .js、.ts 或 .hjson 文件并导入。</string>
     <string name="package_add_create_js_plugin">新建基础 JS 模板</string>
     <string name="package_add_create_js_plugin_hint">生成可直接加载的 .toolpkg，入口是 dist/main.js。</string>
     <string name="package_add_create_ts_plugin">新建 TypeScript 模板</string>
     <string name="package_add_create_ts_plugin_hint">同时带上 src/main.ts。改完后需要自行编译再打包。</string>
     <string name="package_add_create_js_package">新建 JS 模板</string>
-    <string name="package_add_create_js_package_hint">生成带 METADATA 和示范工具的 .js 沙盒包。</string>
+    <string name="package_add_create_js_package_hint">生成带 METADATA 和示范工具的 .js 脚本。</string>
     <string name="package_template_identity_title">新建模板</string>
     <string name="package_template_identity_message_plugin">先填写显示名和 toolpkg_id，再写入 Android/data/.../files/packages。</string>
     <string name="package_template_identity_message_package">先填写显示名和包名，再写入 Android/data/.../files/packages。</string>
@@ -965,7 +965,7 @@
     <string name="package_share_choice_title">如何处理这个文件？</string>
     <string name="package_share_choice_title_plural">如何处理这些文件？</string>
     <string name="package_share_choice_message">检测到 %1$d 个可导入的 .js / .toolpkg 文件。</string>
-    <string name="package_share_choice_import">导入为插件或沙盒包</string>
+    <string name="package_share_choice_import">导入为插件或脚本</string>
     <string name="package_share_choice_import_hint">写入外部包目录，并出现在包管理里。</string>
     <string name="package_share_choice_chat">添加到聊天附件</string>
     <string name="package_share_choice_chat_hint">先选择聊天窗口，再作为附件发送。</string>
@@ -3755,7 +3755,6 @@
     <!-- ModelApiSettingsSection strings -->
     <string name="api_settings">API设置</string>
     <string name="api_endpoint">API端点</string>
-    <string name="api_endpoint_placeholder">例如: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">实际请求地址: %s</string>
     <string name="endpoint_completion_hint">提示: 如果您输入的是基础URL，系统将自动补全路径。如需禁用，请在URL末尾添加#号。</string>
     <string name="api_key">API密钥</string>
@@ -4228,14 +4227,14 @@
     <string name="login_github_to_manage_packages">登录 GitHub 以发布和管理您的工具包</string>
     <string name="browse">浏览</string>
     <string name="my_tab">我的</string>
-    <string name="market_tab_artifact">沙盒包</string>
+    <string name="market_tab_artifact">脚本</string>
     <string name="market_tab_all">全部</string>
     <string name="market_tab_categories">分类</string>
     <string name="market_tab_mcp">模型上下文协议</string>
     <string name="market_tab_skill">技能</string>
     <string name="market_tab_mine">我的</string>
     <string name="market_category_type_all">全部</string>
-    <string name="market_category_type_script">沙盒包</string>
+    <string name="market_category_type_script">脚本</string>
     <string name="market_category_type_package">插件</string>
     <string name="market_category_type_skill">技能</string>
     <string name="market_category_type_mcp">模型上下文协议</string>
@@ -4332,11 +4331,11 @@
     <string name="no_matching_plugins_found">未找到匹配的插件</string>
     <string name="no_matching_skills_found">未找到匹配的技能</string>
     <string name="no_matching_scripts_found">未找到匹配的脚本</string>
-    <string name="no_matching_packages_found">未找到匹配的工具包</string>
+    <string name="no_matching_packages_found">未找到匹配的脚本</string>
     <string name="skill_market_search_placeholder">搜索技能</string>
     <string name="script_market_search_placeholder">搜索脚本名称、描述、作者...</string>
     <string name="plugin_market_search_placeholder">搜索插件</string>
-    <string name="package_market_search_placeholder">搜索包</string>
+    <string name="package_market_search_placeholder">搜索脚本名称、描述、作者…</string>
     <string name="mcp_market_search_placeholder">搜索模型上下文协议</string>
     <string name="skill_repo_url_not_found">未找到仓库地址</string>
     <string name="skill_repo_url_not_found_cannot_install">未找到仓库地址，无法安装</string>
@@ -4616,9 +4615,8 @@
     <string name="unsupported_artifact_version_title">当前软件版本可能不兼容</string>
     <string name="unsupported_artifact_version_message">「%1$s」声明支持的软件版本为 %3$s，当前软件版本是 %2$s。继续下载仍可能失败或不可用。</string>
     <string name="continue_download_anyway">仍然继续下载</string>
-    <string name="market_version_incompatible_title">无法下载：客户端版本不受支持</string>
-    <string name="market_version_too_low_message">当前客户端版本 %1$s 低于该资源要求的最低版本 %2$s。请更新客户端后再下载。</string>
-    <string name="market_version_too_high_message">当前客户端版本 %1$s 高于该资源最高支持的版本 %2$s。请使用受支持的客户端版本。</string>
+    <string name="market_toolpkg_api_incompatible_title">无法安装：ToolPkg API 不受支持</string>
+    <string name="market_toolpkg_api_incompatible_message">该插件声明的 ToolPkg API 版本为 %1$s，本机支持的版本为 %2$s，无法安装此插件。</string>
     <string name="publisher_colon">发布者: %1$s</string>
     <string name="market_registrar_colon">登记者 %1$s</string>
     <string name="downloaded_already">已下载</string>
@@ -6897,10 +6895,6 @@
     <string name="phone_agent_virtual_screen_create_failed">虚拟屏幕创建失败。</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">虚拟屏幕预启动失败：%1$s</string>
     <string name="phone_agent_virtual_screen_not_started">虚拟屏幕未能启动，已中止以避免在主屏幕执行操作。</string>
-    <string name="phone_agent_thinking">思考中...</string>
-    <string name="phone_agent_completed">已完成</string>
-    <string name="phone_agent_executing_action">执行 %1$s 中...</string>
-    <string name="phone_agent_executing">执行操作中...</string>
 
     <!-- Workflow Executor -->
     <string name="workflow_skip">跳过</string>
@@ -8272,7 +8266,7 @@
     <string name="data_storage_extension_scripts">脚本</string>
     <string name="data_storage_extension_mcp">模型上下文协议</string>
     <string name="data_storage_extension_skills">技能</string>
-    <string name="data_storage_extension_plugin_source">插件源码</string>
+    <string name="data_storage_extension_plugin_data">插件数据</string>
     <string name="data_storage_extension_dev_package">开发包</string>
     <string name="data_storage_extension_themes">主题包</string>
     <string name="data_storage_extension_bridge">模型上下文协议桥接</string>
@@ -8281,7 +8275,7 @@
     <string name="data_storage_extension_scripts_empty">暂无脚本</string>
     <string name="data_storage_extension_mcp_empty">暂无模型上下文协议服务</string>
     <string name="data_storage_extension_skills_empty">暂无技能</string>
-    <string name="data_storage_extension_plugin_source_empty">暂无插件源码</string>
+    <string name="data_storage_extension_plugin_data_empty">暂无插件数据</string>
     <string name="data_storage_extension_dev_package_empty">暂无开发包</string>
     <string name="data_storage_extension_themes_empty">暂无主题包</string>
     <string name="data_storage_extension_bridge_empty">暂无模型上下文协议桥接文件</string>
@@ -8382,7 +8376,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">插件市场</string>
-    <string name="package_market">包市场</string>
+    <string name="package_market">脚本市场</string>
     <string name="plugin_sort_action">排序</string>
     <string name="plugin_sort_custom">自定义顺序</string>
     <string name="plugin_sort_name">名称</string>
@@ -8401,7 +8395,7 @@
     <string name="plugin_manage_load_errors">加载错误（%1$d）</string>
     <string name="plugin_import_format_help">导入格式说明</string>
     <string name="plugin_import_format_description">插件支持导入 .toolpkg 文件。文件中应包含 manifest.json 或 manifest.hjson，以及声明的入口文件和资源。</string>
-    <string name="sandbox_import_format_description">沙盒包支持 .js、.ts 和 .hjson 文件。脚本需要包含 METADATA 元数据；TypeScript 文件需要自行编译。</string>
+    <string name="sandbox_import_format_description">独立脚本支持 .js、.ts 和 .hjson 文件。脚本需要包含 METADATA 元数据；TypeScript 文件需要自行编译。</string>
     <string name="skill_list_count">技能 · %1$d 项</string>
     <string name="mcp_start_services">启动服务</string>
     <string name="mcp_starting_services">正在启动</string>
@@ -8963,7 +8957,7 @@
     <string name="theme_transfer_author">作者</string>
     <string name="theme_transfer_code">分享码</string>
     <string name="theme_transfer_file">主题文件 .oktheme</string>
-    <string name="theme_transfer_full_contents">包含主题参数、背景图片或视频、双方气泡图片、自定义字体、头像及素材调整。</string>
+    <string name="theme_transfer_full_contents">包含完整的主题资源</string>
     <string name="theme_transfer_paste">分享码或主题链接</string>
     <string name="theme_transfer_choose_file">选择主题文件</string>
     <string name="theme_transfer_generate">生成分享码</string>
@@ -9164,4 +9158,82 @@
     <string name="theme_icon_navigation">导航项通用图标</string>
     <string name="theme_appearance_disabled">停用</string>
     <string name="toolreg_terminal_task_desc">终端托管任务操作：%1$s</string>
+    <string name="update_source_failed_reason">%1$s 下载失败：%2$s</string>
+
+    <string name="extension_interfaces">界面</string>
+    <string name="extension_description_title">介绍</string>
+    <string name="extension_description_expand">展开全文</string>
+    <string name="extension_description_collapse">收起</string>
+    <string name="extension_detail_load_failed">无法加载扩展详情。请返回列表确认它仍已安装，或重试。</string>
+    <string name="extension_toggle_failed">无法更改启用状态，请检查依赖或环境配置后重试。</string>
+    <string name="extension_detail_retry">重试</string>
+
+    <string name="extension_detail_brief">简介</string>
+    <string name="extension_detail_description">详细介绍</string>
+    <string name="extension_detail_information">信息</string>
+    <string name="extension_detail_manage">管理</string>
+    <string name="extension_detail_contents">包含内容</string>
+    <string name="extension_detail_dependencies">依赖</string>
+    <string name="extension_detail_subpackages">子包</string>
+    <string name="extension_detail_type">类型</string>
+    <string name="extension_detail_status">状态</string>
+    <string name="extension_detail_version">版本</string>
+    <string name="extension_detail_source">来源</string>
+    <string name="extension_detail_imported">手动导入</string>
+    <string name="extension_detail_market_source">市场安装</string>
+    <string name="extension_detail_remove">移除扩展</string>
+    <string name="extension_detail_remove_hint">删除这个扩展和它的文件</string>
+    <string name="extension_detail_resources">资源</string>
+    <string name="extension_detail_wasm">WASM 模块</string>
+    <string name="extension_detail_workflows">工作流模板</string>
+    <string name="extension_detail_workspaces">工作区模板</string>
+    <string name="extension_detail_developers">开发者</string>
+    <string name="extension_detail_updated">更新于</string>
+    <string name="extension_detail_entry">入口</string>
+    <string name="extension_detail_path">路径</string>
+    <string name="extension_detail_market_entry">市场条目</string>
+    <string name="extension_detail_enabled">已启用</string>
+    <string name="extension_detail_disabled">已停用</string>
+    <string name="extension_detail_other_versions">其他版本</string>
+    <string name="extension_detail_empty_subpackages">这个插件没有子包。</string>
+    <string name="extension_detail_tools">工具</string>
+    <string name="extension_detail_navigation">导航入口</string>
+    <string name="extension_detail_widgets">桌面小组件</string>
+    <string name="extension_detail_default_state">默认状态</string>
+    <string name="extension_detail_source_unavailable">来源读取失败</string>
+    <string name="extension_detail_install_config">安装配置</string>
+
+    <string name="extension_detail_downloads">下载</string>
+    <string name="extension_detail_likes">喜欢</string>
+    <string name="extension_detail_format">格式</string>
+    <string name="extension_updates_count">发现 %1$d 个更新</string>
+    <string name="extension_update_now">更新</string>
+    <string name="extension_updating">更新中</string>
+    <string name="extension_install">下载</string>
+    <string name="extension_installed">已安装</string>
+
+    <string name="extension_new_version">有新版本</string>
+    <string name="script_filter_all">全部脚本</string>
+    <string name="script_filter_enabled">已启用脚本</string>
+    <string name="script_filter_disabled">已停用脚本</string>
+    <string name="script_list_count">%1$d 个脚本</string>
+    <string name="studio_resources_imported">已导入 %1$d 项资源</string>
+    <string name="studio_import_resource_hint">支持多选 PNG、JPEG、WebP、静态 SVG 图片和 TTF、OTF 字体</string>
+    <string name="extension_detail_plugin">插件</string>
+    <string name="extension_detail_script">脚本</string>
+    <string name="builtin_market_type">类型</string>
+    <string name="builtin_market_download_size">下载大小</string>
+    <string name="builtin_market_packages">包含的扩展</string>
+    <string name="builtin_market_open_installed">查看已安装</string>
+    <string name="builtin_market_about">简介</string>
+    <string name="builtin_market_description">来自 Operit 内置资源。下载后可在插件或脚本列表中管理、启用并查看工具。</string>
+    <string name="builtin_market_information">信息</string>
+    <string name="builtin_market_source">来源</string>
+    <string name="builtin_market_resource_version">资源版本</string>
+    <string name="builtin_resource_import">导入内置资源包</string>
+    <string name="builtin_resource_import_hint">选择对应的插件或脚本，再导入对应的 ZIP 资源包。</string>
+    <string name="builtin_resource_no_targets">没有可导入的内置资源。</string>
+    <string name="builtin_market_version">资源版本 %1$s</string>
+    <string name="extension_updates_no_sources">没有可检查更新的插件或脚本。手动导入且没有市场来源的项目无法检查更新。</string>
+    <string name="data_storage_extension_plugin_data_desc">包含世界书和插件设置，请在对应插件中管理这些数据。</string>
 </resources>

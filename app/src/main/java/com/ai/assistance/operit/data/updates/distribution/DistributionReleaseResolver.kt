@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.data.updates.distribution
 
 import com.ai.assistance.operit.data.api.GitHubRelease
+import com.ai.assistance.operit.data.updates.GithubReleaseUtil
 import com.ai.assistance.operit.data.updates.UpdateManager
 import com.ai.assistance.operit.data.updates.UpdateStatus
 import org.json.JSONObject
@@ -44,6 +45,7 @@ internal object DistributionReleaseResolver {
         val meta = latest.assets.firstOrNull {
             it.name.startsWith("patch_") && it.name.endsWith(".json")
         }
+        val apk = latest.assets.single { it.name == APK_NAME }
         // 仅同一基础版本使用已有补丁协议，跨基础版本明确提供完整 APK 更新。
         if (version.substringBefore('+') == currentVersion.substringBefore('+') && patch != null && meta != null) {
             return UpdateStatus.PatchAvailable(
@@ -52,15 +54,20 @@ internal object DistributionReleaseResolver {
                 releaseNotes = notes,
                 patchUrl = patch.browser_download_url,
                 metaUrl = meta.browser_download_url,
-                fullApkUrl = latest.assets.single { it.name == APK_NAME }.browser_download_url,
+                fullApkUrl = apk.browser_download_url,
+                metaSha256 = GithubReleaseUtil.parseAssetDigest(meta.digest),
+                patchSha256 = GithubReleaseUtil.parseAssetDigest(patch.digest),
+                fullApkSha256 = GithubReleaseUtil.parseAssetDigest(apk.digest),
+                fullApkSize = apk.size.takeIf { it > 0L },
             )
         }
-        val apk = latest.assets.single { it.name == APK_NAME }
         return UpdateStatus.Available(
             newVersion = version,
             updateUrl = latest.html_url,
             releaseNotes = notes,
-            downloadUrl = apk.browser_download_url
+            downloadUrl = apk.browser_download_url,
+            downloadSha256 = GithubReleaseUtil.parseAssetDigest(apk.digest),
+            downloadSize = apk.size.takeIf { it > 0L },
         )
     }
 }

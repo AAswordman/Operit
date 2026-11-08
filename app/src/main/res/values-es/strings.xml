@@ -220,7 +220,7 @@
     <string name="package_tools">Herramientas incluidas</string>
     <string name="package_import_success">Paquete importado con éxito</string>
     <string name="package_import_error">Error al importar el paquete</string>
-    <string name="no_packages_available">No hay paquetes disponibles</string>
+    <string name="no_packages_available">No hay scripts disponibles</string>
     <string name="no_packages_imported">Aún no se han importado paquetes</string>
     <string name="remove_package">Eliminar paquete</string>
     <string name="package_removed">Paquete eliminado</string>
@@ -1000,7 +1000,6 @@
     <string name="config_renamed">Configuración Renombrada</string>
 
     <!-- ModelApiSettingsSection strings -->
-    <string name="api_endpoint_placeholder">ej.: https://api.openai.com/v1/chat/completions</string>
     <string name="actual_request_url">URL de solicitud real: %s</string>
     <string name="endpoint_completion_hint">Sugerencia: Si ingresas una URL base, el sistema completará automáticamente la ruta. Para desactivar, agrega # al final de la URL.</string>
     <string name="api_key_placeholder_default">No hay clave establecida. Escríbela aquí o usa el grupo de claves API</string>
@@ -3546,7 +3545,7 @@
     <string name="login_github_to_manage_packages">Inicia sesión en GitHub para publicar y gestionar tus paquetes</string>
     <string name="browse">Explorar</string>
     <string name="my_tab">Mis</string>
-    <string name="market_tab_artifact">Paquetes sandbox</string>
+    <string name="market_tab_artifact">Scripts</string>
     <string name="market_tab_mcp">MCP</string>
     <string name="market_tab_skill">Skill</string>
     <string name="market_tab_mine">Mis</string>
@@ -3568,10 +3567,10 @@
     <string name="no_matching_plugins_found">No se encontraron plugins coincidentes</string>
     <string name="no_matching_skills_found">No se encontraron Skills coincidentes</string>
     <string name="no_matching_scripts_found">No se encontraron scripts coincidentes</string>
-    <string name="no_matching_packages_found">No se encontraron paquetes coincidentes</string>
+    <string name="no_matching_packages_found">No se encontraron scripts coincidentes</string>
     <string name="skill_market_search_placeholder">Buscar Skill o autor</string>
     <string name="script_market_search_placeholder">Buscar nombre, descripción, autor del script...</string>
-    <string name="package_market_search_placeholder">Buscar nombre, descripción, autor del paquete...</string>
+    <string name="package_market_search_placeholder">Buscar nombre, descripción o autor del script…</string>
     <string name="skill_repo_url_not_found">No se encontró la URL del repositorio</string>
     <string name="skill_repo_url_not_found_cannot_install">No se encontró la URL del repositorio, no se puede instalar</string>
     <string name="no_available_mcp_plugins">No hay plugins MCP disponibles por ahora</string>
@@ -5893,10 +5892,6 @@
     <string name="phone_agent_virtual_screen_create_failed">Error al crear la pantalla virtual.</string>
     <string name="phone_agent_virtual_screen_prewarm_failed">Error al precalentar la pantalla virtual: %1$s</string>
     <string name="phone_agent_virtual_screen_not_started">La pantalla virtual no se pudo iniciar. Se ha cancelado para evitar ejecutar acciones en la pantalla principal.</string>
-    <string name="phone_agent_thinking">Pensando...</string>
-    <string name="phone_agent_completed">Completado</string>
-    <string name="phone_agent_executing_action">Ejecutando %1$s...</string>
-    <string name="phone_agent_executing">Ejecutando acción...</string>
     <string name="workflow_skip">Saltar</string>
     <string name="workflow_condition_type_mismatch">Los tipos de comparación de condición no coinciden: left=\'%1$s\', right=\'%2$s\'</string>
     <string name="workflow_condition_not_met">La condición no se cumple.</string>
@@ -6589,19 +6584,19 @@
     <string name="import_external_plugin">Importar complemento externo</string>
     <string name="package_script_only">Solo se admiten archivos HJSON (.hjson), JavaScript (.js) y TypeScript (.ts)</string>
     <string name="package_add_dialog_title_plugin">Añadir complemento</string>
-    <string name="package_add_dialog_title_package">Añadir paquete sandbox</string>
+    <string name="package_add_dialog_title_package">Añadir script</string>
     <string name="package_add_dialog_message_plugin">Import an existing .toolpkg, or create a loadable template.</string>
-    <string name="package_add_dialog_message_package">Import an existing sandbox package, or create a JS template with comments.</string>
+    <string name="package_add_dialog_message_package">Importa un script existente o crea una plantilla JS con comentarios.</string>
     <string name="package_add_import_existing_plugin">Importar complemento existente</string>
     <string name="package_add_import_existing_plugin_hint">Choose a .toolpkg file and import it into the external packages folder.</string>
-    <string name="package_add_import_existing_package">Importar paquete sandbox existente</string>
+    <string name="package_add_import_existing_package">Importar script existente</string>
     <string name="package_add_import_existing_package_hint">Choose a .js, .ts, or .hjson file to import.</string>
     <string name="package_add_create_js_plugin">Crear plantilla JS</string>
     <string name="package_add_create_js_plugin_hint">Create a loadable .toolpkg whose entry is dist/main.js.</string>
     <string name="package_add_create_ts_plugin">Crear plantilla TypeScript</string>
     <string name="package_add_create_ts_plugin_hint">Includes src/main.ts. Compile it yourself after editing.</string>
     <string name="package_add_create_js_package">Crear plantilla JS</string>
-    <string name="package_add_create_js_package_hint">Create a .js sandbox package with METADATA and a sample tool.</string>
+    <string name="package_add_create_js_package_hint">Crea un script .js con METADATA y una herramienta de ejemplo.</string>
     <string name="package_template_identity_title">Nueva plantilla</string>
     <string name="package_template_identity_message_plugin">Enter a display name and toolpkg_id before writing to Android/data/.../files/packages.</string>
     <string name="package_template_identity_message_package">Enter a display name and package name before writing to Android/data/.../files/packages.</string>
@@ -6620,7 +6615,7 @@
     <string name="package_share_choice_title">How should this file be used?</string>
     <string name="package_share_choice_title_plural">How should these files be used?</string>
     <string name="package_share_choice_message">Found %1$d importable .js / .toolpkg file(s).</string>
-    <string name="package_share_choice_import">Importar como complemento o paquete sandbox</string>
+    <string name="package_share_choice_import">Importar como complemento o script</string>
     <string name="package_share_choice_import_hint">Write it to the external packages folder and show it in package management.</string>
     <string name="package_share_choice_chat">Añadir como adjunto del chat</string>
     <string name="package_share_choice_chat_hint">Choose a chat first, then attach the file.</string>
@@ -6912,7 +6907,7 @@
     <string name="market_tab_all">Todo</string>
     <string name="market_tab_categories">Categorías</string>
     <string name="market_category_type_all">Todo</string>
-    <string name="market_category_type_script">Script</string>
+    <string name="market_category_type_script">Scripts</string>
     <string name="market_category_type_package">Complemento</string>
     <string name="market_category_type_skill">Skill</string>
     <string name="market_category_type_mcp">MCP</string>
@@ -7095,9 +7090,8 @@
     <string name="github_login_method_external">Iniciar sesión con navegador externo</string>
     <string name="github_login_starting">Preparando autorización de GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">La versión de publicación de ToolPkg proviene del manifiesto del paquete y no se puede modificar manualmente antes de publicar</string>
-    <string name="market_version_incompatible_title">No se puede descargar: versión del cliente no compatible</string>
-    <string name="market_version_too_low_message">La versión actual del cliente %1$s es inferior a la versión mínima requerida %2$s para este recurso. Actualice el cliente antes de descargar.</string>
-    <string name="market_version_too_high_message">La versión actual del cliente %1$s es superior a la versión máxima compatible %2$s para este recurso. Utilice una versión de cliente compatible.</string>
+    <string name="market_toolpkg_api_incompatible_title">No se puede instalar: API de ToolPkg no compatible</string>
+    <string name="market_toolpkg_api_incompatible_message">Este complemento declara la API de ToolPkg %1$s. Este dispositivo admite %2$s, por lo que no se puede instalar.</string>
     <string name="search_group_title">Buscar</string>
     <string name="thinking_search_group_title">Pensar y buscar</string>
     <string name="thinking_search_tools_group_title_with_count">Pensar, buscar y usar herramientas (%1$d)</string>
@@ -7499,7 +7493,7 @@
     <string name="data_storage_extension_scripts">Scripts</string>
     <string name="data_storage_extension_mcp">Protocolo de contexto de modelo</string>
     <string name="data_storage_extension_skills">Habilidades</string>
-    <string name="data_storage_extension_plugin_source">Código fuente de complementos</string>
+    <string name="data_storage_extension_plugin_data">Datos de complementos</string>
     <string name="data_storage_extension_dev_package">Paquetes de desarrollo</string>
     <string name="data_storage_extension_themes">Paquetes de tema</string>
     <string name="data_storage_extension_bridge">Puente MCP</string>
@@ -7508,7 +7502,7 @@
     <string name="data_storage_extension_scripts_empty">No scripts found</string>
     <string name="data_storage_extension_mcp_empty">No MCP plugins found</string>
     <string name="data_storage_extension_skills_empty">No skills found</string>
-    <string name="data_storage_extension_plugin_source_empty">No plugin source folders found</string>
+    <string name="data_storage_extension_plugin_data_empty">No hay datos de complementos</string>
     <string name="data_storage_extension_dev_package_empty">No development packages found</string>
     <string name="data_storage_extension_themes_empty">No theme packages found</string>
     <string name="data_storage_extension_bridge_empty">No MCP bridge files found</string>
@@ -7591,7 +7585,7 @@
 
     <!-- 插件列表排序、筛选与包管理入口 -->
     <string name="plugin_market">Mercado de plugins</string>
-    <string name="package_market">Mercado de paquetes</string>
+    <string name="package_market">Mercado de scripts</string>
     <string name="plugin_sort_action">Ordenar</string>
     <string name="plugin_sort_custom">Orden personalizado</string>
     <string name="plugin_sort_name">Nombre</string>
@@ -7610,7 +7604,7 @@
     <string name="plugin_manage_load_errors">Errores de carga (%1$d)</string>
     <string name="plugin_import_format_help">Formatos de importación</string>
     <string name="plugin_import_format_description">Los plugins admiten archivos .toolpkg con manifest.json o manifest.hjson y los archivos de entrada y recursos declarados.</string>
-    <string name="sandbox_import_format_description">Los paquetes de sandbox admiten .js, .ts y .hjson. Los scripts requieren METADATA; TypeScript se debe compilar por separado.</string>
+    <string name="sandbox_import_format_description">Los scripts independientes admiten .js, .ts y .hjson. Necesitan METADATA; TypeScript debe compilarse por separado.</string>
 
     <!-- 上下文窗口与当前对话累计用量 -->
     <string name="context_panel_assistant_messages">Mensajes de IA</string>
@@ -8429,7 +8423,7 @@
     <string name="theme_transfer_author">Autor</string>
     <string name="theme_transfer_code">compartir codigo</string>
     <string name="theme_transfer_file">Archivo de tema .oktheme</string>
-    <string name="theme_transfer_full_contents">Incluyendo parámetros del tema, imágenes de fondo o videos, imágenes de burbujas de ambas partes, fuentes personalizadas, avatares y ajustes de materiales.</string>
+    <string name="theme_transfer_full_contents">Incluye todos los recursos del tema.</string>
     <string name="theme_transfer_paste">Compartir código o enlace de tema</string>
     <string name="theme_transfer_choose_file">Seleccionar archivo de tema</string>
     <string name="theme_transfer_generate">Generar código para compartir</string>
@@ -8508,4 +8502,81 @@
     <string name="data_storage_detail_model_engines">Motores de ejecución</string>
     <string name="pkg_delete_failed">No se pudieron eliminar los archivos de la extensión. Comprueba el acceso o desactiva los complementos dependientes.</string>
     <string name="pkg_delete_success">Archivos de la extensión eliminados</string>
+
+    <string name="extension_interfaces">Interfaces</string>
+    <string name="extension_description_title">Descripción</string>
+    <string name="extension_description_expand">Leer más</string>
+    <string name="extension_description_collapse">Mostrar menos</string>
+    <string name="extension_detail_load_failed">No se pueden cargar los detalles. Comprueba que la extensión siga instalada o reinténtalo.</string>
+    <string name="extension_toggle_failed">No se puede cambiar la activación. Revisa las dependencias y la configuración del entorno.</string>
+    <string name="extension_detail_retry">Reintentar</string>
+
+    <string name="extension_detail_brief">Resumen</string>
+    <string name="extension_detail_description">Descripción detallada</string>
+    <string name="extension_detail_information">Información</string>
+    <string name="extension_detail_manage">Administrar</string>
+    <string name="extension_detail_contents">Contenido</string>
+    <string name="extension_detail_dependencies">Dependencias</string>
+    <string name="extension_detail_subpackages">Subpaquetes</string>
+    <string name="extension_detail_type">Tipo</string>
+    <string name="extension_detail_status">Estado</string>
+    <string name="extension_detail_version">Versión</string>
+    <string name="extension_detail_source">Origen</string>
+    <string name="extension_detail_imported">Importado manualmente</string>
+    <string name="extension_detail_market_source">Instalado desde el mercado</string>
+    <string name="extension_detail_remove">Eliminar extensión</string>
+    <string name="extension_detail_remove_hint">Eliminar esta extensión y sus archivos</string>
+    <string name="extension_detail_resources">Recursos</string>
+    <string name="extension_detail_wasm">Módulos WASM</string>
+    <string name="extension_detail_workflows">Plantillas de flujos</string>
+    <string name="extension_detail_workspaces">Plantillas de espacios de trabajo</string>
+    <string name="extension_detail_developers">Desarrolladores</string>
+    <string name="extension_detail_updated">Actualizado</string>
+    <string name="extension_detail_entry">Punto de entrada</string>
+    <string name="extension_detail_path">Ruta</string>
+    <string name="extension_detail_market_entry">Entrada del mercado</string>
+    <string name="extension_detail_enabled">Activado</string>
+    <string name="extension_detail_disabled">Desactivado</string>
+    <string name="extension_detail_other_versions">Otras versiones</string>
+    <string name="extension_detail_empty_subpackages">Este complemento no tiene subpaquetes.</string>
+    <string name="extension_detail_tools">Herramientas</string>
+    <string name="extension_detail_navigation">Entradas de navegación</string>
+    <string name="extension_detail_widgets">Widgets de escritorio</string>
+    <string name="extension_detail_default_state">Estado predeterminado</string>
+    <string name="extension_detail_source_unavailable">Origen no disponible</string>
+    <string name="extension_detail_install_config">Configuración de instalación</string>
+
+    <string name="extension_detail_downloads">Descargas</string>
+    <string name="extension_detail_likes">Me gusta</string>
+    <string name="extension_detail_format">Formato</string>
+    <string name="extension_updates_count">%1$d actualizaciones</string>
+    <string name="extension_update_now">Actualizar</string>
+    <string name="extension_updating">Actualizando</string>
+    <string name="extension_install">Descargar</string>
+    <string name="extension_installed">Instalado</string>
+
+    <string name="extension_new_version">Nueva versión</string>
+    <string name="script_filter_all">Todos los scripts</string>
+    <string name="script_filter_enabled">Scripts activos</string>
+    <string name="script_filter_disabled">Scripts desactivados</string>
+    <string name="script_list_count">%1$d scripts</string>
+    <string name="studio_resources_imported">%1$d recursos importados</string>
+    <string name="studio_import_resource_hint">Selecciona varias imágenes PNG, JPEG, WebP, SVG estáticas o fuentes TTF y OTF</string>
+    <string name="extension_detail_plugin">Complemento</string>
+    <string name="extension_detail_script">Script</string>
+    <string name="builtin_market_type">Tipo</string>
+    <string name="builtin_market_download_size">Tamaño de descarga</string>
+    <string name="builtin_market_packages">Extensiones incluidas</string>
+    <string name="builtin_market_open_installed">Ver instalación</string>
+    <string name="builtin_market_about">Descripción</string>
+    <string name="builtin_market_description">Recurso integrado de Operit. Tras descargarlo, puedes gestionarlo, activarlo y consultar sus herramientas en la lista de complementos o scripts.</string>
+    <string name="builtin_market_information">Información</string>
+    <string name="builtin_market_source">Origen</string>
+    <string name="builtin_market_resource_version">Versión del recurso</string>
+    <string name="builtin_resource_import">Importar recursos integrados</string>
+    <string name="builtin_resource_import_hint">Selecciona el complemento o script correspondiente y luego importa el paquete de recursos ZIP correspondiente.</string>
+    <string name="builtin_resource_no_targets">No hay recursos integrados disponibles para importar.</string>
+    <string name="builtin_market_version">Versión del recurso %1$s</string>
+    <string name="extension_updates_no_sources">No hay complementos ni scripts con un origen de actualizaciones. Los elementos importados manualmente sin un origen del mercado no se pueden comprobar.</string>
+    <string name="data_storage_extension_plugin_data_desc">Contiene libros de mundo y ajustes. Gestiona estos datos en el complemento correspondiente.</string>
 </resources>

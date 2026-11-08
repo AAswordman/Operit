@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from distribution_catalog import load_catalog
 import os
 from pathlib import Path
 import re
@@ -18,8 +19,9 @@ from repositories.config import SOURCE_REPOSITORY, RESOURCE_REPOSITORY
 
 
 def prepare_artifact(archive: Path, destination: Path) -> None:
-    catalog = json.loads((ROOT / "app/config/offline-packs.json").read_text())
+    catalog = load_catalog(ROOT / 'app/config')
     expected = {pack["archive"]["path"]: pack["archive"]["bytes"] for pack in catalog["packs"]}
+    expected["builtin-extensions.json"] = (ROOT / "app/config/builtin-extensions.json").stat().st_size
     expected["offline-packs.json"] = (ROOT / "app/config/offline-packs.json").stat().st_size
     with zipfile.ZipFile(archive) as source:
         entries = source.infolist()
