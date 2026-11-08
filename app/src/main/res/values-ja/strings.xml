@@ -284,9 +284,8 @@
     <string name="market_manage_submit_revision">修正版を新しいバージョンとして提出</string>
     <string name="market_manage_loading_request_title">リクエストを読み込み中</string>
     <string name="market_manage_loading_request_message">リクエストを処理しています。しばらくお待ちください…</string>
-    <string name="market_version_incompatible_title">ダウンロードできません：対応していないアプリ版です</string>
-    <string name="market_version_too_low_message">現在のアプリ版%1$sは、この項目に必要な最低版%2$sより古い版です。アプリを更新してからダウンロードしてください。</string>
-    <string name="market_version_too_high_message">現在のアプリ版%1$sは、この項目が対応する最高版%2$sより新しい版です。対応しているアプリ版を使用してください。</string>
+    <string name="market_toolpkg_api_incompatible_title">インストールできません：ToolPkg API がサポートされていません</string>
+    <string name="market_toolpkg_api_incompatible_message">このプラグインは ToolPkg API %1$s を宣言しています。この端末がサポートするバージョンは %2$s のため、インストールできません。</string>
     <string name="test_media_image_understood">このモデルは画像を理解できます</string>
     <string name="test_media_audio_understood">このモデルは音声を理解できます</string>
     <string name="test_media_video_understood">このモデルは動画を理解できます</string>

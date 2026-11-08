@@ -368,7 +368,7 @@ fun ChatHistorySettingsScreen() {
                                     )
                                 }
                             }
-                            
+
                             // 更新分组
                             if (targetGroupName != null) {
                                 chatHistoryManager.assignGroupToChats(

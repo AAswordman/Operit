@@ -110,7 +110,7 @@ interface ChatDao {
     /** 重命名分组 */
     @Query("UPDATE chats SET `group` = :newName WHERE `group` = :oldName")
     suspend fun updateGroupName(oldName: String, newName: String)
-    
+
     /** 重命名指定角色卡下的分组 */
     @Query("UPDATE chats SET `group` = :newName WHERE `group` = :oldName AND characterCardName = :characterCardName")
     suspend fun updateGroupNameForCharacter(oldName: String, newName: String, characterCardName: String)
@@ -118,7 +118,7 @@ interface ChatDao {
     /** 删除分组下的所有聊天 */
     @Query("DELETE FROM chats WHERE `group` = :groupName AND locked = 0")
     suspend fun deleteChatsInGroup(groupName: String)
-    
+
     /** 删除指定角色卡下分组的所有聊天 */
     @Query("DELETE FROM chats WHERE `group` = :groupName AND characterCardName = :characterCardName AND locked = 0")
     suspend fun deleteChatsInGroupForCharacter(groupName: String, characterCardName: String)
@@ -130,7 +130,7 @@ interface ChatDao {
     /** 将分组下的所有【锁定】聊天移动到"未分组"（用于删除分组但保留锁定聊天） */
     @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName AND locked = 1")
     suspend fun removeGroupFromLockedChats(groupName: String, timestamp: Long = System.currentTimeMillis())
-    
+
     /** 将指定角色卡下分组的所有聊天移动到"未分组" */
     @Query("UPDATE chats SET `group` = NULL, updatedAt = :timestamp WHERE `group` = :groupName AND characterCardName = :characterCardName")
     suspend fun removeGroupFromChatsForCharacter(groupName: String, characterCardName: String, timestamp: Long = System.currentTimeMillis())

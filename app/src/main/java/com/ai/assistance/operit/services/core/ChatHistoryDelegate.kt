@@ -787,7 +787,7 @@ class ChatHistoryDelegate(
             // 获取当前对话ID，以便继承分组
             val currentChatId = _currentChatId.value
             val inheritGroupFromChatId = if (inheritGroupFromCurrent) currentChatId else null
-            
+
             // 获取当前活跃的角色卡
             val activePrompt = activePromptManager.getActivePrompt()
             val activeCard = when (activePrompt) {

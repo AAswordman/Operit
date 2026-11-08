@@ -37,7 +37,7 @@ fun MarketV2Entry.toUnifiedMarketBrowseEntry(
 ): MarketBrowseEntry {
     val installState = installStates[id]
     val localState = localInstallStates[id]
-    val isCurrentAppVersionUnsupported = isUnsupportedByCurrentAppVersion()
+    val isToolPkgApiUnsupported = resolveToolPkgApiCompatibility() != null
     return MarketBrowseEntry(
         model =
             MarketBrowseCardModel(
@@ -58,7 +58,7 @@ fun MarketV2Entry.toUnifiedMarketBrowseEntry(
                 actionState =
                     if (installState != null) {
                         MarketBrowseActionState.Installing(installState.progress)
-                    } else if (isCurrentAppVersionUnsupported) {
+                    } else if (isToolPkgApiUnsupported) {
                         MarketBrowseActionState.Unavailable(MarketUnavailableKind.Warning)
                     } else {
                         localState.toBrowseActionState()

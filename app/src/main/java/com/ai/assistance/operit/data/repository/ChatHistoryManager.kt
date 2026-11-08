@@ -506,6 +506,12 @@ class ChatHistoryManager private constructor(private val context: Context) {
             emptyList()
         )
 
+    /** Reads persisted metadata for a specific chat without subscribing to the UI cache. */
+    suspend fun getChatHistorySnapshot(chatId: String): ChatHistory? =
+        withContext(Dispatchers.IO) {
+            chatDao.getChatById(chatId)?.toChatHistory()
+        }
+
     suspend fun getTotalChatCount(): Int {
         return withContext(Dispatchers.IO) { chatDao.getTotalChatCount() }
     }

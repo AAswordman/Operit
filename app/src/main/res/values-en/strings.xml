@@ -8517,9 +8517,8 @@
     <string name="market_manage_submit_revision">Submit new version after modification</string>
     <string name="market_manage_loading_request_title">Loading Request</string>
     <string name="market_manage_loading_request_message">Request is being processed, please wait…</string>
-    <string name="market_version_incompatible_title">Cannot Download: Client Version Not Supported</string>
-    <string name="market_version_too_low_message">Current client version %1$s is lower than the minimum required version %2$s for this resource. Please update the client before downloading.</string>
-    <string name="market_version_too_high_message">Current client version %1$s is higher than the maximum supported version %2$s for this resource. Please use a supported client version.</string>
+    <string name="market_toolpkg_api_incompatible_title">Cannot Install: ToolPkg API Not Supported</string>
+    <string name="market_toolpkg_api_incompatible_message">This plugin declares ToolPkg API %1$s. This device supports %2$s, so this plugin cannot be installed.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
 
     <!-- Thinking Configuration editor (localized) -->

@@ -1156,7 +1156,7 @@ fun ChatHistorySelector(
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextButton(
@@ -1274,14 +1274,14 @@ fun ChatHistorySelector(
                             )
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(
-                                stringResource(R.string.delete_group), 
+                                stringResource(R.string.delete_group),
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onErrorContainer,
                                 modifier = Modifier.clearAndSetSemantics {}
                             )
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextButton(
@@ -1313,7 +1313,7 @@ fun ChatHistorySelector(
                     onClick = {
                         if (newGroupNameText.isNotBlank() && newGroupNameText != groupToRename!!.groupName) {
                             onUpdateGroupName(
-                                groupToRename!!.groupName, 
+                                groupToRename!!.groupName,
                                 newGroupNameText,
                                 groupToRename!!.characterCardName
                             )
@@ -1382,7 +1382,7 @@ fun ChatHistorySelector(
                     TextButton(
                         onClick = {
                             onDeleteGroup(
-                                groupToDelete!!.groupName, 
+                                groupToDelete!!.groupName,
                                 true,
                                 groupToDelete!!.characterCardName
                             )
@@ -1422,7 +1422,7 @@ fun ChatHistorySelector(
                     TextButton(
                         onClick = {
                             onDeleteGroup(
-                                groupToDelete!!.groupName, 
+                                groupToDelete!!.groupName,
                                 false,
                                 groupToDelete!!.characterCardName
                             )
@@ -1934,7 +1934,7 @@ fun ChatHistorySelector(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
-                onClick = { 
+                onClick = {
                     val (characterCardName, characterGroupId) = resolveBindingForCreate(
                         historyDisplayMode = historyDisplayMode,
                         activePrompt = activePrompt,

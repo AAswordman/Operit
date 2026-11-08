@@ -186,7 +186,7 @@ fun FloatingFullscreenMode(floatContext: FloatContext) {
     
     val wakePrefs = remember { WakeWordPreferences(context.applicationContext) }
     val autoNewChatGroup by wakePrefs.autoNewChatGroupFlow.collectAsState(initial = WakeWordPreferences.DEFAULT_AUTO_NEW_CHAT_GROUP)
-    
+
     val volumeLevel by viewModel.volumeLevelFlow.collectAsState()
     
     var pendingSpeechPreview by remember { mutableStateOf<String?>(null) }
