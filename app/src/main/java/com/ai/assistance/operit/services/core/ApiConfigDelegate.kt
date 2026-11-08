@@ -126,7 +126,7 @@ class ApiConfigDelegate(
     private val _enableTools = MutableStateFlow(ApiPreferences.DEFAULT_ENABLE_TOOLS)
     val enableTools: StateFlow<Boolean> = _enableTools.asStateFlow()
 
-    // 修改意图：文件工具大模型自动审查开关（区内/区外），仅工具模式为允许时生效与显示
+    // 修改意图：工具调用大模型自动审查开关（区内/区外 + 高危工具），仅工具模式为允许时生效与显示
     private val _toolReviewInsideWorkspace =
         MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE)
     val toolReviewInsideWorkspace: StateFlow<Boolean> = _toolReviewInsideWorkspace.asStateFlow()
@@ -134,6 +134,10 @@ class ApiConfigDelegate(
     private val _toolReviewOutsideWorkspace =
         MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE)
     val toolReviewOutsideWorkspace: StateFlow<Boolean> = _toolReviewOutsideWorkspace.asStateFlow()
+
+    private val _toolReviewHighRiskTools =
+        MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS)
+    val toolReviewHighRiskTools: StateFlow<Boolean> = _toolReviewHighRiskTools.asStateFlow()
 
     private val _toolPromptVisibility = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> = _toolPromptVisibility.asStateFlow()
@@ -480,6 +484,12 @@ class ApiConfigDelegate(
                 _toolReviewOutsideWorkspace.value = enabled
             }
         }
+        // 修改意图：收集高危工具自动审查开关
+        configScope.launch {
+            apiPreferences.toolReviewHighRiskToolsFlow.collect { enabled ->
+                _toolReviewHighRiskTools.value = enabled
+            }
+        }
 
         // Collect tool prompt visibility setting
         configScope.launch {
@@ -804,7 +814,7 @@ class ApiConfigDelegate(
         }
     }
 
-    // 修改意图：设置文件工具自动审查开关（区内/区外）
+    // 修改意图：设置工具调用自动审查开关（区内/区外 + 高危工具）
     fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
         configScope.launch {
             apiPreferences.saveToolReviewInsideWorkspace(isEnabled)
@@ -816,6 +826,13 @@ class ApiConfigDelegate(
         configScope.launch {
             apiPreferences.saveToolReviewOutsideWorkspace(isEnabled)
             _toolReviewOutsideWorkspace.value = isEnabled
+        }
+    }
+
+    fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
+        configScope.launch {
+            apiPreferences.saveToolReviewHighRiskTools(isEnabled)
+            _toolReviewHighRiskTools.value = isEnabled
         }
     }
 

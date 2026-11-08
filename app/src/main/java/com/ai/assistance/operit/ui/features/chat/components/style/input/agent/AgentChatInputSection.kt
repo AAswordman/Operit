@@ -206,12 +206,14 @@ fun AgentChatInputSection(
     inputMenuRuntime: String = "main",
     permissionLevel: PermissionLevel = PermissionLevel.ASK,
     onSetPermissionLevel: (PermissionLevel) -> Unit = {},
-    // 修改意图：文件工具大模型自动审查开关（区内/区外）。仅在工具模式为允许时展示，
+    // 修改意图：工具调用大模型自动审查开关（区内/区外 + 高危工具）。仅在工具模式为允许时展示，
     // 经 AgentExtraSettingsPopup 透传至 AgentToolsPermissionGroupItem
     toolReviewInsideWorkspace: Boolean = false,
     toolReviewOutsideWorkspace: Boolean = false,
+    toolReviewHighRiskTools: Boolean = false,
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
     enableMemoryAutoUpdate: Boolean = false,
     onToggleMemoryAutoUpdate: () -> Unit = {},
     isAutoReadEnabled: Boolean = false,
@@ -1442,8 +1444,10 @@ fun AgentChatInputSection(
                 onSetPermissionLevel = onSetPermissionLevel,
                 toolReviewInsideWorkspace = toolReviewInsideWorkspace,
                 toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
+                toolReviewHighRiskTools = toolReviewHighRiskTools,
                 onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
                 onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
+                onSaveToolReviewHighRiskTools = onSaveToolReviewHighRiskTools,
                 enableTools = enableTools,
                 onToggleTools = onToggleTools,
                 disableStreamOutput = disableStreamOutput,
@@ -2243,12 +2247,14 @@ private fun AgentExtraSettingsPopup(
     onToggleAutoRead: () -> Unit,
     permissionLevel: PermissionLevel,
     onSetPermissionLevel: (PermissionLevel) -> Unit,
-    // 修改意图：文件工具大模型自动审查开关（区内/区外）。仅在工具模式为允许时展示，
+    // 修改意图：工具调用大模型自动审查开关（区内/区外 + 高危工具）。仅在工具模式为允许时展示，
     // 开启后 ToolExecutionManager 在放行前调用 TOOL_REVIEW 功能模型审查
     toolReviewInsideWorkspace: Boolean = false,
     toolReviewOutsideWorkspace: Boolean = false,
+    toolReviewHighRiskTools: Boolean = false,
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
     enableTools: Boolean,
     onToggleTools: () -> Unit,
     disableStreamOutput: Boolean,
@@ -2412,8 +2418,10 @@ private fun AgentExtraSettingsPopup(
                         },
                         toolReviewInsideWorkspace = toolReviewInsideWorkspace,
                         toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
+                        toolReviewHighRiskTools = toolReviewHighRiskTools,
                         onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
                         onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
+                        onSaveToolReviewHighRiskTools = onSaveToolReviewHighRiskTools,
                         toolSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty(),
                         onToggleInfoClick = { title, description -> infoPopupContent = title to description },
                         onManageTools = { showToolPromptManagerDialog = true },
@@ -2700,8 +2708,10 @@ private fun AgentToolsPermissionGroupItem(
     onSelectPermissionLevel: (PermissionLevel) -> Unit,
     toolReviewInsideWorkspace: Boolean,
     toolReviewOutsideWorkspace: Boolean,
+    toolReviewHighRiskTools: Boolean,
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit,
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit,
+    onSaveToolReviewHighRiskTools: (Boolean) -> Unit,
     toolSlotToggles: List<InputMenuToggleDefinition>,
     onToggleInfoClick: (String, String) -> Unit,
     onManageTools: () -> Unit,
@@ -2736,9 +2746,15 @@ private fun AgentToolsPermissionGroupItem(
                 selectedLevel = effectiveLevel,
                 onSelectPermissionLevel = onSelectPermissionLevel,
             )
-            // 修改意图：文件工具大模型自动审查开关。仅在工具模式为允许时显示（需求确认项）；
-            // 展开时按区内/区外分别开关
+            // 修改意图：工具调用大模型自动审查三开关。仅在工具模式为允许时显示（需求确认项）；
+            // 区内/区外管文件工具（按工作区路径分区），高危工具管 HighRiskToolCatalog 高危工具族
             if (effectiveLevel == PermissionLevel.ALLOW) {
+                Text(
+                    text = stringResource(R.string.agent_menu_tool_review_section),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
                 AgentReviewToggleRow(
                     label = stringResource(R.string.agent_menu_tool_review_inside),
                     checked = toolReviewInsideWorkspace,
@@ -2748,6 +2764,11 @@ private fun AgentToolsPermissionGroupItem(
                     label = stringResource(R.string.agent_menu_tool_review_outside),
                     checked = toolReviewOutsideWorkspace,
                     onCheckedChange = onSaveToolReviewOutsideWorkspace,
+                )
+                AgentReviewToggleRow(
+                    label = stringResource(R.string.agent_menu_tool_review_high_risk),
+                    checked = toolReviewHighRiskTools,
+                    onCheckedChange = onSaveToolReviewHighRiskTools,
                 )
             }
             toolSlotToggles.forEach { toggle ->

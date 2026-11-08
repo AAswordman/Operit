@@ -2,6 +2,7 @@ package com.ai.assistance.operit.core.config
 
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
+import com.ai.assistance.operit.core.tools.HighRiskToolCatalog
 import com.ai.assistance.operit.data.model.SystemToolPromptCategory
 import com.ai.assistance.operit.data.model.ToolPrompt
 import com.ai.assistance.operit.data.model.ToolParameterSchema
@@ -908,13 +909,15 @@ object SystemToolPrompts {
                 )
             }
             category.tools.add(
-                ToolPrompt(
-                    name = toolName,
-                    description = description,
-                    parameters = item["parameters"] as? String ?: "",
-                    parametersStructured = parseToolParameterSchemas(item["parametersStructured"]),
-                    details = item["details"] as? String ?: "",
-                    notes = item["notes"] as? String ?: ""
+                withCallPurposeParamDoc(
+                    ToolPrompt(
+                        name = toolName,
+                        description = description,
+                        parameters = item["parameters"] as? String ?: "",
+                        parametersStructured = parseToolParameterSchemas(item["parametersStructured"]),
+                        details = item["details"] as? String ?: "",
+                        notes = item["notes"] as? String ?: ""
+                    )
                 )
             )
         }
@@ -926,6 +929,25 @@ object SystemToolPrompts {
                 categoryFooter = category.categoryFooter
             )
         }
+    }
+
+    /**
+     * 修改意图：为可审查工具（HighRiskToolCatalog 高危工具 + 文件工具族）补挂
+     * call_purpose（调用说明）参数文档。工具提示词 hook 管线基于 Map 往返重建 ToolPrompt，
+     * 上游注入会被往返丢弃，故在重建点（buildToolPromptCategories）统一注入，
+     * 覆盖 generateToolsPromptEn/Cn 的全部文本渲染路径。
+     */
+    private fun withCallPurposeParamDoc(tool: ToolPrompt): ToolPrompt {
+        if (!HighRiskToolCatalog.isReviewableTool(tool.name)) {
+            return tool
+        }
+        val structured = tool.parametersStructured ?: emptyList()
+        if (structured.any { it.name == HighRiskToolCatalog.CALL_PURPOSE_PARAM }) {
+            return tool
+        }
+        return tool.copy(
+            parametersStructured = structured + HighRiskToolCatalog.callPurposeParamSchema()
+        )
     }
 
     private fun parseToolParameterSchemas(value: Any?): List<ToolParameterSchema> {

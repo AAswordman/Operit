@@ -7955,8 +7955,10 @@
     <!-- 大模型工具审查（允许模式自动审查） -->
     <string name="tool_review_noncompliant_confirmation">🤖 AI 审查认为本次调用不合规：%1$s\n请确认是否仍要允许执行。</string>
     <string name="tool_review_failed_confirmation">⚠ AI 审查未能完成：%1$s\n请人工确认本次调用是否允许执行。</string>
+    <string name="agent_menu_tool_review_section">自动审查工具调用</string>
     <string name="agent_menu_tool_review_inside">自动审查文件工具（工作区内）</string>
     <string name="agent_menu_tool_review_outside">自动审查文件工具（工作区外）</string>
+    <string name="agent_menu_tool_review_high_risk">自动审查高危工具</string>
 
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">图片捕获失败: %1$s</string>

@@ -96,11 +96,13 @@ fun ClassicChatSettingsBar(
     inputMenuRuntime: String = "main",
     permissionLevel: PermissionLevel,
     onSetPermissionLevel: (PermissionLevel) -> Unit,
-    // 修改意图：文件工具大模型自动审查开关（区内/区外），与 Agent 风格菜单一致，仅允许模式展示
+    // 修改意图：工具调用大模型自动审查开关（区内/区外 + 高危工具），与 Agent 风格菜单一致，仅允许模式展示
     toolReviewInsideWorkspace: Boolean = false,
     toolReviewOutsideWorkspace: Boolean = false,
+    toolReviewHighRiskTools: Boolean = false,
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
@@ -666,8 +668,14 @@ fun ClassicChatSettingsBar(
                                     showMenu = false
                                 }
                             )
-                            // 修改意图：文件工具自动审查开关，仅允许模式展示，与 Agent 风格一致
+                            // 修改意图：工具调用自动审查三开关，仅允许模式展示，与 Agent 风格一致
                             if (enableTools && permissionLevel == PermissionLevel.ALLOW) {
+                                Text(
+                                    text = stringResource(R.string.agent_menu_tool_review_section),
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
                                 ClassicReviewToggleRow(
                                     label = stringResource(R.string.agent_menu_tool_review_inside),
                                     checked = toolReviewInsideWorkspace,
@@ -677,6 +685,11 @@ fun ClassicChatSettingsBar(
                                     label = stringResource(R.string.agent_menu_tool_review_outside),
                                     checked = toolReviewOutsideWorkspace,
                                     onCheckedChange = onSaveToolReviewOutsideWorkspace,
+                                )
+                                ClassicReviewToggleRow(
+                                    label = stringResource(R.string.agent_menu_tool_review_high_risk),
+                                    checked = toolReviewHighRiskTools,
+                                    onCheckedChange = onSaveToolReviewHighRiskTools,
                                 )
                             }
                             inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty().forEach { toggle ->
@@ -1826,7 +1839,7 @@ private fun ActionSettingItem(
     }
 }
 
-/** 修改意图：Classic 风格设置条的文件工具自动审查开关行，与 Agent 风格的 AgentReviewToggleRow 对齐 */
+/** 修改意图：Classic 风格设置条的工具调用自动审查开关行，与 Agent 风格的 AgentReviewToggleRow 对齐 */
 @Composable
 private fun ClassicReviewToggleRow(
     label: String,

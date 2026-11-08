@@ -6,6 +6,7 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.AIToolHookDecision
+import com.ai.assistance.operit.core.tools.HighRiskToolCatalog
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutor
 import com.ai.assistance.operit.core.tools.WorkspacePathChecker
@@ -626,7 +627,8 @@ object ToolExecutionManager {
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         chatWorkspaceRoot: String? = null,
         chatWorkspaceEnv: String? = null,
-        runtimeContext: ToolRuntimeContext? = null
+        runtimeContext: ToolRuntimeContext? = null,
+        callerChatId: String? = null
     ): Pair<Boolean, ToolResult?> {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
@@ -705,7 +707,18 @@ object ToolExecutionManager {
                     // 大模型合规审查
                     ToolProgressBus.update(permissionTool.name, 0.05f, "AI reviewing tool call...")
                     val outcome =
-                        ToolReviewService.review(androidContext, permissionTool, zone, chatWorkspaceRoot)
+                        ToolReviewService.review(
+                            androidContext,
+                            permissionTool,
+                            scopeLabel =
+                                when (zone) {
+                                    WorkspacePathChecker.Zone.INSIDE -> "inside the workspace"
+                                    WorkspacePathChecker.Zone.OUTSIDE ->
+                                        "OUTSIDE the workspace (or no workspace bound)"
+                                },
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            callerChatId = callerChatId,
+                        )
                     when (outcome) {
                         is ToolReviewOutcome.Compliant -> {
                             toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
@@ -721,28 +734,17 @@ object ToolExecutionManager {
                                     R.string.tool_review_noncompliant_confirmation,
                                     outcome.reason
                                 )
-                            val permissionResult =
-                                toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
-                            if (!permissionResult.isGranted) {
-                                val errorMessage =
-                                    androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
-                                toolHandler.notifyToolPermissionChecked(permissionTool, granted = false, reason = errorMessage)
-                                return Pair(
-                                    false,
-                                    ToolResult(
-                                        toolName = resolvedTarget.displayName,
-                                        success = false,
-                                        result = StringResultData(""),
-                                        error = "Tool call flagged non-compliant by AI review: ${outcome.reason}. $errorMessage"
-                                    )
-                                )
-                            }
-                            // 用户放行：按已确认的区外路径记录（若为区外）
-                            if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
-                                recordApprovedOutsidePaths(runtimeContext, extractedPaths)
-                            }
-                            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
-                            return Pair(true, null)
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix =
+                                    "Tool call flagged non-compliant by AI review: ${outcome.reason}.",
+                                runtimeContext = runtimeContext,
+                                extractedPaths = extractedPaths
+                            )
                         }
                         is ToolReviewOutcome.Failed -> {
                             // 审查失败：弹出原询问窗口并提示审查错误信息，由用户决定
@@ -751,27 +753,16 @@ object ToolExecutionManager {
                                     R.string.tool_review_failed_confirmation,
                                     outcome.message
                                 )
-                            val permissionResult =
-                                toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
-                            if (!permissionResult.isGranted) {
-                                val errorMessage =
-                                    androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
-                                toolHandler.notifyToolPermissionChecked(permissionTool, granted = false, reason = errorMessage)
-                                return Pair(
-                                    false,
-                                    ToolResult(
-                                        toolName = resolvedTarget.displayName,
-                                        success = false,
-                                        result = StringResultData(""),
-                                        error = "${outcome.message} $errorMessage"
-                                    )
-                                )
-                            }
-                            if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
-                                recordApprovedOutsidePaths(runtimeContext, extractedPaths)
-                            }
-                            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
-                            return Pair(true, null)
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix = outcome.message,
+                                runtimeContext = runtimeContext,
+                                extractedPaths = extractedPaths
+                            )
                         }
                     }
                 } else if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
@@ -809,6 +800,70 @@ object ToolExecutionManager {
                 // ALLOW + 区内 + 审查关：落到标准流程（直接放行）
             }
             // ASK（区内外均走标准弹窗）与 FORBID（区内标准拒绝）：落到标准流程
+        } else if (HighRiskToolCatalog.isHighRiskTool(permissionTool.name)) {
+            // 修改意图：高危工具调用大模型审查（三开关之「自动审查高危工具」）。
+            // 高危工具没有工作区路径概念，不分区，由独立开关管辖；行为矩阵与文件工具审查一致：
+            //   ALLOW + 开关开：合规 → 直接执行；不合规/审查失败 → 弹窗由用户决定
+            //   ALLOW + 开关关 / ASK / FORBID：落到标准流程（工具自身权限语义不变）
+            val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+            val level = toolPermissionSystem.getToolPermission(permissionTool.name)
+            if (level == PermissionLevel.ALLOW) {
+                val reviewEnabled =
+                    ApiPreferences.getInstance(androidContext)
+                        .toolReviewHighRiskToolsFlow.first()
+                if (reviewEnabled) {
+                    ToolProgressBus.update(permissionTool.name, 0.05f, "AI reviewing tool call...")
+                    val outcome =
+                        ToolReviewService.review(
+                            androidContext,
+                            permissionTool,
+                            scopeLabel = "high-risk tool call (not workspace-scoped)",
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            callerChatId = callerChatId,
+                        )
+                    when (outcome) {
+                        is ToolReviewOutcome.Compliant -> {
+                            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+                            return Pair(true, null)
+                        }
+                        is ToolReviewOutcome.NonCompliant -> {
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_noncompliant_confirmation,
+                                    outcome.reason
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix =
+                                    "Tool call flagged non-compliant by AI review: ${outcome.reason}.",
+                                runtimeContext = runtimeContext,
+                                extractedPaths = emptyList()
+                            )
+                        }
+                        is ToolReviewOutcome.Failed -> {
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_failed_confirmation,
+                                    outcome.message
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix = outcome.message,
+                                runtimeContext = runtimeContext,
+                                extractedPaths = emptyList()
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // 检查是否强制拒绝权限（deny_tool标记）
@@ -846,6 +901,61 @@ object ToolExecutionManager {
             granted = true,
             reason = "Permission check bypassed by deny_tool tag."
         )
+        return Pair(true, null)
+    }
+
+    /**
+     * 修改意图：执行前剥离 call_purpose（审查声明参数）。该参数仅供审查流读取，
+     * 若流入执行器，JS 包工具与代理解析（parseProxyInvocation 白名单）会因未知参数报错。
+     * rawText 保留原始 XML，聊天记录与回传模型的调用文本不受影响。
+     */
+    private fun ToolInvocation.withoutCallPurposeParam(): ToolInvocation =
+        copy(
+            tool =
+                tool.copy(
+                    parameters =
+                        tool.parameters.filterNot { it.name == HighRiskToolCatalog.CALL_PURPOSE_PARAM }
+                )
+        )
+
+    /**
+     * 修改意图：审查不合规/审查失败后的统一确认流（文件工具与高危工具审查共用）。
+     * 弹窗由用户决定：拒绝 → notify 失败并返回错误结果；放行 → 记录已确认的
+     * 区外路径（非文件工具传空列表即无副作用）并 notify 放行。
+     *
+     * @param deniedErrorPrefix 拒绝时错误信息的审查侧前缀（文件/高危分支各自组装）
+     */
+    private suspend fun confirmAfterReview(
+        androidContext: Context,
+        toolHandler: AIToolHandler,
+        permissionTool: AITool,
+        resolvedDisplayName: String,
+        confirmationReason: String,
+        deniedErrorPrefix: String,
+        runtimeContext: ToolRuntimeContext?,
+        extractedPaths: List<String>
+    ): Pair<Boolean, ToolResult?> {
+        val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+        val permissionResult =
+            toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
+        if (!permissionResult.isGranted) {
+            val errorMessage =
+                androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+            toolHandler.notifyToolPermissionChecked(permissionTool, granted = false, reason = errorMessage)
+            return Pair(
+                false,
+                ToolResult(
+                    toolName = resolvedDisplayName,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "$deniedErrorPrefix $errorMessage"
+                )
+            )
+        }
+        if (extractedPaths.isNotEmpty()) {
+            recordApprovedOutsidePaths(runtimeContext, extractedPaths)
+        }
+        toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
         return Pair(true, null)
     }
 
@@ -1047,10 +1157,13 @@ object ToolExecutionManager {
                             toolExposureMode,
                             chatWorkspaceRoot = chatWorkspaceRoot,
                             chatWorkspaceEnv = chatWorkspaceEnv,
-                            runtimeContext = toolRuntimeContext
+                            runtimeContext = toolRuntimeContext,
+                            callerChatId = callerChatId
                         )
                     if (hasPermission) {
-                        permittedInvocations.add(IndexedValue(index, invocation))
+                        // 修改意图：call_purpose 为审查声明参数，仅供审查流读取；
+                        // 执行前从工具参数剥离，工具执行器（含 JS 包与代理解析）不应看到该参数
+                        permittedInvocations.add(IndexedValue(index, invocation.withoutCallPurposeParam()))
                     } else {
                         completeUnexecuted(index, invocation, checkNotNull(errorResult), SubtaskExecutionState.Reason.PERMISSION_DENIED)
                     }

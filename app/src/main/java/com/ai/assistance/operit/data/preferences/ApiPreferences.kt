@@ -123,10 +123,11 @@ class ApiPreferences private constructor(private val context: Context) {
         // Key for Tools Enable/Disable
         val ENABLE_TOOLS = booleanPreferencesKey("enable_tools")
 
-        // 修改意图：文件工具调用的大模型自动审查开关（工作区内/外分区）。
+        // 修改意图：工具调用的大模型自动审查开关（三开关：文件工具区内/区外 + 高危工具）。
         // 仅在工具模式为"允许"时生效与显示
         val TOOL_REVIEW_INSIDE_WORKSPACE = booleanPreferencesKey("tool_review_inside_workspace")
         val TOOL_REVIEW_OUTSIDE_WORKSPACE = booleanPreferencesKey("tool_review_outside_workspace")
+        val TOOL_REVIEW_HIGH_RISK_TOOLS = booleanPreferencesKey("tool_review_high_risk_tools")
 
         // Key for per-tool prompt visibility
         val TOOL_PROMPT_VISIBILITY_JSON = stringPreferencesKey("tool_prompt_visibility_json")
@@ -164,9 +165,10 @@ class ApiPreferences private constructor(private val context: Context) {
         // Default value for Tools Enable/Disable
         const val DEFAULT_ENABLE_TOOLS = true
 
-        // 修改意图：自动审查默认关闭
+        // 修改意图：自动审查默认关闭（三开关一致）
         const val DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE = false
         const val DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE = false
+        const val DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS = false
 
         // Default value for Disable Stream Output (default false, meaning stream is enabled by default)
         const val DEFAULT_DISABLE_STREAM_OUTPUT = false
@@ -284,7 +286,7 @@ class ApiPreferences private constructor(private val context: Context) {
             preferences[ENABLE_TOOLS] ?: DEFAULT_ENABLE_TOOLS
         }
 
-    // 修改意图：文件工具自动审查开关（区内/区外）
+    // 修改意图：工具调用自动审查开关（区内/区外 + 高危工具）
     val toolReviewInsideWorkspaceFlow: Flow<Boolean> =
         context.apiDataStore.data.map { preferences ->
             preferences[TOOL_REVIEW_INSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE
@@ -293,6 +295,11 @@ class ApiPreferences private constructor(private val context: Context) {
     val toolReviewOutsideWorkspaceFlow: Flow<Boolean> =
         context.apiDataStore.data.map { preferences ->
             preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE
+        }
+
+    val toolReviewHighRiskToolsFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] ?: DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS
         }
 
     // Flow for per-tool prompt visibility
@@ -408,7 +415,7 @@ class ApiPreferences private constructor(private val context: Context) {
         context.apiDataStore.edit { preferences -> preferences[ENABLE_TOOLS] = isEnabled }
     }
 
-    // 修改意图：保存文件工具自动审查开关（区内/区外）
+    // 修改意图：保存工具调用自动审查开关（区内/区外 + 高危工具）
     suspend fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
         context.apiDataStore.edit { preferences ->
             preferences[TOOL_REVIEW_INSIDE_WORKSPACE] = isEnabled
@@ -418,6 +425,12 @@ class ApiPreferences private constructor(private val context: Context) {
     suspend fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
         context.apiDataStore.edit { preferences ->
             preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] = isEnabled
+        }
+    }
+
+    suspend fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] = isEnabled
         }
     }
 

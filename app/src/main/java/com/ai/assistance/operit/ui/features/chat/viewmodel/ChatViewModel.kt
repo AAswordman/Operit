@@ -218,12 +218,15 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val thinkingOptionId: StateFlow<String> by lazy { apiConfigDelegate.thinkingOptionId }
     val enableMemoryAutoUpdate: StateFlow<Boolean> by lazy { apiConfigDelegate.enableMemoryAutoUpdate }
     val enableTools: StateFlow<Boolean> by lazy { apiConfigDelegate.enableTools }
-    // 修改意图：文件工具自动审查开关（区内/区外），会话工具菜单仅在允许模式下展示
+    // 修改意图：工具调用自动审查开关（区内/区外 + 高危工具），会话工具菜单仅在允许模式下展示
     val toolReviewInsideWorkspace: StateFlow<Boolean> by lazy {
         apiConfigDelegate.toolReviewInsideWorkspace
     }
     val toolReviewOutsideWorkspace: StateFlow<Boolean> by lazy {
         apiConfigDelegate.toolReviewOutsideWorkspace
+    }
+    val toolReviewHighRiskTools: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.toolReviewHighRiskTools
     }
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> by lazy { apiConfigDelegate.toolPromptVisibility }
     val disableStreamOutput: StateFlow<Boolean> by lazy { apiConfigDelegate.disableStreamOutput }
@@ -642,13 +645,17 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         apiConfigDelegate.toggleTools()
     }
 
-    // 修改意图：设置文件工具自动审查开关（区内/区外）
+    // 修改意图：设置工具调用自动审查开关（区内/区外 + 高危工具）
     fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
         apiConfigDelegate.saveToolReviewInsideWorkspace(isEnabled)
     }
 
     fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
         apiConfigDelegate.saveToolReviewOutsideWorkspace(isEnabled)
+    }
+
+    fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
+        apiConfigDelegate.saveToolReviewHighRiskTools(isEnabled)
     }
 
     fun saveToolPromptVisibility(toolName: String, isVisible: Boolean) {

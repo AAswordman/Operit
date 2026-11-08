@@ -13,6 +13,7 @@ import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.enhance.SubtaskExecutionState
+import com.ai.assistance.operit.core.tools.HighRiskToolCatalog
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -3087,16 +3088,37 @@ class EnhancedAIService private constructor(private val context: Context) {
                 return null
             }
 
+            // 修改意图：function-calling 路径为可审查工具补挂 call_purpose 调用说明参数文档
+            // （文本提示词路径由 SystemToolPrompts.buildToolPromptCategories 注入）
+            val toolsWithCallPurpose = withCallPurposeParamDoc(hookedTools)
+
             AppLogger.d(
                 TAG,
-                "Tool Call已启用，提供 ${hookedTools.size} 个工具 (base=${selectedTools.size}, enableTools=$enableTools, visibleToolOverrides=${toolPromptVisibility.size}, roleCardCustomTools=${roleCardToolAccess.customEnabled})"
+                "Tool Call已启用，提供 ${toolsWithCallPurpose.size} 个工具 (base=${selectedTools.size}, enableTools=$enableTools, visibleToolOverrides=${toolPromptVisibility.size}, roleCardCustomTools=${roleCardToolAccess.customEnabled})"
             )
-            hookedTools
+            toolsWithCallPurpose
         } catch (e: Exception) {
             AppLogger.e(TAG, "获取工具列表失败", e)
             null
         }
     }
+
+    /** 修改意图：为可审查工具（高危工具 + 文件工具族）的 function-calling schema 补挂 call_purpose 参数 */
+    private fun withCallPurposeParamDoc(tools: List<ToolPrompt>): List<ToolPrompt> =
+        tools.map { tool ->
+            if (!HighRiskToolCatalog.isReviewableTool(tool.name)) {
+                tool
+            } else {
+                val structured = tool.parametersStructured ?: emptyList()
+                if (structured.any { it.name == HighRiskToolCatalog.CALL_PURPOSE_PARAM }) {
+                    tool
+                } else {
+                    tool.copy(
+                        parametersStructured = structured + HighRiskToolCatalog.callPurposeParamSchema()
+                    )
+                }
+            }
+        }
 
     // --- Service Lifecycle Management ---
 

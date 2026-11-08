@@ -17,7 +17,8 @@ status: impl-complete-pending-compile
 - B 读取上限：32MB 硬上限（超出引导 read_file_part 分段），read_file_part 流式化，读取类健壮性修复
 - C 编辑引擎：精确匹配快路径 + 多候选拒绝 + 行号前缀剥离 + occurrence 参数 + 匹配行号回传
 - D 工作区防护：区内按既有权限模式；区外 ALLOW 强制弹窗、FORBID 直接拒绝；未绑定工作区一律按区外；delete_file 危险路径硬底线；JS 包嵌套调用 AIToolHook 兜底
-- E 大模型审查：FunctionType.TOOL_REVIEW + 功能模型配置 + 会话工具菜单区内/区外自动审查开关（仅允许模式显示）+ 审查流（合规直接执行 / 不合规弹窗用户决定 / 审查失败弹窗提示错误）
+- E 大模型审查：FunctionType.TOOL_REVIEW + 功能模型配置 + 会话工具菜单自动审查三开关（区内/区外文件 + 高危工具，仅允许模式显示）+ 审查流（合规直接执行 / 不合规弹窗用户决定 / 审查失败弹窗提示错误）
+- G 高危工具审查：审查范围从文件工具族泛化为 HighRiskToolCatalog 高危工具调用（核心破坏集 18 个），三开关之「自动审查高危工具」独立管辖
 - F 环境矩阵：repo: 环境 clean guard、linux 编辑实装、grep linux 路径映射、SAF 白名单报错、禁用包报错修正
 
 ## 期待结果
@@ -53,10 +54,12 @@ status: impl-complete-pending-compile
 - [04-工作区防护.md](04-工作区防护.md)
 - [05-大模型审查.md](05-大模型审查.md)
 - [06-环境矩阵与扩展通道.md](06-环境矩阵与扩展通道.md)
+- [07-高危工具审查.md](07-高危工具审查.md)
 
 ## 验证
 
 - 用户运行 `:app:compileDebugKotlin` 迭代修复
 - 新增 JUnit：FileBindingService 匹配器五组用例、WorkspacePathChecker（含无工作区用例）
 - 手工回归矩阵：区内/区外/无工作区 × 允许/询问/禁止 × 审查开/关 × 合规/不合规/失败
+- 手工回归矩阵（高危工具）：execute_shell 等核心破坏集 × 允许 × 高危开关开/关 × 合规/不合规/失败；三开关互相独立（仅开高危开关不影响文件工具区外强制弹窗）
 - 手工用例：32MB 大文件读取、read_file_part 分页、edit_file 行号粘贴/多候选/occurrence、扩展包 file_exists、禁用包报错、repo: guard
