@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.chat.hooks
 
 import android.content.Context
-import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.character.ActivePrompt
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardManager

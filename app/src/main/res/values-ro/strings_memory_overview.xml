@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">Gestionarea memoriei</string>
+    <string name="memory_management_subtitle">Gestionează spațiile de memorie și personajele</string>
+    <string name="memory_overview_global">Utilizare globală</string>
+    <string name="memory_overview_current_global">Spațiul de memorie curent</string>
+    <string name="memory_overview_change">Schimbă</string>
+    <string name="memory_overview_spaces">Spații de memorie</string>
+    <string name="memory_overview_roles">Personaje</string>
+    <string name="memory_overview_active_count">Spațiu global · folosit de %1$d personaje</string>
+    <string name="memory_overview_bound_count">%1$d personaje asociate</string>
+    <string name="memory_overview_fixed">Fix · %1$s</string>
+    <string name="memory_overview_missing_space">Spațiul asociat lipsește; alege altul</string>
+    <string name="memory_overview_follow">Urmează spațiul global · %1$s</string>
+    <string name="memory_overview_choose_global">Schimbă spațiul global</string>
+    <string name="memory_overview_create">Creează spațiu de memorie</string>
+    <string name="memory_overview_rename">Redenumește spațiul</string>
+    <string name="memory_overview_name">Numele spațiului</string>
+    <string name="memory_overview_delete_title">Șterge spațiul de memorie</string>
+    <string name="memory_overview_delete_warning">Ștergi „%1$s”, memoriile și profilul utilizatorului? Personajele asociate vor urma spațiul global. Acțiunea nu poate fi anulată.</string>
+    <string name="memory_overview_binding_title">Spațiul de memorie pentru %1$s</string>
+    <string name="memory_overview_space_actions">Acțiuni pentru spațiu</string>
+    <string name="memory_action_select">Selectează noduri</string>
+    <string name="memory_action_delete_selected">Șterge nodurile selectate</string>
+    <string name="memory_action_link">Leagă noduri</string>
+    <string name="memory_action_add">Adaugă memorie</string>
+    <string name="memory_action_create">Creează memorie</string>
+    <string name="memory_action_import">Importă document</string>
+</resources>

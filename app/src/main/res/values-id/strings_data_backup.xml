@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">Data dan cadangan</string>
+    <string name="data_backup_settings_desc">Pencadangan dan pemulihan, manajemen obrolan, penggunaan token, dan log diagnostik</string>
+    <string name="data_backup_tab_restore">Cadangkan dan pulihkan</string>
+    <string name="data_backup_tab_chats">Manajemen obrolan</string>
+    <string name="data_backup_tab_logs">Catatan diagnostik</string>
+    <string name="data_backup_overview">Ikhtisar data</string>
+    <string name="data_backup_current_profile">Konfigurasi saat ini · %1$s</string>
+    <string name="data_backup_count_chats">Riwayat obrolan</string>
+    <string name="data_backup_count_characters">kartu karakter</string>
+    <string name="data_backup_count_memories">entri memori</string>
+    <string name="data_backup_count_links">asosiasi memori</string>
+    <string name="data_backup_token_entry_desc">Lihat statistik penggunaan, biaya dan model</string>
+    <string name="data_backup_never">Belum ada cadangan</string>
+    <string name="data_backup_recent">Cadangan terkini · %1$s</string>
+    <string name="data_backup_files">File cadangan</string>
+    <string name="data_backup_snapshot_title">Cuplikan berkas</string>
+    <string name="data_backup_snapshot_desc">Paket file dan konfigurasi aplikasi dan perlu dimulai ulang setelah pemulihan.</string>
+    <string name="data_backup_snapshot_export">Ekspor cuplikan</string>
+    <string name="data_backup_snapshot_restore">Pulihkan cuplikan</string>
+    <string name="data_backup_daily_on">Pencadangan otomatis harian diaktifkan</string>
+    <string name="data_backup_daily_off">Pencadangan otomatis harian tidak diaktifkan</string>
+    <string name="data_backup_db_summary">%1$s · Cadangan salinan %2$d</string>
+    <string name="data_backup_file_count">salinan %1$d</string>
+    <string name="data_backup_individual">Impor dan ekspor item tunggal</string>
+    <string name="data_backup_individual_desc">Obrolan, kartu karakter, memori, dan konfigurasi model</string>
+    <string name="data_backup_export_directory">Ekspor direktori · Unduh/Operit</string>
+    <string name="data_backup_help">Petunjuk pencadangan</string>
+    <string name="data_backup_done">Mengerti</string>
+    <string name="data_backup_snapshot_export_title">Ekspor cuplikan file</string>
+    <string name="data_backup_start_export">Mulai ekspor</string>
+    <string name="data_backup_choose_file">Pilih file cadangan</string>
+    <string name="data_backup_choose_file_desc">Pilih snapshot ZIP yang akan dipulihkan</string>
+    <string name="data_backup_manage_links">Kelola asosiasi</string>
+    <string name="data_backup_build_memory">Bangun memori</string>
+    <string name="data_backup_chat_records">Manajemen riwayat obrolan</string>
+    <string name="data_backup_chat_records_desc">Ubah asosiasi dalam batch, atur catatan, atau bangun kenangan.</string>
+    <string name="data_backup_message_count_suffix">· Pesan %1$d</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">Folder berikut tidak digunakan oleh obrolan apa pun. Hapus hanya folder yang dipilih.</string>
+    <string name="data_backup_locked_notice">Penghapusan melewatkan obrolan yang terkunci</string>
+    <string name="data_backup_clear_chats">catatan yang jelas</string>
+    <string name="data_backup_clear_chats_confirm">Semua obrolan yang tidak terkunci dan pesan-pesannya akan dihapus. Obrolan yang terkunci akan dipertahankan, lanjutkan?</string>
+    <string name="data_backup_export_app_logs">Ekspor log aplikasi</string>
+    <string name="data_backup_export_app_logs_desc">Informasi diagnostik disimpan untuk memudahkan menemukan masalah operasional.</string>
+    <string name="data_backup_log_format">TXT · Log aplikasi dapat diekspor</string>
+    <string name="data_backup_export_logs">Ekspor log</string>
+    <string name="data_backup_log_filters">Ekspor pemfilteran</string>
+    <string name="data_backup_filters_none">Log lengkap · Tidak ada pemfilteran yang diaktifkan</string>
+    <string name="data_backup_filters_count">Pemfilteran pada item %1$d diaktifkan</string>
+    <string name="data_backup_log_directory">Simpan untuk diunduh/operasi</string>
+    <string name="data_backup_clear_logs">Hapus catatan</string>
+    <string name="data_backup_clear_logs_confirm">Log aplikasi saat ini akan dihapus. Operasi ini tidak akan menghapus riwayat obrolan atau statistik token. Apakah Anda ingin melanjutkan?</string>
+    <string name="data_backup_memory_window_hint">Memproses 8-48 pesan sekaligus</string>
+    <string name="data_backup_locked_chat">obrolan terkunci</string>
+    <string name="data_backup_ungrouped">Tidak dikelompokkan</string>
+    <string name="data_backup_memory_build_desc">Obrolan %1$d dipilih. Kenangan akan diambil dari pesan yang dipilih, kemungkinan mengakibatkan penggunaan model.</string>
+</resources>

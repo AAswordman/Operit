@@ -1,0 +1,1060 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "718707fd19ab7c27e38c8807055c80809d25e6dc",
+  "scope": "工具权限收口后的目录迁移",
+  "files": [
+    {
+      "source": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/ffmpeg/ffmpeg_probe.js",
+      "target": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/media/ffmpeg/ffmpeg_probe.js",
+      "sourcePackage": null,
+      "targetPackage": null,
+      "group": "android-js/builtin/media/ffmpeg",
+      "operation": "move",
+      "sourceSha256": "1fa1a507372b221f4f2d81617edc482afed954e2130a7f27479b42a0c86fc93c"
+    },
+    {
+      "source": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/browser/main.js",
+      "target": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/web/browser/main.js",
+      "sourcePackage": null,
+      "targetPackage": null,
+      "group": "android-js/builtin/web/browser",
+      "operation": "move",
+      "sourceSha256": "29befc725e9bb7872a7b5e68ae55e5ddfe0d731b07d870944687f0ca3b9f32a9"
+    },
+    {
+      "source": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/browser/probe.js",
+      "target": "app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/web/browser/probe.js",
+      "sourcePackage": null,
+      "targetPackage": null,
+      "group": "android-js/builtin/web/browser",
+      "operation": "move",
+      "sourceSha256": "4e9a9170e4f9714b6bac55b72f45e15c429312d254e53f4526b9dfbd6c64313d"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/ToolGetter.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ToolGetter.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin",
+      "group": "builtin",
+      "operation": "move",
+      "sourceSha256": "a68f991a7d7dcab3efc983fb5999847e236426bcb7e37f79eb981c5fafef691a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/a2ui/A2uiToolDefinitions.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/a2ui/A2uiToolDefinitions.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.a2ui",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.a2ui",
+      "group": "builtin/a2ui",
+      "operation": "move",
+      "sourceSha256": "5336bc3f49a03912712f14588ac630a719cedc626c7f9e6c6d6b2143e7006c96"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/a2ui/A2uiToolRuntime.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/a2ui/A2uiToolRuntime.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.a2ui",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.a2ui",
+      "group": "builtin/a2ui",
+      "operation": "move",
+      "sourceSha256": "ff01825f817b7c0fbe1fe7c3ff93b0ce8c1f842c80871f667d59b8699db743da"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/a2ui/A2uiTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/a2ui/A2uiTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.a2ui",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.a2ui",
+      "group": "builtin/a2ui",
+      "operation": "move",
+      "sourceSha256": "25e4ccb6b94570ffd06e32649399e3b10bb5be425e671075965e01e2182dc513"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardCalculator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/calculator/StandardCalculator.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.calculator",
+      "group": "builtin/calculator",
+      "operation": "move",
+      "sourceSha256": "79bcdcb659c1391b575854e47d6cec56b9f1c0bb3728223355055660ae93f894"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardChatManagerTool.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/chat/StandardChatManagerTool.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.chat",
+      "group": "builtin/chat",
+      "operation": "move",
+      "sourceSha256": "ec054348c9996be0c507c134bc5078d20fcfccf0ba9925b4f54a3e4c0e11456e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardDeviceInfoToolExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/device/StandardDeviceInfoToolExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.device",
+      "group": "builtin/device",
+      "operation": "move",
+      "sourceSha256": "4ec9a994a0dda069b7ef05428241f87e5cc1cdec0845354286dbaa7f3c16fb8a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/admin/AdminFileSystemTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/AdminFileSystemTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.admin",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.filesystem",
+      "group": "builtin/filesystem",
+      "operation": "move",
+      "sourceSha256": "9e92411bd6fd6d094889792eacd6f1e25ce3839d6f80e81dbafc29cc70e05b06"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/LinuxFileSystemTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/LinuxFileSystemTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.filesystem",
+      "group": "builtin/filesystem",
+      "operation": "move",
+      "sourceSha256": "90d9f5b4cfd6c4e6a211d560b9734484003bd2dfb9ea27bc4a115959108fabc6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/PathValidator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/PathValidator.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.filesystem",
+      "group": "builtin/filesystem",
+      "operation": "move",
+      "sourceSha256": "666052a44cc6b747a6e309f2eabd34a7985cad9d0c2beeb0fcc79a1202f66868"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/SafFileSystemTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/SafFileSystemTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.filesystem",
+      "group": "builtin/filesystem",
+      "operation": "move",
+      "sourceSha256": "2a5d727822768e073d7ec59f4a9defb66d1dfe5a54b91ad0d1f6c1c10ef245b9"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardFileSystemTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/StandardFileSystemTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.filesystem",
+      "group": "builtin/filesystem",
+      "operation": "move",
+      "sourceSha256": "c91d4761af374e11c124e2d84dbb8ad115027406d76244e251bdb202ed5759fa"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/BluetoothSessionManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/media/BluetoothSessionManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.media",
+      "group": "builtin/media",
+      "operation": "move",
+      "sourceSha256": "a90c17d7f7393097ec8bb087a19f0595651109b342d5c0d7c04b6408f66edb53"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardFFmpegTool.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/media/StandardFFmpegTool.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.media",
+      "group": "builtin/media",
+      "operation": "move",
+      "sourceSha256": "2f8cf167a5c2e530ce6f8fa65dda91715c0a0bad6fe2f507e32e4af32c538018"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardMusicPlaybackTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/media/StandardMusicPlaybackTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.media",
+      "group": "builtin/media",
+      "operation": "move",
+      "sourceSha256": "8ee46026a26b5cf9b3d46a9930f341ece9d8aa35bf4b5a9d64968c7a4cccbeeb"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/MemoryQueryToolExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/memory/MemoryQueryToolExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.memory",
+      "group": "builtin/memory",
+      "operation": "move",
+      "sourceSha256": "bd3ec607ee528c0874761658d25f6721da6df2614c3261f7a8227b2c7770b11e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardSoftwareSettingsModifyTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/settings/StandardSoftwareSettingsModifyTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.settings",
+      "group": "builtin/settings",
+      "operation": "move",
+      "sourceSha256": "7be8c2bf6842c4204fe215f82bcf0bb54f85b0d361ccba6aa4a33bbdcb060b2a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/ToolPermissionModeSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/settings/ToolPermissionModeSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.settings",
+      "group": "builtin/settings",
+      "operation": "move",
+      "sourceSha256": "5ca4b53b37c7ec51b1c99afe76beeeaf0ccbb077daa2c17fa9ec68ca8a5ba6ef"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/ShellCommandSafety.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/shell/ShellCommandSafety.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.shell",
+      "group": "builtin/shell",
+      "operation": "move",
+      "sourceSha256": "ed8dbbe94e9e7392f92e3925c8567e9f2fd439a37205b4d48c27d95dfd815128"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardShellToolExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/shell/StandardShellToolExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.shell",
+      "group": "builtin/shell",
+      "operation": "move",
+      "sourceSha256": "bbc33d60d4ff81ee4545510431ebad946b1adc6e2e10adbcc4594a97e6b844af"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/admin/AdminSystemOperationTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/AdminSystemOperationTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.admin",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.system",
+      "group": "builtin/system",
+      "operation": "move",
+      "sourceSha256": "2905543b02cfd2e69381d84f10e886fcc1c44f04a89b3f00c2eed70648dfa423"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardIntentToolExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/StandardIntentToolExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.system",
+      "group": "builtin/system",
+      "operation": "move",
+      "sourceSha256": "f734bf44f9d63c5c605fb0eb45252e1fa8a258340b918ce59d04a38817eab229"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardSendBroadcastToolExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/StandardSendBroadcastToolExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.system",
+      "group": "builtin/system",
+      "operation": "move",
+      "sourceSha256": "586b2f4b275f8c80014b0b2af462ad294e512760551e34c08b30ea3fdfc2c317"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardSystemOperationTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/StandardSystemOperationTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.system",
+      "group": "builtin/system",
+      "operation": "move",
+      "sourceSha256": "3b5445ba9b2c384a9d37c0ae36bad92f7a5afa9e52014eb7e54190d5ea722b0e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardTerminalCommandExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/terminal/StandardTerminalCommandExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.terminal",
+      "group": "builtin/terminal",
+      "operation": "move",
+      "sourceSha256": "1f24869e00d0a1f2f72ee71132499b313bb7bc53be57dfd62fc3e18be8c89ce4"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/admin/AdminUITools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/AdminUITools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.admin",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.ui",
+      "group": "builtin/ui",
+      "operation": "move",
+      "sourceSha256": "00484a4936ebb5d26c269480a7d439773b7a77c2ba8f81a5208827f960ab9e87"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/root/RootUITools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/RootUITools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.root",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.ui",
+      "group": "builtin/ui",
+      "operation": "move",
+      "sourceSha256": "01df2c3548d66af6a772013af9614e9bbada3184f7faa446bcae05a944c59e22"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardUITools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/StandardUITools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.ui",
+      "group": "builtin/ui",
+      "operation": "move",
+      "sourceSha256": "ce013a4d5c295ab04d71c5f0cc442b8ce97391384772b680c836ca9cf7741532"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/CookiePrivacyManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/CookiePrivacyManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web",
+      "group": "builtin/web",
+      "operation": "move",
+      "sourceSha256": "96f3b8544756e0aa14e8f13e819916fd5972dcd0e2da4e1bb4b0bfe418c47515"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardBrowserSessionTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardBrowserSessionTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web",
+      "group": "builtin/web",
+      "operation": "move",
+      "sourceSha256": "c62dc5e41efe3e9e4b1300a856c04cfff9e99dda826068e45d3185da1ef22992"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardHttpTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardHttpTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web",
+      "group": "builtin/web",
+      "operation": "move",
+      "sourceSha256": "49403df45a4ed708dd93bef1478f445fd6aa0d034f7cca10ddee32a19aa0ea7e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardWebVisitTool.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/StandardWebVisitTool.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web",
+      "group": "builtin/web",
+      "operation": "move",
+      "sourceSha256": "09a85bab17fd04a915f7c037998589c4a130936c52f9b735ea5f747a742fe3b3"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserDownloadSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserDownloadSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "5967edebda6dca56448928740f9a1aa0543927e71aac63fa01e22e08f5bc60a6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserNavigationPolicy.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserNavigationPolicy.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "adfc6cbbe604381db73cdab6ea71d6c655fbdeee69cff7ad7170b0de768a98ca"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserPageExecutionSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserPageExecutionSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "f0e6f0797ee3ea32b99425ecec7bd099033d072a22117d0f811dc6910868c2c2"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserToolSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserToolSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "030977e04709519a935acdb47861545942088f9d8408bd91cd249d407d652294"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserWebViewSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserWebViewSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "9205b2ab66bd49ac83f55b57812b84c651a73e4750e2d83bb5da00370d59eabc"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/WebSessionBrowserHost.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/WebSessionBrowserHost.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "7ff7e74727f41c7fcc642deaee7a38e97b44967948dfc7c085431b6a38a7f77e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/WebSessionBrowserHostState.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/WebSessionBrowserHostState.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "1e88fa02a47d45a7a1493c7a012de89687be28d3b23498fa71ac29a5ee240d6e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/WebSessionHistoryStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/WebSessionHistoryStore.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "75669d76a0c1383a9302ee6e92b5e4c5b23661da4d8f6d9fb3c87da739509c80"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/WebSessionPermissionRequestActivity.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/WebSessionPermissionRequestActivity.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "410e33dc6cc2e35920694af3001643dae05ca030a81defcdd26a0f014f6a4a13"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/WebSessionWebViewHost.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/WebSessionWebViewHost.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "e712246b317bbf58e82daf13ae259b668e7d51c3d48b6d10924488d94af2da6a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/UserscriptCapabilityRegistry.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/UserscriptCapabilityRegistry.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "b019a3852ad7518c7d913f88f52a0bc9eacfebbbc44de78c33911094f4d2f86f"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/UserscriptMatcher.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/UserscriptMatcher.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "4dc8728f983f447f9387c877d4d4719781186f810ad9dc1ce62cb31e73d3b3c6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/UserscriptMetadataParser.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/UserscriptMetadataParser.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "61b10ffe14c148b71438f3e6f1e76fb3880255a83e52d8887d9169468fbf69c2"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/UserscriptModels.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/UserscriptModels.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "e7a21b310f70dbc28bd9524067959ffe0a8fbf0c1abe2545954b031b3e668b3a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/install/UserscriptImportCoordinator.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/install/UserscriptImportCoordinator.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.install",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.install",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "7a6a1b511c4a3be25410b1530580bdca421ab929f8e072cd60abe15a9c991f38"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/install/UserscriptImportPickerActivity.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/install/UserscriptImportPickerActivity.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.install",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.install",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "61ffdbbd288462d933a93ef9328e63fd543a4a98961249d628f880ff2acefd4c"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/UserscriptBootstrapScript.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/UserscriptBootstrapScript.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "6758b1a711108961479560eeafe43bbe8994c98aa531a93d4678601cda0249c5"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/UserscriptCookieService.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/UserscriptCookieService.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "d6a464a71d9ea7b9defd9ebae36ea7aa843f320307c49dad7b9f1d8ac5bc46bd"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/UserscriptStorageNotifier.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/UserscriptStorageNotifier.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "997da1faf8ef4f8c87a93a94bcb9f1e72a69236e41a415be865ea71ba7d621e0"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/UserscriptTabStateStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/UserscriptTabStateStore.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "d5b0ab291d79aca089d5be30697d12bcf58581ba0dc72f3eb3923a0cae042e14"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/UserscriptWebRequestEngine.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/UserscriptWebRequestEngine.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "b07612abbc090f08ab5c524cd958cc4a5bd2d6ff9802cabcab355879e6d7c963"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/runtime/WebSessionUserscriptManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/runtime/WebSessionUserscriptManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.runtime",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.runtime",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "9e786ffb6f20163cbf85514c38c334ebf3d9dc736fd20a2fd7e2a5618bdb0aeb"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/storage/UserscriptEntities.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/storage/UserscriptEntities.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.storage",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.storage",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "f1df9f8a0b4733ce6cfcaab0e37a464c1ba44edddc355d097fe1950328ef8594"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/storage/UserscriptJsonStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/storage/UserscriptJsonStore.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.storage",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.storage",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "e9d2907f1c7386357e4b4a7056202428ff33c7dca74e7a6cfb8b744ef16f825e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/storage/UserscriptRepository.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/storage/UserscriptRepository.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.storage",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.storage",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "1e61186ebc622fa8f92d76c52b7ebcf520642d0841e920ab708b4862f5896cda"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/userscript/ui/WebSessionUserscriptUiStateStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/session/userscript/ui/WebSessionUserscriptUiStateStore.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.userscript.ui",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.userscript.ui",
+      "group": "builtin/web/session",
+      "operation": "move",
+      "sourceSha256": "47bc1e6d52bb122a246c6911b807c8aaac73d3d25ddcf314f82ab3e8c3b4513e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/StandardWorkflowTools.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/builtin/workflow/StandardWorkflowTools.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.workflow",
+      "group": "builtin/workflow",
+      "operation": "move",
+      "sourceSha256": "373e12784000553bc6675f1fa97e974391cf1750abd25e7111a254741da8080c"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageDebugRefreshReceiver.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageDebugRefreshReceiver.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool",
+      "group": "packTool",
+      "operation": "keep",
+      "sourceSha256": "52ecb7abe0804ab14e0d52cae26e8d86050b36c3aee480c637ff2216d96d1298"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgComposeDslDebugDumpReceiver.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgComposeDslDebugDumpReceiver.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool",
+      "group": "packTool",
+      "operation": "keep",
+      "sourceSha256": "d8697d409ae36d9717af512aa626d0cc37222ccb17ccbec2585a60beec505272"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgDebugInstallReceiver.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgDebugInstallReceiver.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool",
+      "group": "packTool",
+      "operation": "keep",
+      "sourceSha256": "64b7a06d29f761e0ddc30d3af7e44ca03c8aa9dca2c901b4f2c78a8494d2d52a"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageFileImportSupport.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/install/PackageFileImportSupport.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "packTool/install",
+      "operation": "move",
+      "sourceSha256": "90b1c892d4fbb8d0e46e5ade9b96c3b351ea59edf9a425422ac01e254729c374"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageSourceDeletion.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/install/PackageSourceDeletion.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "packTool/install",
+      "operation": "move",
+      "sourceSha256": "0d814bdc07218ce2bd3dcfc0e5846efa1a65fed52283d51958c79e2e154e1b3e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageTemplateFactory.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/install/PackageTemplateFactory.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "packTool/install",
+      "operation": "move",
+      "sourceSha256": "1ad69beee67364b4e3e1609f9ec79c21089451a69f4f1cd940e56d2819dcb549"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgLoadOrder.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/loader/ToolPkgLoadOrder.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.loader",
+      "group": "packTool/loader",
+      "operation": "move",
+      "sourceSha256": "ec146016ab2252e215aeb5194560b0356401471d000eef2b85509e9a15a0ead5"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgLoader.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/loader/ToolPkgLoader.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.loader",
+      "group": "packTool/loader",
+      "operation": "move",
+      "sourceSha256": "772918135e21bdc11214adb25763d0cd0bec98ca822394749e34e5909f72568d"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/BuiltInPackageDefaults.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/BuiltInPackageDefaults.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "bf72c6bb35ead143ce98e3a547a68c3b88c0d9034e362fb252302b229c7d9164"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/PluginActivityStore.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/PluginActivityStore.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "keep",
+      "sourceSha256": "abaabd71f03e52746368ef550c4bf7ba88a73de7d2def22bed8b22cb90b0a74e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgApiVersion.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgApiVersion.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "bb032bc49a9ec11d86d044af71d344bba1c86c98cad1eadade211e7de0a6bab6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgCommonPluginConstants.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgCommonPluginConstants.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "43e54dd3a4bbd173aa7910b5a3f7fe0824495b00c7daeabe92888590470eb01b"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgManifestRequirement.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgManifestRequirement.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "207a40a4f36b648bdf8b512f744bec00330184e4ec56c183a74d0509558863e2"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMarketOrigin.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgMarketOrigin.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "2f53cd45a6cb65683186f9856ac568361f57ece70e2393b68d4a8f29737609b3"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgTemplateModels.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgTemplateModels.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "8a0554909f06c342677fd77823a693620055e76338612b1d34daf8e0df3351cb"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/minify/ToolPkgArtifactMinifier.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/minify/ToolPkgArtifactMinifier.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool.minify",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.minify",
+      "group": "packTool/minify",
+      "operation": "keep",
+      "sourceSha256": "717867cd2823353f83cbd57e9a612c82008159598c586f61396206b9ea84f50e"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/minify/ToolPkgJsAstMinifier.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/minify/ToolPkgJsAstMinifier.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool.minify",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.minify",
+      "group": "packTool/minify",
+      "operation": "keep",
+      "sourceSha256": "8ae17659255fb28f636398e92b424decb75336bfd61de2734866fae539228a9d"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMainRegistrationScriptParser.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgMainRegistrationScriptParser.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.parser",
+      "group": "packTool/parser",
+      "operation": "move",
+      "sourceSha256": "d9481fe46c859ea3dd5ddacb705cd02af2ac1604d0220b53787d0ad11597c415"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgParser.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgParser.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.parser",
+      "group": "packTool/parser",
+      "operation": "move",
+      "sourceSha256": "d3fb8f689da940852e923c357408fa459a688dd232ff371e93c957698cd4f9b0"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageActivationResult.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/PackageActivationResult.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "43043dc603fcd7c2d7feadcdd76d118ecbca353b31ce5374254f6785d2fcf62c"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/PackageManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "281b64ae3fafb4da46d473e241408f60d49a131775408f1f6abf2a4bcd905ef4"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/PackageManagerToolPkgFacade.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/PackageManagerToolPkgFacade.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "e129b9e9735ccb23f8ae6843f15878b7d064bf7d0b5adb414deb795ebe685103"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgHookModels.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/ToolPkgHookModels.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "1a426bd351bea56d13718ca437321df689fff60dbcc5e2b286bf2b3071672f50"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/ToolPkgManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "51ab8e4f41ad47fe36d246143591b34d9707b60746bf6148212ac02d5e0a9ff6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgRuntimeMonitor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/runtime/ToolPkgRuntimeMonitor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "bc9ab08144cb8fc5ccf9682425ecbbea81eab7918ea6529409b548f57414d6b3"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgComposeDslParser.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/packTool/uidsl/ToolPkgComposeDslParser.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.uidsl",
+      "group": "packTool/uidsl",
+      "operation": "move",
+      "sourceSha256": "8d33ab0f27409c6df3334331a66920118f61a8b24e87ebe3cbbc501ccd0b3fac"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/AndroidPermissionLevel.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/permissions/AndroidPermissionLevel.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.permissions",
+      "group": "permissions",
+      "operation": "move",
+      "sourceSha256": "d22443b90ca90002883556824c1144036f080e0d0e67f1c54d7cc78d3d40a642"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/AccessibilityProviderInstaller.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/permissions/authorization/AccessibilityProviderInstaller.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.permissions.authorization",
+      "group": "permissions/authorization",
+      "operation": "move",
+      "sourceSha256": "b912919a645c74561f560adfffd4130bca10e7c1a557202a8157f547586f63bb"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/RootAuthorizer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/permissions/authorization/RootAuthorizer.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.permissions.authorization",
+      "group": "permissions/authorization",
+      "operation": "move",
+      "sourceSha256": "899a11eb57ea093f148bfe42b9eb5a4e1d37a62c8bee6f0a30327b636b0b0cd0"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/ShizukuAuthorizer.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/permissions/authorization/ShizukuAuthorizer.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.permissions.authorization",
+      "group": "permissions/authorization",
+      "operation": "move",
+      "sourceSha256": "47be3245a57b6d22be40fe97b146fcada81791a753c07317ac05dd230351652b"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/ShizukuInstaller.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/permissions/authorization/ShizukuInstaller.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.permissions.authorization",
+      "group": "permissions/authorization",
+      "operation": "move",
+      "sourceSha256": "85942359b635a9704e50d074b7338b05f080e290e49c8404976f9297971af40c"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/AIToolHandler.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/runtime/AIToolHandler.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools",
+      "targetPackage": "com.ai.assistance.operit.core.tools.runtime",
+      "group": "runtime",
+      "operation": "move",
+      "sourceSha256": "169a8a24283b29a1a8e4c0b1418442ba416ca992d37494cb185a00e96c31577b"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/AIToolHook.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/runtime/AIToolHook.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools",
+      "targetPackage": "com.ai.assistance.operit.core.tools.runtime",
+      "group": "runtime",
+      "operation": "move",
+      "sourceSha256": "3e4913e96095fe38051786992842d48cc9cd0823540ad9845f07793c1905f412"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/ToolExecutionLimits.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolExecutionLimits.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools",
+      "targetPackage": "com.ai.assistance.operit.core.tools.runtime",
+      "group": "runtime",
+      "operation": "move",
+      "sourceSha256": "14dcd24cb56dbec6c76327b1842739966b55e24bf39f25b9ccff11abb9c97d4d"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/ToolProgressBus.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolProgressBus.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools",
+      "targetPackage": "com.ai.assistance.operit.core.tools.runtime",
+      "group": "runtime",
+      "operation": "move",
+      "sourceSha256": "8cef67b48a465c515c2f2ef7d97b253c900eac3e07fef3aade2d8532037217d0"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools",
+      "targetPackage": "com.ai.assistance.operit.core.tools.runtime",
+      "group": "runtime",
+      "operation": "move",
+      "sourceSha256": "9f6fbd82f24b3c865a9d270640e233063bad87b434381864585bd3b08715cba0"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/MediaProjectionCaptureManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/capture/MediaProjectionCaptureManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.capture",
+      "group": "system/capture",
+      "operation": "move",
+      "sourceSha256": "4716293bd0fb4457e068cbc88aefad77630d431a376dc172e0e6fb53284f7c2f"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/MediaProjectionHolder.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/capture/MediaProjectionHolder.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.capture",
+      "group": "system/capture",
+      "operation": "move",
+      "sourceSha256": "25a5452b759b206dbbf09810e96940583b121e01e08867fa798fc01b1bebd9b6"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/ScreenCaptureActivity.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/capture/ScreenCaptureActivity.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.capture",
+      "group": "system/capture",
+      "operation": "move",
+      "sourceSha256": "b81234d7f27ffe5fdd17ac9848251d37eb04f98c3650442bc60816fdca037769"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/ScreenCaptureService.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/capture/ScreenCaptureService.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.capture",
+      "group": "system/capture",
+      "operation": "move",
+      "sourceSha256": "39de34c1dd487169c68d511a228cbd986a134b3a4b4c6ad2b6e8d9c1665e74d7"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/AndroidShellExecutor.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/shell/AndroidShellExecutor.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.shell",
+      "group": "system/shell",
+      "operation": "move",
+      "sourceSha256": "cdca5059498e1b37e079d72a650d22b93424411626654e144edde03c2837f246"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/OperitTerminalManager.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/terminal/OperitTerminalManager.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.terminal",
+      "group": "system/terminal",
+      "operation": "move",
+      "sourceSha256": "a3c477aaa53a61773a2cd1049cda6179cbfc13b61f4cb34330bd1296a49747f2"
+    },
+    {
+      "source": "app/src/main/java/com/ai/assistance/operit/core/tools/system/Terminal.kt",
+      "target": "app/src/main/java/com/ai/assistance/operit/core/tools/system/terminal/Terminal.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.system",
+      "targetPackage": "com.ai.assistance.operit.core.tools.system.terminal",
+      "group": "system/terminal",
+      "operation": "move",
+      "sourceSha256": "45a22a4932c2af47b5db3311f5e43966b1e76cfddb2aa543d52faf7e87228a10"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/defaultTool/a2ui/A2uiToolsTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/builtin/a2ui/A2uiToolsTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.a2ui",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.a2ui",
+      "group": "tests/builtin/a2ui",
+      "operation": "move",
+      "sourceSha256": "a83003debdc5de0ea0d036c749dc4ce6411484006de3965508dfa37c5bd355d0"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/defaultTool/standard/ToolPermissionModeSupportTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/builtin/settings/ToolPermissionModeSupportTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.settings",
+      "group": "tests/builtin/settings",
+      "operation": "move",
+      "sourceSha256": "dcfda6fc6fe18b27b6d6b8d41cdfbbec74c3f1572318c8a74bded90de3ceffe3"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/defaultTool/standard/ShellCommandSafetyTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/builtin/shell/ShellCommandSafetyTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.standard",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.shell",
+      "group": "tests/builtin/shell",
+      "operation": "move",
+      "sourceSha256": "3b2017bb1684fd2944d9b27dcaadfccb58d89147610c43d459bbea08af92049f"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserNavigationPolicyTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/builtin/web/session/browser/BrowserNavigationPolicyTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.defaultTool.websession.browser",
+      "targetPackage": "com.ai.assistance.operit.core.tools.builtin.web.session.browser",
+      "group": "tests/builtin/web/session/browser",
+      "operation": "move",
+      "sourceSha256": "ea47f6a2bd3017de431c3a836cc7bbd3909e5c55feb250973668e37cf0a6a377"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/PackageFileImportSupportTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/install/PackageFileImportSupportTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "tests/packTool/install",
+      "operation": "move",
+      "sourceSha256": "e3d2784fd4a2cf4a4031433d5e192ca63e962eab1727357515ad6625eecf080c"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/PackageSourceDeletionTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/install/PackageSourceDeletionTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "tests/packTool/install",
+      "operation": "move",
+      "sourceSha256": "d80e4119332e0c939867331e7e7f33ba30e1cfa58bc432d76c53a2711cfb2bd3"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/PackageTemplateFactoryTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/install/PackageTemplateFactoryTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.install",
+      "group": "tests/packTool/install",
+      "operation": "move",
+      "sourceSha256": "ece1af8d1ca93308a36aac08251dea5e95db3c201cf44403a579457d939e5ab7"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgApiDeclarationTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgApiDeclarationTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "tests/packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "de21af2f58f85d67659fe7e2659085a40b17afc144ef528c75b9b9a1dc638334"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgMarketOriginCodecTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/metadata/ToolPkgMarketOriginCodecTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.metadata",
+      "group": "tests/packTool/metadata",
+      "operation": "move",
+      "sourceSha256": "ac68a386de7dab0b8dfb2758230acc6b6e3ff3f0e9461b9f0e5594e9bc9f59ec"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgManifestSelectionTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/parser/ToolPkgManifestSelectionTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.parser",
+      "group": "tests/packTool/parser",
+      "operation": "move",
+      "sourceSha256": "68442d9fa53207bec8e609a47a6e30a8331d620c05fd3cc17343d5c7268e356d"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/PackageActivationResultTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/runtime/PackageActivationResultTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "tests/packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "e951755e4839bbaadbf1eb164c8936e11684ba15d63e5c23fc9893d1864a2a03"
+    },
+    {
+      "source": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgManagerTest.kt",
+      "target": "app/src/test/java/com/ai/assistance/operit/core/tools/packTool/runtime/ToolPkgManagerTest.kt",
+      "sourcePackage": "com.ai.assistance.operit.core.tools.packTool",
+      "targetPackage": "com.ai.assistance.operit.core.tools.packTool.runtime",
+      "group": "tests/packTool/runtime",
+      "operation": "move",
+      "sourceSha256": "81ffb753a0aa956bc0082690a1102c2f6b72b1bd0b9632b856a86de37638f1ec"
+    }
+  ]
+}

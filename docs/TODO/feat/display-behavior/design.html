@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#10171b">
+  <title>Operit · 显示与行为 · 交互设计稿</title>
+  <style>
+    /* 延续已认可稿的紧凑卡片、选择行与细滑块；颜色可由 Android 主题替换。 */
+    :root {
+      --bg:#10171b; --surface:#192227; --raised:#202b31; --ink:#e6edf0;
+      --muted:#9baab3; --line:#303d44; --accent:#91cbe9; --accent-ink:#103448;
+      --soft:#243c49; --quiet:#1e2a30; --track:#3b4a53; --danger:#f0aaa4;
+      --shadow:0 24px 80px #0006; color-scheme:dark;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+      -webkit-tap-highlight-color:transparent;
+    }
+    html[data-theme="light"] {
+      --bg:#f4f7f8; --surface:#fff; --raised:#f2f6f8; --ink:#26343c;
+      --muted:#6d7c86; --line:#dfe7eb; --accent:#376f8b; --accent-ink:#fff;
+      --soft:#e4f0f6; --quiet:#edf2f5; --track:#d7e3e9; --danger:#a94e48;
+      --shadow:0 24px 80px #1b344424; color-scheme:light;
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    html { scrollbar-gutter:stable; scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font-size:14px; line-height:1.5; }
+    body:has(dialog[open]) { overflow:hidden; }
+    button,input { font:inherit; }
+    button { color:inherit; cursor:pointer; border:0; background:none; touch-action:manipulation; }
+    button:disabled,input:disabled { cursor:default; }
+    button:focus-visible,input:focus-visible,summary:focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+    h1,h2,h3,p { margin:0; }
+    h1 { font-size:20px; font-weight:650; letter-spacing:-.5px; }
+    h2 { font-size:15px; font-weight:650; }
+    h3 { font-size:14px; font-weight:600; }
+    .icon { width:21px; height:21px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:none; vertical-align:middle; }
+    .icon.small { width:17px; height:17px; }
+    .icon-button { width:44px; height:44px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+    .icon-button:hover { background:var(--quiet); }
+    .shell { width:min(100%,720px); margin:auto; }
+    .app-header { position:sticky; top:0; background:var(--bg); z-index:5; padding:env(safe-area-inset-top) 18px 0; border-bottom:1px solid var(--line); }
+    .titlebar { min-height:64px; display:flex; gap:6px; align-items:center; }
+    .titlebar h1 { flex:1; }
+    .save-state { display:flex; align-items:center; gap:5px; color:var(--muted); font-size:11px; padding:0 2px; white-space:nowrap; }
+    .save-state::before { content:""; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+    .page-intro { padding:0 8px 13px; color:var(--muted); font-size:12px; }
+    .tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    .tab { min-height:46px; position:relative; color:var(--muted); font-weight:600; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .tab[aria-selected="true"] { color:var(--accent); }
+    .tab[aria-selected="true"]::after { content:""; position:absolute; bottom:-1px; height:3px; left:23%; right:23%; background:var(--accent); border-radius:3px 3px 0 0; }
+    main { padding:22px 22px 0; }
+    .panel-head { padding:0 2px 16px; }
+    .eyebrow { color:var(--accent); font-size:11px; letter-spacing:.14em; margin-bottom:5px; font-weight:600; }
+    .panel-head h2 { font-size:19px; margin-bottom:5px; font-weight:600; }
+    .panel-head p { color:var(--muted); font-size:12px; }
+    .card { background:var(--surface); border:1px solid var(--line); border-radius:16px; margin-bottom:16px; overflow:hidden; }
+    .card-header { display:flex; gap:9px; align-items:center; padding:15px 17px 12px; border-bottom:1px solid var(--line); }
+    .card-header .icon { color:var(--accent); width:19px; height:19px; }
+    .card-header .tail { margin-left:auto; font-size:11px; color:var(--muted); }
+    .setting-row { display:flex; align-items:center; gap:15px; min-height:73px; width:100%; padding:15px 17px; text-align:left; }
+    .setting-row+.setting-row,.separated { border-top:1px solid var(--line); }
+    .setting-row .copy { flex:1; min-width:0; }
+    .row-title { display:block; font-size:14px; font-weight:500; }
+    .row-desc { display:block; font-size:12px; color:var(--muted); margin-top:4px; line-height:1.55; }
+    .row-desc code { font-size:11px; }
+    .setting-row.navigation:hover,.setting-row:has(input:not(:disabled)):hover { background:var(--quiet); }
+    .trailing { display:flex; align-items:center; gap:7px; flex:none; max-width:50%; }
+    .row-value { color:var(--accent); font-size:12px; text-align:right; }
+    .chevron { color:var(--muted); width:16px; height:16px; }
+    .pill { display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:6px; color:var(--accent); background:var(--soft); font-size:10px; font-weight:500; vertical-align:middle; margin-left:5px; }
+    .switch { appearance:none; -webkit-appearance:none; width:39px; height:23px; border:1px solid var(--track); background:var(--track); border-radius:20px; margin:0; flex:none; cursor:pointer; position:relative; transition:background .16s; }
+    .switch::after { content:""; position:absolute; width:17px; height:17px; top:2px; left:2px; border-radius:50%; background:var(--muted); transition:transform .16s,background .16s; }
+    .switch:checked { background:var(--accent); border-color:var(--accent); }
+    .switch:checked::after { transform:translateX(16px); background:var(--accent-ink); }
+    .setting-row.disabled { opacity:.43; }
+    .child-row { min-height:59px; padding-top:12px; padding-bottom:12px; background:var(--quiet); }
+    .child-row .row-title { font-size:12px; }
+    .child-row .icon { color:var(--muted); width:16px; }
+    .inset-line { height:1px; margin:0 17px; background:var(--line); }
+    .hint { color:var(--muted); font-size:11px; padding:0 17px 14px; line-height:1.65; }
+    .inline-group { padding:15px 17px; }
+    .inline-group>.row-title { margin-bottom:10px; }
+    .segments { display:flex; padding:4px; gap:4px; border:1px solid var(--line); border-radius:11px; background:var(--bg); }
+    .segments button { flex:1; min-height:37px; min-width:0; font-size:12px; border-radius:7px; color:var(--muted); padding:8px; }
+    .segments button[aria-checked="true"] { background:var(--soft); color:var(--accent); font-weight:600; }
+    .note-line { display:flex; align-items:flex-start; gap:8px; font-size:11px; color:var(--muted); padding:1px 3px 15px; }
+    .note-line .icon { margin-top:1px; }
+    .footer { padding:8px 22px max(24px,env(safe-area-inset-bottom)); text-align:center; }
+    .reset-link { min-height:44px; padding:10px 16px; display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; border-radius:10px; }
+    .reset-link:hover { background:var(--quiet); color:var(--ink); }
+    .prototype-line { font-size:10px; color:var(--muted); margin-top:13px; opacity:.8; }
+    .prototype-line button { text-decoration:underline; text-underline-offset:3px; color:var(--accent); padding:5px; }
+    /* 编辑窗口保留固定标题和底部按钮，内容区域独立滚动。 */
+    dialog { width:min(540px,calc(100vw - 32px)); max-height:85vh; max-height:85dvh; border:1px solid var(--line); border-radius:20px; padding:0; color:var(--ink); background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
+    dialog::backdrop { background:#060b0f9c; }
+    dialog[open] { display:flex; flex-direction:column; }
+    .dialog-header { flex:none; padding:18px 18px 11px; display:flex; align-items:flex-start; gap:10px; }
+    .dialog-header>div { flex:1; padding:3px 0 0 2px; }
+    .dialog-header h2 { font-size:18px; font-weight:600; }
+    .dialog-header p { font-size:12px; color:var(--muted); margin-top:5px; }
+    .dialog-header .icon-button { width:34px; height:34px; margin-right:-4px; }
+    .dialog-body { padding:2px 20px 16px; overflow-y:auto; overscroll-behavior:contain; }
+    .dialog-footer { padding:13px 20px 17px; display:flex; gap:10px; justify-content:flex-end; border-top:1px solid var(--line); flex:none; }
+    .button { min-height:42px; border-radius:11px; padding:9px 21px; font-size:13px; font-weight:600; }
+    .button.primary { background:var(--accent); color:var(--accent-ink); }
+    .button.secondary { border:1px solid var(--line); }
+    .button.danger { color:var(--danger); background:var(--quiet); }
+    .button:disabled { opacity:.4; }
+    .choice-list { border:1px solid var(--line); border-radius:13px; overflow:hidden; margin:8px 0; }
+    .choice { min-height:72px; display:flex; align-items:center; gap:15px; width:100%; text-align:left; padding:14px; }
+    .choice+.choice { border-top:1px solid var(--line); }
+    .choice .copy { flex:1; }
+    .choice .row-title { font-size:13px; }
+    .choice[aria-checked="true"] { background:var(--quiet); }
+    .checkmark { width:21px; height:21px; border:1px solid var(--track); border-radius:6px; flex:none; display:flex; align-items:center; justify-content:center; color:transparent; }
+    .choice[aria-checked="true"] .checkmark { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+    .choice:focus-visible { outline-offset:-3px; }
+    .micro-label { font-size:11px; color:var(--muted); margin:16px 0 8px; }
+    .explanation { color:var(--muted); font-size:12px; line-height:1.7; margin:10px 0; }
+    .example { background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:13px; }
+    .example .mini-title { font-size:10px; color:var(--muted); margin-bottom:10px; }
+    .example .example-bubble { width:90%; padding:10px 12px; background:var(--raised); border-radius:2px 10px 10px; font-size:12px; }
+    .tool-preview { border:1px solid var(--line); padding:9px 11px; border-radius:9px; font-size:11px; display:flex; align-items:center; gap:8px; margin-top:8px; color:var(--muted); }
+    .tool-preview .end { margin-left:auto; color:var(--accent); }
+    .tool-output { padding:7px 12px 0; color:var(--muted); font-size:10px; line-height:1.8; }
+    .range-block { padding:16px 0; }
+    .range-block+.range-block { border-top:1px solid var(--line); }
+    .range-heading { display:flex; align-items:center; gap:12px; margin-bottom:1px; }
+    .range-heading .row-title { flex:1; font-size:13px; }
+    .number-badge { min-width:51px; text-align:right; color:var(--accent); font-size:13px; font-variant-numeric:tabular-nums; }
+    .range { appearance:none; -webkit-appearance:none; display:block; width:100%; height:36px; margin:4px 0 0; background:transparent; cursor:pointer; }
+    .range::-webkit-slider-runnable-track { height:4px; border-radius:4px; background:linear-gradient(to right,var(--accent) 0 var(--fill),var(--track) var(--fill) 100%); }
+    .range::-webkit-slider-thumb { appearance:none; -webkit-appearance:none; height:18px; width:18px; border:4px solid var(--surface); background:var(--accent); border-radius:50%; margin-top:-7px; box-shadow:0 0 0 1px var(--accent); }
+    .range::-moz-range-track { height:4px; background:var(--track); border-radius:4px; }
+    .range::-moz-range-progress { height:4px; background:var(--accent); border-radius:4px; }
+    .range::-moz-range-thumb { height:10px; width:10px; border:4px solid var(--surface); border-radius:50%; background:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+    .range:disabled { opacity:.35; }
+    .range-limits { display:flex; justify-content:space-between; color:var(--muted); font-size:10px; }
+    .compact-range { padding:15px 17px 13px; }
+    .compact-range+.compact-range { border-top:1px solid var(--line); }
+    .compact-range .range-heading { margin-bottom:5px; }
+    .two-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:9px 0; }
+    .tile { padding:13px; border:1px solid var(--line); border-radius:13px; text-align:left; position:relative; min-width:0; }
+    .tile[aria-checked="true"] { border-color:var(--accent); background:var(--quiet); }
+    .tile .check-dot { position:absolute; top:11px; right:10px; color:var(--accent); opacity:0; }
+    .tile[aria-checked="true"] .check-dot { opacity:1; }
+    .tile .row-title { font-size:13px; padding-right:20px; }
+    .tile .row-desc { font-size:11px; }
+    .phone-scene { height:98px; max-width:96px; margin:8px auto 16px; position:relative; background:var(--bg); border:2px solid var(--track); border-radius:12px; padding:14px 8px; }
+    .phone-scene::before { content:""; position:absolute; top:5px; left:40%; width:20%; height:3px; background:var(--track); border-radius:2px; }
+    .phone-scene i { height:5px; width:80%; display:block; background:var(--track); border-radius:2px; margin:6px 0; }
+    .phone-scene i:nth-child(2) { width:54%; }
+    .phone-scene i:nth-child(3) { width:66%; margin-left:auto; background:var(--soft); }
+    .phone-scene.rainbow { border-color:#7da9bd; box-shadow:inset 2px 0 #b6b6df,inset -2px 0 #87bea4,inset 0 -2px #d0ad8e; }
+    .phone-scene.top-bar::after { content:"正在执行"; font-size:8px; position:absolute; top:12px; left:6px; right:6px; padding:2px; border-radius:4px; background:var(--soft); color:var(--accent); text-align:center; }
+    .phone-scene.top-bar { padding-top:32px; }
+    .bitrate-grid { display:flex; gap:7px; flex-wrap:wrap; margin:10px 0 16px; }
+    .chip { padding:9px 11px; border:1px solid var(--line); border-radius:9px; font-size:12px; min-height:40px; }
+    .chip[aria-checked="true"] { background:var(--soft); color:var(--accent); border-color:var(--accent); }
+    .mini-section { padding:13px 0 5px; border-top:1px solid var(--line); margin-top:12px; }
+    .numeric-field { display:flex; align-items:center; gap:10px; padding:13px; border-radius:12px; border:1px solid var(--line); margin:14px 0 6px; background:var(--bg); }
+    .numeric-field input { min-width:0; width:100%; border:0; background:none; color:var(--ink); padding:3px; outline:none; font-size:22px; }
+    .numeric-field span { color:var(--muted); font-size:12px; white-space:nowrap; }
+    .numeric-field:focus-within { border-color:var(--accent); }
+    .text-field { width:100%; padding:13px; min-height:46px; margin:10px 0; background:var(--bg); border:1px solid var(--line); border-radius:10px; color:var(--ink); font:13px ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .form-error { font-size:12px; color:var(--danger); min-height:20px; }
+    .dialog-note { padding:11px 12px; background:var(--quiet); color:var(--muted); font-size:11px; border-radius:10px; margin:12px 0 0; line-height:1.7; }
+    .reset-list { margin:13px 0; padding:13px 15px; background:var(--bg); border-radius:12px; }
+    .reset-list p { font-size:12px; padding:4px 0; }
+    .scenario { margin-top:17px; border-top:1px solid var(--line); }
+    .scenario .setting-row { padding-left:0; padding-right:0; }
+    .toast { position:fixed; bottom:max(25px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:15; color:var(--ink); background:var(--raised); border:1px solid var(--line); box-shadow:var(--shadow); padding:11px 18px; font-size:12px; border-radius:12px; max-width:calc(100vw - 36px); text-align:center; }
+    .toast:empty { display:none; }
+    @media(min-width:800px) {
+      .app-header { padding-top:15px; }
+      .titlebar { min-height:66px; }
+      main { padding-top:29px; }
+      .page-intro { padding-bottom:20px; }
+      .tab { min-height:49px; }
+    }
+    @media(max-width:380px) {
+      .app-header { padding-left:10px; padding-right:10px; }
+      main { padding-left:14px; padding-right:14px; }
+      .titlebar { gap:1px; }
+      .titlebar h1 { font-size:18px; }
+      .save-state { font-size:10px; }
+      .titlebar .icon-button { width:37px; }
+      .setting-row { padding:14px; gap:10px; }
+      .row-title { font-size:13px; }
+      .row-desc { font-size:11px; }
+      .row-value { font-size:11px; }
+      .card-header { padding-left:14px; padding-right:14px; }
+      .dialog-body { padding-left:16px; padding-right:16px; }
+    }
+    @media(prefers-reduced-motion:reduce) {
+      html { scroll-behavior:auto; }
+      *,*::before,*::after { transition:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m12 5-7 7 7 7M5 12h15"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-5 3V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h7"/></symbol>
+    <symbol id="i-display" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></symbol>
+    <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.1M10 9h.1M14 9h.1M18 9h.1M6 12h.1M10 12h.1M14 12h.1M18 12h.1M7 16h10"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8l10-5Zm-10 9 10 5 10-5M2 16l10 5 10-5"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 5v7h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></symbol>
+    <symbol id="i-tool" viewBox="0 0 24 24"><path d="M14.5 6.5 18 3a6 6 0 0 1-7 8L4 18a2 2 0 0 0 3 3l7-7a6 6 0 0 0 7-8l-3.5 3.5-3-3Z"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6l4 2"/></symbol>
+    <symbol id="i-root" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 1h4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4m-3 14h2"/></symbol>
+  </defs></svg>
+  <div class="shell">
+    <header class="app-header">
+      <div class="titlebar">
+        <button class="icon-button" data-action="back" aria-label="返回设置"><svg class="icon"><use href="#i-back"/></svg></button>
+        <h1>显示与行为</h1>
+        <span class="save-state" id="save-state" role="status" aria-live="polite">自动保存</span>
+        <button class="icon-button" id="theme-button" data-action="theme" aria-label="设计稿：切换浅色预览" title="切换浅深色"><svg class="icon"><use href="#i-sun"/></svg></button>
+      </div>
+      <p class="page-intro">把聊天、界面与自动化，调成顺手的样子。</p>
+      <nav class="tabs" role="tablist" aria-label="显示与行为分类">
+        <button class="tab" id="tab-chat" role="tab" aria-selected="true" aria-controls="panel-chat" data-tab="chat"><svg class="icon small" aria-hidden="true"><use href="#i-chat"/></svg>聊天</button>
+        <button class="tab" id="tab-interface" role="tab" aria-selected="false" aria-controls="panel-interface" data-tab="interface" tabindex="-1"><svg class="icon small" aria-hidden="true"><use href="#i-display"/></svg>界面</button>
+        <button class="tab" id="tab-automation" role="tab" aria-selected="false" aria-controls="panel-automation" data-tab="automation" tabindex="-1"><svg class="icon small" aria-hidden="true"><use href="#i-spark"/></svg>自动化</button>
+      </nav>
+    </header>
+    <main id="main">
+      <section id="panel-chat" role="tabpanel" aria-labelledby="tab-chat"></section>
+      <section id="panel-interface" role="tabpanel" aria-labelledby="tab-interface" hidden></section>
+      <section id="panel-automation" role="tabpanel" aria-labelledby="tab-automation" hidden></section>
+    </main>
+    <footer class="footer">
+      <button class="reset-link" data-editor="reset"><svg class="icon small" aria-hidden="true"><use href="#i-reset"/></svg>恢复本页默认设置</button>
+      <p class="prototype-line">交互设计稿 · 操作仅在本页演示 <button data-editor="design">预览选项</button></p>
+    </footer>
+  </div>
+  <dialog id="editor" aria-labelledby="editor-title" aria-describedby="editor-subtitle">
+    <header class="dialog-header"><div><h2 id="editor-title"></h2><p id="editor-subtitle"></p></div><button class="icon-button" data-action="close" aria-label="关闭窗口"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></header>
+    <div id="editor-body" class="dialog-body"></div>
+    <footer class="dialog-footer" id="editor-footer"></footer>
+  </dialog>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    'use strict';
+    // 初始值来自当前 Android 源码；设计稿只在内存中演示，不读取或修改 App 偏好。
+    const defaults = Object.freeze({
+      toolCollapseMode:'all', showFpsCounter:false,
+      enableReplyNotification:true, enableReplyNotificationSound:false, enableReplyNotificationVibration:false,
+      enableEnterToSend:false, enableNavigationAnimation:true, orientationReloadPolicy:'ASK', startWithNewChat:false,
+      enableBackgroundKeepAlive:false, enableExperimentalVirtualDisplay:true, hideRuntimeTaskView:false,
+      screenshotFormat:'JPG', screenshotQuality:75, screenshotScalePercent:75,
+      visitWebWaitSeconds:0, toolPkgHookTimeoutSeconds:10, virtualDisplayBitrateKbps:3000,
+      keepScreenOn:true, convertLongPastedTextToFile:true, longPastedTextFileThreshold:3000,
+      uiAccessibilityMode:false, softwareIdentity:'operit_ai', rootExecutionMode:'AUTO', customSuCommand:'su',
+      statusIndicatorStyle:'FULLSCREEN_RAINBOW'
+    });
+    let state = {...defaults};
+    let activeTab = 'chat';
+    let activeEditor = null;
+    let returnEditor = null;
+    let toastTimer;
+    const scenario = {root:false};
+    const dialog = document.getElementById('editor');
+    const icons = (name,extra='') => `<svg class="icon ${extra}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+    const escapeText = value => String(value).replace(/[&<>"']/g, char => '&#'+char.codePointAt(0)+';');
+    const labels = {
+      toolCollapseMode:{read_only:'多个只读工具',all:'多个任意工具',full:'全部工具'},
+      orientationReloadPolicy:{ALWAYS:'自动重新加载',ASK:'每次询问',NEVER:'不处理'},
+      statusIndicatorStyle:{FULLSCREEN_RAINBOW:'全屏彩虹边框',TOP_BAR:'顶部提示条'},
+      rootExecutionMode:{AUTO:'自动选择',FORCE_LIBSU:'Magisk SU',FORCE_EXEC:'KernelSU'}
+    };
+    const label = key => labels[key][state[key]];
+    const number = value => new Intl.NumberFormat('zh-CN').format(value);
+    function toggle(key,title,description,disabled=false) {
+      return `<label class="setting-row ${disabled?'disabled':''}"><span class="copy"><span class="row-title">${title}</span><span class="row-desc" id="desc-${key}">${description}</span></span><input type="checkbox" role="switch" class="switch" data-key="${key}" aria-label="${title.replace(/<[^>]*>/g,'')}" aria-describedby="desc-${key}" ${state[key]?'checked':''} ${disabled?'disabled':''}></label>`;
+    }
+    function nav(editor,title,description,value) {
+      return `<button class="setting-row navigation" data-editor="${editor}"><span class="copy"><span class="row-title">${title}</span>${description?`<span class="row-desc">${description}</span>`:''}</span><span class="trailing"><span class="row-value">${escapeText(value)}</span>${icons('chevron','chevron')}</span></button>`;
+    }
+    function card(icon,title,content,tail='') {
+      return `<section class="card"><header class="card-header">${icons(icon)}<h2>${title}</h2>${tail?`<span class="tail">${tail}</span>`:''}</header>${content}</section>`;
+    }
+    function segments(key,options) {
+      return `<div class="segments" role="radiogroup" aria-label="软件标识">${options.map(([value,title])=>`<button role="radio" aria-checked="${state[key]===value}" data-set="${key}" data-value="${value}">${title}</button>`).join('')}</div>`;
+    }
+    function range(key,title,description,min,max,unit,compact=false) {
+      const fill=(state[key]-min)/(max-min)*100;
+      return `<div class="${compact?'compact-range':'range-block'}"><div class="range-heading"><label class="row-title" for="range-${key}">${title}</label><output class="number-badge" for="range-${key}" data-output="${key}">${state[key]}${unit}</output></div>${description?`<p class="row-desc">${description}</p>`:''}<input class="range" id="range-${key}" data-range="${key}" data-unit="${unit}" type="range" min="${min}" max="${max}" step="1" value="${state[key]}" style="--fill:${fill}%" ${key==='screenshotQuality'&&state.screenshotFormat==='PNG'?'disabled':''}><div class="range-limits"><span>${min}${unit}</span><span>${max}${unit}</span></div></div>`;
+    }
+    function renderMain() {
+      document.getElementById('panel-chat').innerHTML = `
+        <div class="panel-head"><p class="eyebrow">CHAT PREFERENCES</p><h2>让每次聊天更顺手</h2><p>输入习惯、工具消息和回复提醒，分开调整。</p></div>
+        ${card('keyboard','输入与启动',
+          toggle('enableEnterToSend','回车发送','开启后，输入框与键盘的回车键直接发送消息。')+
+          toggle('startWithNewChat','启动时新建空白聊天','关闭时继续打开上一次聊天。'))}
+        ${card('layers','消息整理',
+          nav('collapse','工具折叠范围','决定消息中哪些工具调用默认收起。',label('toolCollapseMode'))+
+          toggle('convertLongPastedTextToFile','超长文本转为文件','粘贴超过阈值的文本时，作为文本附件添加。')+
+          (state.convertLongPastedTextToFile?`<button class="setting-row navigation child-row separated" data-editor="threshold">${icons('arrow')}<span class="copy"><span class="row-title">转换阈值</span></span><span class="trailing"><span class="row-value">${number(state.longPastedTextFileThreshold)} 字符</span>${icons('chevron','chevron')}</span></button>`:''))}
+        ${card('bell','回复提醒',
+          toggle('enableReplyNotification','回复通知','AI 回复时发送系统通知。')+
+          toggle('enableReplyNotificationSound','提示音','通知触发时播放提示音。',!state.enableReplyNotification)+
+          toggle('enableReplyNotificationVibration','震动','通知触发时震动提醒。',!state.enableReplyNotification)+
+          (!state.enableReplyNotification?'<p class="hint">声音和震动的选择会保留，开启回复通知后生效。</p>':''))}
+        <p class="note-line">${icons('info','small')}<span>开关和选项自动保存；文本阈值在编辑窗口确认后保存。</span></p>`;
+      document.getElementById('panel-interface').innerHTML = `
+        <div class="panel-head"><p class="eyebrow">INTERFACE PREFERENCES</p><h2>熟悉的界面，自己的习惯</h2><p>调整屏幕行为与导航方式。</p></div>
+        ${card('display','屏幕与导航',
+          toggle('keepScreenOn','屏幕常亮','聊天时保持亮屏，防止自动锁屏。')+
+          toggle('enableNavigationAnimation','新版导航动画','同时控制侧栏与页面切换的增强动画。')+
+          nav('orientation','屏幕方向变化时','选择横竖屏切换后的处理方式。',label('orientationReloadPolicy')))}
+        ${card('spark','显示辅助',
+          toggle('showFpsCounter','显示帧率','在屏幕上显示实时帧率指标。')+
+          `<div class="inline-group separated"><span class="row-title">软件标识</span>${segments('softwareIdentity',[['operit_ai','Operit AI'],['lingshu_ai','灵枢 AI']])}<p class="row-desc" style="margin-top:9px">仅更改侧栏顶部显示的软件名称。</p></div>`)}
+        <p class="note-line">${icons('info','small')}<span>颜色、字体、头像与消息外观继续在「主题」中设置。</span></p>`;
+      document.getElementById('panel-automation').innerHTML = `
+        <div class="panel-head"><p class="eyebrow">AUTOMATION PREFERENCES</p><h2>执行时更清楚，也更可控</h2><p>运行方式留在首页，画面参数按需展开。</p></div>
+        ${card('spark','运行方式',
+          toggle('uiAccessibilityMode','无障碍适配','为 TalkBack 优化操作步骤，谨慎执行自动点击。')+
+          toggle('enableBackgroundKeepAlive','后台保活','空闲时仍保留前台通知，适合长期后台驻留。')+
+          toggle('hideRuntimeTaskView','运行时隐藏任务卡片','处理消息或执行工具时，从系统最近任务中隐藏。'))}
+        ${card('phone','画面与提示',
+          nav('virtual','虚拟屏幕','基于 ADB + Shizuku 的自动化，仍处于实验阶段。',state.enableExperimentalVirtualDisplay?`已开启 · ${state.virtualDisplayBitrateKbps/1000} Mbps`:'已关闭')+
+          nav('indicator','自动化状态提示','执行任务时使用的提示样式。',label('statusIndicatorStyle'))+
+          nav('screenshot','截图与发送',`${state.screenshotFormat==='PNG'?'无损图片':state.screenshotQuality+'% 画质'} · ${state.screenshotScalePercent}% 分辨率`,state.screenshotFormat))}
+        ${card('clock','工具与插件',
+          range('visitWebWaitSeconds','网页访问等待','提取网页内容后的返回等待；0 秒为立即返回。',0,10,' 秒',true)+
+          range('toolPkgHookTimeoutSeconds','前置插件 Hook 超时','聊天输入、Prompt 和摘要 Hook 的总等待上限。',1,60,' 秒',true)+
+          '<p class="hint">Hook 超时后跳过当前 Hook 并继续处理；不影响消息处理回复接管。</p>')}
+        ${scenario.root?card('root','Root 执行',
+          nav('root','执行模式','按 Root 环境自动选择，也可手动指定。',label('rootExecutionMode'))+
+          (state.rootExecutionMode==='FORCE_EXEC'?nav('su','自定义 su 命令','用于 KernelSU 执行模式。',state.customSuCommand):''),'Root 权限'):''}`;
+    }
+    function choice(key,value,title,description='') {
+      return `<button class="choice" role="radio" aria-checked="${state[key]===value}" data-set="${key}" data-value="${value}"><span class="copy"><span class="row-title">${title}</span>${description?`<span class="row-desc">${description}</span>`:''}</span><span class="checkmark">${icons('check','small')}</span></button>`;
+    }
+    function tile(key,value,title,description,scene='') {
+      return `<button class="tile" role="radio" aria-checked="${state[key]===value}" data-set="${key}" data-value="${value}">${scene?`<div class="phone-scene ${scene}" aria-hidden="true"><i></i><i></i><i></i></div>`:''}<span class="check-dot">${icons('check','small')}</span><span class="row-title">${title}</span><span class="row-desc">${description}</span></button>`;
+    }
+    const editors = {
+      collapse:()=>({title:'工具折叠范围',subtitle:'按消息阅读习惯选择，工具仍会正常执行。',body:`<div class="choice-list" role="radiogroup" aria-label="工具折叠范围">${choice('toolCollapseMode','read_only','折叠多个只读工具','多个连续只读工具收为一组。')}${choice('toolCollapseMode','all','折叠多个任意工具','多个连续工具合并，单次调用保留展开。')}${choice('toolCollapseMode','full','折叠全部工具','单次调用也默认收起，需要时再展开。')}</div><p class="micro-label">阅读效果示意</p><div class="example"><p class="mini-title">AI 消息中的工具调用</p><div class="example-bubble">我来查看相关文件。</div><div class="tool-preview">${icons('tool','small')}<span>${state.toolCollapseMode==='read_only'?'已读取 2 个文件':state.toolCollapseMode==='all'?'已完成 2 次工具调用':'已完成 1 次工具调用'}</span><span class="end">展开 ›</span></div>${state.toolCollapseMode==='read_only'?'<div class="tool-output">写入文件 · 已完成<br>文件内容已更新。</div>':''}</div>`}),
+      orientation:()=>({title:'屏幕方向变化时',subtitle:'横竖屏切换后的页面处理方式。',body:`<div class="choice-list" role="radiogroup" aria-label="屏幕方向变化时">${choice('orientationReloadPolicy','ALWAYS','自动重新加载','切换方向后自动重新加载页面。')}${choice('orientationReloadPolicy','ASK','每次询问','切换方向后，由你决定是否重新加载。')}${choice('orientationReloadPolicy','NEVER','不处理','切换方向后不主动重新加载。')}</div>`}),
+      threshold:()=>({title:'长文本转换阈值',subtitle:'超过这个字符数时，将粘贴内容作为文本附件添加。',body:`<form id="threshold-form"><label class="micro-label" for="threshold-input">字符数</label><div class="numeric-field"><input id="threshold-input" type="number" min="1000" max="100000" step="1" inputmode="numeric" value="${state.longPastedTextFileThreshold}" required aria-describedby="threshold-error"><span>字符</span></div><p class="explanation">范围 1,000–100,000 字符，默认 3,000 字符。</p><p id="threshold-error" class="form-error" aria-live="polite"></p></form>`,footer:'threshold'}),
+      virtual:()=>({title:'虚拟屏幕',subtitle:'实验性自动化方式，基于 ADB + Shizuku。',body:`${toggle('enableExperimentalVirtualDisplay','启用虚拟屏幕','功能仍在实验阶段，可能不稳定。')}<div class="mini-section"><h3>传输码率</h3><p class="row-desc">关闭虚拟屏幕时保留码率选择。</p><div class="bitrate-grid" role="radiogroup" aria-label="虚拟屏幕传输码率">${[1500,3000,5000,10000,20000].map(value=>`<button class="chip" role="radio" aria-checked="${state.virtualDisplayBitrateKbps===value}" data-set="virtualDisplayBitrateKbps" data-value="${value}">${value/1000} Mbps</button>`).join('')}</div></div>`}),
+      indicator:()=>({title:'自动化状态提示',subtitle:'选择执行任务时的视觉提示方式。',body:`<div class="two-choices" role="radiogroup" aria-label="自动化状态提示">${tile('statusIndicatorStyle','FULLSCREEN_RAINBOW','全屏彩虹边框','沿屏幕边缘显示。','rainbow')}${tile('statusIndicatorStyle','TOP_BAR','顶部提示条','在屏幕顶部显示。','top-bar')}</div><p class="dialog-note">上方为样式示意，实际颜色和动画以 Android 界面为准。</p>`}),
+      screenshot:()=>({title:'截图与发送',subtitle:'调整自动化截图的格式、画质与发送尺寸。',body:`<p class="micro-label">图片格式</p><div class="two-choices" role="radiogroup" aria-label="截图图片格式">${tile('screenshotFormat','PNG','PNG','无损，保留原始细节。')}${tile('screenshotFormat','JPG','JPG','有损，图片体积较小。')}</div>${range('screenshotQuality','JPG 画质',state.screenshotFormat==='PNG'?'PNG 不使用此参数，切回 JPG 时保留当前值。':'数值越高，保留的图片细节越多。',50,100,'%')}${range('screenshotScalePercent','分辨率缩放','发送前按比例缩小截图。',50,100,'%')}<div class="dialog-note">画质只影响 JPG；分辨率缩放对两种格式均生效。</div>`}),
+      root:()=>({title:'Root 执行模式',subtitle:'仅在首选权限为 Root 时显示。',body:`<div class="choice-list" role="radiogroup" aria-label="Root 执行模式">${choice('rootExecutionMode','AUTO','自动选择','按当前 Root 环境选择执行方式。')}${choice('rootExecutionMode','FORCE_LIBSU','手动 Magisk SU','固定使用 Magisk SU 执行。')}${choice('rootExecutionMode','FORCE_EXEC','手动 KernelSU','固定使用 KernelSU，可自定义 su 命令。')}</div>${state.rootExecutionMode==='FORCE_EXEC'?`<div class="mini-section">${nav('su','自定义 su 命令','保存后用于 KernelSU 模式。',state.customSuCommand)}</div>`:''}`}),
+      su:()=>({title:'自定义 su 命令',subtitle:'仅在 KernelSU 执行模式生效。',body:`<form id="su-form"><label class="micro-label" for="su-input">执行命令</label><input class="text-field" id="su-input" value="${escapeText(state.customSuCommand)}" spellcheck="false" autocomplete="off" required aria-describedby="su-error"><p class="explanation">例如 su 或 su --mount-master。</p><p class="form-error" id="su-error" aria-live="polite"></p></form>`,footer:'su'}),
+      reset:()=>({title:'恢复本页默认设置？',subtitle:'包括「聊天」「界面」「自动化」中的选项。',body:'<div class="reset-list"><p>恢复输入、通知、屏幕与自动化偏好。</p><p>恢复截图、等待时长与 Root 执行参数。</p></div><p class="explanation">头像、用户名、主题与聊天内容不受影响。</p>',footer:'reset'}),
+      design:()=>({title:'设计稿预览',subtitle:'当前展示「显示与行为」的交互方案。',body:`<p class="explanation">全部操作仅在当前 HTML 中演示，不会更改 Operit 的实际设置。刷新后恢复源码默认值。</p><div class="choice-list"><div class="setting-row"><span class="copy"><span class="row-title">浅色预览</span><span class="row-desc">与深色共用排版、层级和控件。</span></span><input class="switch" type="checkbox" role="switch" data-scenario="light" aria-label="浅色预览" ${document.documentElement.dataset.theme==='light'?'checked':''}></div><div class="setting-row"><span class="copy"><span class="row-title">模拟 Root 权限场景</span><span class="row-desc">显示自动化页的条件设置，不会申请权限。</span></span><input class="switch" type="checkbox" role="switch" data-scenario="root" aria-label="模拟 Root 权限场景" ${scenario.root?'checked':''}></div></div><p class="dialog-note">设计提议：恢复默认仅影响本页设置。现有 Android 重置逻辑的范围调整，记录在随稿说明中，尚未修改。</p>`})
+    };
+    function renderEditor() {
+      const config=editors[activeEditor]();
+      document.getElementById('editor-title').textContent=config.title;
+      document.getElementById('editor-subtitle').textContent=config.subtitle;
+      document.getElementById('editor-body').innerHTML=config.body;
+      let footer='<button class="button primary" data-action="close">完成</button>';
+      if(config.footer==='threshold') footer='<button class="button secondary" data-action="close">取消</button><button class="button primary" type="submit" form="threshold-form">保存阈值</button>';
+      if(config.footer==='su') footer='<button class="button secondary" data-action="close">取消</button><button class="button primary" type="submit" form="su-form">保存命令</button>';
+      if(config.footer==='reset') footer='<button class="button secondary" data-action="close">取消</button><button class="button danger" data-action="confirm-reset">恢复默认</button>';
+      document.getElementById('editor-footer').innerHTML=footer;
+    }
+    function openEditor(editor) {
+      returnEditor=editor;
+      activeEditor=editor;
+      renderEditor();
+      if(!dialog.open) dialog.showModal();
+    }
+    function changed() {
+      document.getElementById('save-state').textContent='已保存';
+    }
+    function update(key,value,refreshEditor=true) {
+      state[key]=value;
+      renderMain();
+      if(refreshEditor && dialog.open) renderEditor();
+      changed();
+    }
+    function setTab(tab,scroll=true) {
+      activeTab=tab;
+      document.querySelectorAll('[data-tab]').forEach(button=>{
+        const selected=button.dataset.tab===tab;
+        button.setAttribute('aria-selected',String(selected));
+        button.tabIndex=selected?0:-1;
+      });
+      ['chat','interface','automation'].forEach(name=>document.getElementById('panel-'+name).hidden=name!==tab);
+      if(scroll) window.scrollTo({top:0,behavior:'instant'});
+    }
+    function setTheme(light) {
+      document.documentElement.dataset.theme=light?'light':'dark';
+      document.querySelector('meta[name="theme-color"]').content=light?'#f4f7f8':'#10171b';
+      document.getElementById('theme-button').innerHTML=icons(light?'moon':'sun');
+      document.getElementById('theme-button').setAttribute('aria-label',`设计稿：切换${light?'深':'浅'}色预览`);
+    }
+    function toast(text) {
+      clearTimeout(toastTimer);
+      document.getElementById('toast').textContent=text;
+      toastTimer=setTimeout(()=>document.getElementById('toast').textContent='',2400);
+    }
+    document.addEventListener('click',event=>{
+      const button=event.target.closest('button');
+      if(!button || button.disabled) return;
+      if(button.dataset.tab) { setTab(button.dataset.tab); return; }
+      if(button.dataset.editor) { openEditor(button.dataset.editor); return; }
+      if(button.dataset.set) {
+        const key=button.dataset.set;
+        const value=typeof defaults[key]==='number'?Number(button.dataset.value):button.dataset.value;
+        const editorScope=button.closest('dialog');
+        update(key,value);
+        const options=[...document.querySelectorAll('button[data-set]')];
+        const target=options.find(element=>element.dataset.set===key && element.dataset.value===button.dataset.value && element.closest('dialog')===editorScope);
+        if(target) target.focus({preventScroll:true});
+        return;
+      }
+      if(button.dataset.action==='close') dialog.close();
+      if(button.dataset.action==='back') toast('当前为独立设计稿，可使用浏览器返回键离开。');
+      if(button.dataset.action==='theme') setTheme(document.documentElement.dataset.theme==='dark');
+      if(button.dataset.action==='confirm-reset') {
+        state={...defaults};
+        renderMain();
+        changed();
+        dialog.close();
+        toast('已恢复本页默认设置');
+      }
+    });
+    document.addEventListener('change',event=>{
+      const input=event.target;
+      if(input.dataset.key) {
+        const key=input.dataset.key;
+        update(key,input.checked);
+        const scope=dialog.open?dialog:document.getElementById('panel-'+activeTab);
+        const replacement=scope.querySelector(`[data-key="${key}"]`);
+        if(replacement) replacement.focus({preventScroll:true});
+      }
+      if(input.dataset.scenario==='root') {
+        scenario.root=input.checked;
+        renderMain();
+        toast(scenario.root?'自动化页已显示 Root 设置':'自动化页已隐藏 Root 设置');
+      }
+      if(input.dataset.scenario==='light') setTheme(input.checked);
+    });
+    // 拖动时只刷新数值和摘要，保留原滑块节点，避免打断触摸。
+    document.addEventListener('input',event=>{
+      const input=event.target;
+      const key=input.dataset.range;
+      if(!key) return;
+      state[key]=Number(input.value);
+      input.style.setProperty('--fill',`${(state[key]-Number(input.min))/(Number(input.max)-Number(input.min))*100}%`);
+      document.querySelector(`[data-output="${key}"]`).textContent=state[key]+input.dataset.unit;
+      if(dialog.open) renderMain();
+      changed();
+    });
+    document.addEventListener('submit',event=>{
+      event.preventDefault();
+      if(event.target.id==='threshold-form') {
+        const input=document.getElementById('threshold-input');
+        const value=Number(input.value);
+        if(!Number.isInteger(value)||value<1000||value>100000) {
+          document.getElementById('threshold-error').textContent='请输入 1,000–100,000 之间的整数。';
+          return;
+        }
+        update('longPastedTextFileThreshold',value,false);
+        dialog.close();
+        toast('已保存转换阈值');
+      }
+      if(event.target.id==='su-form') {
+        const value=document.getElementById('su-input').value.trim();
+        if(!value) { document.getElementById('su-error').textContent='请输入 su 命令。'; return; }
+        update('customSuCommand',value,false);
+        dialog.close();
+        toast('已保存 su 命令');
+      }
+    });
+    document.querySelector('.tabs').addEventListener('keydown',event=>{
+      const names=['chat','interface','automation'];
+      let index=names.indexOf(activeTab);
+      if(event.key==='ArrowRight') index=(index+1)%names.length;
+      else if(event.key==='ArrowLeft') index=(index+names.length-1)%names.length;
+      else if(event.key==='Home') index=0;
+      else if(event.key==='End') index=names.length-1;
+      else return;
+      event.preventDefault();
+      setTab(names[index],false);
+      document.getElementById('tab-'+names[index]).focus();
+    });
+    dialog.addEventListener('click',event=>{
+      if(event.target!==dialog) return;
+      const rect=dialog.getBoundingClientRect();
+      if(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom) dialog.close();
+    });
+    dialog.addEventListener('close',()=>{
+      const opener=document.querySelector(`#panel-${activeTab} [data-editor="${returnEditor}"]`) || document.querySelector(`.footer [data-editor="${returnEditor}"]`);
+      activeEditor=null;
+      if(opener) opener.focus({preventScroll:true});
+    });
+    renderMain();
+    setTab('chat',false);
+  </script>
+</body>
+</html>

@@ -402,13 +402,13 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
       ctx.UI.Icon({ name: "settings", tint: "primary", size: 24 }),
       ctx.UI.Spacer({ width: 8 }),
       ctx.UI.Text({
-        text: text.toolboxTitle,
+        text: text.settingsTitle,
         style: "headlineSmall",
         fontWeight: "bold",
       }),
     ]),
     ctx.UI.Text({
-      text: text.toolboxSubtitle,
+      text: text.settingsSubtitle,
       style: "bodyMedium",
       color: "onSurfaceVariant",
     }),
@@ -425,7 +425,7 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
             ctx.UI.Icon({ name: "info", tint: "onSecondaryContainer", size: 18 }),
             ctx.UI.Spacer({ width: 8 }),
             ctx.UI.Text({
-              text: text.toolboxBanner,
+              text: text.settingsBanner,
               style: "bodySmall",
               color: "onSecondaryContainer",
             }),

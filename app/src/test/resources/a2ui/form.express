@@ -1,0 +1,7 @@
+
+$/form = {name:"",notes:""}
+root = Card(child=Form(label="偏好表单 · 演示",children=[
+ TextField(label="称呼",value=$/form/name),
+ TextArea(label="补充说明",value=$/form/notes),
+ Button(child=Text(text="提交给 AI"),variant="primary",action=Event(name="ai_submit",context={form:$/form,required:["/form/name"]}))
+]))

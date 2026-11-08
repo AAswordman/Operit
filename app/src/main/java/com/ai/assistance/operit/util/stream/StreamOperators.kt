@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.util.stream
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.util.stream.plugins.PluginState
 import com.ai.assistance.operit.util.stream.plugins.StreamPlugin
 import kotlin.collections.ArrayDeque

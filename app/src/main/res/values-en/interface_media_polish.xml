@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">Select multiple files</string>
+    <string name="workspace_selection_count">%1$d selected</string>
+    <string name="workspace_delete_selected_title">Delete selected items</string>
+    <string name="workspace_delete_selected_message">Delete the %1$d selected files or folders, including folder contents? This cannot be undone.</string>
+    <string name="voice_message_expired">The audio file has expired or was deleted</string>
+    <string name="chat_media_file_missing">File no longer exists</string>
+    <string name="chat_media_preview_failed">Cannot preview this media file</string>
+</resources>

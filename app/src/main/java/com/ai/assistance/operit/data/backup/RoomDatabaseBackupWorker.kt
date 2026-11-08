@@ -3,7 +3,7 @@ package com.ai.assistance.operit.data.backup
 import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 
 class RoomDatabaseBackupWorker(
     appContext: Context,

@@ -11,15 +11,17 @@ import com.ai.assistance.operit.data.model.MemoryTag_
 import com.ai.assistance.operit.data.model.Memory_
 import com.ai.assistance.operit.data.model.DocumentChunk
 import com.ai.assistance.operit.data.model.Embedding
-import com.ai.assistance.operit.data.model.CloudEmbeddingConfig
-import com.ai.assistance.operit.data.model.DimensionCount
-import com.ai.assistance.operit.data.model.EmbeddingDimensionUsage
-import com.ai.assistance.operit.data.model.EmbeddingRebuildProgress
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.embedding.MemoryEmbeddingModelResolver
+import com.ai.assistance.operit.data.embedding.isEmbeddingReady
+import com.ai.assistance.operit.data.embedding.DimensionCount
+import com.ai.assistance.operit.data.embedding.EmbeddingDimensionUsage
+import com.ai.assistance.operit.data.embedding.EmbeddingRebuildProgress
 import com.ai.assistance.operit.data.preferences.MemorySearchSettingsPreferences
 import com.ai.assistance.operit.services.CloudEmbeddingService
-import com.ai.assistance.operit.ui.features.memory.screens.graph.model.Edge
-import com.ai.assistance.operit.ui.features.memory.screens.graph.model.Graph
-import com.ai.assistance.operit.ui.features.memory.screens.graph.model.Node
+import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Edge
+import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Graph
+import com.ai.assistance.operit.ui.features.conversation.memory.screens.graph.model.Node
 import io.objectbox.Box
 import io.objectbox.kotlin.boxFor
 import io.objectbox.kotlin.query
@@ -31,16 +33,16 @@ import io.objectbox.query.QueryCondition
 import java.util.UUID
 import java.util.Date
 import java.util.Locale
-import com.ai.assistance.operit.data.model.MemoryExportData
-import com.ai.assistance.operit.data.model.SerializableMemory
-import com.ai.assistance.operit.data.model.SerializableLink
-import com.ai.assistance.operit.data.model.ImportStrategy
-import com.ai.assistance.operit.data.model.MemoryImportResult
-import com.ai.assistance.operit.data.model.MemorySearchDebugCandidate
-import com.ai.assistance.operit.data.model.MemorySearchDebugInfo
-import com.ai.assistance.operit.data.model.MemoryScoreMode
-import com.ai.assistance.operit.util.OperitPaths
-import com.ai.assistance.operit.util.TextSegmenter
+import com.ai.assistance.operit.data.memory.export.MemoryExportData
+import com.ai.assistance.operit.data.memory.export.SerializableMemory
+import com.ai.assistance.operit.data.memory.export.SerializableLink
+import com.ai.assistance.operit.data.memory.export.ImportStrategy
+import com.ai.assistance.operit.data.memory.export.MemoryImportResult
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugCandidate
+import com.ai.assistance.operit.data.memory.search.MemorySearchDebugInfo
+import com.ai.assistance.operit.data.memory.search.MemoryScoreMode
+import com.ai.assistance.operit.util.files.OperitPaths
+import com.ai.assistance.operit.util.text.TextSegmenter
 import com.ai.assistance.operit.util.vector.IndexItem
 import com.ai.assistance.operit.util.vector.VectorIndexManager
 import kotlinx.serialization.encodeToString
@@ -66,7 +68,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         private const val DANGLING_LINK_CLEANUP_INTERVAL_MS = 30_000L
         private const val SEARCH_RRF_K = 60.0
         private const val SEARCH_KEYWORD_COVERAGE_BONUS = 0.6
-        private const val SEARCH_RELEVANCE_THRESHOLD = 0.025
+        const val DEFAULT_RELEVANCE_THRESHOLD = 0.025
         private val INDEX_KEY_SANITIZE_REGEX = Regex("[^a-zA-Z0-9._-]")
 
         fun normalizeFolderPath(folderPath: String?): String? {
@@ -95,11 +97,19 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
     private val searchSettingsPreferences = MemorySearchSettingsPreferences(context, profileId)
     private val cloudEmbeddingService = CloudEmbeddingService(context)
+    private val embeddingModels = MemoryEmbeddingModelResolver(context)
     private val sanitizedProfileKey = sanitizeIndexKey(profileId)
     @Volatile
     private var lastDanglingCleanupAtMs: Long = 0L
 
-    private suspend fun generateEmbedding(text: String, config: CloudEmbeddingConfig): Embedding? {
+    private suspend fun loadActiveEmbeddingModel(
+        enabled: Boolean = searchSettingsPreferences.loadCloudEmbeddingEnabled(),
+    ): ModelConfigData? {
+        if (!enabled) return null
+        return embeddingModels.resolve()
+    }
+
+    private suspend fun generateEmbedding(text: String, config: ModelConfigData?): Embedding? {
         return cloudEmbeddingService.generateEmbedding(config, text)
     }
 
@@ -172,7 +182,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         var edgeScore: Double = 0.0
     )
 
-    private data class SearchComputationResult(
+    internal data class SearchComputationResult(
         val memories: List<Memory>,
         val debug: MemorySearchDebugInfo
     )
@@ -580,7 +590,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
         )
     }
 
-    private fun getSemanticMemoryCandidatesFromIndex(queryEmbedding: Embedding): List<Pair<Memory, Float>> {
+    private fun getSemanticMemoryCandidatesFromIndex(
+        queryEmbedding: Embedding
+    ): List<Pair<Memory, Float>> {
         val manager = ensureMemoryVectorIndex(queryEmbedding.vector.size) ?: return emptyList()
         val availableCount = manager.size()
         if (availableCount <= 0) {
@@ -589,7 +601,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
         val nearest = manager.findNearest(
             queryEmbedding.vector,
-            availableCount
+            MemorySearchCandidatePolicy.requestedNeighbors(availableCount)
         )
         manager.close()
         if (nearest.isEmpty()) return emptyList()
@@ -767,7 +779,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
      * @return 创建的Memory对象。
      */
     suspend fun createMemoryFromDocument(documentName: String, originalPath: String, text: String, folderPath: String = ""): Memory = withContext(Dispatchers.IO) {
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+        val cloudConfig = loadActiveEmbeddingModel()
         val documentEmbedding = generateEmbedding(documentName, cloudConfig)
 
         val documentMemory = Memory(
@@ -832,7 +844,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
      * @return The ID of the saved memory.
      */
     suspend fun saveMemory(memory: Memory): Long = withContext(Dispatchers.IO){
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+        val cloudConfig = loadActiveEmbeddingModel()
         val previousDimension = memory.id.takeIf { it > 0L }
             ?.let { existingId -> memoryBox.get(existingId)?.embedding?.vector?.size }
         memory.folderPath = normalizeFolderPath(memory.folderPath)
@@ -898,14 +910,14 @@ class MemoryRepository(private val context: Context, profileId: String) {
             val chunkIds = memory.documentChunks.map { it.id }
             if (chunkIds.isNotEmpty()) {
                 chunkBox.removeByIds(chunkIds)
-                com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Deleted ${chunkIds.size} associated chunks for document.")
+                com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Deleted ${chunkIds.size} associated chunks for document.")
             }
         }
 
         val linkIdsToDelete = collectLinkIdsForDeletion(setOf(memoryId), includeDangling = false)
         if (linkIdsToDelete.isNotEmpty()) {
             linkBox.removeByIds(linkIdsToDelete)
-            com.ai.assistance.operit.util.AppLogger.d(
+            com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Deleted ${linkIdsToDelete.size} links while deleting memory id=$memoryId."
             )
@@ -953,7 +965,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         val danglingLinkIds = collectLinkIdsForDeletion(emptySet())
         if (danglingLinkIds.isNotEmpty()) {
             linkBox.removeByIds(danglingLinkIds)
-            com.ai.assistance.operit.util.AppLogger.w(
+            com.ai.assistance.operit.util.logging.AppLogger.w(
                 "MemoryRepo",
                 "Cleaned ${danglingLinkIds.size} dangling memory links."
             )
@@ -1051,7 +1063,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         if (existingLink != null) {
             // 链接已存在，可以选择更新或直接返回
             // 这里我们选择直接返回，不创建重复链接
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Link already exists from memory ${source.id} to ${target.id} with type $type")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Link already exists from memory ${source.id} to ${target.id} with type $type")
             return@withContext
         }
         
@@ -1136,7 +1148,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         tagWeight: Float = 0.0f,
         semanticWeight: Float = 0.5f,
         edgeWeight: Float = 0.4f,
-        relevanceThreshold: Double = SEARCH_RELEVANCE_THRESHOLD,
+        relevanceThreshold: Double = DEFAULT_RELEVANCE_THRESHOLD,
         createdAtStartMs: Long? = null,
         createdAtEndMs: Long? = null
     ): List<Memory> {
@@ -1162,9 +1174,10 @@ class MemoryRepository(private val context: Context, profileId: String) {
         tagWeight: Float = 0.0f,
         semanticWeight: Float = 0.5f,
         edgeWeight: Float = 0.4f,
-        relevanceThreshold: Double = SEARCH_RELEVANCE_THRESHOLD,
+        relevanceThreshold: Double = DEFAULT_RELEVANCE_THRESHOLD,
         createdAtStartMs: Long? = null,
-        createdAtEndMs: Long? = null
+        createdAtEndMs: Long? = null,
+        allowCloudEmbedding: Boolean = searchSettingsPreferences.loadCloudEmbeddingEnabled(),
     ): MemorySearchDebugInfo {
         return runSearchMemoriesWithDebug(
             query = query,
@@ -1176,11 +1189,12 @@ class MemoryRepository(private val context: Context, profileId: String) {
             edgeWeight = edgeWeight,
             relevanceThreshold = relevanceThreshold,
             createdAtStartMs = createdAtStartMs,
-            createdAtEndMs = createdAtEndMs
+            createdAtEndMs = createdAtEndMs,
+            allowCloudEmbedding = allowCloudEmbedding,
         ).debug
     }
 
-    private suspend fun runSearchMemoriesWithDebug(
+    internal suspend fun runSearchMemoriesWithDebug(
         query: String,
         folderPath: String? = null,
         scoreMode: MemoryScoreMode = MemoryScoreMode.BALANCED,
@@ -1188,11 +1202,15 @@ class MemoryRepository(private val context: Context, profileId: String) {
         tagWeight: Float = 0.0f,
         semanticWeight: Float = 0.5f,
         edgeWeight: Float = 0.4f,
-        relevanceThreshold: Double = SEARCH_RELEVANCE_THRESHOLD,
+        relevanceThreshold: Double = DEFAULT_RELEVANCE_THRESHOLD,
         createdAtStartMs: Long? = null,
-        createdAtEndMs: Long? = null
+        createdAtEndMs: Long? = null,
+        allowCloudEmbedding: Boolean = searchSettingsPreferences.loadCloudEmbeddingEnabled(),
     ): SearchComputationResult = withContext(Dispatchers.IO) {
         val normalizedFolderPath = normalizeFolderPath(folderPath)
+        val folderScoped = normalizedFolderPath != null ||
+            folderPath == context.getString(R.string.memory_uncategorized)
+        val minimumSemanticSimilarity = searchSettingsPreferences.load().minSemanticSimilarity
 
         val memoriesInScope = if (normalizedFolderPath == null) {
             if (folderPath == context.getString(R.string.memory_uncategorized)) {
@@ -1298,19 +1316,19 @@ class MemoryRepository(private val context: Context, profileId: String) {
         fun getScoreParts(memoryId: Long): SearchScoreParts {
             return scorePartsByMemoryId.getOrPut(memoryId) { SearchScoreParts() }
         }
-        com.ai.assistance.operit.util.AppLogger.d(
+        com.ai.assistance.operit.util.logging.AppLogger.d(
             "MemoryRepo",
             "search settings => mode=${resolvedWeights.scoreMode}, keyword=${String.format("%.2f", effectiveKeywordWeight)}, " +
                 "tag=${String.format("%.2f", effectiveTagWeight)}, " +
                 "semantic=${String.format("%.2f", effectiveSemanticWeight)}, " +
                 "semanticNorm=${String.format("%.4f", semanticKeywordNormFactor)}, edge=${String.format("%.2f", effectiveEdgeWeight)}"
         )
-        com.ai.assistance.operit.util.AppLogger.d(
+        com.ai.assistance.operit.util.logging.AppLogger.d(
             "MemoryRepo",
             "keyword fragments: raw=${keywords.size}, lexical=${keywordTokensForLexicalMatch.size}"
         )
         if (keywordTokensForLexicalMatch.isNotEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d(
+            com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "keyword fragments preview: ${
                     keywordTokensForLexicalMatch.take(12).joinToString(" | ")
@@ -1322,9 +1340,10 @@ class MemoryRepository(private val context: Context, profileId: String) {
         // If a folder path is provided, all subsequent searches will be performed on this subset.
         // Otherwise, search all memories.
         val memoriesToSearch = timeFilteredMemoriesInScope
+        val scopedMemoryIds = memoriesToSearch.mapTo(hashSetOf()) { it.id }
 
         if (memoriesToSearch.isEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "No memories found in folder '$folderPath' to search.")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "No memories found in folder '$folderPath' to search.")
             return@withContext SearchComputationResult(
                 memories = emptyList(),
                 debug = buildDebug(
@@ -1343,7 +1362,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         )
 
         if (keywordResults.isNotEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d(
+            com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Keyword search (title fragments): ${keywordResults.size} matches"
             )
@@ -1371,7 +1390,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         )
 
         if (tagResults.isNotEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d(
+            com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Tag search: ${tagResults.size} matches"
             )
@@ -1399,7 +1418,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 memoriesToSearch.filter { memory -> textMatchesLexicalToken(query, memory.title) }
         
         if (reverseContainmentResults.isNotEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Reverse containment: ${reverseContainmentResults.size} matches")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Reverse containment: ${reverseContainmentResults.size} matches")
         }
         if (effectiveKeywordWeight > 0.0) {
             reverseContainmentResults.forEachIndexed { index, memory ->
@@ -1413,35 +1432,44 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
 
         // 3. Semantic search (for conceptual matches)
-        val allMemoriesWithEmbedding = memoriesToSearch.filter { it.embedding != null }
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+        // 文件夹查询只准备一次范围内向量，每个关键词直接复用它们计算余弦相似度。
+        val scopedEmbeddings = memoriesToSearch.mapNotNull { memory ->
+            memory.embedding?.let { embedding -> memory to embedding }
+        }
+        val cloudConfig = loadActiveEmbeddingModel(allowCloudEmbedding)
         val semanticMatchedIds = mutableSetOf<Long>()
-        val scopedMemoryIds = allMemoriesWithEmbedding.map { it.id }.toHashSet()
+        val semanticScopedIds = scopedEmbeddings.mapTo(hashSetOf()) { (memory, _) -> memory.id }
 
-        if (effectiveSemanticWeight > 0.0f && cloudConfig.isReady()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "--- Starting Semantic Search for ${keywords.size} keywords ---")
+        if (effectiveSemanticWeight > 0.0f && cloudConfig.isEmbeddingReady()) {
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "--- Starting Semantic Search for ${keywords.size} keywords ---")
             keywords.forEach { keyword ->
                 val queryEmbedding = generateEmbedding(keyword, cloudConfig)
                 if (queryEmbedding == null) {
-                    com.ai.assistance.operit.util.AppLogger.w("MemoryRepo", "Failed to generate embedding for: '$keyword'")
+                    com.ai.assistance.operit.util.logging.AppLogger.w("MemoryRepo", "Failed to generate embedding for: '$keyword'")
                     return@forEach
                 }
 
-                val semanticResultsWithScores = getSemanticMemoryCandidatesFromIndex(queryEmbedding)
-                    .asSequence()
-                    .filter { (memory, _) -> scopedMemoryIds.contains(memory.id) }
-                    .sortedByDescending { it.second }
-                    .toList()
+                val semanticCandidates = if (folderScoped) {
+                    scopedEmbeddings.asSequence()
+                        .filter { (_, embedding) -> embedding.vector.size == queryEmbedding.vector.size }
+                        .map { (memory, embedding) -> memory to cosineSimilarity(queryEmbedding, embedding) }
+                } else {
+                    getSemanticMemoryCandidatesFromIndex(queryEmbedding).asSequence()
+                }
+                val semanticResultsWithScores = MemorySearchCandidatePolicy.selectSemanticCandidates(
+                    semanticCandidates.filter { (memory, _) -> memory.id in semanticScopedIds },
+                    minimumSemanticSimilarity
+                )
 
                 if (semanticResultsWithScores.isEmpty()) {
-                    com.ai.assistance.operit.util.AppLogger.d(
+                    com.ai.assistance.operit.util.logging.AppLogger.d(
                         "MemoryRepo",
-                        "Keyword '$keyword': semantic index returned no compatible memory candidates"
+                        "Keyword '$keyword': semantic search returned no compatible memory candidates"
                     )
                 } else {
-                    com.ai.assistance.operit.util.AppLogger.d(
+                    com.ai.assistance.operit.util.logging.AppLogger.d(
                         "MemoryRepo",
-                        "Keyword '$keyword': ${semanticResultsWithScores.size} indexed matches (top: ${String.format("%.2f", semanticResultsWithScores.first().second)})"
+                        "Keyword '$keyword': ${semanticResultsWithScores.size} semantic matches (top: ${String.format("%.2f", semanticResultsWithScores.first().second)})"
                     )
                 }
 
@@ -1458,7 +1486,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                     semanticMatchedIds.add(memory.id)
                 }
             }
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "--- Semantic Search Completed ---")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "--- Semantic Search Completed ---")
         }
 
         // 4. Graph-based expansion: Boost scores of connected memories based on edge weights
@@ -1484,7 +1512,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             // Propagate score through outgoing links
             sourceMemory.links.forEach { link ->
                 val targetMemory = link.target.target
-                if (targetMemory != null) {
+                if (targetMemory != null && targetMemory.id in scopedMemoryIds) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
@@ -1496,7 +1524,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             // Propagate score through incoming links (backlinks)
             sourceMemory.backlinks.forEach { link ->
                 val targetMemory = link.source.target
-                if (targetMemory != null) {
+                if (targetMemory != null && targetMemory.id in scopedMemoryIds) {
                     // 边权重越高，传播的分数越多
                     val propagatedScore = (sourceScore * link.weight * graphPropagationWeight) + basePropagationScore
                     scores[targetMemory.id] = scores.getOrDefault(targetMemory.id, 0.0) + propagatedScore
@@ -1506,7 +1534,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             }
         }
         if (edgesTraversed > 0) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Graph expansion: ${edgesTraversed} edges traversed")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Graph expansion: ${edgesTraversed} edges traversed")
         }
 
         // 5. Fuse results using RRF and return sorted list
@@ -1527,9 +1555,11 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
 
         // 添加相关性阈值过滤，避免返回不相关的记忆
-        val filteredScores = scores.entries.filter { it.value >= effectiveRelevanceThreshold }
+        val filteredScores = MemorySearchCandidatePolicy.scopedScores(
+            scores, scopedMemoryIds, effectiveRelevanceThreshold
+        )
 
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Final results: ${filteredScores.size}/${scores.size} above threshold")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Final results: ${filteredScores.size}/${scores.size} above threshold")
 
         // 只显示前3个结果的分数
         val sortedScoresForLogging = scores.entries.sortedByDescending { it.value }
@@ -1537,7 +1567,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         sortedScoresForLogging.take(3).forEach { (id, score) ->
             val memory = scoredMemoryMap[id] ?: memoriesToSearch.find { it.id == id }
             if (memory != null) {
-                com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "  Top: [${memory.title}] = ${String.format("%.4f", score)}")
+                com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "  Top: [${memory.title}] = ${String.format("%.4f", score)}")
             }
         }
 
@@ -1575,7 +1605,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         )
 
         if (filteredScores.isEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "No memories above relevance threshold")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "No memories above relevance threshold")
             return@withContext SearchComputationResult(
                 memories = emptyList(),
                 debug = debugInfo
@@ -1645,9 +1675,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
      * @return 匹配的DocumentChunk列表。
      */
     suspend fun searchChunksInDocument(memoryId: Long, query: String, limit: Int = 20): List<DocumentChunk> = withContext(Dispatchers.IO) {
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "--- Starting search in document (Memory ID: $memoryId) for query: '$query' ---")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "--- Starting search in document (Memory ID: $memoryId) for query: '$query' ---")
         val memory = findMemoryById(memoryId) ?: return@withContext emptyList<DocumentChunk>().also {
-            com.ai.assistance.operit.util.AppLogger.w("MemoryRepo", "Document with ID $memoryId not found.")
+            com.ai.assistance.operit.util.logging.AppLogger.w("MemoryRepo", "Document with ID $memoryId not found.")
         }
         if (!memory.isDocumentNode) {
             return@withContext emptyList()
@@ -1655,7 +1685,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         val validLimit = limit.coerceAtLeast(1)
 
         if (query.isBlank()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Query is blank, returning up to $validLimit chunks sorted by index.")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Query is blank, returning up to $validLimit chunks sorted by index.")
             return@withContext getChunksForMemory(memoryId).take(validLimit)
         }
 
@@ -1684,7 +1714,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         val keywordTokensForLexicalMatch = buildLexicalQueryTokens(query, keywords)
         val scores = mutableMapOf<Long, Double>()
 
-        com.ai.assistance.operit.util.AppLogger.d(
+        com.ai.assistance.operit.util.logging.AppLogger.d(
             "MemoryRepo",
             "Document chunk search settings => mode=${resolvedWeights.scoreMode}, " +
                 "keyword=${String.format("%.2f", effectiveKeywordWeight)}, " +
@@ -1711,7 +1741,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             )
 
         if (keywordResults.isNotEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d(
+            com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Document keyword search: ${keywordResults.size} chunk matches"
             )
@@ -1730,12 +1760,12 @@ class MemoryRepository(private val context: Context, profileId: String) {
             }
         }
 
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
-        if (effectiveSemanticWeight > 0.0f && cloudConfig.isReady()) {
+        val cloudConfig = loadActiveEmbeddingModel()
+        if (effectiveSemanticWeight > 0.0f && cloudConfig.isEmbeddingReady()) {
             keywords.forEach { keyword ->
                 val queryEmbedding = generateEmbedding(keyword, cloudConfig)
                 if (queryEmbedding == null) {
-                    com.ai.assistance.operit.util.AppLogger.w("MemoryRepo", "Failed to generate chunk embedding query for: '$keyword'")
+                    com.ai.assistance.operit.util.logging.AppLogger.w("MemoryRepo", "Failed to generate chunk embedding query for: '$keyword'")
                     return@forEach
                 }
 
@@ -1746,12 +1776,12 @@ class MemoryRepository(private val context: Context, profileId: String) {
                     .sortedByDescending { it.second }
 
                 if (semanticResultsWithScores.isNotEmpty()) {
-                    com.ai.assistance.operit.util.AppLogger.d(
+                    com.ai.assistance.operit.util.logging.AppLogger.d(
                         "MemoryRepo",
                         "Document semantic search for '$keyword': ${semanticResultsWithScores.size} indexed chunk matches"
                     )
                 } else {
-                    com.ai.assistance.operit.util.AppLogger.d(
+                    com.ai.assistance.operit.util.logging.AppLogger.d(
                         "MemoryRepo",
                         "Document semantic search for '$keyword': no indexed chunk matches"
                     )
@@ -1771,7 +1801,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
 
         if (scores.isEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "No matching chunks found after weighted ranking.")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "No matching chunks found after weighted ranking.")
             return@withContext emptyList()
         }
 
@@ -1783,8 +1813,8 @@ class MemoryRepository(private val context: Context, profileId: String) {
             )
             .mapNotNull { entry -> chunkById[entry.key] }
             .take(validLimit)
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Weighted document chunk results count: ${combinedResults.size}. Limit=$validLimit.")
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "--- Search in document finished ---")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Weighted document chunk results count: ${combinedResults.size}. Limit=$validLimit.")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "--- Search in document finished ---")
 
         combinedResults
     }
@@ -1796,7 +1826,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
      */
     suspend fun updateChunk(chunkId: Long, newContent: String) = withContext(Dispatchers.IO) {
         val chunk = chunkBox.get(chunkId) ?: return@withContext
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+        val cloudConfig = loadActiveEmbeddingModel()
 
         chunk.content = newContent
         chunk.embedding = generateEmbedding(newContent, cloudConfig)
@@ -1815,13 +1845,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         removeMemoryFromIndexInternal(memory)
     }
 
-    fun loadCloudEmbeddingConfig(): CloudEmbeddingConfig {
-        return searchSettingsPreferences.loadCloudEmbedding()
-    }
-
-    fun saveCloudEmbeddingConfig(config: CloudEmbeddingConfig) {
-        searchSettingsPreferences.saveCloudEmbedding(config.normalized())
-    }
+    suspend fun loadMemoryEmbeddingModel(): ModelConfigData? = embeddingModels.resolve()
 
     suspend fun getEmbeddingDimensionUsage(): EmbeddingDimensionUsage = withContext(Dispatchers.IO) {
         val memories = memoryBox.all
@@ -1854,8 +1878,8 @@ class MemoryRepository(private val context: Context, profileId: String) {
     }
 
     suspend fun rebuildVectorIndices(onProgress: (EmbeddingRebuildProgress) -> Unit): EmbeddingRebuildProgress = withContext(Dispatchers.IO) {
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
-        if (!cloudConfig.isReady()) {
+        val cloudConfig = loadActiveEmbeddingModel()
+        if (!cloudConfig.isEmbeddingReady()) {
             throw IllegalStateException(context.getString(R.string.memory_embedding_rebuild_requires_config))
         }
 
@@ -2048,7 +2072,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             }
         }
 
-        com.ai.assistance.operit.util.AppLogger.d(
+        com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Initial memories: ${memories.size}, Expanded memories: ${expandedMemories.size}"
         )
@@ -2067,12 +2091,12 @@ class MemoryRepository(private val context: Context, profileId: String) {
      */
     suspend fun getAllFolderPaths(): List<String> = withContext(Dispatchers.IO) {
         val allMemories = memoryBox.all
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepository", "getAllFolderPaths: Total memories: ${allMemories.size}")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepository", "getAllFolderPaths: Total memories: ${allMemories.size}")
         val folderPaths = allMemories
             .map { normalizeFolderPath(it.folderPath) ?: context.getString(R.string.memory_uncategorized) }
             .distinct()
             .sorted()
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepository", "getAllFolderPaths: Unique folders: $folderPaths")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepository", "getAllFolderPaths: Unique folders: $folderPaths")
         folderPaths
     }
 
@@ -2134,7 +2158,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             memoryBox.put(memories)
             true
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Failed to rename folder", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Failed to rename folder", e)
             false
         }
     }
@@ -2157,7 +2181,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             memoryBox.put(memories)
             true
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Failed to move memories", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Failed to move memories", e)
             false
         }
     }
@@ -2181,14 +2205,14 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 uuid = UUID.randomUUID().toString(),
                 folderPath = normalizedFolderPath
             )
-            val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+            val cloudConfig = loadActiveEmbeddingModel()
             val embedding = generateEmbedding(placeholder.content, cloudConfig)
             if (embedding != null) placeholder.embedding = embedding
             memoryBox.put(placeholder)
             addMemoryToIndexInternal(placeholder)
             true
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Failed to create folder", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Failed to create folder", e)
             false
         }
     }
@@ -2202,7 +2226,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
         contentType: String = "text/plain",
         source: String = "user_input",
         folderPath: String = "",
-        tags: List<String>? = null
+        tags: List<String>? = null,
+        credibility: Float = 0.5f,
+        importance: Float = 0.5f
     ): Memory? = withContext(Dispatchers.IO) {
         val normalizedTags = tags
             ?.map { it.trim() }
@@ -2214,6 +2240,8 @@ class MemoryRepository(private val context: Context, profileId: String) {
             content = content,
             contentType = contentType,
             source = source,
+            credibility = credibility.coerceIn(0f, 1f),
+            importance = importance.coerceIn(0f, 1f),
             folderPath = normalizeFolderPath(folderPath)
         )
         saveMemory(memory)
@@ -2247,7 +2275,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         newFolderPath: String? = memory.folderPath,
         newTags: List<String>? = null // 可选的要更新的标签列表
     ): Memory? = withContext(Dispatchers.IO) {
-        val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+        val cloudConfig = loadActiveEmbeddingModel()
         val previousDimension = memory.embedding?.vector?.size
         val sanitizedCredibility = newCredibility.coerceIn(0.0f, 1.0f)
         val sanitizedImportance = newImportance.coerceIn(0.0f, 1.0f)
@@ -2326,7 +2354,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
         // After finding all memories, check if we have enough to merge.
         if (sourceMemories.size < 2) {
-            com.ai.assistance.operit.util.AppLogger.w("MemoryRepo", "Merge requires at least two unique source memories to be found. Found: ${sourceMemories.size} from titles: ${sourceTitles.joinToString()}.")
+            com.ai.assistance.operit.util.logging.AppLogger.w("MemoryRepo", "Merge requires at least two unique source memories to be found. Found: ${sourceMemories.size} from titles: ${sourceTitles.joinToString()}.")
             return@withContext null
         }
 
@@ -2388,7 +2416,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
 
             // After the transaction, handle non-transactional parts
             newMemory?.let { memory ->
-                val cloudConfig = searchSettingsPreferences.loadCloudEmbedding()
+                val cloudConfig = loadActiveEmbeddingModel()
                 // Generate and save embedding for the new memory
                 val textForEmbedding = generateTextForEmbedding(memory)
                 memory.embedding = generateEmbedding(textForEmbedding, cloudConfig)
@@ -2398,7 +2426,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 addMemoryToIndexInternal(memory)
             }
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Error during memory merge transaction.", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Error during memory merge transaction.", e)
             return@withContext null
         }
 
@@ -2411,9 +2439,9 @@ class MemoryRepository(private val context: Context, profileId: String) {
      * @return 如果操作成功，返回true。
      */
     suspend fun deleteMemoriesByUuids(uuids: Set<String>): Boolean = withContext(Dispatchers.IO) {
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Attempting to delete memories with UUIDs: $uuids")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Attempting to delete memories with UUIDs: $uuids")
         if (uuids.isEmpty()) {
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "UUID set is empty, nothing to delete.")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "UUID set is empty, nothing to delete.")
             return@withContext true
         }
 
@@ -2429,7 +2457,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
         }
         val memoriesToDelete = builder.build().find()
 
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Found ${memoriesToDelete.size} memories to delete.")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Found ${memoriesToDelete.size} memories to delete.")
         if (memoriesToDelete.isEmpty()) {
             return@withContext true
         }
@@ -2449,31 +2477,31 @@ class MemoryRepository(private val context: Context, profileId: String) {
                         memory.documentChunks.forEach { chunk -> chunkIdsToDelete.add(chunk.id) }
                     }
                 }
-                com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Found ${linkIdsToDelete.size} unique links and ${chunkIdsToDelete.size} chunks to delete.")
+                com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Found ${linkIdsToDelete.size} unique links and ${chunkIdsToDelete.size} chunks to delete.")
 
                 // 2. 批量删除链接和区块
                 if (linkIdsToDelete.isNotEmpty()) {
                     linkBox.removeByIds(linkIdsToDelete)
-                    com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Bulk-deleted ${linkIdsToDelete.size} links.")
+                    com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Bulk-deleted ${linkIdsToDelete.size} links.")
                 }
                 if (chunkIdsToDelete.isNotEmpty()) {
                     chunkBox.removeByIds(chunkIdsToDelete)
-                    com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Bulk-deleted ${chunkIdsToDelete.size} chunks.")
+                    com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Bulk-deleted ${chunkIdsToDelete.size} chunks.")
                 }
 
                 // 3. 批量删除记忆本身
                 memoryBox.removeByIds(memoryIdsToDelete.toList())
-                com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Bulk-deleted ${memoriesToDelete.size} memories.")
+                com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Bulk-deleted ${memoriesToDelete.size} memories.")
             }
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Transaction completed successfully.")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Transaction completed successfully.")
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Error during bulk delete transaction.", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Error during bulk delete transaction.", e)
             return@withContext false
         }
 
         // 4. 在事务外处理向量索引和文件
         memoriesToDelete.forEach(::removeMemoryFromIndexInternal)
-        com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Removed deleted memories from vector indices and cleaned up chunk index files.")
+        com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Removed deleted memories from vector indices and cleaned up chunk index files.")
 
         return@withContext true
     }
@@ -2481,6 +2509,22 @@ class MemoryRepository(private val context: Context, profileId: String) {
     // --- Graph Export ---
 
     /** Fetches all memories and their links, and converts them into a Graph data structure. */
+    /** 列表和最近更新直接读取已有记忆，避免空查询检索的数量限制。 */
+    suspend fun getAllMemories(): List<Memory> = withContext(Dispatchers.IO) {
+        memoryBox.all
+    }
+
+    suspend fun getSpaceSummary(): com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary = withContext(Dispatchers.IO) {
+        cleanupDanglingLinksIfNeeded()
+        val memories = memoryBox.all
+        com.ai.assistance.operit.data.memory.profile.MemorySpaceSummary(
+            memoryCount = memories.size,
+            linkCount = linkBox.count().toInt(),
+            folderCount = memories.map { normalizeFolderPath(it.folderPath) }.distinct().size,
+            recentMemories = memories.sortedByDescending { it.updatedAt.time }.take(3),
+        )
+    }
+
     suspend fun getMemoryGraph(): Graph = withContext(Dispatchers.IO) {
         cleanupDanglingLinksIfNeeded()
         buildGraphFromMemories(memoryBox.all, null)
@@ -2500,6 +2544,11 @@ class MemoryRepository(private val context: Context, profileId: String) {
                     Node(
                             id = memory.uuid,
                             label = memory.title,
+                            metadata = mapOf(
+                                "folder" to (normalizeFolderPath(memory.folderPath) ?: ""),
+                                "document" to memory.isDocumentNode.toString(),
+                                "updatedAt" to memory.updatedAt.time.toString(),
+                            ),
                             color =
                                     if (memory.isDocumentNode) {
                                         Color(0xFF9575CD) // Purple for documents
@@ -2546,17 +2595,18 @@ class MemoryRepository(private val context: Context, profileId: String) {
                             targetId = targetId,
                             label = link.type,
                             weight = link.weight,
+                            metadata = mapOf("description" to link.description),
                             isCrossFolderLink = isCrossFolder
                         )
                     )
                 } else if (sourceId != null && targetId != null) {
                     // Log discarded edges for debugging
-                    // com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Discarding edge: $sourceId -> $targetId
+                    // com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Discarding edge: $sourceId -> $targetId
                     // (Not in filtered list)")
                 }
             }
         }
-        com.ai.assistance.operit.util.AppLogger.d(
+        com.ai.assistance.operit.util.logging.AppLogger.d(
                 "MemoryRepo",
                 "Built graph with ${nodes.size} nodes and ${edges.distinct().size} edges."
         )
@@ -2578,7 +2628,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 memory.folderPath = null
                 memoryBox.put(memory)
             }
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Deleted folder '$folderPath', moved ${memories.size} memories to uncategorized")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Deleted folder '$folderPath', moved ${memories.size} memories to uncategorized")
         }
     }
 
@@ -2748,7 +2798,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
                 }
             }
             
-            com.ai.assistance.operit.util.AppLogger.d("MemoryRepo", "Import completed: $newCount new, $updatedCount updated, $skippedCount skipped, $newLinksCount links")
+            com.ai.assistance.operit.util.logging.AppLogger.d("MemoryRepo", "Import completed: $newCount new, $updatedCount updated, $skippedCount skipped, $newLinksCount links")
             
             MemoryImportResult(
                 newMemories = newCount,
@@ -2758,7 +2808,7 @@ class MemoryRepository(private val context: Context, profileId: String) {
             )
             
         } catch (e: Exception) {
-            com.ai.assistance.operit.util.AppLogger.e("MemoryRepo", "Failed to import memories", e)
+            com.ai.assistance.operit.util.logging.AppLogger.e("MemoryRepo", "Failed to import memories", e)
             throw e
         }
     }

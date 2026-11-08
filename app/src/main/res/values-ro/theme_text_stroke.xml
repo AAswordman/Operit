@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">Conturul textului</string>
+    <string name="studio_text_stroke_color">Culoarea conturului textului</string>
+    <string name="studio_text_stroke_off">Dezactivat</string>
+    <string name="studio_text_stroke_custom">Personalizat</string>
+</resources>

@@ -10,274 +10,130 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.CrashRecoveryState
-import com.ai.assistance.operit.util.ThrowableTextFormatter
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Save
-import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.*
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.OperitUtilityTheme
-import com.ai.assistance.operit.ui.features.toolbox.screens.logcat.LogcatExportHelper
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+import com.ai.assistance.operit.ui.error.report.CrashReportScreen
+import com.ai.assistance.operit.ui.error.report.prepareCrashReport
+import com.ai.assistance.operit.ui.features.management.databackup.logcat.LogExportOptions
+import com.ai.assistance.operit.ui.features.management.databackup.logcat.LogExportPreferences
+import com.ai.assistance.operit.ui.features.management.databackup.logcat.LogcatExportHelper
+import com.ai.assistance.operit.ui.features.management.databackup.logcat.LogcatExportResult
 import com.ai.assistance.operit.ui.main.MainActivity
-import kotlinx.coroutines.launch
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.diagnostics.CrashRecoveryState
+import com.ai.assistance.operit.core.diagnostics.ThrowableTextFormatter
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class CrashReportActivity : ComponentActivity() {
-
     companion object {
         const val EXTRA_STACK_TRACE = "extra_stack_trace"
+        const val EXTRA_OCCURRED_AT = "extra_occurred_at"
         private const val MAX_CRASH_REPORT_CHARS = 24_000
     }
+
+    private var exportOptions by mutableStateOf(LogExportOptions())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         CrashRecoveryState.consumePendingCrashReportLaunch(this)
-        val stackTrace = ThrowableTextFormatter.truncateText(
-            intent.getStringExtra(EXTRA_STACK_TRACE) ?: "No stack trace available.",
-            MAX_CRASH_REPORT_CHARS
-        )
-
-        AppLogger.e("CrashReportActivity", "Displaying crash report, chars=${stackTrace.length}")
-        AppLogger.e("CrashReportActivity", "Stack trace:\n$stackTrace")
-        setContent { OperitUtilityTheme { CrashReportScreen(stackTrace = stackTrace) } }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CrashReportScreen(stackTrace: String) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var isExportingLogs by remember { mutableStateOf(false) }
-    var logExportMessage by remember { mutableStateOf<String?>(null) }
-    var logExportSuccess by remember { mutableStateOf<Boolean?>(null) }
-
-    Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text(stringResource(id = R.string.title_activity_crash_report)) },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            titleContentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                )
-            },
-            content = { paddingValues ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        stringResource(id = R.string.crash_report_header),
-                        style = MaterialTheme.typography.bodyLarge,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // 主要操作按钮
-                    Button(
-                        onClick = { restartApp(context) },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
-                    ) {
-                        Icon(Icons.Default.RestartAlt, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        Text(stringResource(id = R.string.crash_report_restart_button))
+        exportOptions = LogExportPreferences(this).load()
+        val rawStackTrace =
+            ThrowableTextFormatter.truncateText(
+                intent.getStringExtra(EXTRA_STACK_TRACE)
+                    ?: getString(R.string.crash_report_no_stack),
+                MAX_CRASH_REPORT_CHARS,
+            )
+        val occurredAt = intent.getLongExtra(EXTRA_OCCURRED_AT, System.currentTimeMillis())
+        intent.putExtra(EXTRA_OCCURRED_AT, occurredAt)
+        // 原始堆栈不再写回日志或交给页面动作，避免绕过同一份过滤选项。
+        AppLogger.e("CrashReportActivity", "Displaying crash report, chars=${rawStackTrace.length}")
+        setContent {
+            OperitUtilityTheme {
+                val report =
+                    remember(rawStackTrace, occurredAt, exportOptions) {
+                        prepareCrashReport(rawStackTrace, occurredAt, exportOptions)
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 次要操作按钮
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                copyToClipboard(context, stackTrace)
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(stringResource(id = R.string.crash_report_copy_button))
+                val scope = rememberCoroutineScope()
+                var exporting by remember { mutableStateOf(false) }
+                var result by remember { mutableStateOf<LogcatExportResult?>(null) }
+                fun export(action: suspend () -> LogcatExportResult) {
+                    if (exporting) return
+                    exporting = true
+                    result = null
+                    scope.launch {
+                        try {
+                            result = action()
+                        } finally {
+                            exporting = false
                         }
-
-                        OutlinedButton(
-                            onClick = {
-                                coroutineScope.launch {
-                                    exportToFile(context, stackTrace)
-                                }
-                            },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                            Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                            Text(stringResource(id = R.string.crash_report_export_button))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedButton(
-                        onClick = {
-                            coroutineScope.launch {
-                                isExportingLogs = true
-                                logExportMessage = null
-                                logExportSuccess = null
-                                try {
-                                    val result = LogcatExportHelper.exportLogs(context)
-                                    logExportMessage = result.message
-                                    logExportSuccess = result.success
-                                } finally {
-                                    isExportingLogs = false
-                                }
-                            }
-                        },
-                        enabled = !isExportingLogs,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isExportingLogs) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(ButtonDefaults.IconSize),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                Icons.Default.Description,
-                                contentDescription = null,
-                                modifier = Modifier.size(ButtonDefaults.IconSize)
-                            )
-                        }
-                        Spacer(Modifier.size(ButtonDefaults.IconSpacing))
-                        Text(stringResource(id = R.string.crash_report_export_logs_button))
-                    }
-
-                    if (logExportMessage != null) {
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (logExportSuccess == true) {
-                                    MaterialTheme.colorScheme.primaryContainer
-                                } else {
-                                    MaterialTheme.colorScheme.errorContainer
-                                }
-                            )
-                        ) {
-                            SelectionContainer {
-                                Text(
-                                    text = logExportMessage.orEmpty(),
-                                    modifier = Modifier.padding(12.dp),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily.Monospace
-                                    ),
-                                    color = if (logExportSuccess == true) {
-                                        MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else {
-                                        MaterialTheme.colorScheme.onErrorContainer
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-                    Text(
-                        stringResource(id = R.string.crash_report_details_title),
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant
-                        )
-                    ) {
-                        Text(
-                            text = stackTrace,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState())
-                                .padding(12.dp),
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontFamily = FontFamily.Monospace,
-                                lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.2
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
                     }
                 }
+                CrashReportScreen(
+                    report = report,
+                    exporting = exporting,
+                    exportResult = result,
+                    onRestart = { restartApp(this@CrashReportActivity) },
+                    onCopy = { copyToClipboard(this@CrashReportActivity, report.stackTrace) },
+                    onSave = {
+                        export { exportToFile(this@CrashReportActivity, report.exportText) }
+                    },
+                    onExportLogs = {
+                        export {
+                            LogcatExportHelper.exportLogs(this@CrashReportActivity, report.options)
+                        }
+                    },
+                )
             }
-    )
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 从设置返回时重新读取日志查看器保存的选项，显示和后续导出同步更新。
+        exportOptions = LogExportPreferences(this).load()
+    }
 }
 
 private fun copyToClipboard(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    val clip = ClipData.newPlainText("error_stack_trace", text)
-    clipboard.setPrimaryClip(clip)
-    Toast.makeText(context, R.string.crash_report_copy_success, Toast.LENGTH_SHORT).show()
+    clipboard.setPrimaryClip(ClipData.newPlainText("error_stack_trace", text))
+    OKToast.success(context, R.string.crash_report_copy_success, OKToast.LENGTH_SHORT).show()
 }
 
-private fun exportToFile(context: Context, text: String) {
-    try {
-        val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val errorDir = File(downloadsDir, "Operit/error")
-        if (!errorDir.exists()) {
-            errorDir.mkdirs()
+private suspend fun exportToFile(context: Context, text: String): LogcatExportResult =
+    withContext(Dispatchers.IO) {
+        try {
+            val downloadsDir =
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            val errorDir = File(downloadsDir, "Operit/error")
+            if (!errorDir.exists()) errorDir.mkdirs()
+            val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
+            val file = File(errorDir, "error-report-$timestamp.log")
+            FileOutputStream(file).use { it.write(text.toByteArray(StandardCharsets.UTF_8)) }
+            LogcatExportResult(
+                context.getString(R.string.crash_report_export_success, file.absolutePath),
+                true,
+            )
+        } catch (error: Exception) {
+            AppLogger.e("CrashReportActivity", "Failed to export crash report", error)
+            LogcatExportResult(
+                context.getString(R.string.crash_report_export_failed, error.localizedMessage),
+                false,
+            )
         }
-
-        val timestamp = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.US).format(Date())
-        val file = File(errorDir, "error-report-$timestamp.log")
-
-        FileOutputStream(file).use {
-            it.write(text.toByteArray(StandardCharsets.UTF_8))
-        }
-        val successMsg = context.getString(R.string.crash_report_export_success, file.absolutePath)
-        Toast.makeText(context, successMsg, Toast.LENGTH_LONG).show()
-
-    } catch (e: Exception) {
-        val errorMsg = context.getString(R.string.crash_report_export_failed, e.localizedMessage)
-        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
-        AppLogger.e("CrashReportActivity", "Failed to export crash report", e)
     }
-}
 
 private fun restartApp(context: Context) {
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)

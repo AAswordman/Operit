@@ -66,7 +66,7 @@
 
 ## 真实测试资产
 
-仓库里的 [app/src/androidTest/js](/d:/Code/prog/assistance/app/src/androidTest/js) 不是普通示例目录，而是这套工具的重要使用场景之一。
+仓库里的 [app/src/androidTest/js](../../app/src/androidTest/js) 不是普通示例目录，而是这套工具的重要使用场景之一。
 
 其中包括：
 
@@ -78,11 +78,11 @@
 
 典型目录：
 
-- [bridge_contract](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract)
-- [bridge_edges](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges)
-- [script_mode_contract](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract)
-- [browser main.js](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/browser/main.js)
-- [ttscleaner.js](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js)
+- [bridge_contract](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract)
+- [bridge_edges](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges)
+- [script_mode_contract](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract)
+- [browser main.js](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/web/browser/main.js)
+- [ttscleaner.js](../../app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js)
 
 ## 先记结论
 
@@ -120,7 +120,7 @@ Windows：
 
 ```cmd
 tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\javascript\bridge_contract\bridge_contract_runner.js run @params.json
-tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\defaultTool\standard\browser\main.js run "{}"
+tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\builtin\web\browser\main.js run "{}"
 ```
 
 Linux/macOS：
@@ -338,7 +338,7 @@ d:\Code\prog\assistance\.venv\Scripts\python.exe d:\Code\prog\assistance\tools\e
 
 ### 2. 加目录化运行时测试
 
-如果你的测试会引用多个本地模块，建议直接放到 [app/src/androidTest/js](/d:/Code/prog/assistance/app/src/androidTest/js) 下面，按一个小目录来组织。
+如果你的测试会引用多个本地模块，建议直接放到 [app/src/androidTest/js](../../app/src/androidTest/js) 下面，按一个小目录来组织。
 
 推荐组织方式：
 
@@ -555,8 +555,8 @@ exports.myFunction = myFunction;
 
 相关接收器：
 
-- [ScriptExecutionReceiver.kt](/d:/Code/prog/assistance/app/src/main/java/com/ai/assistance/operit/core/tools/javascript/ScriptExecutionReceiver.kt)
-- [ToolPkgDebugInstallReceiver.kt](/d:/Code/prog/assistance/app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgDebugInstallReceiver.kt)
+- [ScriptExecutionReceiver.kt](../../app/src/main/java/com/ai/assistance/operit/core/tools/javascript/ScriptExecutionReceiver.kt)
+- [ToolPkgDebugInstallReceiver.kt](../../app/src/main/java/com/ai/assistance/operit/core/tools/packTool/ToolPkgDebugInstallReceiver.kt)
 
 ## 故障排查
 

@@ -1,26 +1,31 @@
 package com.ai.assistance.operit.data.preferences
 
 import android.content.Context
-import com.ai.assistance.operit.api.chat.llmprovider.ThinkingQualityMappingRegistry
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyCooldownRecovery
+import com.ai.assistance.operit.api.chat.model.ThinkingQualityMappingRegistry
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.R
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.ai.assistance.operit.data.collects.ModelThinkingConfigDefaults
-import com.ai.assistance.operit.data.model.CustomParameterData
+import com.ai.assistance.operit.data.config.model.CustomParameterData
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelConfigDefaults
-import com.ai.assistance.operit.data.model.ModelConfigSummary
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ParameterCategory
-import com.ai.assistance.operit.data.model.ParameterValueType
-import com.ai.assistance.operit.data.model.StandardModelParameters
-import com.ai.assistance.operit.data.model.SummarySectionOverride
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ApiKeyInfo
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.stats.TokenUsageRepository
+import com.ai.assistance.operit.data.config.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.config.model.ModelConfigExport
+import com.ai.assistance.operit.data.config.model.ModelConfigGroup
+import com.ai.assistance.operit.data.config.model.ModelConfigSelection
+import com.ai.assistance.operit.data.config.model.ModelConfigSummary
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.data.config.model.ParameterCategory
+import com.ai.assistance.operit.data.config.model.ParameterValueType
+import com.ai.assistance.operit.data.config.model.StandardModelParameters
+import com.ai.assistance.operit.data.config.model.SummarySectionOverride
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyInfo
 import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +34,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -36,7 +44,7 @@ import org.json.JSONObject
 private val Context.modelConfigDataStore: DataStore<Preferences> by
         versionedPreferencesDataStore(
                 name = "model_configs",
-                currentVersion = 4,
+                currentVersion = 6,
         ) { appContext ->
             preferenceSchemaMigration { version, preferences ->
                 when (version) {
@@ -44,6 +52,11 @@ private val Context.modelConfigDataStore: DataStore<Preferences> by
                     1 -> ModelConfigManager.migratePreferencesFromVersionOne(preferences)
                     2 -> ModelConfigManager.migratePreferencesFromVersionTwo(preferences)
                     3 -> ModelConfigManager.migratePreferencesFromVersionThree(preferences)
+                    4 -> ModelConfigManager.migratePreferencesFromVersionFour(preferences)
+                    5 -> ModelConfigManager.migratePreferencesFromVersionFive(
+                        preferences,
+                        enableStreamOutput = !ApiPreferences.getInstance(appContext).readLegacyDisableStreamOutput(),
+                    )
                     else -> missingPreferencesSchemaMigration(version)
                 }
             }
@@ -55,6 +68,7 @@ class ModelConfigManager(
 ) {
 
     private val configDataStore = configDataStore
+    private val tokenUsageRepository = TokenUsageRepository.getInstance(context.applicationContext)
 
     // 提供context访问器
     val appContext: Context
@@ -64,6 +78,10 @@ class ModelConfigManager(
     companion object {
         // 配置相关key
         val CONFIG_LIST_KEY = stringPreferencesKey("config_list")
+        val CONFIG_GROUPS_KEY = stringPreferencesKey("config_groups")
+        val SELECTED_CONFIG_GROUP_KEY = stringPreferencesKey("selected_config_group")
+        private val COLLAPSED_CONFIG_GROUPS_KEY = stringSetPreferencesKey("workspace_collapsed_groups")
+        private const val UNGROUPED_WORKSPACE_KEY = "__ungrouped__"
 
         // 默认值
         const val DEFAULT_CONFIG_ID = "default"
@@ -151,7 +169,7 @@ class ModelConfigManager(
             configIds.forEach { configId ->
                 val configKey = stringPreferencesKey("config_${configId}")
                 val configJson = preferences[configKey] ?: return@forEach
-                val config = json.decodeFromString<ModelConfigData>(configJson)
+                val config = json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson))
                 val currentThinkingConfigurations = config.thinkingConfigurations.trim()
                 val thinkingConfigurations =
                         if (currentThinkingConfigurations.isNotEmpty() && currentThinkingConfigurations != "[]") {
@@ -186,7 +204,7 @@ class ModelConfigManager(
             configIds.forEach { configId ->
                 val configKey = stringPreferencesKey("config_${configId}")
                 val configJson = preferences[configKey] ?: return@forEach
-                val config = json.decodeFromString<ModelConfigData>(configJson)
+                val config = json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson))
                 val providerTypeId = config.apiProviderTypeId.trim().uppercase(Locale.US)
                 if (providerTypeId !in OPENAI_CHAT_PROVIDER_TYPES) {
                     return@forEach
@@ -290,6 +308,36 @@ class ModelConfigManager(
             }
         }
 
+        // 升级时只迁移一次旧全局选择；迁移完成后请求只读取配置自己的值。
+        internal fun migratePreferencesFromVersionFive(
+            preferences: MutablePreferences,
+            enableStreamOutput: Boolean,
+        ) {
+            val configIds = readConfigIdsForStreamMigration(preferences)
+            configIds.forEach { configId ->
+                val key = stringPreferencesKey("config_${configId}")
+                val original = preferences[key] ?: return@forEach
+                val fields = json.parseToJsonElement(original).jsonObject
+                if ("enableStreamOutput" !in fields) {
+                    preferences[key] = JsonObject(fields + ("enableStreamOutput" to JsonPrimitive(enableStreamOutput))).toString()
+                }
+            }
+        }
+
+        private fun readConfigIdsForStreamMigration(preferences: Preferences): List<String> =
+            preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) } ?: emptyList()
+
+        internal fun migratePreferencesFromVersionFour(preferences: MutablePreferences) {
+            val configIds = preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) }
+                ?: emptyList()
+            configIds.forEach { configId ->
+                val key = stringPreferencesKey("config_${configId}")
+                val original = preferences[key] ?: return@forEach
+                val migrated = RetiredProviderMigration.rewriteConfig(original)
+                if (migrated != original) preferences[key] = migrated
+            }
+        }
+
         internal fun migratePreferencesFromVersionThree(preferences: MutablePreferences) {
             val configIds = preferences[CONFIG_LIST_KEY]?.let { json.decodeFromString<List<String>>(it) }
                     ?: emptyList()
@@ -297,7 +345,7 @@ class ModelConfigManager(
             configIds.forEach { configId ->
                 val configKey = stringPreferencesKey("config_${configId}")
                 val configJson = preferences[configKey] ?: return@forEach
-                val config = json.decodeFromString<ModelConfigData>(configJson)
+                val config = json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson))
                 if (!isDeepSeekProvider(config.apiProviderTypeId)) {
                     return@forEach
                 }
@@ -431,12 +479,80 @@ class ModelConfigManager(
                 else json.decodeFromString<List<String>>(configList)
             }
 
-    // 所有配置摘要的响应式版本。主界面模型选择器必须持续收集它，才能在配置页
-    // 新增或修改模型后立即更新，而不需要重新进入配置页。
+    // 所有配置摘要的响应式版本，保留完整列表以解析已有绑定。
+    // 按分组筛选的选择器使用 configSelectionFlow 同步读取当前组与候选。
     val configSummariesFlow: Flow<List<ModelConfigSummary>> =
             configDataStore.data.map { preferences ->
                 readConfigSummariesFromPrefs(preferences)
             }
+    val configGroupsFlow: Flow<List<ModelConfigGroup>> =
+            configDataStore.data.map { preferences ->
+                preferences[CONFIG_GROUPS_KEY]
+                        ?.let {
+                            runCatching {
+                                json.decodeFromString<List<ModelConfigGroup>>(it)
+                            }.getOrNull()
+                        }
+                        .orEmpty()
+            }
+
+    val selectedConfigGroupFlow: Flow<String?> =
+            configDataStore.data.map { preferences ->
+                val validGroupIds = readGroups(preferences).mapTo(mutableSetOf()) { it.id }
+                normalizeConfigGroupId(preferences[SELECTED_CONFIG_GROUP_KEY])
+                        ?.takeIf { it in validGroupIds }
+            }
+
+    // Read the filter and candidates together so a group switch cannot display the previous group's list.
+    val configSelectionFlow: Flow<ModelConfigSelection> =
+            configDataStore.data.map { preferences ->
+                val groups = readGroups(preferences)
+                val selectedGroupId = normalizeConfigGroupId(preferences[SELECTED_CONFIG_GROUP_KEY])
+                        ?.takeIf { id -> groups.any { it.id == id } }
+                ModelConfigSelection(
+                        allConfigs = readConfigSummariesFromPrefs(preferences),
+                        groups = groups,
+                        selectedGroupId = selectedGroupId,
+                        workspaceConfigId = preferences[workspaceConfigKey(selectedGroupId)],
+                )
+            }
+
+    private fun workspaceConfigKey(groupId: String?) =
+        stringPreferencesKey("workspace_selected_config_${groupId.orEmpty()}")
+
+    suspend fun setWorkspaceSelectedConfig(groupId: String?, configId: String) {
+        configDataStore.edit { preferences ->
+            if (readConfigSummariesFromPrefs(preferences).any { it.id == configId && it.groupId == groupId }) {
+                preferences[workspaceConfigKey(groupId)] = configId
+            }
+        }
+    }
+
+    val collapsedConfigGroupsFlow: Flow<Set<String?>> = configDataStore.data.map { preferences ->
+        preferences[COLLAPSED_CONFIG_GROUPS_KEY].orEmpty().mapTo(linkedSetOf()) {
+            if (it == UNGROUPED_WORKSPACE_KEY) null else it
+        }
+    }
+
+    suspend fun setConfigGroupCollapsed(groupId: String?, collapsed: Boolean) {
+        configDataStore.edit { preferences ->
+            val key = groupId ?: UNGROUPED_WORKSPACE_KEY
+            val previous = preferences[COLLAPSED_CONFIG_GROUPS_KEY].orEmpty()
+            preferences[COLLAPSED_CONFIG_GROUPS_KEY] = if (collapsed) previous + key else previous - key
+        }
+    }
+
+    suspend fun setSelectedConfigGroup(groupId: String?) {
+        val normalizedGroupId = normalizeConfigGroupId(groupId)
+        configDataStore.edit { preferences ->
+            val validGroupIds = readGroups(preferences).mapTo(mutableSetOf()) { it.id }
+            require(normalizedGroupId == null || normalizedGroupId in validGroupIds) {
+                "Unknown config group ID: $groupId"
+            }
+            if (normalizedGroupId == null) preferences.remove(SELECTED_CONFIG_GROUP_KEY)
+            else preferences[SELECTED_CONFIG_GROUP_KEY] = normalizedGroupId
+        }
+    }
 
     private fun readConfigListFromPrefs(prefs: Preferences): List<String> {
         val configList = prefs[CONFIG_LIST_KEY] ?: ""
@@ -445,12 +561,13 @@ class ModelConfigManager(
     }
 
     private fun readConfigSummariesFromPrefs(prefs: Preferences): List<ModelConfigSummary> {
+        val validGroupIds = readGroups(prefs).mapTo(mutableSetOf()) { it.id }
         return readConfigListFromPrefs(prefs).map { configId ->
             val configJson = prefs[stringPreferencesKey("config_${configId}")]
             val config =
                     if (configJson != null) {
                         try {
-                            json.decodeFromString<ModelConfigData>(configJson)
+                            normalizeConfig(json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson)))
                         } catch (_: Exception) {
                             fallbackConfigFor(configId)
                         }
@@ -460,6 +577,7 @@ class ModelConfigManager(
             ModelConfigSummary(
                     id = config.id,
                     name = config.name,
+                    groupId = config.groupId?.takeIf { it in validGroupIds },
                     modelName = config.modelName,
                     apiEndpoint = config.apiEndpoint,
                     apiProviderType = config.apiProviderType,
@@ -468,6 +586,14 @@ class ModelConfigManager(
                     thinkingOptionId = config.thinkingOptionId
             )
         }
+    }
+
+    private fun normalizeConfigGroupId(groupId: String?): String? {
+        return groupId?.trim()?.takeIf { it.isNotEmpty() }
+    }
+
+    private fun normalizeConfig(config: ModelConfigData): ModelConfigData {
+        return config.copy(groupId = normalizeConfigGroupId(config.groupId))
     }
 
     private fun fallbackConfigFor(configId: String): ModelConfigData {
@@ -486,9 +612,13 @@ class ModelConfigManager(
     // 保存配置
     suspend fun saveModelConfig(config: ModelConfigData) {
         val configKey = stringPreferencesKey("config_${config.id}")
+        var previous: ModelConfigData? = null
+        val normalized = normalizeConfig(config)
         configDataStore.edit { preferences ->
-            preferences[configKey] = json.encodeToString(config)
+            previous = readConfig(preferences, config.id)
+            preferences[configKey] = json.encodeToString(normalized)
         }
+        previous?.let { ApiKeyCooldownRecovery.onConfigSaved(it, normalized) }
     }
 
     // 从DataStore加载配置
@@ -498,7 +628,7 @@ class ModelConfigManager(
             val configJson = preferences[configKey]
             if (configJson != null) {
                 try {
-                    json.decodeFromString<ModelConfigData>(configJson)
+                    normalizeConfig(json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson)))
                 } catch (e: Exception) {
                     // 如果解析失败，回退到创建一个新配置
                     if (configId == DEFAULT_CONFIG_ID) {
@@ -517,27 +647,20 @@ class ModelConfigManager(
         }
     }
 
-    // 将配置保存到DataStore
-    private suspend fun saveConfigToDataStore(config: ModelConfigData) {
-        val configKey = stringPreferencesKey("config_${config.id}")
-        configDataStore.edit { preferences ->
-            preferences[configKey] = json.encodeToString(config)
-        }
-    }
-
     private suspend fun updateConfigInternal(
             configId: String,
             transform: (ModelConfigData) -> ModelConfigData
     ): ModelConfigData {
         val configKey = stringPreferencesKey("config_${configId}")
         var updated: ModelConfigData? = null
+        var previous: ModelConfigData? = null
         configDataStore.edit { preferences ->
             val current =
                     run {
                         val configJson = preferences[configKey]
                         if (configJson != null) {
                             try {
-                                json.decodeFromString<ModelConfigData>(configJson)
+                                json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(configJson))
                             } catch (e: Exception) {
                                 if (configId == DEFAULT_CONFIG_ID) {
                                     createFreshDefaultConfig()
@@ -554,9 +677,13 @@ class ModelConfigManager(
                         }
                     }
 
-            val newConfig = transform(current)
+            val newConfig = normalizeConfig(transform(current))
             preferences[configKey] = json.encodeToString(newConfig)
+            previous = current
             updated = newConfig
+        }
+        previous?.let { old ->
+            updated?.let { ApiKeyCooldownRecovery.onConfigSaved(old, it) }
         }
         return updated ?: ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
     }
@@ -564,8 +691,8 @@ class ModelConfigManager(
     // 获取指定ID的配置
     fun getModelConfigFlow(configId: String): Flow<ModelConfigData> {
         return configDataStore.data.map { preferences ->
-            val config = loadConfigFromDataStore(configId) ?: ModelConfigData(id = configId, name = context.getString(R.string.model_config_config_id, configId))
-            config
+            // 使用本次 Flow 发射的同一份快照，避免嵌套订阅读到另一次配置更新。
+            readConfig(preferences, configId)
         }
     }
 
@@ -591,14 +718,14 @@ class ModelConfigManager(
     }
 
     // 创建新配置
-    suspend fun createConfig(name: String): String {
+    suspend fun createConfig(name: String, groupId: String? = null): String {
         val configId = UUID.randomUUID().toString()
-        val configList = configListFlow.first().toMutableList()
-
+        val normalizedGroupId = normalizeConfigGroupId(groupId)
         val newConfig =
                 ModelConfigData(
                         id = configId,
                         name = name,
+                        groupId = normalizedGroupId,
                         apiProviderType = ApiProviderType.OPENAI_GENERIC,
                         apiProviderTypeId = ApiProviderType.OPENAI_GENERIC.name,
                         thinkingConfigurations = thinkingRulesForProvider(ApiProviderType.OPENAI_GENERIC.name),
@@ -606,16 +733,181 @@ class ModelConfigManager(
                         enableToolCall = ModelConfigDefaults.DEFAULT_ENABLE_TOOL_CALL
                 )
 
-        // 保存新配置
-        saveConfigToDataStore(newConfig)
-
-        // 更新配置列表
-        configList.add(configId)
         configDataStore.edit { preferences ->
-            preferences[CONFIG_LIST_KEY] = json.encodeToString(configList)
+            val validGroupIds = readGroups(preferences).mapTo(mutableSetOf()) { it.id }
+            require(normalizedGroupId == null || normalizedGroupId in validGroupIds) {
+                "Unknown config group ID: $groupId"
+            }
+            val configList = readConfigListFromPrefs(preferences)
+            preferences[stringPreferencesKey("config_${configId}")] = json.encodeToString(newConfig)
+            preferences[CONFIG_LIST_KEY] = json.encodeToString(configList + configId)
         }
 
         return configId
+    }
+
+    suspend fun reorderConfigs(configIds: List<String>) {
+        configDataStore.edit { preferences ->
+            val currentIds = readConfigListFromPrefs(preferences)
+            require(configIds.size == currentIds.size && configIds.toSet() == currentIds.toSet()) {
+                "Reordered config IDs must match the existing config list"
+            }
+            preferences[CONFIG_LIST_KEY] = json.encodeToString(configIds)
+        }
+    }
+
+    suspend fun createConfigGroup(name: String): String {
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "Config group name must not be blank" }
+        val group = ModelConfigGroup(UUID.randomUUID().toString(), normalizedName)
+        configDataStore.edit { preferences ->
+            preferences[CONFIG_GROUPS_KEY] = json.encodeToString(readGroups(preferences) + group)
+        }
+        return group.id
+    }
+
+    suspend fun renameConfigGroup(groupId: String, name: String) {
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "Config group name must not be blank" }
+        configDataStore.edit { preferences ->
+            preferences[CONFIG_GROUPS_KEY] = json.encodeToString(
+                    readGroups(preferences).map {
+                        if (it.id == groupId) it.copy(name = normalizedName) else it
+                    }
+            )
+        }
+    }
+
+    suspend fun reorderConfigGroups(groupIds: List<String>) {
+        configDataStore.edit { preferences ->
+            val groups = readGroups(preferences)
+            require(groupIds.size == groups.size && groupIds.toSet() == groups.map { it.id }.toSet()) {
+                "Reordered group IDs must match the existing group list"
+            }
+            val groupsById = groups.associateBy { it.id }
+            preferences[CONFIG_GROUPS_KEY] =
+                    json.encodeToString(groupIds.mapNotNull(groupsById::get))
+        }
+    }
+
+    suspend fun updateConfigOrganization(
+            groups: List<ModelConfigGroup>,
+            orderedConfigs: List<Pair<String, String?>>
+    ) {
+        configDataStore.edit { preferences ->
+            val currentIds = readConfigListFromPrefs(preferences)
+            val orderedIds = orderedConfigs.map { it.first }
+            require(orderedIds.size == currentIds.size && orderedIds.toSet() == currentIds.toSet()) {
+                "Organized config IDs must match the existing config list"
+            }
+            require(groups.map { it.id }.distinct().size == groups.size) {
+                "Config group IDs must be unique"
+            }
+            val validGroupIds = groups.map { it.id }.toSet()
+            orderedConfigs.forEach { (configId, groupId) ->
+                val normalizedGroupId = normalizeConfigGroupId(groupId)
+                require(normalizedGroupId == null || normalizedGroupId in validGroupIds) {
+                    "Unknown config group ID: $groupId"
+                }
+                val configKey = stringPreferencesKey("config_${configId}")
+                val config = readConfig(preferences, configId)
+                preferences[configKey] = json.encodeToString(config.copy(groupId = normalizedGroupId))
+            }
+            preferences[CONFIG_GROUPS_KEY] = json.encodeToString(groups)
+            preferences[CONFIG_LIST_KEY] = json.encodeToString(orderedIds)
+        }
+    }
+
+    suspend fun moveConfig(configId: String, groupId: String?, targetIndex: Int) {
+        configDataStore.edit { preferences ->
+            val normalizedGroupId = normalizeConfigGroupId(groupId)
+            val validGroupIds = readGroups(preferences).mapTo(mutableSetOf()) { it.id }
+            require(normalizedGroupId == null || normalizedGroupId in validGroupIds) {
+                "Unknown config group ID: $groupId"
+            }
+            val configIds = readConfigListFromPrefs(preferences).toMutableList()
+            require(configIds.remove(configId)) { "Unknown config ID: $configId" }
+            val configKey = stringPreferencesKey("config_${configId}")
+            val config = readConfig(preferences, configId)
+            val destinationIds =
+                configIds.filter { readConfig(preferences, it).groupId == normalizedGroupId }
+            val boundedIndex = targetIndex.coerceIn(0, destinationIds.size)
+            val insertionIndex =
+                    if (boundedIndex < destinationIds.size) {
+                        configIds.indexOf(destinationIds[boundedIndex])
+                    } else {
+                        destinationIds.lastOrNull()?.let { configIds.indexOf(it) + 1 }
+                                ?: configIds.size
+                    }
+            configIds.add(insertionIndex, configId)
+            preferences[configKey] = json.encodeToString(config.copy(groupId = normalizedGroupId))
+            preferences[CONFIG_LIST_KEY] = json.encodeToString(configIds)
+        }
+    }
+
+    suspend fun deleteConfigGroup(groupId: String) {
+        configDataStore.edit { preferences ->
+            preferences[CONFIG_GROUPS_KEY] =
+                    json.encodeToString(readGroups(preferences).filterNot { it.id == groupId })
+            if (preferences[SELECTED_CONFIG_GROUP_KEY] == groupId) {
+                preferences.remove(SELECTED_CONFIG_GROUP_KEY)
+            }
+            readConfigListFromPrefs(preferences).forEach { configId ->
+                val config = readConfig(preferences, configId)
+                if (config.groupId == groupId) {
+                    preferences[stringPreferencesKey("config_${configId}")] =
+                            json.encodeToString(config.copy(groupId = null))
+                }
+            }
+        }
+    }
+
+    suspend fun updateModelOrder(configId: String, modelOrder: List<String>): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(modelOrder = modelOrder.map(String::trim).filter(String::isNotEmpty).distinct())
+        }
+    }
+
+    private fun decodeImportedConfigs(jsonContent: String): ModelConfigExport {
+        val trimmed = RetiredProviderMigration.rewriteExport(jsonContent.trim())
+        if (trimmed.startsWith("{")) {
+            return json.decodeFromString<ModelConfigExport>(trimmed)
+        }
+        // 旧导出只有配置数组，不会带分组定义。
+        return ModelConfigExport(configs = json.decodeFromString<List<ModelConfigData>>(trimmed))
+    }
+
+    private fun mergeImportedGroups(
+        existing: List<ModelConfigGroup>,
+        imported: List<ModelConfigGroup>
+    ): List<ModelConfigGroup> {
+        val merged = existing.toMutableList()
+        val ids = merged.mapTo(mutableSetOf()) { it.id }
+        imported.forEach { rawGroup ->
+            val id = rawGroup.id.trim()
+            val name = rawGroup.name.trim()
+            if (id.isEmpty() || name.isEmpty() || !ids.add(id)) return@forEach
+            merged.add(ModelConfigGroup(id = id, name = name))
+        }
+        return merged
+    }
+
+    private fun readGroups(preferences: Preferences): List<ModelConfigGroup> {
+        return preferences[CONFIG_GROUPS_KEY]
+                ?.let {
+                    runCatching { json.decodeFromString<List<ModelConfigGroup>>(it) }.getOrNull()
+                }
+                .orEmpty()
+    }
+
+    private fun readConfig(preferences: Preferences, configId: String): ModelConfigData {
+        return preferences[stringPreferencesKey("config_${configId}")]
+                ?.let {
+                    runCatching {
+                        normalizeConfig(json.decodeFromString<ModelConfigData>(RetiredProviderMigration.rewriteConfig(it)))
+                    }.getOrNull()
+                }
+                ?: fallbackConfigFor(configId)
     }
 
     // 删除配置并清理所有功能对该配置的引用
@@ -645,6 +937,14 @@ class ModelConfigManager(
             // 更新配置列表
             preferences[CONFIG_LIST_KEY] = json.encodeToString(configList)
         }
+        // 统计库故障不能回滚模型配置删除；历史用量在下次修复后仍可处理。
+        try {
+            tokenUsageRepository.detachUsageFromConfig(configId)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e("ModelConfigManager", "Failed to detach token usage for deleted config", e)
+        }
         return mappingRepair.affectedFunctions
     }
 
@@ -671,7 +971,7 @@ class ModelConfigManager(
             apiKey: String,
             apiEndpoint: String,
             modelName: String,
-            apiProviderType: com.ai.assistance.operit.data.model.ApiProviderType,
+            apiProviderType: com.ai.assistance.operit.data.config.model.ApiProviderType,
             apiProviderTypeId: String = apiProviderType.name
     ): ModelConfigData {
         return updateConfigInternal(configId) {
@@ -693,7 +993,7 @@ class ModelConfigManager(
             apiKey: String,
             apiEndpoint: String,
             modelName: String,
-            apiProviderType: com.ai.assistance.operit.data.model.ApiProviderType,
+            apiProviderType: com.ai.assistance.operit.data.config.model.ApiProviderType,
             apiProviderTypeId: String = apiProviderType.name,
             mnnForwardType: Int,
             mnnThreadCount: Int
@@ -729,10 +1029,10 @@ class ModelConfigManager(
             enableDirectAudioProcessing: Boolean,
             enableDirectVideoProcessing: Boolean,
             enableGoogleSearch: Boolean,
-            enableDeepSeekWebSearch: Boolean,
             enableCodexWebSearch: Boolean,
             enableClaude1hPromptCache: Boolean,
-            enableToolCall: Boolean
+            enableToolCall: Boolean,
+            enableStreamOutput: Boolean,
     ): ModelConfigData {
         return updateConfigInternal(configId) {
             it.copy(
@@ -752,10 +1052,10 @@ class ModelConfigManager(
                     enableDirectAudioProcessing = enableDirectAudioProcessing,
                     enableDirectVideoProcessing = enableDirectVideoProcessing,
                     enableGoogleSearch = enableGoogleSearch,
-                    enableDeepSeekWebSearch = enableDeepSeekWebSearch,
                     enableCodexWebSearch = enableCodexWebSearch,
                     enableClaude1hPromptCache = enableClaude1hPromptCache,
-                    enableToolCall = enableToolCall
+                    enableToolCall = enableToolCall,
+                    enableStreamOutput = enableStreamOutput,
             )
         }
     }
@@ -899,10 +1199,6 @@ class ModelConfigManager(
         return updateConfigInternal(configId) { it.copy(enableGoogleSearch = enableGoogleSearch) }
     }
 
-    suspend fun updateDeepSeekWebSearch(configId: String, enableDeepSeekWebSearch: Boolean): ModelConfigData {
-        return updateConfigInternal(configId) { it.copy(enableDeepSeekWebSearch = enableDeepSeekWebSearch) }
-    }
-
     suspend fun updateCodexWebSearch(configId: String, enableCodexWebSearch: Boolean): ModelConfigData {
         return updateConfigInternal(configId) { it.copy(enableCodexWebSearch = enableCodexWebSearch) }
     }
@@ -912,6 +1208,10 @@ class ModelConfigManager(
             it.copy(enableClaude1hPromptCache = enableClaude1hPromptCache)
         }
     }
+
+    // 更新当前配置的流式输出选择
+    suspend fun updateStreamOutput(configId: String, enableStreamOutput: Boolean): ModelConfigData =
+        updateConfigInternal(configId) { it.copy(enableStreamOutput = enableStreamOutput) }
 
     // 更新 Tool Call 配置
     suspend fun updateToolCall(configId: String, enableToolCall: Boolean): ModelConfigData {
@@ -945,6 +1245,9 @@ class ModelConfigManager(
             summarySectionOverrides: List<SummarySectionOverride>? = null
     ): ModelConfigData {
         return updateConfigInternal(configId) { current ->
+            // 保留历史值以兼容已有配置；新修改的轮次必须落在界面支持的范围内。
+            require(summaryMessageCountThreshold == current.summaryMessageCountThreshold ||
+                summaryMessageCountThreshold in 1..ModelConfigDefaults.MAX_SUMMARY_MESSAGE_COUNT_THRESHOLD)
             current.copy(
                     enableSummary = enableSummary,
                     summaryTokenThreshold = summaryTokenThreshold,
@@ -953,6 +1256,62 @@ class ModelConfigManager(
                     summaryCustomRules = summaryCustomRules ?: current.summaryCustomRules,
                     summarySectionOverrides =
                         summarySectionOverrides ?: current.summarySectionOverrides
+            )
+        }
+    }
+
+    // 工作区将同一草稿的上下文与总结字段一次写入，避免多个保存任务相互覆盖。
+    internal suspend fun updateContextSummarySettings(
+            configId: String,
+            contextLength: Float,
+            maxContextLength: Float,
+            enableSummary: Boolean,
+            summaryTokenThreshold: Float?,
+            enableSummaryByMessageCount: Boolean,
+            summaryMessageCountThreshold: Int?,
+            summaryCustomRules: String,
+            summarySectionOverrides: List<SummarySectionOverride>,
+            enablePreviousSummaryReview: Boolean,
+            enableSummaryDialogueReview: Boolean,
+            summaryDialogueReviewTitle: String,
+    ): ModelConfigData = updateConfigInternal(configId) { current ->
+        if (enableSummary && enableSummaryByMessageCount) {
+            require(summaryMessageCountThreshold != null &&
+                summaryMessageCountThreshold in 1..ModelConfigDefaults.MAX_SUMMARY_MESSAGE_COUNT_THRESHOLD)
+        }
+        current.copy(
+            contextLength = contextLength,
+            maxContextLength = maxContextLength,
+            enableSummary = enableSummary,
+            summaryTokenThreshold = if (enableSummary) requireNotNull(summaryTokenThreshold) else current.summaryTokenThreshold,
+            enableSummaryByMessageCount = enableSummaryByMessageCount,
+            summaryMessageCountThreshold = if (enableSummary && enableSummaryByMessageCount) requireNotNull(summaryMessageCountThreshold) else current.summaryMessageCountThreshold,
+            summaryCustomRules = summaryCustomRules,
+            summarySectionOverrides = summarySectionOverrides,
+            enablePreviousSummaryReview = enablePreviousSummaryReview,
+            enableSummaryDialogueReview = enableSummaryDialogueReview,
+            summaryDialogueReviewTitle = summaryDialogueReviewTitle,
+        )
+    }
+
+    suspend fun updatePreviousSummaryReviewSettings(
+            configId: String,
+            enabled: Boolean
+    ): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(enablePreviousSummaryReview = enabled)
+        }
+    }
+
+    suspend fun updateSummaryDialogueReviewSettings(
+            configId: String,
+            enabled: Boolean,
+            title: String
+    ): ModelConfigData {
+        return updateConfigInternal(configId) {
+            it.copy(
+                    enableSummaryDialogueReview = enabled,
+                    summaryDialogueReviewTitle = title
             )
         }
     }
@@ -1008,7 +1367,7 @@ class ModelConfigManager(
         ) {
             try {
                 val customParamsData =
-                        json.decodeFromString<List<com.ai.assistance.operit.data.model.CustomParameterData>>(
+                        json.decodeFromString<List<com.ai.assistance.operit.data.config.model.CustomParameterData>>(
                                 config.customParameters
                         )
                 customParamsData.forEach { data ->
@@ -1109,13 +1468,14 @@ class ModelConfigManager(
             val config = getModelConfigFlow(configId).first()
             allConfigs.add(config)
         }
+        val groups = configGroupsFlow.first()
         
         val json = Json {
             prettyPrint = true
             ignoreUnknownKeys = true
         }
         
-        return json.encodeToString(allConfigs)
+        return json.encodeToString(ModelConfigExport(groups = groups, configs = allConfigs))
     }
     
     /**
@@ -1125,38 +1485,53 @@ class ModelConfigManager(
      */
     suspend fun importConfigs(jsonContent: String): Triple<Int, Int, Int> {
         try {
-            val importedConfigs = json.decodeFromString<List<ModelConfigData>>(jsonContent)
-            val existingConfigList = configListFlow.first().toMutableList()
-            val existingConfigIds = existingConfigList.toSet()
-            
+            val imported = decodeImportedConfigs(jsonContent)
+            val importedConfigs = imported.configs
             var newCount = 0
             var updatedCount = 0
             var skippedCount = 0
-            
-            for (config in importedConfigs) {
-                if (config.id.isEmpty() || config.name.isEmpty()) {
-                    skippedCount++
-                    continue
+
+            configDataStore.edit { preferences ->
+                val existingConfigList = readConfigListFromPrefs(preferences).toMutableList()
+                val existingConfigIds = existingConfigList.toMutableSet()
+                val mergedGroups = mergeImportedGroups(readGroups(preferences), imported.groups)
+                preferences[CONFIG_GROUPS_KEY] = json.encodeToString(mergedGroups)
+                val validGroupIds = mergedGroups.mapTo(mutableSetOf()) { it.id }
+
+                importedConfigs.forEach { rawConfig ->
+                    val configId = rawConfig.id.trim()
+                    val configName = rawConfig.name.trim()
+                    if (configId.isEmpty() || configName.isEmpty()) {
+                        skippedCount++
+                        return@forEach
+                    }
+
+                    // Old exports do not have groupId. Empty or unknown IDs must remain visible as ungrouped.
+                    val groupId =
+                            normalizeConfigGroupId(rawConfig.groupId)
+                                    ?.takeIf { it in validGroupIds }
+                    val config = normalizeConfig(
+                            rawConfig.copy(
+                                    id = configId,
+                                    name = configName,
+                                    groupId = groupId
+                            )
+                    )
+                    preferences[stringPreferencesKey("config_${config.id}")] =
+                            json.encodeToString(config)
+
+                    if (existingConfigIds.add(config.id)) {
+                        existingConfigList.add(config.id)
+                        newCount++
+                    } else {
+                        updatedCount++
+                    }
                 }
-                
-                // 保存配置
-                saveConfigToDataStore(config)
-                
-                if (existingConfigIds.contains(config.id)) {
-                    updatedCount++
-                } else {
-                    newCount++
-                    existingConfigList.add(config.id)
-                }
+
+                // Always rewrite the list in the same transaction as the config records.
+                preferences[CONFIG_LIST_KEY] = json.encodeToString(existingConfigList)
             }
-            
-            // 更新配置列表
-            if (newCount > 0) {
-                configDataStore.edit { preferences ->
-                    preferences[CONFIG_LIST_KEY] = json.encodeToString(existingConfigList)
-                }
-            }
-            
+
             return Triple(newCount, updatedCount, skippedCount)
         } catch (e: Exception) {
             AppLogger.e("ModelConfigManager", "导入配置失败", e)
@@ -1166,8 +1541,8 @@ class ModelConfigManager(
 }
 
 // 扩展函数，用于将ModelParameter转换为CustomParameterData
-private fun ModelParameter<*>.toCustomParameterData(): com.ai.assistance.operit.data.model.CustomParameterData {
-    return com.ai.assistance.operit.data.model.CustomParameterData(
+private fun ModelParameter<*>.toCustomParameterData(): com.ai.assistance.operit.data.config.model.CustomParameterData {
+    return com.ai.assistance.operit.data.config.model.CustomParameterData(
         id = this.id,
         name = this.name,
         apiName = this.apiName,

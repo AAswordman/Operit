@@ -184,15 +184,27 @@ async function qqbot_service_start(params = {}) {
         await (0, qqbot_state_1.updatePersistedConfigAsync)({
             listenerEnabled: true
         });
-        return {
-            success: true,
-            packageVersion: qqbot_common_1.PACKAGE_VERSION,
-            ...(await (0, qqbot_service_1.ensureQQBotServiceStarted)({
-                restart: (0, qqbot_common_1.parseOptionalBoolean)(params.restart, "restart") === true,
-                timeout_ms: (0, qqbot_common_1.parsePositiveInt)(params.timeout_ms, "timeout_ms", qqbot_common_1.DEFAULT_SERVICE_WAIT_MS),
-                source: "qqbot_service_start"
-            }))
-        };
+        try {
+            return {
+                success: true,
+                packageVersion: qqbot_common_1.PACKAGE_VERSION,
+                listenerEnabled: true,
+                ...(await (0, qqbot_service_1.ensureQQBotServiceStarted)({
+                    restart: (0, qqbot_common_1.parseOptionalBoolean)(params.restart, "restart") === true,
+                    timeout_ms: (0, qqbot_common_1.parsePositiveInt)(params.timeout_ms, "timeout_ms", qqbot_common_1.DEFAULT_SERVICE_WAIT_MS),
+                    source: "qqbot_service_start"
+                }))
+            };
+        }
+        catch (startError) {
+            return {
+                success: true,
+                packageVersion: qqbot_common_1.PACKAGE_VERSION,
+                listenerEnabled: true,
+                warning: (0, qqbot_common_1.safeErrorMessage)(startError),
+                service: await (0, qqbot_service_1.buildServiceStatusAsync)()
+            };
+        }
     }
     catch (error) {
         return {
@@ -208,12 +220,31 @@ async function qqbot_service_stop(params = {}) {
         await (0, qqbot_state_1.updatePersistedConfigAsync)({
             listenerEnabled: false
         });
-        await (0, qqbot_auto_reply_1.qqbot_auto_reply_configure)({
-            enabled: false
-        });
-        const result = await (0, qqbot_service_1.stopQQBotServiceInternalAsync)(timeoutMs);
+        try {
+            await (0, qqbot_auto_reply_1.qqbot_auto_reply_configure)({
+                enabled: false
+            });
+        }
+        catch (autoReplyError) {
+            console.error(`[qqbot_runtime] disable auto-reply after listener stop failed: ${(0, qqbot_common_1.safeErrorMessage)(autoReplyError)}`);
+        }
+        let result;
+        try {
+            result = await (0, qqbot_service_1.stopQQBotServiceInternalAsync)(timeoutMs);
+        }
+        catch (stopError) {
+            console.error(`[qqbot_runtime] stop gateway after listener disable failed: ${(0, qqbot_common_1.safeErrorMessage)(stopError)}`);
+            return {
+                success: true,
+                packageVersion: qqbot_common_1.PACKAGE_VERSION,
+                listenerEnabled: false,
+                warning: (0, qqbot_common_1.safeErrorMessage)(stopError),
+                service: await (0, qqbot_service_1.buildServiceStatusAsync)()
+            };
+        }
         return {
             ...result,
+            listenerEnabled: false,
             service: await (0, qqbot_service_1.buildServiceStatusAsync)()
         };
     }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="workspace_multi_select">Selectați mai multe fișiere</string>
+    <string name="workspace_selection_count">%1$d selectate</string>
+    <string name="workspace_delete_selected_title">Ștergeți elementele selectate</string>
+    <string name="workspace_delete_selected_message">Ștergeți cele %1$d fișiere sau dosare selectate, inclusiv conținutul dosarelor? Acțiunea nu poate fi anulată.</string>
+    <string name="voice_message_expired">Fișierul audio a expirat sau a fost șters</string>
+    <string name="chat_media_file_missing">Fișierul nu mai există</string>
+    <string name="chat_media_preview_failed">Acest fișier media nu poate fi previzualizat</string>
+</resources>

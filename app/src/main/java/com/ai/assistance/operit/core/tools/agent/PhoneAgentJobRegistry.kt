@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.core.tools.agent
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CancellationException

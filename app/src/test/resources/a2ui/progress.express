@@ -1,0 +1,9 @@
+
+$/tasks = {analysis:true,review:true,test:false}
+root = Card(child=Column(children=[
+ Header(text="代码审查任务",label="演示清单，仅修改当前卡片",status=if(condition=and(a=and(a=$/tasks/analysis,b=$/tasks/review),b=$/tasks/test),then="已完成",else="进行中"),tone=if(condition=and(a=and(a=$/tasks/analysis,b=$/tasks/review),b=$/tasks/test),then="success",else="info")),
+ Progress(label="任务进度",number=divide(a=add(a=add(a=if(condition=$/tasks/analysis,then=1,else=0),b=if(condition=$/tasks/review,then=1,else=0)),b=if(condition=$/tasks/test,then=1,else=0)),b=3)),
+ CheckBox(label="分析代码",value=$/tasks/analysis),
+ CheckBox(label="检查问题",value=$/tasks/review),
+ CheckBox(label="运行测试",value=$/tasks/test)
+]))

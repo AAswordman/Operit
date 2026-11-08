@@ -2,13 +2,16 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import com.ai.assistance.operit.util.stream.Stream
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
+import com.ai.assistance.operit.core.chat.media.MediaLink
 
 /**
  * 针对阿里巴巴Qwen（通义千问）模型的特定API Provider。
@@ -43,6 +46,19 @@ class QwenAIProvider(
     ) {
     private val configuredApiEndpoint = apiEndpoint
 
+    /** 硅基流动的 Qwen3-Omni 使用 audio_url，不能复用阿里云或 OpenAI 的 input_audio。 */
+    override fun buildAudioContentPart(link: MediaLink): JSONObject {
+        if (qwenProviderType != ApiProviderType.SILICONFLOW) {
+            return super.buildAudioContentPart(link)
+        }
+        return JSONObject().apply {
+            put("type", "audio_url")
+            put("audio_url", JSONObject().apply {
+                put("url", "data:${link.mimeType};base64,${link.base64Data}")
+            })
+        }
+    }
+
     override fun buildInputAudioPayload(link: MediaLink): JSONObject {
         val payload = super.buildInputAudioPayload(link)
         if (qwenProviderType == ApiProviderType.ALIYUN) {
@@ -59,13 +75,13 @@ class QwenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
     ): RequestBody {
         // 首先，调用父类的实现来获取一个标准的OpenAI格式的请求体JSON对象
-        val baseRequestBodyJson = super.createRequestBodyInternal(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
-        val jsonObject = JSONObject(baseRequestBodyJson)
+        val jsonObject = super.createRequestBodyObject(context, chatHistory, modelParameters, stream, availableTools, preserveThinkInHistory)
 
         applyQwenReasoningSettings(
             requestJson = jsonObject,
@@ -73,17 +89,7 @@ class QwenAIProvider(
         )
 
         // 记录最终的请求体（省略过长的tools字段）
-        val logJson = JSONObject(jsonObject.toString())
-        if (logJson.has("tools")) {
-            val toolsArray = logJson.getJSONArray("tools")
-            logJson.put("tools", "[${toolsArray.length()} tools omitted for brevity]")
-        }
-        val sanitizedLogJson = sanitizeImageDataForLogging(logJson)
-        logLargeString(
-            "QwenAIProvider",
-            sanitizedLogJson.toString(4),
-            "Final Qwen-compatible request body: "
-        )
+        logRequestBody("QwenAIProvider", jsonObject, "Final Qwen-compatible request body: ")
 
         // 使用更新后的JSONObject创建新的RequestBody
         return createJsonRequestBody(jsonObject.toString())
@@ -100,7 +106,7 @@ class QwenAIProvider(
             apiEndpoint = configuredApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
     }
 
@@ -109,6 +115,7 @@ class QwenAIProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean,
@@ -120,6 +127,6 @@ class QwenAIProvider(
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
         // 直接调用父类的sendMessage实现，它已经包含了续写逻辑和stream参数处理
-        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
+        return super.sendMessage(context, chatHistory, modelParameters, enableThinking, thinkingOptionId, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
     }
 }

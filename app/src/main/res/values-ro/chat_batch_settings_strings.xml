@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">Acțiuni în lot</string>
+    <string name="chat_batch_exit">Ieșire din selecție</string>
+    <string name="chat_batch_summarize">Rezumă titlurile</string>
+    <string name="chat_batch_progress">Se procesează %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">Conversațiile blocate nu sunt șterse.</string>
+    <string name="chat_batch_delete_title">Șterge conversațiile selectate</string>
+    <string name="chat_batch_delete_message">Se vor șterge %1$d conversații și se vor păstra %2$d conversații blocate. Acțiunea nu poate fi anulată.</string>
+    <string name="chat_batch_result">Lot finalizat: %1$d reușite, %2$d omise, %3$d eșuate</string>
+    <string name="language_follow_system">Urmează sistemul</string>
+    <string name="language_global_info">Limba se aplică tuturor personajelor. Aplicația se redeschide după schimbare.</string>
+    <string name="language_change_failed">Limba nu a putut fi schimbată. Încearcă din nou.</string>
+</resources>

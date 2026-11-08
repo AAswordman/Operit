@@ -3,16 +3,17 @@ package com.ai.assistance.operit.data.mcp
 import android.content.Context
 import android.content.SharedPreferences
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.core.tools.mcp.MCPManager
 import com.ai.assistance.operit.core.tools.DirectoryListingData
 import com.ai.assistance.operit.core.tools.FileExistsData
 import com.ai.assistance.operit.data.mcp.plugins.MCPStarter
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.util.files.OperitPaths
 import com.google.gson.Gson
+import com.google.gson.JsonObject
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
 import java.io.File
@@ -98,9 +99,7 @@ class MCPLocalServer private constructor(private val context: Context) {
     val serverStatus: StateFlow<Map<String, ServerStatus>> = _serverStatus.asStateFlow()
 
     // Gson实例 - 使用格式化输出
-    private val gson = com.google.gson.GsonBuilder()
-        .setPrettyPrinting()
-        .create()
+    private val gson = createMcpConfigGson()
 
     init {
         // 初始化时加载所有配置
@@ -130,7 +129,10 @@ class MCPLocalServer private constructor(private val context: Context) {
             @SerializedName("autoApprove")
             val autoApprove: List<String>? = emptyList(),
             @SerializedName("env")
-            val env: Map<String, String>? = emptyMap()
+            val env: Map<String, String>? = emptyMap(),
+            // 保留标准 stdio 工作目录，使应用管理目录以外的服务也能正确启动。
+            @SerializedName("cwd")
+            val cwd: String? = null
         )
     }
 
@@ -391,7 +393,8 @@ class MCPLocalServer private constructor(private val context: Context) {
             args = args,
             disabled = serverConfig.disabled,
             autoApprove = autoApprove,
-            env = env
+            env = env,
+            cwd = serverConfig.cwd?.trim()?.takeIf { it.isNotEmpty() }
         )
     }
 
@@ -410,7 +413,9 @@ class MCPLocalServer private constructor(private val context: Context) {
     ): Boolean {
         return existing.command != replacement.command ||
             existing.args.orEmpty() != replacement.args.orEmpty() ||
-            existing.env.orEmpty() != replacement.env.orEmpty()
+            existing.env.orEmpty() != replacement.env.orEmpty() ||
+            // 工作目录变化后重置运行会话，避免继续使用旧目录。
+            existing.cwd != replacement.cwd
     }
 
     private fun hasRemoteRuntimeConfigurationChanged(
@@ -533,7 +538,8 @@ class MCPLocalServer private constructor(private val context: Context) {
         args: List<String>? = emptyList(),
         env: Map<String, String>? = emptyMap(),
         disabled: Boolean = false,
-        autoApprove: List<String>? = emptyList()
+        autoApprove: List<String>? = emptyList(),
+        cwd: String? = null
     ) {
         val normalizedCommand = command?.trim()
         require(!normalizedCommand.isNullOrEmpty()) { "MCP服务器 $serverId 的 command 不能为空" }
@@ -547,7 +553,8 @@ class MCPLocalServer private constructor(private val context: Context) {
                 val key = entry.key?.takeIf { it.isNotBlank() }
                 val value = entry.value
                 if (key == null || value == null) null else key to value
-            }?.toMap() ?: emptyMap()
+            }?.toMap() ?: emptyMap(),
+            cwd = cwd?.trim()?.takeIf { it.isNotEmpty() }
         )
         var shouldResetRuntime = false
         _mcpConfig.update { currentConfig ->
@@ -626,7 +633,8 @@ class MCPLocalServer private constructor(private val context: Context) {
                                     args = importedServer.args,
                                     disabled = importedServer.disabled,
                                     autoApprove = importedServer.autoApprove,
-                                    env = importedServer.env
+                                    env = importedServer.env,
+                                    cwd = importedServer.cwd
                                 )
                                 val existingServer = newServers[importedServer.id]
                                 val existingMetadata = newMetadata[importedServer.id]
@@ -909,7 +917,9 @@ class MCPLocalServer private constructor(private val context: Context) {
                     args = serverConfig.args ?: emptyList(),
                     env = serverConfig.env ?: emptyMap(),
                     disabled = !enabled,
-                    autoApprove = serverConfig.autoApprove ?: emptyList()
+                    autoApprove = serverConfig.autoApprove ?: emptyList(),
+                    // 切换启用状态时保留工作目录，避免改变相对入口的解析位置。
+                    cwd = serverConfig.cwd
                 )
                 AppLogger.d(TAG, "服务器启用状态已更新(本地): $serverId, enabled=$enabled")
                 return
@@ -927,27 +937,42 @@ class MCPLocalServer private constructor(private val context: Context) {
     }
 
     fun getPluginRuntimeDirectory(pluginId: String): String {
-        val pluginHomeDir = "~/mcp_plugins"
-        return "$pluginHomeDir/${pluginId.split("/").last()}"
-    }
-
-    private fun getPluginCommandName(pluginId: String): String? {
-        return getMCPServer(pluginId)?.command
-            ?.trim()
-            ?.substringAfterLast('/')
-            ?.substringAfterLast('\\')
-            ?.lowercase(Locale.ROOT)
-    }
-
-    private fun pluginRuntimeRequiresFiles(pluginId: String): Boolean {
-        return when (getPluginCommandName(pluginId)) {
-            "npx", "uvx", "uv" -> false
-            else -> true
+        val serverConfig = getMCPServer(pluginId)
+        return if (serverConfig != null) {
+            McpStdioConfigResolver.resolveWorkingDirectory(
+                configuredCwd = serverConfig.cwd,
+                pluginId = pluginId,
+                command = serverConfig.command,
+                args = serverConfig.args ?: emptyList()
+            )
+        } else {
+            val pluginHomeDir = "~/mcp_plugins"
+            "$pluginHomeDir/${pluginId.split("/").last()}"
         }
     }
 
+    /** 判断服务是否使用应用管理的运行目录。 */
+    private fun pluginRuntimeUsesAppManagedDirectory(pluginId: String): Boolean {
+        val serverConfig = getMCPServer(pluginId) ?: return true
+        return McpStdioConfigResolver.usesAppManagedRuntimeDirectory(
+            command = serverConfig.command,
+            args = serverConfig.args ?: emptyList(),
+            cwd = serverConfig.cwd
+        )
+    }
+
+    /** npx/uvx/uv 由包管理器下载自身载荷，因此运行目录允许为空。 */
+    private fun pluginRuntimeAllowsEmptyDirectory(pluginId: String): Boolean {
+        val serverConfig = getMCPServer(pluginId) ?: return false
+        return McpStdioConfigResolver.commandName(serverConfig.command) in
+            setOf("npx", "uvx", "uv")
+    }
+
     /**
-     * 检查插件运行目录是否已就绪
+     * 检查插件运行目录是否已就绪。
+     *
+     * 配置了绝对命令、绝对入口脚本或显式 cwd 的 stdio 服务不依赖 Operit 复制插件目录，
+     * 因此直接视为就绪；否则按既有规则检查 ~/mcp_plugins/<id>。
      * 对于 npx/uvx/uv 类型：目录存在即可，允许为空目录
      * 对于普通本地插件：目录存在且至少包含一个文件
      */
@@ -957,6 +982,21 @@ class MCPLocalServer private constructor(private val context: Context) {
 
             if (metadata?.type == "remote") {
                 AppLogger.d(TAG, "插件 $pluginId 是远程服务，运行目录视为已就绪")
+                return@withContext true
+            }
+
+            val serverConfig = getMCPServer(pluginId)
+            if (serverConfig == null) {
+                AppLogger.w(TAG, "插件 $pluginId 缺少 mcpServers 配置，无法判断运行目录")
+                return@withContext false
+            }
+
+            if (!pluginRuntimeUsesAppManagedDirectory(pluginId)) {
+                AppLogger.d(
+                    TAG,
+                    "插件 $pluginId 使用终端中已有的命令/目录，无需应用侧插件目录: " +
+                        "command=${serverConfig.command}, cwd=${serverConfig.cwd}"
+                )
                 return@withContext true
             }
 
@@ -979,7 +1019,7 @@ class MCPLocalServer private constructor(private val context: Context) {
                 return@withContext false
             }
 
-            if (!pluginRuntimeRequiresFiles(pluginId)) {
+            if (pluginRuntimeAllowsEmptyDirectory(pluginId)) {
                 AppLogger.d(TAG, "插件 $pluginId 运行目录已就绪: $pluginDir (允许空目录)")
                 return@withContext true
             }
@@ -1082,21 +1122,19 @@ class MCPLocalServer private constructor(private val context: Context) {
      */
     suspend fun importConfigFromJson(json: String): Boolean {
         return try {
-            val typeToken = object : TypeToken<Map<String, Any>>() {}.type
-            val importData = gson.fromJson<Map<String, Any>>(json, typeToken)
-            
-            importData["mcpConfig"]?.let { config ->
-                val configJson = gson.toJson(config)
-                val rawMcpConfig = gson.fromJson(configJson, MCPConfig::class.java) ?: MCPConfig()
+            // 直接保留 JSON 子对象，避免通用 Map 将整型时间戳转成 Double 后改变配置值。
+            val importData = gson.fromJson(json, JsonObject::class.java)
+
+            importData["mcpConfig"]?.takeUnless { it.isJsonNull }?.let { config ->
+                val rawMcpConfig = gson.fromJson(config, MCPConfig::class.java) ?: MCPConfig()
                 val sanitizedConfig = sanitizeMCPConfig(rawMcpConfig, "importConfigFromJson")
                 _mcpConfig.value = autoFillMissingMetadata(sanitizedConfig.config)
                 saveMCPConfig()
             }
             
-            importData["serverStatus"]?.let { status ->
-                val statusJson = gson.toJson(status)
+            importData["serverStatus"]?.takeUnless { it.isJsonNull }?.let { status ->
                 val typeToken3 = object : TypeToken<Map<String, ServerStatus>>() {}.type
-                val serverStatus = gson.fromJson<Map<String, ServerStatus>>(statusJson, typeToken3)
+                val serverStatus = gson.fromJson<Map<String, ServerStatus>>(status, typeToken3)
                 _serverStatus.value = serverStatus
                 saveServerStatus()
             }

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">请先在功能模型中配置支持图片输入的图片理解模型</string>
+</resources>

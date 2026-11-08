@@ -1,0 +1,9 @@
+
+$/filter = {region:"北区"}
+$/sales = [{region:"北区",month:"一月",amount:12},{region:"北区",month:"二月",amount:18},{region:"北区",month:"三月",amount:15},{region:"南区",month:"一月",amount:9},{region:"南区",month:"二月",amount:14},{region:"南区",month:"三月",amount:24}]
+root = Card(child=Column(children=[intro,region,total,chart,note]))
+intro = Header(text="地区销售趋势",label="演示数据 · 单位：万元")
+region = Segmented(label="地区",options=["北区","南区"],value=$/filter/region)
+total = Display(label=concat(values=[$/filter/region," · 三个月合计（万元）"]),text=formatNumber(value=arraySum(items=arrayFilter(items=$/sales,field="region",operator="eq",value=$/filter/region),field="amount"),decimals=0))
+chart = Chart(label=concat(values=[$/filter/region,"月度销售额 · 演示数据"]),type="bar",labels=arrayMap(items=arrayFilter(items=$/sales,field="region",operator="eq",value=$/filter/region),field="month"),series=[{label:"销售额（万元）",values:arrayMap(items=arrayFilter(items=$/sales,field="region",operator="eq",value=$/filter/region),field="amount")}])
+note = Text(text="切换地区会同步更新图表和合计，直接在本地完成。",variant="caption")

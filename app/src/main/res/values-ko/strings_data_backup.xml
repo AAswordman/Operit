@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">데이터 및 백업</string>
+    <string name="data_backup_settings_desc">백업 및 복구, 채팅 관리, 토큰 사용 및 진단 로그</string>
+    <string name="data_backup_tab_restore">백업 및 복원</string>
+    <string name="data_backup_tab_chats">채팅 관리</string>
+    <string name="data_backup_tab_logs">진단 로그</string>
+    <string name="data_backup_overview">데이터 개요</string>
+    <string name="data_backup_current_profile">현재 구성 · %1$s</string>
+    <string name="data_backup_count_chats">채팅 기록</string>
+    <string name="data_backup_count_characters">캐릭터 카드</string>
+    <string name="data_backup_count_memories">메모리 항목</string>
+    <string name="data_backup_count_links">기억 연관</string>
+    <string name="data_backup_token_entry_desc">사용량, 비용, 모델 통계 보기</string>
+    <string name="data_backup_never">아직 백업이 없습니다</string>
+    <string name="data_backup_recent">최근 백업 · %1$s</string>
+    <string name="data_backup_files">백업 파일</string>
+    <string name="data_backup_snapshot_title">파일 스냅샷</string>
+    <string name="data_backup_snapshot_desc">애플리케이션 파일 및 구성을 패키지화하고 복구 후 다시 시작해야 합니다.</string>
+    <string name="data_backup_snapshot_export">스냅샷 내보내기</string>
+    <string name="data_backup_snapshot_restore">스냅샷 복원</string>
+    <string name="data_backup_daily_on">일일 자동 백업이 켜져 있습니다.</string>
+    <string name="data_backup_daily_off">일일 자동 백업이 활성화되지 않았습니다.</string>
+    <string name="data_backup_db_summary">%1$s · %2$d 사본 예약</string>
+    <string name="data_backup_file_count">%1$d 사본</string>
+    <string name="data_backup_individual">단일 품목 가져오기 및 내보내기</string>
+    <string name="data_backup_individual_desc">채팅, 캐릭터 카드, 메모리 및 모델 구성</string>
+    <string name="data_backup_export_directory">디렉토리 내보내기 · 다운로드/Operit</string>
+    <string name="data_backup_help">백업 지침</string>
+    <string name="data_backup_done">알았어요</string>
+    <string name="data_backup_snapshot_export_title">파일 스냅샷 내보내기</string>
+    <string name="data_backup_start_export">내보내기 시작</string>
+    <string name="data_backup_choose_file">백업 파일 선택</string>
+    <string name="data_backup_choose_file_desc">복원할 ZIP 스냅샷을 선택하세요.</string>
+    <string name="data_backup_manage_links">연결 관리</string>
+    <string name="data_backup_build_memory">메모리 구축</string>
+    <string name="data_backup_chat_records">채팅 기록 관리</string>
+    <string name="data_backup_chat_records_desc">일괄적으로 연관을 수정하고, 기록을 정리하고, 추억을 쌓으세요.</string>
+    <string name="data_backup_message_count_suffix">· %1$d 메시지</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">다음 폴더는 어떤 채팅에도 사용되지 않습니다. 선택한 폴더만 삭제합니다.</string>
+    <string name="data_backup_locked_notice">삭제하면 잠긴 채팅이 건너뜁니다.</string>
+    <string name="data_backup_clear_chats">기록 지우기</string>
+    <string name="data_backup_clear_chats_confirm">잠금 해제된 모든 채팅과 해당 메시지가 삭제됩니다. 잠긴 채팅은 그대로 유지됩니다. 계속하시겠습니까?</string>
+    <string name="data_backup_export_app_logs">애플리케이션 로그 내보내기</string>
+    <string name="data_backup_export_app_logs_desc">운영상의 문제를 쉽게 찾을 수 있도록 진단 정보가 유지됩니다.</string>
+    <string name="data_backup_log_format">TXT · 애플리케이션 로그 내보내기 가능</string>
+    <string name="data_backup_export_logs">로그 내보내기</string>
+    <string name="data_backup_log_filters">내보내기 필터링</string>
+    <string name="data_backup_filters_none">전체 로그 · 필터링이 활성화되지 않았습니다.</string>
+    <string name="data_backup_filters_count">%1$d 항목 필터링이 활성화되었습니다.</string>
+    <string name="data_backup_log_directory">다운로드/작동에 저장</string>
+    <string name="data_backup_clear_logs">로그 지우기</string>
+    <string name="data_backup_clear_logs_confirm">현재 응용 프로그램 로그가 지워집니다. 이 작업은 채팅 기록이나 토큰 통계를 삭제하지 않습니다. 계속하시겠습니까?</string>
+    <string name="data_backup_memory_window_hint">한 번에 8~48개의 메시지를 처리합니다.</string>
+    <string name="data_backup_locked_chat">잠긴 채팅</string>
+    <string name="data_backup_ungrouped">그룹화되지 않음</string>
+    <string name="data_backup_memory_build_desc">%1$d 채팅이 선택되었습니다. 선택한 메시지에서 메모리가 추출되어 모델 사용이 발생할 수 있습니다.</string>
+</resources>

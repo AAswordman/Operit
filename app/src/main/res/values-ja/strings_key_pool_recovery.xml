@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="api_key_pool_cooling_remaining">一時待機中：残り %1$d 秒</string>
+    <string name="api_key_pool_cooling_summary">%1$d 個のキーが一時待機中 · 最短で残り %2$d 秒</string>
+    <string name="api_key_pool_states_cleared">テスト結果の印と一時待機状態を解除しました</string>
+    <string name="api_key_pool_no_available_marks">設定「%1$s」に利用可能の印が付いたキーがありません。印をクリアして再テストしてください。</string>
+    <string name="api_key_pool_all_cooling">設定「%1$s」の候補キーは一時待機中です。最短で %2$d 秒後に再試行できます。</string>
+    <string name="api_key_pool_already_tried">設定「%1$s」のすべての候補キーを今回のリクエストで試行済みです。後でもう一度お試しください。</string>
+    <string name="api_key_pool_no_enabled_keys">設定「%1$s」に利用できる有効なキーがありません。キープールの設定を確認してください。</string>
+    <string name="api_key_pool_endpoint_error">リクエストのパスまたはメソッドが見つかりません。プロバイダーの種類と API の完全なパスを確認してください。/v2 などの独自パスはそのまま使用されます。OpenAI 互換エンドポイントでは通常 /chat/completions まで指定する必要があります。元のエラー：%1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">モデル「%1$s」は一時待機中：残り %2$d 秒</string>
+</resources>

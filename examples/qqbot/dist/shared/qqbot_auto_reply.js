@@ -1044,7 +1044,12 @@ async function onQQBotAutoReplyApplicationCreate() {
                 });
             }
             await stopAutoReplyLoopInternal("manual_stop");
-            await (0, qqbot_service_1.stopQQBotServiceInternalAsync)(8000);
+            try {
+                await (0, qqbot_service_1.stopQQBotServiceInternalAsync)(8000);
+            }
+            catch (stopError) {
+                console.error(`[qqbot_auto_reply] stop leftover gateway on create failed: ${(0, qqbot_common_1.safeErrorMessage)(stopError)}`);
+            }
         }
         else {
             await (0, qqbot_service_1.ensureQQBotServiceStarted)({

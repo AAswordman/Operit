@@ -1,0 +1,5 @@
+<resources>
+    <string name="workflow_failure_named_node">节点“%1$s”执行失败：%2$s</string>
+    <string name="workflow_failure_action">执行动作：%1$s</string>
+    <string name="workflow_failure_reason">具体原因：%1$s</string>
+</resources>

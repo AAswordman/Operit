@@ -1,0 +1,468 @@
+{
+  "branch": "feat/integrated-distribution",
+  "base": "39a0abaaf23446e5122f7951b5350f4f40b9d52d",
+  "items": [
+    {
+      "number": 1104,
+      "source_sha": "dd8365848fed2601d5cbe14d3e3ed424fe32ebdd",
+      "before_sha": "07c91aa3837c04924fdead4c633a22757b0cc859",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/res/values-es/strings.xml",
+        "app/src/main/res/values-id/strings.xml",
+        "app/src/main/res/values-ko/strings.xml",
+        "app/src/main/res/values-ms/strings.xml",
+        "app/src/main/res/values-pt-rBR/strings.xml",
+        "app/src/main/res/values-ro/strings.xml"
+      ],
+      "merge_sha": "67f5bfa02167d61e53220db75c8d54cff85fe0e1"
+    },
+    {
+      "number": 1110,
+      "source_sha": "6db9aa2523365f818bdcb6d50255504da11946b4",
+      "before_sha": "67f5bfa02167d61e53220db75c8d54cff85fe0e1",
+      "status": "merged",
+      "merge_sha": "5f8b5897e026f43d2afca00f6bcaf5b927977bcd"
+    },
+    {
+      "number": 1111,
+      "source_sha": "3c5c76e83b6c0790196a9789abd73ef649417601",
+      "before_sha": "5f8b5897e026f43d2afca00f6bcaf5b927977bcd",
+      "status": "merged",
+      "merge_sha": "c89476348f94f058023d4a039608ae91f98aeca5"
+    },
+    {
+      "number": 1113,
+      "source_sha": "62b78739876408fab595af35a55674aa1fce1421",
+      "before_sha": "c89476348f94f058023d4a039608ae91f98aeca5",
+      "status": "merged",
+      "merge_sha": "3516aa1dfae3dc6969ba6ade14e5dd4d609f16c5"
+    },
+    {
+      "number": 1121,
+      "source_sha": "02588055b7bf2c463f4b30a4e276c5dc989dc062",
+      "before_sha": "3516aa1dfae3dc6969ba6ade14e5dd4d609f16c5",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/res/values-en/strings.xml",
+        "app/src/main/res/values-es/strings.xml",
+        "app/src/main/res/values-id/strings.xml",
+        "app/src/main/res/values-ko/strings.xml",
+        "app/src/main/res/values-ms/strings.xml",
+        "app/src/main/res/values-pt-rBR/strings.xml",
+        "app/src/main/res/values-ro/strings.xml",
+        "app/src/main/res/values/strings.xml"
+      ],
+      "merge_sha": "dfbb98ee9446ee4234dd2c05ae425d1b390e12b0"
+    },
+    {
+      "number": 1126,
+      "source_sha": "f0bffa78e3f280cc3c3b170ab4d8897acc025c48",
+      "before_sha": "dfbb98ee9446ee4234dd2c05ae425d1b390e12b0",
+      "status": "merged",
+      "merge_sha": "fd2cced602a2c87986072f9b7c4cf00b49a97cb0"
+    },
+    {
+      "number": 1130,
+      "source_sha": "59129ab263100262e0bf890141a1a6199b6ab0d2",
+      "before_sha": "fd2cced602a2c87986072f9b7c4cf00b49a97cb0",
+      "status": "merged",
+      "merge_sha": "a8c42a190dfd509f88c5f724252bc8fdee6471af"
+    },
+    {
+      "number": 1134,
+      "source_sha": "5ff8c9ea1e28f2a875911d7c9a7e9accb459307e",
+      "before_sha": "a8c42a190dfd509f88c5f724252bc8fdee6471af",
+      "status": "merged",
+      "merge_sha": "915573f81b6eec1815414bc18f04129e1df20624"
+    },
+    {
+      "number": 1142,
+      "source_sha": "a3eb31a3de5e1d22d4f9e6ef797084581dbbd61d",
+      "before_sha": "915573f81b6eec1815414bc18f04129e1df20624",
+      "status": "merged",
+      "merge_sha": "c89acfb73245fcba2218f690cc7eb8f8b53f644d"
+    },
+    {
+      "number": 1152,
+      "source_sha": "58a8aa22360ccb21cc5e43b87e7f17381d46c4c3",
+      "before_sha": "c89acfb73245fcba2218f690cc7eb8f8b53f644d",
+      "status": "merged",
+      "merge_sha": "fd44b72fe35cb496dac535ecc9272c95b34babbc"
+    },
+    {
+      "number": 1156,
+      "source_sha": "a8040fcaec57e6555a87af312ab9a40206cf5993",
+      "before_sha": "fd44b72fe35cb496dac535ecc9272c95b34babbc",
+      "status": "merged",
+      "merge_sha": "1ce6db44594b2f20ec93e2e481e3d574b3bb2f44"
+    },
+    {
+      "number": 1157,
+      "source_sha": "d0fdd163cbd6cf7b5fa5f25c7c1a425f99e6ecf2",
+      "before_sha": "1ce6db44594b2f20ec93e2e481e3d574b3bb2f44",
+      "status": "merged",
+      "merge_sha": "a99f215e8eeee0e5e96d83628936be515e670713"
+    },
+    {
+      "number": 1168,
+      "source_sha": "67e992a3e51660dfbbeaf31ba0b3e3bdfb070249",
+      "before_sha": "a99f215e8eeee0e5e96d83628936be515e670713",
+      "status": "merged",
+      "merge_sha": "6c45b2433a8ae8520626ea10ebddb7e45817e64a"
+    },
+    {
+      "number": 1178,
+      "source_sha": "d47cb7c9d79dfb8567be3124e27d19115c3e2b07",
+      "before_sha": "6c45b2433a8ae8520626ea10ebddb7e45817e64a",
+      "status": "merged",
+      "merge_sha": "8e19f64b7531a5fbbdf6b60ef4df5fffb88144ab"
+    },
+    {
+      "number": 1189,
+      "source_sha": "0234da6f1dc30344e6bf498fc0fd4e9d6c08e3ba",
+      "before_sha": "8e19f64b7531a5fbbdf6b60ef4df5fffb88144ab",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/input/agent/AgentChatInputSection.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/FunctionalConfigScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/sections/ModelApiSettingsSection.kt"
+      ],
+      "merge_sha": "78d63198e9c5c9d015e2f220ede5e182f8269d6b"
+    },
+    {
+      "number": 1205,
+      "source_sha": "d4c8a9368b1af0dd05dc0651236630587d35cc7b",
+      "before_sha": "78d63198e9c5c9d015e2f220ede5e182f8269d6b",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/SettingsScreen.kt"
+      ],
+      "merge_sha": "ff6f57b61ac8bff6197c284e8f7d55c86e623f57"
+    },
+    {
+      "number": 1211,
+      "source_sha": "3d936738c48b8e0db5b64cedb576db4e990788a2",
+      "before_sha": "ff6f57b61ac8bff6197c284e8f7d55c86e623f57",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/OpenAIProvider.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/model/ModelConfigData.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/screens/ModelConfigScreen.kt"
+      ],
+      "merge_sha": "7154afdc445edf0d7bbd3ef98bceff5b7bec5e32"
+    },
+    {
+      "number": 1218,
+      "source_sha": "92dd0fa40bba278a1f8a12c592080d6d8107d27e",
+      "before_sha": "7154afdc445edf0d7bbd3ef98bceff5b7bec5e32",
+      "status": "merged",
+      "merge_sha": "006a775b5774f8f827c65ac4b396383784b7a300"
+    },
+    {
+      "number": 1231,
+      "source_sha": "51fe8f1f12703f5d648d1469a01e560478a4db76",
+      "before_sha": "006a775b5774f8f827c65ac4b396383784b7a300",
+      "status": "merged",
+      "merge_sha": "0c5ee5a0eb351b366a79dad0848614f8e05c378d"
+    },
+    {
+      "number": 1235,
+      "source_sha": "ab0efc7b1abac5b7f5acf47346a21fc6419cc696",
+      "before_sha": "0c5ee5a0eb351b366a79dad0848614f8e05c378d",
+      "status": "merged",
+      "merge_sha": "8438b136bf6634a4483de579f239749ce13ddaea"
+    },
+    {
+      "number": 1236,
+      "source_sha": "dc522c71f31d46c582e1bfa5c6dd3531518cd947",
+      "before_sha": "8438b136bf6634a4483de579f239749ce13ddaea",
+      "status": "merged",
+      "merge_sha": "cd7332c3fa28e7908ee2432f2974299967c32207"
+    },
+    {
+      "number": 1247,
+      "source_sha": "41a2af8c0d52841f281e0dedb475660fcdbd6615",
+      "before_sha": "cd7332c3fa28e7908ee2432f2974299967c32207",
+      "status": "merged",
+      "merge_sha": "9b35c0985fbe073de1829f8f39ba73a5731fac84"
+    },
+    {
+      "number": 1254,
+      "source_sha": "1f1c4be3585bd76e6053862b08b9c23d17048416",
+      "before_sha": "9b35c0985fbe073de1829f8f39ba73a5731fac84",
+      "status": "merged",
+      "merge_sha": "5c9b141e01842cc4636e721063cc6bd02128cb00"
+    },
+    {
+      "number": 1255,
+      "source_sha": "a80f9ab99367a8b8edb41a62ad6204f9fbbc198f",
+      "before_sha": "5c9b141e01842cc4636e721063cc6bd02128cb00",
+      "status": "merged",
+      "merge_sha": "f565da671a8f8dcd20fe3e6c310991ee34d4d9e7"
+    },
+    {
+      "number": 1256,
+      "source_sha": "bd04cc9678129529a994c22da898f0cbf719ae3c",
+      "before_sha": "f565da671a8f8dcd20fe3e6c310991ee34d4d9e7",
+      "status": "merged",
+      "merge_sha": "04e2914c34f27bd4918a1802bc6681a18bc38460"
+    },
+    {
+      "number": 1260,
+      "source_sha": "89d85c75131f20bfddd86e1ca6b6d64e2a92f655",
+      "before_sha": "04e2914c34f27bd4918a1802bc6681a18bc38460",
+      "status": "merged",
+      "merge_sha": "9c24cb972b6b4c2de10218862c7cafc1ec1da1ad"
+    },
+    {
+      "number": 1261,
+      "source_sha": "86f771e08216fcacc6290a4a2127f94c61c12a81",
+      "before_sha": "9c24cb972b6b4c2de10218862c7cafc1ec1da1ad",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/model/ModelConfigData.kt"
+      ],
+      "merge_sha": "db3cacec8b50585efa775bc69a9dd8f23e97f945"
+    },
+    {
+      "number": 1262,
+      "source_sha": "d9350eca466b6d615b8be5fb9ca99c1880162935",
+      "before_sha": "db3cacec8b50585efa775bc69a9dd8f23e97f945",
+      "resource_resolution": true,
+      "status": "merged",
+      "merge_sha": "73f2e09acb6dc6de9acfcaa1ccca32a60d4482bc"
+    },
+    {
+      "number": 1267,
+      "source_sha": "55d052c8368d12cf489f0a2ecd144ce7a767cfaf",
+      "before_sha": "73f2e09acb6dc6de9acfcaa1ccca32a60d4482bc",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/stats/TokenUsageRepository.kt"
+      ],
+      "merge_sha": "a70ac4d0300126e60511866b8f703091d0840c99"
+    },
+    {
+      "number": 1269,
+      "source_sha": "c41ca2a3f98efae196e02cb343276726229c0e15",
+      "before_sha": "a70ac4d0300126e60511866b8f703091d0840c99",
+      "resource_resolution": true,
+      "status": "merged",
+      "merge_sha": "3debc369d99cb8b11b27128095cda5831b8b587c"
+    },
+    {
+      "number": 1270,
+      "source_sha": "294889b22c13b41e15ff1e8ca306e61960e53a00",
+      "before_sha": "3debc369d99cb8b11b27128095cda5831b8b587c",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/api/chat/EnhancedAIService.kt"
+      ],
+      "merge_sha": "f5f5e1b07293b58de6117eb50227faada1c98915"
+    },
+    {
+      "number": 1278,
+      "source_sha": "ff6d83b4cd0a5054e18e2de40ebedbf3580df933",
+      "before_sha": "f5f5e1b07293b58de6117eb50227faada1c98915",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/ClaudeProvider.kt",
+        "app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/GeminiProvider.kt",
+        "app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/OpenAIProvider.kt",
+        "app/src/main/java/com/ai/assistance/operit/core/chat/AIMessageManager.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/converter/ChatHistoryCsv.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatArea.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/part/CustomXmlRenderer.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/recovery/DataRecoveryViewModel.kt"
+      ],
+      "merge_sha": "5220759746d6909bcd5d8f5349cbee8828e16350"
+    },
+    {
+      "number": 1284,
+      "source_sha": "29bc3cc146e8e891e5829177177a1205897c1f68",
+      "before_sha": "5220759746d6909bcd5d8f5349cbee8828e16350",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/db/AppDatabase.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/stats/TokenStatsQueryService.kt"
+      ],
+      "merge_sha": "ab2992e888eb0b9cda3fb1a2b2830ae386944f23"
+    },
+    {
+      "number": 1290,
+      "source_sha": "4067212991a549a6f265bafc16d2e24e3c081883",
+      "before_sha": "ab2992e888eb0b9cda3fb1a2b2830ae386944f23",
+      "status": "merged",
+      "merge_sha": "475bc3a74c1e828d179f1b94b2d25afeb3fd21ef"
+    },
+    {
+      "number": 1296,
+      "source_sha": "94b57556eb638f8244918a5980f608139779f7d7",
+      "before_sha": "475bc3a74c1e828d179f1b94b2d25afeb3fd21ef",
+      "status": "merged",
+      "merge_sha": "cd78ee895937618b6fe74a3dcace15b74acdde61"
+    },
+    {
+      "number": 1298,
+      "source_sha": "c848f2c4ffdd4d51bd3e5972fa2cc4490bcd1b99",
+      "before_sha": "cd78ee895937618b6fe74a3dcace15b74acdde61",
+      "status": "merged",
+      "merge_sha": "61bd534c88a8f4b668ca98b0a7c2b3d561493c52"
+    },
+    {
+      "number": 1299,
+      "source_sha": "b8d9383eeb8cd53c667b1873765c667806cb0478",
+      "before_sha": "61bd534c88a8f4b668ca98b0a7c2b3d561493c52",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/preferences/ThemePreferenceSnapshot.kt",
+        "app/src/main/java/com/ai/assistance/operit/data/preferences/UserPreferencesManager.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/settings/components/ColorPickerDialog.kt"
+      ],
+      "merge_sha": "8e6d8485305528555802eed7f618aa120ab41e8b"
+    },
+    {
+      "number": 1308,
+      "source_sha": "f308ecd7825e21171ef1265f19f373b4125e5bcf",
+      "before_sha": "8e6d8485305528555802eed7f618aa120ab41e8b",
+      "status": "merged",
+      "merge_sha": "fe3bf652d8365a1c0387bae6ddef884aab74d3ff"
+    },
+    {
+      "number": 1311,
+      "source_sha": "56e01b03d00cf43c0d582b41f2cc59d5ece18155",
+      "before_sha": "fe3bf652d8365a1c0387bae6ddef884aab74d3ff",
+      "status": "merged",
+      "merge_sha": "cfd559675c1fcfa5a10d782c514f2a88984be5d1"
+    },
+    {
+      "number": 1313,
+      "source_sha": "512f02c07de0eefccd6ca4c78705b19fa7184cdf",
+      "before_sha": "cfd559675c1fcfa5a10d782c514f2a88984be5d1",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/ui/main/components/DrawerContent.kt"
+      ],
+      "merge_sha": "9ae3d52f3d59336b609d96b9aa0f8853e43da240"
+    },
+    {
+      "number": 1314,
+      "source_sha": "5f8cef5c857d5285ecbcb5c654723725cbeee09a",
+      "before_sha": "9ae3d52f3d59336b609d96b9aa0f8853e43da240",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/repository/ChatHistoryManager.kt"
+      ],
+      "merge_sha": "566deb0c16b1f003baefc85ef91c1ea368d6b652"
+    },
+    {
+      "number": 1321,
+      "source_sha": "a29314371a74b0bc9c54950d1e46d46c59660b0a",
+      "before_sha": "566deb0c16b1f003baefc85ef91c1ea368d6b652",
+      "status": "merged",
+      "merge_sha": "3eb5bafae31ef914dd25a7e0852206c9514be9c2"
+    },
+    {
+      "number": 1326,
+      "source_sha": "3df6c1ca061ca74d8d60e8a9e04fd3b90215d33f",
+      "before_sha": "3eb5bafae31ef914dd25a7e0852206c9514be9c2",
+      "resource_resolution": true,
+      "status": "merged",
+      "merge_sha": "0a03e289d06f4973659ad4bfa7099d51c3e084ec"
+    },
+    {
+      "number": 1334,
+      "source_sha": "59defadfd81a97849152a8fb26170bce5b3ffaa1",
+      "before_sha": "0a03e289d06f4973659ad4bfa7099d51c3e084ec",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/cpp/streamnative/plugins/StreamMarkdownPlugin.cpp",
+        "app/src/main/cpp/streamnative/plugins/StreamMarkdownPlugin.h",
+        "app/src/main/java/com/ai/assistance/operit/util/WaifuMessageProcessor.kt"
+      ],
+      "merge_sha": "ad7bd19f2b76ec6ebf8949ad8a7d81bac2661029"
+    },
+    {
+      "number": 1338,
+      "source_sha": "39a0abaaf23446e5122f7951b5350f4f40b9d52d",
+      "before_sha": "ad7bd19f2b76ec6ebf8949ad8a7d81bac2661029",
+      "status": "already-contained",
+      "merge_sha": "ad7bd19f2b76ec6ebf8949ad8a7d81bac2661029"
+    },
+    {
+      "number": 1340,
+      "source_sha": "fd85521e89631d51dae39c14b8a1fb9f1ad30869",
+      "before_sha": "ad7bd19f2b76ec6ebf8949ad8a7d81bac2661029",
+      "status": "merged",
+      "merge_sha": "f30c2f9d461154967cf6c2b162e720234c9e2832"
+    },
+    {
+      "number": 1344,
+      "source_sha": "122925d487bcae86f10b359de9efca350f87c15f",
+      "before_sha": "f30c2f9d461154967cf6c2b162e720234c9e2832",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/ChatScreenContent.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/webview/workspace/WorkspaceManager.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/webview/workspace/WorkspaceScreen.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/webview/workspace/WorkspaceSetup.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/main/screens/OperitScreens.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/main/screens/ScreenRouteRegistry.kt"
+      ],
+      "merge_sha": "c616593a9ed3e234557b64c91db6fb6b532e7b03"
+    },
+    {
+      "number": 1356,
+      "source_sha": "39fb3dbc750857c1ba957d167a7e665a8237c257",
+      "before_sha": "c616593a9ed3e234557b64c91db6fb6b532e7b03",
+      "status": "merged",
+      "merge_sha": "8a3b5c855d42e02649cd0a67e032593e7ac11224"
+    },
+    {
+      "number": 1360,
+      "source_sha": "03a5ecc62ece45fa5ee9316140a0b62d8189b616",
+      "before_sha": "8a3b5c855d42e02649cd0a67e032593e7ac11224",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/services/core/ChatHistoryDelegate.kt",
+        "app/src/main/java/com/ai/assistance/operit/services/core/MessageCoordinationDelegate.kt"
+      ],
+      "merge_sha": "01e24f943032f5d9dd0ec706c6ea8557a77efe50"
+    },
+    {
+      "number": 1361,
+      "source_sha": "15369feca98b59f73cf7f7fe9cf41ada02c5a8d3",
+      "before_sha": "01e24f943032f5d9dd0ec706c6ea8557a77efe50",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/repository/MemoryRepository.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/memory/screens/dialogs/MemorySearchSettingsDialog.kt"
+      ],
+      "merge_sha": "e29aaa660fd6c57ddd18a2a1b9c4c8713f55fca9"
+    },
+    {
+      "number": 1362,
+      "source_sha": "eb90bfdb634b285b25f36e7b91a958d47ebd2c58",
+      "before_sha": "e29aaa660fd6c57ddd18a2a1b9c4c8713f55fca9",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/ui/common/markdown/StreamMarkdownRenderer.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/part/CustomXmlRenderer.kt",
+        "app/src/main/java/com/ai/assistance/operit/ui/features/chat/components/style/bubble/BubbleAiMessageComposable.kt"
+      ],
+      "merge_sha": "d699e69fc4524f6268c70db6623db710b3a0641e"
+    },
+    {
+      "number": 1365,
+      "source_sha": "4740da86fe5d0c4a5aa581d69ee3ac21cca441a4",
+      "before_sha": "d699e69fc4524f6268c70db6623db710b3a0641e",
+      "status": "merged-with-resolution",
+      "conflicts": [
+        "app/src/main/java/com/ai/assistance/operit/data/dao/ChatContentDao.kt",
+        "app/src/main/java/com/ai/assistance/operit/services/core/MessageCoordinationDelegate.kt"
+      ],
+      "merge_sha": "2388d61020e4ca71cae1962b571b23a20c28d1bc"
+    }
+  ]
+}

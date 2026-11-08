@@ -6,11 +6,26 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
+import com.ai.assistance.operit.data.model.ChatMessagePageMetadata
 import com.ai.assistance.operit.data.model.MessageEntity
 
 /** 消息DAO接口，定义对消息表的数据访问方法 */
 @Dao
 interface MessageDao {
+    /** 先确定页面范围，避免为丢弃的页外消息读取并解码 sections。 */
+    @Query(
+        "SELECT sender, timestamp FROM messages WHERE chatId = :chatId" +
+            " AND (:beforeTimestampExclusive IS NULL OR timestamp < :beforeTimestampExclusive)" +
+            " AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)" +
+            " ORDER BY timestamp DESC LIMIT :limit"
+    )
+    suspend fun getPageMetadataForChatDesc(
+        chatId: String,
+        limit: Int,
+        beforeTimestampExclusive: Long?,
+        upToTimestampInclusive: Long?,
+    ): List<ChatMessagePageMetadata>
+
     /** 获取消息总数 */
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun getTotalMessageCount(): Int
@@ -36,11 +51,11 @@ interface MessageDao {
             sender AS sender,
             CASE
                 WHEN sender = 'user' AND displayMode = 'HIDDEN_PLACEHOLDER' THEN ''
-                ELSE SUBSTR(content, 1, :previewCharCount)
+                ELSE SUBSTR(searchText, 1, :previewCharCount)
             END AS previewContent,
             CASE
                 WHEN sender = 'user' AND displayMode = 'HIDDEN_PLACEHOLDER' THEN 0
-                ELSE LENGTH(content)
+                ELSE LENGTH(searchText)
             END AS contentLength,
             displayMode AS displayMode,
             isFavorite AS isFavorite
@@ -66,17 +81,17 @@ interface MessageDao {
             timestamp AS timestamp,
             sender AS sender,
             SUBSTR(
-                content,
-                MAX(1, INSTR(LOWER(content), LOWER(:query)) - (:previewCharCount / 2)),
+                searchText,
+                MAX(1, INSTR(LOWER(searchText), LOWER(:query)) - (:previewCharCount / 2)),
                 :previewCharCount
             ) AS previewContent,
-            LENGTH(content) AS contentLength,
+            LENGTH(searchText) AS contentLength,
             displayMode AS displayMode,
             isFavorite AS isFavorite
         FROM messages
         WHERE chatId = :chatId
             AND NOT (sender = 'user' AND displayMode = 'HIDDEN_PLACEHOLDER')
-            AND INSTR(LOWER(content), LOWER(:query)) > 0
+            AND INSTR(LOWER(searchText), LOWER(:query)) > 0
         ORDER BY timestamp ASC
         """
     )
@@ -147,7 +162,8 @@ interface MessageDao {
         INSERT INTO messages (
             chatId,
             sender,
-            content,
+            sections,
+            searchText,
             timestamp,
             orderIndex,
             roleName,
@@ -167,7 +183,8 @@ interface MessageDao {
         SELECT
             :targetChatId,
             sender,
-            content,
+            sections,
+            searchText,
             timestamp,
             orderIndex,
             roleName,
@@ -195,8 +212,8 @@ interface MessageDao {
     )
 
     /** 更新消息内容 */
-    @Query("UPDATE messages SET content = :content WHERE messageId = :messageId")
-    suspend fun updateMessageContent(messageId: Long, content: String)
+    @Query("UPDATE messages SET sections = :sections, searchText = :searchText WHERE messageId = :messageId")
+    suspend fun updateMessageSections(messageId: Long, sections: String, searchText: String)
 
     /** 更新整条消息 */
     @Update
@@ -236,7 +253,7 @@ interface MessageDao {
     )
 
     /** 查找包含特定关键词的聊天ID列表（不重复） */
-    @Query("SELECT DISTINCT chatId FROM messages WHERE content LIKE '%' || :query || '%' ESCAPE '\\' COLLATE NOCASE")
+    @Query("SELECT DISTINCT chatId FROM messages WHERE searchText LIKE '%' || :query || '%' ESCAPE '\\' COLLATE NOCASE")
     suspend fun searchChatIdsByContent(query: String): List<String>
 
     /** 批量重命名消息中的角色名 */

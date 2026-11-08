@@ -392,13 +392,13 @@ ToolPkg 的 UI 模块和生命周期钩子不再写在 `manifest` 里，而是�
 `main.js` 示例：
 
 ```javascript
-const toolboxUI = require("./ui/windows_setup/index.ui.js").default;
+const packageUI = require("./ui/windows_setup/index.ui.js").default;
 
 function registerToolPkg() {
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "windows_setup",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     params: {},
     title: {
       zh: "Windows 一键配置",
@@ -410,7 +410,7 @@ function registerToolPkg() {
     id: "windows_dashboard",
     route: "toolpkg:com.example.windows_bundle:ui:windows_dashboard",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     title: {
       zh: "Windows 面板",
       en: "Windows Dashboard"
@@ -418,9 +418,9 @@ function registerToolPkg() {
   });
 
   ToolPkg.registerNavigationEntry({
-    id: "windows_dashboard_toolbox",
+    id: "windows_dashboard_details",
     route: "toolpkg:com.example.windows_bundle:ui:windows_dashboard",
-    surface: "toolbox",
+    surface: "package_details",
     title: {
       zh: "Windows 面板",
       en: "Windows Dashboard"
@@ -541,11 +541,11 @@ exports.onMessageMenuItem = onMessageMenuItem;
 
 | 注册函数 | 字段 | 必需 | 说明 |
 |------|------|------|------|
-| `ToolPkg.registerToolboxUiModule` | `id` | 是 | UI 模块唯一标识 |
-| `ToolPkg.registerToolboxUiModule` | `runtime` | 否 | 运行时类型，默认 `compose_dsl` |
-| `ToolPkg.registerToolboxUiModule` | `screen` | 是 | UI 模块函数（推荐 `import/require ... default` 后传入） |
-| `ToolPkg.registerToolboxUiModule` | `params` | 否 | UI 模块初始化参数对象 |
-| `ToolPkg.registerToolboxUiModule` | `title` | 否 | 模块标题（支持 `LocalizedText`） |
+| `ToolPkg.registerUiModule` | `id` | 是 | UI 模块唯一标识 |
+| `ToolPkg.registerUiModule` | `runtime` | 否 | 运行时类型，默认 `compose_dsl` |
+| `ToolPkg.registerUiModule` | `screen` | 是 | UI 模块函数（推荐 `import/require ... default` 后传入） |
+| `ToolPkg.registerUiModule` | `params` | 否 | UI 模块初始化参数对象 |
+| `ToolPkg.registerUiModule` | `title` | 否 | 模块标题（支持 `LocalizedText`） |
 | `ToolPkg.registerUiRoute` | `id` | 是 | UI 路由唯一标识 |
 | `ToolPkg.registerUiRoute` | `route` / `routeId` | 否 | 稳定路由 ID；不填时宿主按 `toolpkg:<toolpkg_id>:ui:<id>` 自动生成 |
 | `ToolPkg.registerUiRoute` | `runtime` | 否 | 运行时类型，默认 `compose_dsl` |
@@ -554,7 +554,7 @@ exports.onMessageMenuItem = onMessageMenuItem;
 | `ToolPkg.registerUiRoute` | `title` | 否 | 路由标题（支持 `LocalizedText`） |
 | `ToolPkg.registerNavigationEntry` | `id` | 是 | 导航入口唯一标识 |
 | `ToolPkg.registerNavigationEntry` | `route` | 是 | 已注册路由 ID |
-| `ToolPkg.registerNavigationEntry` | `surface` | 是 | 挂载面，当前支持 `toolbox`、`main_sidebar_plugins` |
+| `ToolPkg.registerNavigationEntry` | `surface` | 是 | 挂载面，当前支持 `package_details`、`main_sidebar_plugins` |
 | `ToolPkg.registerNavigationEntry` | `title` | 否 | 导航入口标题（支持 `LocalizedText`） |
 | `ToolPkg.registerNavigationEntry` | `icon` | 否 | 图标名 |
 | `ToolPkg.registerNavigationEntry` | `order` | 否 | 同一 surface 内排序值，越小越靠前 |
@@ -1246,7 +1246,7 @@ ctx.reportError(error);
 `ctx.navigate(route, args?)` 现在会触发真实路由跳转。
 `ctx.listRoutes()` 会返回当前可导航路由列表（包含 `routeId`、`runtime` 等字段）。
 `ctx.getHostRoutes()` 只返回宿主 Native 路由，便于插件显式发现可用原生页面。
-Native 路由 ID 命名规则：`native.<Screen对象名的snake_case>`，例如 `Screen.Toolbox -> native.toolbox`。
+Native 路由 ID 命名规则：`native.<Screen对象名的snake_case>`，例如 `Screen.Settings -> native.settings`。
 
 #### 文件选择
 
@@ -1271,11 +1271,10 @@ const directory = await ctx.openFilePicker({
 
 每个结果都含有 `uri`。文档、视觉媒体和相机结果还会含有临时本地 `path`，目录结果只提供 `uri`。不能用于该来源的选项会使调用失败，不能被静默忽略。
 
-兼容说明：
+界面入口：
 
-- `ToolPkg.registerToolboxUiModule(...)` 仍然保留。
-- 调用后会注册一个 `compose_dsl` UI route，并挂载到 `toolbox` 导航入口。
-- 旧接口不会自动创建主侧边栏插件入口；若需要主侧边栏插件入口，请额外调用 `ToolPkg.registerNavigationEntry(...)` 并使用 `surface: "main_sidebar_plugins"`。
+- `ToolPkg.registerUiModule(...)` 注册插件界面模块，默认使用 `compose_dsl`，在插件详情提供打开入口。
+- 显式声明 `surface: "package_details"` 将已注册的界面路由展示在插件详情；需要主侧边栏插件入口时使用 `surface: "main_sidebar_plugins"`。
 
 #### 其他
 ```javascript
@@ -1425,7 +1424,7 @@ my_toolpkg/
 
 **问题 4：UI 模块不显示**
 - 检查 `main.js` 是否导出 `registerToolPkg`
-- 检查是否调用了 `ToolPkg.registerToolboxUiModule(...)`
+- 检查是否调用了 `ToolPkg.registerUiModule(...)`
 - 确认 `runtime` 类型正确
 - 确认 `screen` 传的是已导入的模块函数（例如 `const ui = require(...).default`）
 - 验证 UI 脚本语法正确
@@ -1483,7 +1482,7 @@ my_toolpkg/
 
 这条链路更接近真实安装行为，适合调试：
 
-- `ToolPkg.registerToolboxUiModule(...)`
+- `ToolPkg.registerUiModule(...)`
 - `ToolPkg.registerMessageProcessingPlugin(...)`
 - `ToolPkg.registerXmlRenderPlugin(...)`
 - `ToolPkg.registerInputMenuTogglePlugin(...)`
@@ -1595,4 +1594,7 @@ ls -lh app/src/main/assets/packages/windows_control.toolpkg
 ## 12. 参考资料
 
 - [脚本开发指南](./SCRIPT_DEV_GUIDE.md)：了解如何编写子包脚本
-- [ToolPkg API 文档](./doc-src/package-dev/toolpkg.md)：了解注册 API
+- [ToolPkg API 文档](./doc-src/toolpkg_developer_documentation/04_modules/toolpkg.md)：了解注册 API
+
+
+旧工具箱 UI 注册方法、全局调用名和类型声明保留为空操作兼容入口，旧导航面忽略；需要真实界面时使用 registerUiModule / registerUiRoute，省略 runtime 默认 compose_dsl。详细契约见 docs/doc-src/toolpkg_developer_documentation/03_runtime/registry.md。

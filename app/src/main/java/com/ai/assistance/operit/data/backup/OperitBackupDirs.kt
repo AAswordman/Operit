@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.backup
 
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.io.File
 
 object OperitBackupDirs {
@@ -19,6 +19,10 @@ object OperitBackupDirs {
 
     fun roomDbDir(): File {
         return ensureDir(File(backupRootDir(), "room_db"))
+    }
+
+    fun preferencesDir(): File {
+        return ensureDir(File(backupRootDir(), "preferences"))
     }
 
     fun chatDir(): File {

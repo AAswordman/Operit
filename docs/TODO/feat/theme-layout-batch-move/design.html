@@ -1,0 +1,3056 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f6f2" />
+    <title>Operit · 主题与外观 · 布局设计稿</title>
+    <style>
+      /* 与模型工作区保持同一套留白、描边和自然色，页面直接铺满视口。 */
+      :root {
+        --bg: #f5f6f2;
+        --surface: #ffffff;
+        --raised: #fafbf8;
+        --ink: #29332d;
+        --muted: #7a837b;
+        --line: #e4e9e0;
+        --accent: #526e59;
+        --accent-ink: #ffffff;
+        --soft: #eaf0e6;
+        --soft-ink: #45604a;
+        --quiet: #f0f3ed;
+        --track: #e1e7dd;
+        --danger: #b05246;
+        --user-bubble: #dce8d6;
+        --user-text: #29392b;
+        --ai-bubble: #ffffff;
+        --ai-text: #30392f;
+        --input-alpha: 0.82;
+        --glass-blur: 12px;
+        --glass-opacity: 0.24;
+        --shadow: 0 20px 70px #1b342323;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "Microsoft YaHei",
+          sans-serif;
+        color-scheme: light;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html[data-theme="dark"] {
+        --bg: #171e1a;
+        --surface: #222c25;
+        --raised: #263129;
+        --ink: #e4ece0;
+        --muted: #9eac9b;
+        --line: #354136;
+        --accent: #b4cda8;
+        --accent-ink: #263b26;
+        --soft: #2d3e2d;
+        --soft-ink: #c1d7b5;
+        --quiet: #29342c;
+        --track: #3c4d3e;
+        --shadow: 0 20px 70px #0007;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      html {
+        height: 100%;
+        scrollbar-gutter: stable;
+      }
+      body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--ink);
+        background: var(--bg);
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      body.modal-open {
+        overflow: hidden;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button {
+        cursor: pointer;
+        color: inherit;
+        border: 0;
+        background: none;
+        touch-action: manipulation;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.45;
+      }
+      button,
+      input,
+      select {
+        outline-offset: 4px;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+      }
+      button,
+      a,
+      input {
+        -webkit-tap-highlight-color: transparent;
+      }
+      a {
+        color: var(--accent);
+      }
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+      h1 {
+        font-size: 20px;
+        font-weight: 650;
+        letter-spacing: -0.5px;
+      }
+      h2 {
+        font-size: 15px;
+        font-weight: 650;
+      }
+      h3 {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .icon {
+        width: 20px;
+        height: 20px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.65;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        vertical-align: middle;
+      }
+      .icon.small {
+        width: 16px;
+        height: 16px;
+      }
+      .icon-button {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        flex: 0 0 auto;
+      }
+      .icon-button:hover {
+        background: var(--quiet);
+      }
+      .app-header {
+        position: relative;
+        z-index: 5;
+        padding: max(8px, env(safe-area-inset-top)) 18px 0;
+        background: var(--bg);
+      }
+      .titlebar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 56px;
+      }
+      .titlebar h1 {
+        flex: 1;
+      }
+      .header-state {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+      .state-dot {
+        width: 5px;
+        height: 5px;
+        background: var(--accent);
+        border-radius: 50%;
+      }
+      .header-state.dirty .state-dot {
+        background: #c28d4e;
+      }
+      .scope-picker {
+        margin: 6px 0 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 14px;
+        text-align: left;
+        border: 1px solid var(--line);
+        border-radius: 15px;
+        background: var(--surface);
+      }
+      .scope-picker .scope-copy {
+        flex: 1;
+        min-width: 0;
+      }
+      .scope-name {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .scope-name span {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--accent);
+        background: var(--soft);
+        border-radius: 5px;
+        padding: 1px 5px;
+      }
+      .scope-sub {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: #dce6d5;
+        color: #4c654f;
+        flex: 0 0 auto;
+        overflow: hidden;
+      }
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .avatar.small {
+        width: 26px;
+        height: 26px;
+      }
+      .avatar.rounded {
+        border-radius: 8px;
+      }
+      .avatar.user {
+        background: #e5dece;
+        color: #776b4e;
+      }
+      .avatar-art {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .tab-shell {
+        position: sticky;
+        top: 0;
+        z-index: 8;
+        padding: 0 18px;
+        background: var(--bg);
+        border-bottom: 1px solid var(--line);
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        height: 51px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab {
+        position: relative;
+        padding: 0 10px;
+        flex: 1;
+        white-space: nowrap;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .tab[aria-selected="true"] {
+        color: var(--accent);
+        font-weight: 650;
+      }
+      .tab[aria-selected="true"]::after {
+        content: "";
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 0;
+        height: 3px;
+        background: var(--accent);
+        border-radius: 3px 3px 0 0;
+      }
+      .workspace {
+        padding: 16px 18px calc(100px + env(safe-area-inset-bottom));
+        display: grid;
+        gap: 14px;
+        align-items: start;
+      }
+      .editor {
+        min-width: 0;
+      }
+      .panel {
+        display: grid;
+        gap: 13px;
+      }
+      .section {
+        border-radius: 17px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 16px 16px 8px;
+      }
+      .section-head > .icon {
+        width: 18px;
+        height: 18px;
+        color: var(--accent);
+      }
+      .section-head h2 {
+        flex: 1;
+      }
+      .section-head .meta {
+        margin-left: auto;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .section-note {
+        color: var(--muted);
+        font-size: 12px;
+        padding: 0 16px 12px;
+      }
+      .body-pad {
+        padding: 4px 16px 15px;
+      }
+      .row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 59px;
+        text-align: left;
+        padding: 12px 16px;
+      }
+      .row + .row::before,
+      .row-separator::before {
+        content: "";
+        position: absolute;
+        left: 16px;
+        right: 16px;
+        top: 0;
+        border-top: 1px solid var(--line);
+        opacity: 0.7;
+      }
+      .row-copy {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-title {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .row-sub {
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 2px;
+        line-height: 1.5;
+      }
+      .row-value {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      button.row:hover {
+        background: var(--raised);
+      }
+      .chevron {
+        width: 16px;
+        height: 16px;
+        color: var(--muted);
+      }
+      .switch {
+        display: inline-flex;
+        width: 36px;
+        height: 22px;
+        background: var(--track);
+        border: 1px solid transparent;
+        border-radius: 99px;
+        padding: 2px;
+        flex: 0 0 auto;
+        transition: background 0.18s;
+      }
+      .switch::after {
+        content: "";
+        width: 16px;
+        height: 16px;
+        background: #fff;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px #0002;
+        transition: transform 0.18s;
+      }
+      [aria-checked="true"] > .switch {
+        background: var(--accent);
+      }
+      [aria-checked="true"] > .switch::after {
+        transform: translateX(14px);
+        background: var(--accent-ink);
+      }
+      .control {
+        padding: 10px 16px 14px;
+      }
+      .control + .control {
+        border-top: 1px solid var(--line);
+      }
+      .control-label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 9px;
+        font-size: 12px;
+      }
+      .control-label output {
+        margin-left: auto;
+        color: var(--accent);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .segmented {
+        display: flex;
+        padding: 3px;
+        border-radius: 10px;
+        background: var(--quiet);
+        gap: 3px;
+        width: 100%;
+      }
+      .segmented button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex: 1;
+        min-height: 35px;
+        padding: 7px 9px;
+        font-size: 12px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        white-space: nowrap;
+      }
+      .segmented button[aria-pressed="true"] {
+        background: var(--surface);
+        color: var(--accent);
+        border-color: var(--line);
+        box-shadow: 0 1px 3px #152b1510;
+        font-weight: 600;
+      }
+      .segment-block {
+        padding: 8px 16px 14px;
+      }
+      .segment-block .control-label {
+        margin-bottom: 8px;
+      }
+      .palette-row {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 5px;
+        padding: 8px 12px 15px;
+      }
+      .palette {
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        padding: 6px 2px;
+        min-width: 0;
+        font-size: 11px;
+        color: var(--muted);
+        border-radius: 12px;
+      }
+      .palette-dot {
+        width: 37px;
+        height: 37px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--swatch);
+        outline: 1px solid #7b877332;
+        outline-offset: 3px;
+        color: white;
+      }
+      .palette-dot .icon {
+        opacity: 0;
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+        filter: drop-shadow(0 1px 2px #0005);
+      }
+      .palette[aria-pressed="true"] {
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .palette[aria-pressed="true"] .palette-dot {
+        outline: 2px solid var(--accent);
+        outline-offset: 4px;
+      }
+      .palette[aria-pressed="true"] .palette-dot .icon {
+        opacity: 1;
+      }
+      .color-dot {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--color);
+        border: 1px solid #81907840;
+        box-shadow: 0 0 0 3px var(--surface);
+        flex: 0 0 auto;
+      }
+      .mini-pair {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px;
+      }
+      .mini-pair .color-dot + .color-dot {
+        margin-left: -8px;
+      }
+      .badge {
+        font-size: 10px;
+        border-radius: 6px;
+        padding: 2px 6px;
+        background: var(--quiet);
+        color: var(--muted);
+        font-weight: 400;
+        white-space: nowrap;
+      }
+      .range {
+        width: 100%;
+        height: 25px;
+        margin: 2px 0;
+        display: block;
+        appearance: none;
+        -webkit-appearance: none;
+        background: transparent;
+        cursor: pointer;
+      }
+      .range::-webkit-slider-runnable-track {
+        height: 4px;
+        border-radius: 8px;
+        background: linear-gradient(
+          to right,
+          var(--accent) 0 var(--progress, 0%),
+          var(--track) var(--progress, 0%) 100%
+        );
+      }
+      .range::-webkit-slider-thumb {
+        appearance: none;
+        width: 15px;
+        height: 15px;
+        background: var(--accent);
+        border: 3px solid var(--surface);
+        box-shadow: 0 0 0 1px var(--accent);
+        border-radius: 50%;
+        margin-top: -5.5px;
+      }
+      .range::-moz-range-track {
+        height: 4px;
+        background: var(--track);
+        border-radius: 5px;
+      }
+      .range::-moz-range-progress {
+        height: 4px;
+        background: var(--accent);
+      }
+      .range::-moz-range-thumb {
+        height: 12px;
+        width: 12px;
+        border: 3px solid var(--surface);
+        background: var(--accent);
+        border-radius: 50%;
+      }
+      .range-ends {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 0;
+      }
+      .fold-head {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 16px;
+        width: 100%;
+        text-align: left;
+      }
+      .fold-head > .icon:first-child {
+        color: var(--accent);
+        width: 18px;
+        height: 18px;
+      }
+      .fold-head strong {
+        font-size: 14px;
+        font-weight: 600;
+        flex: 1;
+      }
+      .fold-head .icon:last-child {
+        transition: transform 0.2s;
+        width: 16px;
+        height: 16px;
+        color: var(--muted);
+      }
+      .fold-head[aria-expanded="true"] .icon:last-child {
+        transform: rotate(180deg);
+      }
+      .fold-body {
+        border-top: 1px solid var(--line);
+      }
+      .primary,
+      .secondary,
+      .text-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 9px 16px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .primary {
+        background: var(--accent);
+        color: var(--accent-ink);
+      }
+      .secondary {
+        background: var(--quiet);
+        border: 1px solid var(--line);
+        color: var(--ink);
+      }
+      .text-button {
+        color: var(--accent);
+        background: transparent;
+      }
+      .danger {
+        color: var(--danger);
+      }
+      .small-button {
+        padding: 6px 10px;
+        min-height: 32px;
+        font-size: 11px;
+      }
+      .hint {
+        font-size: 11px;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .inline-note {
+        margin: 0 16px 15px;
+        border-radius: 9px;
+        background: var(--quiet);
+        padding: 9px 11px;
+        display: flex;
+        gap: 7px;
+        align-items: flex-start;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .inline-note .icon {
+        width: 14px;
+        height: 14px;
+        margin-top: 2px;
+        color: var(--accent);
+      }
+      .preview {
+        min-width: 0;
+        border: 1px solid var(--line);
+        border-radius: 17px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+      .preview-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-align: left;
+        width: 100%;
+        min-height: 48px;
+        padding: 12px 15px;
+      }
+      .preview-head > .icon:first-child {
+        width: 17px;
+        height: 17px;
+        color: var(--accent);
+      }
+      .preview-head strong {
+        flex: 1;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .live-mark {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 10px;
+        color: var(--muted);
+        margin-right: 2px;
+      }
+      .live-mark::before {
+        content: "";
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #86a37b;
+      }
+      .preview-head > .icon:last-child {
+        width: 14px;
+        height: 14px;
+        color: var(--muted);
+      }
+      .chat-preview {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        background: var(--quiet);
+        padding: 14px 14px 11px;
+        border-top: 1px solid var(--line);
+      }
+      .wallpaper {
+        position: absolute;
+        z-index: -2;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .wallpaper img,
+      .wallpaper video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transform-origin: var(--media-x, 50%) var(--media-y, 50%);
+      }
+      .wallpaper .natural-scene {
+        width: 100%;
+        height: 100%;
+        transform-origin: var(--media-x, 50%) var(--media-y, 50%);
+      }
+      .natural-scene {
+        background:
+          radial-gradient(ellipse at 17% 0%, #f6f6e4 0, transparent 43%),
+          radial-gradient(ellipse at 90% 85%, #a6b79c 0, transparent 53%),
+          linear-gradient(135deg, #e7e9d9, #d4dfcb 53%, #dfe2d5);
+        position: relative;
+        overflow: hidden;
+      }
+      .natural-scene::before,
+      .natural-scene::after {
+        content: "";
+        position: absolute;
+        width: 34%;
+        height: 140%;
+        top: -27%;
+        left: 53%;
+        border-radius: 100% 0 100% 0;
+        background: #748c6a2e;
+        transform: rotate(28deg);
+        box-shadow:
+          -110px 120px 0 6px #7d987627,
+          95px 15px 0 -12px #54764e26;
+        filter: blur(10px);
+      }
+      .natural-scene::after {
+        left: 5%;
+        top: 25%;
+        height: 85%;
+        background: #f9f8e66b;
+        transform: rotate(-42deg);
+        box-shadow: 170px -50px 0 #f4efd64d;
+        filter: blur(14px);
+      }
+      html[data-theme="dark"] .natural-scene {
+        background:
+          radial-gradient(ellipse at 16% 5%, #6c7e5b 0, transparent 43%),
+          radial-gradient(ellipse at 87% 95%, #263e30 0, transparent 55%),
+          linear-gradient(135deg, #46513a, #253b2c 60%, #172d22);
+      }
+      .preview-conversation {
+        display: grid;
+        gap: 12px;
+        min-height: 132px;
+        align-content: center;
+        font-size: 12px;
+        position: relative;
+      }
+      .preview-message {
+        display: flex;
+        gap: 7px;
+        align-items: flex-end;
+        max-width: 94%;
+      }
+      .preview-message.user-message {
+        flex-direction: row-reverse;
+        margin-left: auto;
+      }
+      .preview-message .message-body {
+        min-width: 0;
+      }
+      .preview-name {
+        font-size: 9px;
+        opacity: 0.65;
+        padding: 0 3px 3px;
+      }
+      .preview-message.user-message .preview-name {
+        text-align: right;
+      }
+      .bubble {
+        padding: 9px 12px;
+        border-radius: 12px 12px 12px 3px;
+        color: var(--ai-text);
+        background: var(--ai-bubble);
+        line-height: 1.7;
+        overflow-wrap: anywhere;
+      }
+      .user-message .bubble {
+        border-radius: 12px 12px 3px 12px;
+        background: var(--user-bubble);
+        color: var(--user-text);
+      }
+      .bubble-command .bubble {
+        border-radius: 6px !important;
+        border-left: 2px solid var(--accent);
+        box-shadow: none;
+      }
+      .bubble-square .bubble {
+        border-radius: 1px !important;
+      }
+      .bubble-wide .preview-message {
+        max-width: 100%;
+        align-items: start;
+      }
+      .bubble-wide .preview-message .message-body {
+        flex: 1;
+      }
+      .message-footer {
+        font-size: 8px;
+        opacity: 0.56;
+        padding: 4px 2px 0;
+      }
+      .preview-input {
+        margin-top: 15px;
+        padding: 7px 8px 7px 11px;
+        background: rgb(255 255 255 / var(--input-alpha));
+        border: 1px solid #95a18e35;
+        border-radius: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 36px;
+      }
+      html[data-theme="dark"] .preview-input {
+        background: rgb(35 47 39 / var(--input-alpha));
+      }
+      .preview-input.floating {
+        border-radius: 25px;
+        margin: 15px 10px 4px;
+        box-shadow: 0 4px 13px #1c35221c;
+      }
+      .preview-input span {
+        color: var(--muted);
+        font-size: 10px;
+        flex: 1;
+      }
+      .preview-input .icon {
+        width: 14px;
+        height: 14px;
+        color: var(--accent);
+      }
+      .preview-input .send {
+        display: grid;
+        place-items: center;
+        width: 23px;
+        height: 23px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--accent-ink);
+        margin-left: auto;
+      }
+      .preview-input .send .icon {
+        color: inherit;
+        width: 12px;
+        height: 12px;
+      }
+      .preview-input.classic .send {
+        border-radius: 50%;
+      }
+      .preview-foot {
+        padding: 8px 13px;
+        font-size: 10px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .preview-foot button {
+        color: var(--accent);
+        font-size: 10px;
+        padding: 4px;
+      }
+      .media-cover {
+        height: 141px;
+        margin: 3px 16px 12px;
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+        background: var(--quiet);
+        isolation: isolate;
+      }
+      .media-cover .wallpaper {
+        z-index: -1;
+      }
+      .media-cover .caption {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        color: #fff;
+        border-radius: 7px;
+        padding: 4px 7px;
+        background: #1c2f215e;
+        font-size: 10px;
+        backdrop-filter: blur(10px);
+      }
+      .media-cover .cover-tools {
+        position: absolute;
+        right: 7px;
+        top: 7px;
+        display: flex;
+        gap: 5px;
+      }
+      .cover-tools button {
+        width: 31px;
+        height: 31px;
+        background: #fafcf5d6;
+        color: #435641;
+        backdrop-filter: blur(8px);
+        border-radius: 8px;
+      }
+      .cover-tools .icon {
+        width: 16px;
+        height: 16px;
+      }
+      .media-actions {
+        display: flex;
+        gap: 8px;
+        padding: 0 16px 14px;
+      }
+      .media-actions button {
+        flex: 1;
+      }
+      .texture-sample {
+        height: 70px;
+        margin: 2px 16px 4px;
+        border-radius: 12px;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #e3eadb;
+        isolation: isolate;
+      }
+      .texture-sample::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: repeating-linear-gradient(
+          115deg,
+          #8f9b8035 0 22px,
+          #f1f0d844 22px 57px,
+          #bacaaf66 57px 100px
+        );
+      }
+      .glass-demo {
+        font-size: 11px;
+        padding: 11px 30px;
+        border: 1px solid #ffffff70;
+        border-radius: 11px;
+        color: #3d503b;
+        background: rgb(255 255 255 / var(--glass-opacity));
+        backdrop-filter: blur(var(--glass-blur));
+        box-shadow: 0 2px 8px #30422c12;
+      }
+      .actionbar {
+        position: fixed;
+        z-index: 10;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        border-top: 1px solid var(--line);
+        padding: 10px 18px max(11px, env(safe-area-inset-bottom));
+        background: var(--surface);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .actionbar .save-note {
+        flex: 1;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .save-note strong {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ink);
+      }
+      .actionbar .primary {
+        min-width: 125px;
+        min-height: 41px;
+      }
+      .actionbar .preview-action {
+        color: var(--accent);
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        display: grid;
+        place-items: center;
+        background: var(--soft);
+      }
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: #11221966;
+        backdrop-filter: blur(5px);
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+      }
+      .modal {
+        width: min(100%, 500px);
+        max-height: min(86dvh, 800px);
+        border-radius: 22px;
+        background: var(--surface);
+        color: var(--ink);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .modal-head {
+        display: flex;
+        align-items: center;
+        padding: 12px 13px 8px 20px;
+        gap: 10px;
+      }
+      .modal-head h2 {
+        flex: 1;
+        font-size: 17px;
+      }
+      .modal-body {
+        padding: 0 4px 12px;
+        overflow: auto;
+        overscroll-behavior: contain;
+      }
+      .modal-body > .hint {
+        padding: 0 16px 10px;
+      }
+      .modal-body .section {
+        border-radius: 12px;
+        margin: 5px 12px 12px;
+      }
+      .modal-footer {
+        border-top: 1px solid var(--line);
+        padding: 11px 16px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        background: var(--surface);
+      }
+      .modal-footer .primary {
+        min-width: 85px;
+      }
+      .field {
+        padding: 10px 16px;
+      }
+      .field label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        margin-bottom: 7px;
+      }
+      .field input[type="text"],
+      .field input[type="number"],
+      .field select {
+        width: 100%;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--raised);
+        color: var(--ink);
+        padding: 8px 11px;
+        font-size: 13px;
+      }
+      .color-input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+      .color-control {
+        position: relative;
+        min-width: 34px;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .color-editor {
+        display: flex;
+        gap: 9px;
+        align-items: center;
+      }
+      .color-editor input[type="text"] {
+        width: 93px;
+        background: var(--quiet);
+        border: 1px solid var(--line);
+        border-radius: 7px;
+        color: var(--ink);
+        padding: 6px 8px;
+        font-size: 11px;
+      }
+      .avatar-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        padding: 6px 16px 14px;
+      }
+      .avatar-card {
+        border: 1px solid var(--line);
+        border-radius: 11px;
+        padding: 14px 8px 8px;
+        display: grid;
+        justify-items: center;
+        gap: 9px;
+        background: var(--raised);
+        font-size: 11px;
+        text-align: center;
+      }
+      .avatar-card .avatar {
+        width: 48px;
+        height: 48px;
+      }
+      .upload-preview {
+        margin: 8px 16px;
+        height: 92px;
+        border: 1px dashed var(--line);
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        gap: 4px;
+        overflow: hidden;
+        background: var(--raised);
+      }
+      .upload-preview img {
+        height: 100%;
+        max-width: 100%;
+        object-fit: contain;
+      }
+      .option-mark {
+        color: var(--accent);
+      }
+      .choice-row[aria-checked="true"] {
+        background: var(--soft);
+        color: var(--soft-ink);
+        border-radius: 10px;
+      }
+      .choice-row[aria-checked="false"] .option-mark {
+        opacity: 0;
+      }
+      .menu-action {
+        min-height: 61px;
+      }
+      .menu-action .icon:first-child {
+        color: var(--accent);
+      }
+      .menu-action.danger .icon:first-child {
+        color: var(--danger);
+      }
+      .toast {
+        position: fixed;
+        bottom: calc(88px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%) translateY(8px);
+        max-width: calc(100vw - 40px);
+        background: #293b2eee;
+        color: #f5f8f0;
+        border-radius: 12px;
+        padding: 11px 17px;
+        z-index: 100;
+        opacity: 0;
+        pointer-events: none;
+        font-size: 12px;
+        transition: 0.2s;
+        box-shadow: 0 8px 25px #0002;
+      }
+      .toast.visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .screen-cover {
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        pointer-events: none;
+        opacity: 0.075;
+        overflow: hidden;
+      }
+      .screen-cover > * {
+        height: 100%;
+        width: 100%;
+      }
+      .page-glass .section {
+        background: color-mix(in srgb, var(--surface) 78%, transparent);
+        backdrop-filter: blur(var(--glass-blur));
+      }
+      .page-glass .app-header,
+      .page-glass .tab-shell {
+        background: color-mix(in srgb, var(--bg) 92%, transparent);
+        backdrop-filter: blur(16px);
+      }
+      .demo-skip {
+        margin: 0 16px 12px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .divider {
+        height: 1px;
+        margin: 8px 16px;
+        background: var(--line);
+      }
+      @media (min-width: 850px) {
+        .app-header {
+          padding-left: 30px;
+          padding-right: 30px;
+        }
+        .scope-picker {
+          max-width: 600px;
+        }
+        .tab-shell {
+          padding-left: 30px;
+          padding-right: 30px;
+        }
+        .tabs {
+          max-width: 600px;
+          gap: 35px;
+        }
+        .workspace {
+          padding: 22px 30px 110px;
+          grid-template-columns: minmax(0, 1fr) minmax(290px, 0.7fr);
+          gap: 24px;
+        }
+        .preview {
+          grid-column: 2;
+          grid-row: 1;
+          position: sticky;
+          top: 73px;
+        }
+        .editor {
+          grid-column: 1;
+          grid-row: 1;
+        }
+        .chat-preview {
+          min-height: 300px;
+          padding: 28px 22px 20px;
+        }
+        .preview-conversation {
+          min-height: 180px;
+          font-size: 13px;
+          gap: 23px;
+        }
+        .preview-input {
+          margin-top: 26px;
+        }
+        .actionbar {
+          padding-left: 30px;
+          padding-right: 30px;
+        }
+      }
+      @media (max-width: 350px) {
+        .app-header {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .workspace {
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .tab-shell {
+          padding: 0 12px;
+        }
+        .tabs {
+          gap: 8px;
+        }
+        .header-state {
+          display: none;
+        }
+        .palette-dot {
+          width: 31px;
+          height: 31px;
+        }
+        .row {
+          gap: 8px;
+          padding-left: 13px;
+          padding-right: 13px;
+        }
+        .row-value {
+          max-width: 100px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .actionbar {
+          gap: 8px;
+          padding-left: 12px;
+          padding-right: 12px;
+        }
+        .actionbar .primary {
+          min-width: 108px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition: none !important;
+          animation: none !important;
+        }
+      }
+
+      body {
+        position: relative;
+        isolation: isolate;
+      }
+      .thinking-preview {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 9px;
+        color: var(--muted);
+        padding: 0 3px 5px;
+      }
+      .thinking-preview .icon {
+        width: 11px;
+        height: 11px;
+      }
+      .thought-copy {
+        font-size: 10px;
+        color: var(--muted);
+        padding: 4px 7px 8px;
+        max-width: 240px;
+      }
+      .message-footer {
+        text-align: left;
+        display: block;
+      }
+      .preview-metadata {
+        font-size: 9px;
+        color: var(--muted);
+        line-height: 1.8;
+        padding: 7px;
+        background: var(--quiet);
+        border-radius: 6px;
+        margin-top: 5px;
+      }
+      .preview-input > .icon {
+        flex: 0 0 auto;
+      }
+      .preview-input > span:not(.send) {
+        flex: 1;
+      }
+      .processing-preview {
+        font-size: 9px;
+        color: var(--muted);
+        padding: 7px 7px 0;
+      }
+      .particle-preview {
+        position: absolute;
+        right: 22px;
+        bottom: 54px;
+        font-size: 25px;
+        text-shadow: 0 0 3px #738e69;
+        animation: particles 1s ease-in-out infinite alternate;
+      }
+      @keyframes particles {
+        to {
+          opacity: 0.35;
+          transform: translateY(-8px);
+        }
+      }
+      .drawer-demo {
+        position: absolute;
+        z-index: 3;
+        inset: 0 auto 0 0;
+        width: 126px;
+        border-right: 1px solid #82927c3d;
+        padding: 18px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 9px;
+        box-shadow: 8px 0 20px #1d34271a;
+        font-size: 10px;
+        color: #344c3a;
+      }
+      .drawer-demo > span {
+        padding: 7px;
+        border-radius: 7px;
+      }
+      .drawer-demo strong {
+        padding: 0 7px 8px;
+      }
+      .drawer-demo i {
+        font-style: normal;
+        width: 32px;
+        height: 29px;
+        display: grid;
+        place-items: center;
+        border-radius: 7px;
+      }
+      .drawer-demo .icon {
+        width: 14px;
+        height: 14px;
+      }
+      .full.chat-preview {
+        min-height: 360px;
+        border-radius: 13px;
+        margin: 6px 12px 0;
+        border: 1px solid var(--line);
+        padding-top: 26px;
+      }
+      .full .preview-conversation {
+        gap: 24px;
+      }
+      .full + .preview-foot {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+      .confirm-copy {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 8px 16px 18px;
+        line-height: 1.8;
+      }
+      .font-specimen {
+        background: var(--quiet);
+        margin: 0 16px 12px;
+        border-radius: 12px;
+        padding: 20px 16px;
+        font-size: 16px;
+        line-height: 1.9;
+      }
+      .font-specimen span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .advanced-native {
+        margin: 8px 16px 12px;
+        border-top: 1px solid var(--line);
+      }
+      .advanced-native summary {
+        padding: 12px 0 4px;
+        color: var(--muted);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      input[aria-invalid="true"] {
+        border-color: var(--danger) !important;
+      }
+      .modal-body .row-copy {
+        overflow-wrap: anywhere;
+      }
+      .scope-picker .scope-sub {
+        display: block;
+      }
+      .scope-name strong {
+        font-weight: 600;
+      }
+      .scope-name {
+        line-height: 1.6;
+      }
+      .row .icon {
+        flex-shrink: 0;
+      }
+      /* 布局页沿用主题色与卡片，数值入口保留小数精调。 */
+      .layout-scope { cursor: default; }
+      .layout-scope .avatar { background: var(--soft); color: var(--accent); }
+      .layout-control { padding: 14px 16px 12px; }
+      .layout-control + .layout-control { border-top: 1px solid var(--line); }
+      .layout-control .control-label { margin-bottom: 3px; }
+      .layout-control .control-label > span { flex: 1; font-size: 13px; }
+      .layout-value { padding: 5px 8px; min-width: 69px; min-height: 32px; border-radius: 8px; background: var(--soft); color: var(--accent); white-space: nowrap; }
+      .layout-value output { pointer-events: none; font-size: 12px; font-variant-numeric: tabular-nums; }
+      .layout-control .row-sub { margin: 1px 0 8px; }
+      .layout-control .range { height: 30px; }
+      .layout-range-foot { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 3px; }
+      .layout-range-foot > span { color: var(--muted); font-size: 10px; }
+      .layout-default { padding: 5px 0 5px 8px; font-size: 10px; color: var(--accent); }
+      .layout-default:disabled { color: var(--muted); opacity: .6; }
+      .layout-note { display: flex; gap: 8px; color: var(--muted); font-size: 11px; line-height: 1.8; padding: 1px 4px; align-items: flex-start; }
+      .layout-note .icon { margin-top: 2px; width: 15px; height: 15px; }
+      .layout-reset { justify-self: center; display: flex; align-items: center; gap: 6px; margin: 2px 0 8px; color: var(--muted); font-size: 11px; min-height: 40px; padding: 8px 14px; border-radius: 9px; }
+      .layout-reset:hover { background: var(--quiet); }
+      .layout-preview { min-height: 0; padding: 0; }
+      .layout-preview .layout-chat-head { position: relative; z-index: 1; display: flex; align-items: center; padding: 11px 0 9px 15px; gap: 10px; border-bottom: 1px solid var(--line); background: var(--surface); }
+      .layout-chat-head > div { flex: 1; min-width: 0; display: grid; gap: 1px; }
+      .layout-chat-head strong { font-size: 12px; font-weight: 600; }
+      .layout-chat-head small { font-size: 9px; color: var(--muted); }
+      .layout-settings-marker { width: 34px; height: 34px; display: grid; place-items: center; flex: 0 0 auto; color: var(--accent); background: var(--soft); border-radius: 10px; }
+      .layout-conversation { position: relative; z-index: 1; padding-top: 16px; padding-bottom: 18px; }
+      .layout-user-line { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+      .layout-user-line .bubble { font-size: 11px; max-width: 94%; padding: 9px 11px; }
+      .layout-ai-line { display: flex; align-items: flex-start; gap: 8px; }
+      .layout-ai-body { flex: 1; min-width: 0; }
+      .layout-ai-body > .bubble { width: 100%; max-width: 100%; padding: 12px; }
+      .layout-markdown { font-size: 12px; line-height: calc(1.65 * var(--layout-line)); letter-spacing: var(--layout-letter); overflow-wrap: anywhere; }
+      .layout-markdown h3 { font-size: 1.12em; line-height: inherit; margin: 0 0 var(--layout-paragraph); }
+      .layout-markdown p, .layout-markdown ul { margin: 0 0 var(--layout-paragraph); }
+      .layout-markdown ul { padding-left: 1.35em; }
+      .layout-markdown > :last-child { margin-bottom: 0; }
+      .layout-markdown code { padding: 2px 4px; background: var(--quiet); border-radius: 4px; font-size: .9em; letter-spacing: 0; }
+      .layout-markdown blockquote { margin: 0 0 var(--layout-paragraph); padding: 0 0 0 9px; border-left: 2px solid var(--accent); color: var(--muted); }
+      .layout-preview-meta { color: var(--muted); font-size: 9px; margin-top: 7px; }
+      .layout-preview .preview-input { position: relative; z-index: 1; margin: 0 12px 12px; }
+      .layout-number-wrap { display: flex; align-items: center; gap: 10px; margin: 14px 0 9px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); padding: 10px 14px; }
+      .layout-number-wrap:focus-within { border-color: var(--accent); }
+      .layout-number-wrap input { width: 100%; min-width: 0; border: 0; outline: none; background: none; color: var(--ink); font-size: 25px; font-variant-numeric: tabular-nums; padding: 3px 0; }
+      .layout-number-wrap span { font-size: 12px; color: var(--muted); }
+      .layout-number-help { font-size: 11px; color: var(--muted); line-height: 1.8; }
+      .layout-number-error { color: var(--danger); min-height: 25px; margin-top: 5px; font-size: 11px; }
+      @media (max-width: 360px) {
+        .tab-shell { padding-left: 12px; padding-right: 12px; }
+        .tabs { gap: 4px; }
+        .tab { padding-left: 7px; padding-right: 7px; }
+        .layout-control { padding-left: 13px; padding-right: 13px; }
+        .layout-range-foot { gap: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none" aria-hidden="true">
+      <defs id="icon-defs"></defs>
+    </svg>
+    <div class="screen-cover" aria-hidden="true" id="page-wallpaper"></div>
+    <header class="app-header">
+      <div class="titlebar">
+        <button
+          class="icon-button"
+          data-action="back"
+          aria-label="返回主题概览"
+          data-icon="back"
+        ></button>
+        <h1>主题与外观</h1>
+        <span class="header-state" id="save-state"
+          ><i class="state-dot"></i><span>已保存</span></span
+        >
+        <button
+          class="icon-button"
+          data-action="more"
+          aria-label="更多主题操作"
+          data-icon="more"
+        ></button>
+      </div>
+      <button class="scope-picker" data-action="scope" aria-label="选择角色主题">
+        <span class="avatar" id="scope-avatar"></span>
+        <span class="scope-copy"
+          ><span class="scope-name"><strong id="scope-name">Echo</strong><span>当前角色</span></span
+          ><span class="scope-sub">独立保存外观，让每次对话都有自己的样子</span></span
+        >
+        <span data-icon="chevron-down"></span>
+      </button>
+      <div class="scope-picker layout-scope" id="layout-scope" hidden>
+        <span class="avatar" data-icon="globe"></span>
+        <span class="scope-copy"><span class="scope-name"><strong>聊天布局</strong><span>全局生效</span></span><span class="scope-sub">所有角色共用，调整留白与阅读节奏</span></span>
+      </div>
+    </header>
+    <nav class="tab-shell" aria-label="外观设置分区">
+      <div class="tabs" role="tablist">
+        <button
+          class="tab"
+          role="tab"
+          id="tab-theme"
+          aria-controls="panel-theme"
+          aria-selected="true"
+          data-tab="theme"
+        >
+          主题
+        </button>
+        <button
+          class="tab"
+          role="tab"
+          id="tab-background"
+          aria-controls="panel-background"
+          aria-selected="false"
+          data-tab="background"
+          tabindex="-1"
+        >
+          背景
+        </button>
+        <button
+          class="tab"
+          role="tab"
+          id="tab-messages"
+          aria-controls="panel-messages"
+          aria-selected="false"
+          data-tab="messages"
+          tabindex="-1"
+        >
+          消息
+        </button>
+        <button
+          class="tab"
+          role="tab"
+          id="tab-interface"
+          aria-controls="panel-interface"
+          aria-selected="false"
+          data-tab="interface"
+          tabindex="-1"
+        >
+          界面
+        </button>
+        <button class="tab" role="tab" id="tab-layout" aria-controls="panel-layout" aria-selected="false" data-tab="layout" tabindex="-1">布局</button>
+      </div>
+    </nav>
+    <main class="workspace">
+      <aside class="preview" aria-label="外观实时预览">
+        <button
+          class="preview-head"
+          data-action="fold-preview"
+          aria-expanded="true"
+          aria-controls="inline-preview"
+        >
+          <span data-icon="eye"></span><strong>实时预览</strong
+          ><span class="live-mark">随设置更新</span><span data-icon="chevron-up"></span>
+        </button>
+        <div id="inline-preview"></div>
+      </aside>
+      <div class="editor" id="editor">
+        <section
+          class="panel"
+          id="panel-theme"
+          role="tabpanel"
+          aria-labelledby="tab-theme"
+        ></section>
+        <section
+          class="panel"
+          id="panel-background"
+          role="tabpanel"
+          aria-labelledby="tab-background"
+          hidden
+        ></section>
+        <section
+          class="panel"
+          id="panel-messages"
+          role="tabpanel"
+          aria-labelledby="tab-messages"
+          hidden
+        ></section>
+        <section
+          class="panel"
+          id="panel-interface"
+          role="tabpanel"
+          aria-labelledby="tab-interface"
+          hidden
+        ></section>
+        <section class="panel" id="panel-layout" role="tabpanel" aria-labelledby="tab-layout" hidden></section>
+      </div>
+    </main>
+    <footer class="actionbar">
+      <div class="save-note">
+        <strong id="footer-scope">Echo 的主题</strong><br /><span id="footer-status"
+          >更改后记得保存</span
+        >
+      </div>
+      <button
+        class="preview-action"
+        data-action="full-preview"
+        aria-label="打开完整外观预览"
+        data-icon="eye"
+      ></button>
+      <button class="primary" id="save-button" data-action="save" disabled>
+        <span data-icon="check"></span>保存更改
+      </button>
+    </footer>
+    <div class="modal-overlay" id="modal-overlay" hidden>
+      <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <header class="modal-head">
+          <h2 id="modal-title"></h2>
+          <button
+            class="icon-button"
+            data-action="close-modal"
+            aria-label="关闭窗口"
+            data-icon="close"
+          ></button>
+        </header>
+        <div class="modal-body" id="modal-body"></div>
+        <footer class="modal-footer" id="modal-footer"></footer>
+      </section>
+    </div>
+    <input type="file" id="file-picker" hidden />
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      // 原型只保存浏览器内的数据，不读取应用中的主题和账号信息。
+      const STORE_KEY = "operit-theme-workbench-layout-v1";
+      const $ = (id) => document.getElementById(id);
+      const paths = {
+        back: "m14 6-6 6 6 6M8 12h12",
+        more: "M12 4v.01M12 12v.01M12 20v.01",
+        "chevron-down": "m6 9 6 6 6-6",
+        "chevron-up": "m6 15 6-6 6 6",
+        next: "m9 6 6 6-6 6",
+        check: "m5 12 4 4L19 6",
+        close: "m6 6 12 12M6 18 18 6",
+        palette:
+          "M12 3a9 9 0 1 0 0 18h2a2 2 0 0 0 0-4h-1a1.5 1.5 0 0 1 0-3h4a4 4 0 0 0 4-4c0-4-4-7-9-7ZM8 9h.01M13 7h.01M17 10h.01",
+        sun: "M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM12 2v2m0 16v2M2 12h2m16 0h2M5 5l1 1m12 12 1 1M5 19l1-1M18 6l1-1",
+        moon: "M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z",
+        system: "M3 4h18v13H3zM8 21h8m-4-4v4",
+        type: "M4 5h16M12 5v15M8 20h8M4 8V5m16 3V5",
+        image: "M3 3h18v18H3zM8 8h.01M3 18l6-6 3 3 4-5 5 6",
+        video: "M3 6h12v12H3zM15 10l6-3v10l-6-3",
+        crop: "M6 3v15h15M3 6h15v15M9 6h9v9",
+        blur: "M6 6h.01M12 6h.01M18 6h.01M3 12h.01M9 12h.01M15 12h.01M21 12h.01M6 18h.01M12 18h.01M18 18h.01",
+        eye: "M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
+        chat: "M4 4h16v13H9l-5 4V4Z",
+        sliders: "M4 7h6m5 0h5M4 17h10m4 0h2M10 4v6m4 4v6",
+        keyboard:
+          "M2 5h20v14H2zM6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10",
+        sparkles: "m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Zm7 0v4m-2-2h4",
+        user: "M16 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-2a8 8 0 0 1 16 0v2",
+        bot: "M4 7h16v14H4zM12 3v4M8 12v2m8-2v2M9 18h6M2 12v5m20-5v5",
+        users:
+          "M12 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM3 20v-2a6 6 0 0 1 12 0v2M16 5a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2",
+        globe: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c-5 5-5 13 0 18 5-5 5-13 0-18Z",
+        upload: "M12 16V3m-5 5 5-5 5 5M4 16v5h16v-5",
+        reset: "M3 10a9 9 0 1 1 2 8M3 4v6h6",
+        leaf: "M20 3C8 3 3 8 4 14c1 6 10 7 13 1 2-4 2-8 3-12ZM5 20 16 9",
+        attachment: "m8 13 6-6a3 3 0 0 1 4 4l-9 9a5 5 0 0 1-7-7L13 2",
+        send: "m5 12 14-8-4 16-4-6-6-2ZM11 14l8-10",
+        info: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM12 11v6m0-10v.01",
+      };
+      $("icon-defs").innerHTML = Object.entries(paths)
+        .map(([id, d]) => `<symbol id="i-${id}" viewBox="0 0 24 24"><path d="${d}" /></symbol>`)
+        .join("");
+      function icon(id, cls = "") {
+        return `<svg class="icon ${cls}" aria-hidden="true"><use href="#i-${id}"></use></svg>`;
+      }
+      function hydrateIcons() {
+        document.querySelectorAll("[data-icon]").forEach((el) => {
+          el.innerHTML = icon(el.dataset.icon);
+        });
+      }
+      function esc(value) {
+        const element = document.createElement("span");
+        element.textContent = String(value);
+        const amp = String.fromCharCode(38);
+        return element.innerHTML
+          .replaceAll(String.fromCharCode(34), amp + "quot;")
+          .replaceAll(String.fromCharCode(39), amp + "#39;");
+      }
+      const clone = (value) => JSON.parse(JSON.stringify(value));
+      const presets = [
+        ["default", "默认", "#526e59", "#b4cda8", "#dce8d6", "#29392b"],
+        ["mist", "雾青", "#497b7c", "#abd1cd", "#d7e9e6", "#25484a"],
+        ["apricot", "暖杏", "#916548", "#e0bb99", "#efdfca", "#5b432e"],
+        ["violet", "暮紫", "#79688d", "#cdb9dd", "#e7dfee", "#4e3a5d"],
+        ["custom", "自定义", "#526e59", "#b4cda8", "#dce8d6", "#29392b"],
+      ];
+      const displayFields = [
+        ["showThinking", "思考过程", "显示可折叠的思考内容"],
+        ["showProvider", "模型供应商", "在 AI 消息中显示服务来源"],
+        ["showModel", "模型名称", "显示本次回复使用的模型"],
+        ["showRole", "角色卡名", "显示当前回复角色的名称"],
+        ["showUsername", "用户名称", "显示用户消息上方的名字"],
+        ["showTokens", "Token 简报", "可展开查看用量与缓存命中"],
+        ["showSpeed", "Token 生成速率", "在详情中显示每秒生成数量"],
+        ["showDuration", "耗时简报", "显示首字等待与生成耗时"],
+        ["showTime", "消息时间", "显示消息完成时间"],
+        ["showTask", "任务状态标签", "显示完成与等待状态"],
+        ["showProcessing", "输入处理状态", "在输入框上方显示任务进度"],
+        ["showParticles", "对话浮点动画", "回复生成时显示轻量动效"],
+      ];
+      const defaults = {
+        mode: "light",
+        palette: "default",
+        customAccent: "#526e59",
+        font: "default",
+        fontData: "",
+        fontFile: "",
+        fontScale: 100,
+        background: true,
+        mediaType: "image",
+        mediaData: "",
+        mediaName: "林间光影",
+        backgroundOpacity: 30,
+        backgroundBlur: false,
+        blurAmount: 12,
+        cropZoom: 100,
+        cropX: 50,
+        cropY: 50,
+        chatStyle: "bubble",
+        wide: false,
+        showAvatar: true,
+        avatarShape: "circle",
+        avatarCorner: 8,
+        userAvatar: "",
+        aiAvatar: "",
+        userColor: "#dce8d6",
+        userText: "#29392b",
+        aiColor: "#ffffff",
+        aiText: "#30392f",
+        userCustom: false,
+        aiCustom: false,
+        userFont: "default",
+        aiFont: "default",
+        userFontData: "",
+        aiFontData: "",
+        userFontFile: "",
+        aiFontFile: "",
+        userRound: true,
+        aiRound: true,
+        userTransparency: 0,
+        aiTransparency: 0,
+        userGlass: "normal",
+        aiGlass: "normal",
+        userImage: "",
+        aiImage: "",
+        userImageName: "",
+        aiImageName: "",
+        userDecoration: 100,
+        aiDecoration: 100,
+        userSpace: 12,
+        aiSpace: 12,
+        userSlice: 16,
+        aiSlice: 16,
+        userBorder: "normal",
+        aiBorder: "normal",
+        renderMode: "tile",
+        inputStyle: "agent",
+        inputFloating: false,
+        inputTransparency: 18,
+        inputGlass: "normal",
+        particleColor: "#ffffff",
+        sidebarGlass: false,
+        sidebarButtons: false,
+        glassList: false,
+        glassSettings: false,
+        glassPackages: false,
+        glassBlur: 12,
+        glassEdge: 0.4,
+        glassHighlight: 18,
+        glassShadow: 4,
+        glassOpacity: 24,
+        sidebarColor: "#f5f6f2",
+        sidebarSelected: "#eaf0e6",
+        marketColor: "#edf0e8",
+        addColor: "#526e59",
+        showThinking: true,
+        showProvider: false,
+        showModel: false,
+        showRole: false,
+        showUsername: false,
+        showTokens: true,
+        showSpeed: true,
+        showDuration: true,
+        showTime: true,
+        showTask: true,
+        showProcessing: true,
+        showParticles: true,
+      };
+      // 五项布局属于全局草稿，切换角色不会为每个角色建立布局副本。
+      const layoutFields = {
+        chatSettingsButtonEndPadding: { title: "聊天设置按钮右边距", description: "调整聊天顶部设置按钮与右侧边缘的距离。", min: 0, max: 50, value: 2, unit: "dp" },
+        chatAreaHorizontalPadding: { title: "聊天区域水平内边距", description: "调整消息区域左右两侧的留白。", min: 0, max: 50, value: 16, unit: "dp" },
+        aiMarkdownLineHeightMultiplier: { title: "AI 回复行高倍率", description: "调整同一段文字内，每一行之间的距离。", min: .8, max: 2, value: 1, unit: "×" },
+        aiMarkdownLetterSpacing: { title: "AI 回复字间距", description: "调整文字之间的疏密，支持负数。", min: -1, max: 8, value: 0, unit: "sp" },
+        aiMarkdownParagraphSpacing: { title: "AI 回复段落间距", description: "调整段落之间的留白，让内容更容易分辨。", min: 0, max: 48, value: 12, unit: "dp" },
+      };
+      const layoutDefaults = Object.fromEntries(Object.entries(layoutFields).map(([key, field]) => [key, field.value]));
+      function initialModel() {
+        return {
+          version: 2,
+          activeId: "echo",
+          common: { username: "你", avatar: "", language: "system", layout: clone(layoutDefaults) },
+          profiles: {
+            echo: { name: "Echo", theme: clone(defaults) },
+            day: {
+              name: "日常助手",
+              theme: {
+                ...clone(defaults),
+                palette: "mist",
+                userColor: "#d7e9e6",
+                userText: "#25484a",
+              },
+            },
+            reading: {
+              name: "阅读搭子",
+              theme: {
+                ...clone(defaults),
+                palette: "apricot",
+                userColor: "#efdfca",
+                userText: "#5b432e",
+                font: "serif",
+              },
+            },
+          },
+        };
+      }
+      let model = initialModel();
+      let storageIssue = "";
+      try {
+        const stored = localStorage.getItem(STORE_KEY);
+        if (stored) {
+          const loaded = JSON.parse(stored);
+          if (
+            loaded.version !== 2 ||
+            !loaded.profiles?.echo ||
+            !loaded.profiles[loaded.activeId] ||
+            !loaded.common ||
+            !loaded.common.layout ||
+            !Object.entries(layoutFields).every(([key, field]) => Number.isFinite(loaded.common.layout[key]) && loaded.common.layout[key] >= field.min && loaded.common.layout[key] <= field.max)
+          )
+            throw new Error("本地主题结构不完整");
+          model = loaded;
+          Object.values(model.profiles).forEach((p) => {
+            p.theme = { ...clone(defaults), ...p.theme };
+          });
+        }
+      } catch (error) {
+        console.error("读取主题原型失败", error);
+        storageIssue = "本地保存暂不可用，仍可预览";
+      }
+      let draft = clone(model.profiles[model.activeId].theme),
+        common = clone(model.common);
+      let snapshot = JSON.stringify({ draft, common });
+      let currentTab = "layout",
+        previewOpen = true,
+        displayOpen = false,
+        modal = null,
+        previousFocus = null,
+        toastTimer,
+        fileRequest;
+      const fontFaces = new Map();
+      function get(key) {
+        if (key.startsWith("layout.")) return common.layout[key.slice(7)];
+        return key.startsWith("global.") ? common[key.slice(7)] : draft[key];
+      }
+      function put(key, value) {
+        if (key.startsWith("layout.")) common.layout[key.slice(7)] = value;
+        else if (key.startsWith("global.")) common[key.slice(7)] = value;
+        else draft[key] = value;
+      }
+      function dirty() {
+        return snapshot !== JSON.stringify({ draft, common });
+      }
+      const fontLabel = (value) =>
+        ({
+          default: "跟随主题",
+          system: "系统默认",
+          serif: "衬线字体",
+          mono: "等宽字体",
+          file: "自定义字体",
+        })[value];
+      const glassLabel = (value) =>
+        ({ normal: "普通", frosted: "磨砂玻璃", water: "水玻璃" })[value];
+      const modeLabel = (value) => ({ system: "跟随系统", light: "浅色", dark: "深色" })[value];
+      const languages = {
+        system: "跟随系统",
+        zh: "简体中文",
+        en: "English",
+        es: "Español",
+        id: "Bahasa Indonesia",
+        ko: "한국어",
+        ms: "Bahasa Melayu",
+        pt: "Português",
+        ro: "Română",
+      };
+      function toggle(key, title, sub = "") {
+        return `<button class="row" role="switch" data-toggle="${key}" aria-checked="${Boolean(get(key))}"><span class="row-copy"><span class="row-title">${title}</span>${sub ? `<span class="row-sub" style="display:block">${sub}</span>` : ""}</span><span class="switch" aria-hidden="true"></span></button>`;
+      }
+      function segment(key, options, title = "") {
+        return `<div class="segment-block">${title ? `<div class="control-label">${title}</div>` : ""}<div class="segmented" role="group" aria-label="${title || key}">${options.map(([value, label, glyph]) => `<button data-set="${key}" data-value="${value}" aria-pressed="${get(key) === value}">${glyph ? icon(glyph, "small") : ""}${label}</button>`).join("")}</div></div>`;
+      }
+      function range(key, title, min, max, step = 1, suffix = "%", ends = "") {
+        const val = get(key);
+        return `<div class="control"><label class="control-label" for="range-${key.replaceAll(".", "-")}">${title}<output data-output="${key}">${Number(val).toFixed(step < 1 ? 1 : 0)}${suffix}</output></label><input class="range" type="range" id="range-${key.replaceAll(".", "-")}" min="${min}" max="${max}" step="${step}" value="${val}" data-range="${key}" data-suffix="${suffix}" style="--progress:${((val - min) / (max - min)) * 100}%" />${ends ? `<div class="range-ends"><span>${ends.split("|")[0]}</span><span>${ends.split("|")[1]}</span></div>` : ""}</div>`;
+      }
+      function colorDot(value) {
+        return `<span class="color-dot" style="--color:${esc(value)}"></span>`;
+      }
+      function colorRow(key, title, reset = false) {
+        return `<div class="row"><span class="row-copy row-title">${title}</span>${reset ? `<button class="text-button small-button" data-reset-color="${key}">默认</button>` : ""}<div class="color-editor"><label class="color-control">${colorDot(get(key))}<input class="color-input" type="color" value="${get(key)}" data-color="${key}" aria-label="${title}" /></label><input type="text" maxlength="7" value="${get(key)}" data-hex="${key}" aria-label="${title}十六进制色值" spellcheck="false" /></div></div>`;
+      }
+      function actionRow(action, title, sub = "", value = "", leading = "") {
+        return `<button class="row" data-action="${action}">${leading}<span class="row-copy"><span class="row-title">${title}</span>${sub ? `<span class="row-sub" style="display:block">${sub}</span>` : ""}</span>${value ? `<span class="row-value">${value}</span>` : ""}${icon("next", "chevron")}</button>`;
+      }
+      function section(title, glyph, content, note = "", extra = "") {
+        return `<article class="section"><header class="section-head">${icon(glyph)}<h2>${title}</h2>${extra}</header>${note ? `<p class="section-note">${note}</p>` : ""}${content}</article>`;
+      }
+      function sceneHTML(force = false) {
+        if (!draft.background && !force) return "";
+        const opacity = force ? 1 : draft.backgroundOpacity / 100;
+        const style = `transform:scale(${draft.cropZoom / 100});object-position:${draft.cropX}% ${draft.cropY}%;filter:blur(${draft.backgroundBlur ? draft.blurAmount : 0}px)`;
+        const media = draft.mediaData
+          ? draft.mediaType === "video"
+            ? `<video src="${esc(draft.mediaData)}" autoplay muted loop playsinline style="${style}"></video>`
+            : `<img src="${esc(draft.mediaData)}" alt="" style="${style}" />`
+          : `<div class="natural-scene" style="${style}"></div>`;
+        return `<div class="wallpaper" style="opacity:${opacity};--media-x:${draft.cropX}%;--media-y:${draft.cropY}%">${media}</div>`;
+      }
+      function avatarHTML(kind = "ai", small = false) {
+        const data = kind === "ai" ? draft.aiAvatar : draft.userAvatar || common.avatar;
+        const art = `<svg class="avatar-art" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" fill="#dce6d5"/><path d="M11 38C9 18 25 10 30 5c-2 12-2 28-19 33Z" fill="#789278"/><path d="m12 36 13-23" fill="none" stroke="#e3eddb"/><circle cx="11" cy="10" r="6" fill="#f0edd5"/></svg>`;
+        return `<span class="avatar ${kind === "user" ? "user" : ""} ${small ? "small" : ""}" style="${draft.avatarShape === "square" ? `border-radius:${draft.avatarCorner}px` : ""}">${data ? `<img src="${esc(data)}" alt="${kind === "ai" ? "AI" : "用户"}头像" />` : kind === "user" ? icon("user", "small") : art}</span>`;
+      }
+      const layoutNumber = (value) => Number(Number(value).toFixed(2)).toString();
+      function layoutControl(key) {
+        const field = layoutFields[key], value = common.layout[key];
+        return `<div class="control layout-control"><div class="control-label"><span>${field.title}</span><button class="layout-value" data-edit-layout="${key}" aria-label="输入${field.title}，当前 ${layoutNumber(value)} ${field.unit}"><output data-output="layout.${key}">${layoutNumber(value)} ${field.unit}</output></button></div><p class="row-sub">${field.description}</p><input class="range" type="range" min="${field.min}" max="${field.max}" step="0.01" value="${value}" id="range-layout-${key}" data-range="layout.${key}" data-suffix=" ${field.unit}" aria-label="${field.title}" style="--progress:${(value - field.min) / (field.max - field.min) * 100}%" /><div class="layout-range-foot"><span>${layoutNumber(field.min)}–${layoutNumber(field.max)} ${field.unit} · 默认 ${layoutNumber(field.value)} ${field.unit}</span><button class="layout-default" data-reset-layout="${key}" ${value === field.value ? "disabled" : ""}>恢复默认</button></div></div>`;
+      }
+      function layoutPreviewHTML() {
+        const values = common.layout;
+        const sample = sampleIndex % 2 === 0
+          ? `<h3>给日常，留一点空白</h3><p>把常做的事放在顺手的位置，让每次打开对话，都有熟悉的节奏。</p><p>不必把所有内容挤在一起。合适的行距与段落留白，会让阅读更轻松。</p><ul><li>先看清眼前的一件事</li><li>再慢慢整理接下来的计划</li></ul><blockquote>每一段话，都有自己的呼吸。</blockquote>`
+          : `<h3>今天，从一件小事开始</h3><p>先写下最重要的任务，给它留出一段完整的时间。</p><p>完成之后，记得停下来休息。我们可以用 <code>Markdown</code> 整理想法，也可以只写一段短短的记录。</p><ul><li>留白，让重点更清楚</li><li>慢一点，读完每一段</li></ul>`;
+        return `<div class="chat-preview layout-preview" style="font-family:${fontCSS(draft.font)}">${sceneHTML()}<div class="layout-chat-head"><div><strong>${esc(model.profiles[model.activeId].name)}</strong><small>聊天间距与 AI 回复排版</small></div><span class="layout-settings-marker" style="margin-right:${values.chatSettingsButtonEndPadding}px" aria-label="聊天设置按钮位置示意">${icon("sliders", "small")}</span></div><div class="layout-conversation" style="padding-left:${values.chatAreaHorizontalPadding}px;padding-right:${values.chatAreaHorizontalPadding}px"><div class="layout-user-line"><div class="bubble" style="${bubbleStyle("user")}">帮我整理一下今天的想法。</div></div><div class="layout-ai-line">${draft.showAvatar ? avatarHTML("ai", true) : ""}<div class="layout-ai-body"><div class="bubble" style="${bubbleStyle("ai")}"><div class="layout-markdown" style="--layout-line:${values.aiMarkdownLineHeightMultiplier};--layout-letter:${values.aiMarkdownLetterSpacing}px;--layout-paragraph:${values.aiMarkdownParagraphSpacing}px">${sample}</div></div><div class="layout-preview-meta">Markdown 预览 · 标题、段落与列表</div></div></div></div><div class="preview-input"><span>发送一条消息…</span>${icon("send", "small")}</div></div><div class="preview-foot"><span>所有角色共用这组布局</span><button data-action="preview-cycle">换一段文字</button></div>`;
+      }
+      function renderPanels() {
+        $("panel-theme").innerHTML =
+          section(
+            "主题模式",
+            "sun",
+            segment("mode", [
+              ["system", "跟随系统", "system"],
+              ["light", "浅色", "sun"],
+              ["dark", "深色", "moon"],
+            ]),
+            "在浅色与深色之间，找到舒服的亮度。",
+          ) +
+          section(
+            "主题色",
+            "palette",
+            `<div class="palette-row">${presets.map((p) => `<button class="palette" data-palette="${p[0]}" aria-pressed="${draft.palette === p[0]}"><span class="palette-dot" style="--swatch:${p[0] === "custom" ? "conic-gradient(#a8c6bf,#dcc49d,#c3b3d3,#9ab7cb,#a8c6bf)" : `linear-gradient(135deg,${p[2]} 50%,${p[4]} 50%)`}">${icon("check")}</span><span>${p[1]}</span></button>`).join("")}</div>${draft.palette === "custom" ? colorRow("customAccent", "自定义主色") : ""}`,
+            "主色会应用到选中状态、按钮与重点信息。",
+          ) +
+          section(
+            "文字",
+            "type",
+            actionRow(
+              "font-global",
+              "界面字体",
+              draft.font === "file"
+                ? esc(draft.fontFile || "选择字体文件")
+                : "消息字体可在「消息」中单独设置",
+              draft.font === "default" ? "系统默认" : fontLabel(draft.font),
+            ) + range("fontScale", "字体大小", 80, 140, 5),
+          ) +
+          section(
+            "语言",
+            "globe",
+            actionRow(
+              "language",
+              "应用语言",
+              "对所有角色生效，切换后重新打开应用",
+              languages[common.language],
+            ),
+          );
+        $("panel-background").innerHTML =
+          section(
+            "背景媒体",
+            "image",
+            toggle("background", "使用自定义背景", "图片或视频跟随当前角色的主题") +
+              (draft.background
+                ? `<div class="media-cover">${sceneHTML(true)}<span class="caption">${esc(draft.mediaName || "林间光影")}</span><div class="cover-tools"><button data-action="crop" aria-label="调整背景裁剪">${icon("crop")}</button><button data-action="clear-background" aria-label="恢复示例背景">${icon("reset")}</button></div></div><div class="media-actions"><button class="secondary" data-upload="background-image">${icon("image", "small")}选择图片</button><button class="secondary" data-upload="background-video">${icon("video", "small")}选择视频</button></div>`
+                : `<div class="inline-note">${icon("image")}开启后可选择背景，已保存的媒体会保留。</div>`),
+          ) +
+          section(
+            "背景效果",
+            "sliders",
+            range("backgroundOpacity", "背景不透明度", 0, 100, 1, "%", "更轻|更清晰") +
+              toggle("backgroundBlur", "背景模糊", "柔化细节，让消息更容易阅读") +
+              (draft.backgroundBlur ? range("blurAmount", "模糊程度", 0, 30, 1, " dp") : ""),
+          );
+        const displayCount = displayFields.filter(([key]) => draft[key]).length;
+        $("panel-messages").innerHTML =
+          section(
+            "消息布局",
+            "chat",
+            segment("chatStyle", [
+              ["bubble", "气泡式", "chat"],
+              ["command", "命令式", "keyboard"],
+            ]) +
+              toggle("wide", "更宽的消息布局", "消息移到头像下方，留出更多阅读空间") +
+              toggle("showAvatar", "显示消息头像"),
+          ) +
+          section(
+            "消息外观",
+            "palette",
+            actionRow(
+              "bubble-user",
+              "用户消息",
+              `${fontLabel(draft.userFont)} · ${draft.userImage ? "图片气泡" : glassLabel(draft.userGlass)}`,
+              "",
+              `<span class="mini-pair">${colorDot(draft.userColor)}${colorDot(draft.userText)}</span>`,
+            ) +
+              actionRow(
+                "bubble-ai",
+                "AI 消息",
+                `${fontLabel(draft.aiFont)} · ${draft.aiImage ? "图片气泡" : glassLabel(draft.aiGlass)}`,
+                "",
+                `<span class="mini-pair">${colorDot(draft.aiColor)}${colorDot(draft.aiText)}</span>`,
+              ) +
+              actionRow(
+                "avatars",
+                "头像与名称",
+                "角色专属头像、全局用户头像与名字",
+                "",
+                avatarHTML("user", true),
+              ),
+          ) +
+          `<article class="section"><button class="fold-head" data-action="fold-display" aria-expanded="${displayOpen}" aria-controls="display-body">${icon("eye")}<strong>消息信息与状态</strong><span class="meta">${displayCount} / ${displayFields.length} 已开启</span>${icon("chevron-down")}</button><div class="fold-body" id="display-body" ${displayOpen ? "" : "hidden"}>${displayFields.map(([key, title, sub]) => toggle(key, title, sub)).join("")}</div></article>`;
+        const glassCount = ["glassList", "glassSettings", "glassPackages"].filter(
+          (key) => draft[key],
+        ).length;
+        $("panel-interface").innerHTML =
+          section(
+            "输入框",
+            "keyboard",
+            segment("inputStyle", [
+              ["classic", "经典", "chat"],
+              ["agent", "Agent", "sparkles"],
+            ]) +
+              toggle("inputFloating", "悬浮输入框", "两种样式均可使用全圆角悬浮布局") +
+              range("inputTransparency", "输入框背景透明度", 0, 100) +
+              actionRow(
+                "input-glass",
+                "输入框质感",
+                "只改变背景，不影响文字可读性",
+                glassLabel(draft.inputGlass),
+              ) +
+              colorRow("particleColor", "思考粒子颜色", true),
+          ) +
+          section(
+            "侧边栏",
+            "sliders",
+            toggle("sidebarGlass", "水玻璃侧滑菜单", "在背景上呈现柔和模糊与折射") +
+              toggle("sidebarButtons", "侧边栏按钮磨砂", "应用到导航、插件与底部操作") +
+              actionRow("sidebar-colors", "侧栏与包管理配色", "背景、选中态与按钮颜色", "自定义"),
+          ) +
+          section(
+            "玻璃外观",
+            "blur",
+            `<div class="texture-sample"><span class="glass-demo">柔和，通透，有一点层次</span></div>` +
+              actionRow(
+                "glass",
+                "调整玻璃参数",
+                "已开启的玻璃区域共用这组参数",
+                `${draft.glassBlur} dp · ${draft.glassOpacity}%`,
+              ) +
+              toggle("glassList", "对话列表磨砂") +
+              toggle("glassSettings", "设置分组与卡片磨砂") +
+              toggle("glassPackages", "包管理列表与按钮磨砂"),
+            "",
+            `<span class="meta">${glassCount} 处开启</span>`,
+          );
+        $("panel-layout").innerHTML =
+          section("聊天间距", "sliders", layoutControl("chatSettingsButtonEndPadding") + layoutControl("chatAreaHorizontalPadding"), "按钮靠近一点，消息舒展一点。") +
+          section("AI 回复排版", "type", layoutControl("aiMarkdownLineHeightMultiplier") + layoutControl("aiMarkdownLetterSpacing") + layoutControl("aiMarkdownParagraphSpacing"), "从一行文字，到一整段内容。") +
+          `<p class="layout-note">${icon("globe")}<span>这五项设置对所有角色生效。点击数值可精确输入小数，调整后与主题一起保存。</span></p><button class="layout-reset" data-action="reset-layout">${icon("reset", "small")}恢复布局默认值</button>`;
+      }
+
+      // 预览只使用固定示例消息，所有视觉参数与编辑区共用同一份草稿。
+      let sampleIndex = 0,
+        previewRunning = false,
+        previewSidebar = false,
+        previewDetails = false,
+        previewThinking = false;
+      const sampleMessages = [
+        ["把日常，调成喜欢的样子。", "留一点空白，也留一点自己的颜色。"],
+        ["帮我安排一下今天的计划。", "先把重要的事留在上午，傍晚给自己一点放松的时间。"],
+        ["今天想看点轻松的内容。", "那就从一段短文开始吧。不赶进度，慢慢看。"],
+      ];
+      function actualDark() {
+        return (
+          draft.mode === "dark" ||
+          (draft.mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+        );
+      }
+      function rgb(hex) {
+        return [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+      }
+      function rgba(hex, alpha) {
+        return `rgba(${rgb(hex).join(",")},${alpha})`;
+      }
+      function palette() {
+        return presets.find((p) => p[0] === draft.palette);
+      }
+      function bubbleColors(kind) {
+        if (kind === "user") return [draft.userColor, draft.userText];
+        return actualDark() && !draft.aiCustom
+          ? ["#29362d", "#e2eadb"]
+          : [draft.aiColor, draft.aiText];
+      }
+      function fontCSS(type, prefix = "") {
+        const effective = type === "default" && prefix ? draft.font : type;
+        const filePrefix = type === "default" && prefix ? "" : prefix;
+        if (effective === "serif") return "Georgia, Noto Serif CJK SC, Songti SC, serif";
+        if (effective === "mono") return "ui-monospace, Noto Sans Mono, monospace";
+        if (effective === "file") return `ThemeFont${filePrefix}, sans-serif`;
+        return "-apple-system, BlinkMacSystemFont, Segoe UI, Noto Sans CJK SC, sans-serif";
+      }
+      function glassStyle(value) {
+        if (value === "normal") return "";
+        return `backdrop-filter:blur(${draft.glassBlur}px) saturate(${value === "water" ? 1.6 : 1.05});border:${draft.glassEdge}px solid rgba(255,255,255,${draft.glassHighlight / 100});box-shadow:0 2px ${draft.glassShadow * 2}px #182f2424;`;
+      }
+      function bubbleStyle(kind) {
+        const [bg, text] = bubbleColors(kind);
+        let style = `color:${text};background:${rgba(bg, 1 - draft[kind + "Transparency"] / 100)};font-family:${fontCSS(draft[kind + "Font"], kind)};`;
+        if (!draft[kind + "Round"]) style += "border-radius:1px;";
+        const glass = draft[kind + "Glass"];
+        if (glass !== "normal")
+          return style + `background:${rgba(bg, draft.glassOpacity / 100)};` + glassStyle(glass);
+        const data = draft[kind + "Image"];
+        if (data) {
+          style += `padding:${draft[kind + "Space"]}px;`;
+          if (draft.renderMode === "tile")
+            style += `background-image:url(${data});background-size:${draft[kind + "Decoration"]}px auto;background-repeat:repeat;`;
+          else
+            style += `border-image-source:url(${data});border-image-slice:${draft[kind + "Slice"]} fill;border-style:solid;border-width:${{ small: 7, normal: 12, large: 18 }[draft[kind + "Border"]]}px;`;
+        }
+        return style;
+      }
+      function previewHTML(full = false) {
+        const messages = sampleMessages[sampleIndex % sampleMessages.length];
+        const role = model.profiles[model.activeId].name;
+        const meta = [
+          draft.showTokens ? "1.2k tokens" : "",
+          draft.showDuration ? "1.8 s" : "",
+          draft.showTime ? "09:41" : "",
+          draft.showTask ? "已完成" : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const aiName = [
+          draft.showRole ? esc(role) : "",
+          draft.showProvider ? "OpenAI" : "",
+          draft.showModel ? "gpt-4.1" : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+        const inputGlass = draft.inputGlass === "normal" ? "" : glassStyle(draft.inputGlass);
+        const drawer = previewSidebar
+          ? `<div class="drawer-demo" style="background:${rgba(draft.sidebarColor, draft.sidebarGlass ? draft.glassOpacity / 100 : 0.95)};${draft.sidebarGlass ? glassStyle("water") : ""}"><strong>${esc(role)}</strong><span style="background:${draft.sidebarSelected};color:#3e5947">今天的对话</span><span>新的想法</span><div style="display:flex;gap:5px"><i style="background:${draft.marketColor};${draft.sidebarButtons ? glassStyle("frosted") : ""}">${icon("users")}</i><i style="background:${draft.addColor};color:white;${draft.sidebarButtons ? glassStyle("frosted") : ""}">+</i></div></div>`
+          : "";
+        return `<div class="chat-preview ${draft.chatStyle === "command" ? "bubble-command" : ""} ${draft.wide ? "bubble-wide" : ""} ${full ? "full" : ""}" style="font-family:${fontCSS(draft.font)}">${sceneHTML()}${drawer}<div class="preview-conversation" style="font-size:${(12 * draft.fontScale) / 100}px;${full ? "min-height:250px" : ""}"><div class="preview-message user-message">${draft.showAvatar ? avatarHTML("user", true) : ""}<div class="message-body">${draft.showUsername ? `<div class="preview-name">${esc(common.username || "你")}</div>` : ""}<div class="bubble" style="${bubbleStyle("user")}">${messages[0]}</div></div></div><div class="preview-message">${draft.showAvatar ? avatarHTML("ai", true) : ""}<div class="message-body">${aiName ? `<div class="preview-name">${aiName}</div>` : ""}${draft.showThinking ? `<button class="thinking-preview" data-action="preview-thinking">${icon("sparkles", "small")}思考过程 ${previewThinking ? "−" : "+"}</button>${previewThinking ? '<p class="thought-copy">先把事情放慢，再从最重要的一件开始。</p>' : ""}` : ""}<div class="bubble" style="${bubbleStyle("ai")}">${previewRunning ? "正在整理思路…" : messages[1]}</div>${meta && !previewRunning ? `<button class="message-footer" data-action="preview-meta">${meta}</button>` : ""}${previewDetails && !previewRunning ? `<div class="preview-metadata">${draft.showTokens ? "输入 820 · 输出 380 · 缓存 0<br>" : ""}${draft.showSpeed && draft.showTokens ? "生成速率 46 tokens/s<br>" : ""}${draft.showDuration ? "首字等待 0.4 s · 生成耗时 1.4 s" : ""}</div>` : ""}</div></div></div>${previewRunning && draft.showProcessing ? '<div class="processing-preview">正在生成回复…</div>' : ""}${previewRunning && draft.showParticles ? `<div class="particle-preview" style="color:${draft.particleColor}">· · ·</div>` : ""}<div class="preview-input ${draft.inputStyle === "classic" ? "classic" : ""} ${draft.inputFloating ? "floating" : ""}" style="${inputGlass}">${icon(draft.inputStyle === "agent" ? "sparkles" : "attachment")}<span>发送一条消息…</span><button class="send" data-action="preview-send" aria-label="播放一轮示例对话" ${previewRunning ? "disabled" : ""}>${icon("send")}</button></div></div><div class="preview-foot"><span>${draft.chatStyle === "bubble" ? "气泡式" : "命令式"} · ${draft.inputStyle === "agent" ? "Agent 输入框" : "经典输入框"}</span><button data-action="preview-sidebar">${previewSidebar ? "收起侧栏" : "看看侧栏"}</button></div>`;
+      }
+      function applyVisuals() {
+        const root = document.documentElement,
+          p = palette(),
+          dark = actualDark();
+        root.dataset.theme = dark ? "dark" : "light";
+        const accent = draft.palette === "custom" ? draft.customAccent : p[dark ? 3 : 2];
+        root.style.setProperty("--accent", accent);
+        root.style.setProperty("--accent-ink", dark ? "#203323" : "#ffffff");
+        root.style.setProperty("--soft", rgba(accent, dark ? 0.14 : 0.09));
+        root.style.setProperty("--soft-ink", accent);
+        root.style.setProperty("--input-alpha", 1 - draft.inputTransparency / 100);
+        root.style.setProperty("--glass-blur", draft.glassBlur + "px");
+        root.style.setProperty("--glass-opacity", draft.glassOpacity / 100);
+        root.style.fontFamily = fontCSS(draft.font);
+        document.body.classList.toggle("page-glass", draft.glassSettings);
+        $("page-wallpaper").innerHTML = draft.background ? sceneHTML(true) : "";
+        const name = model.profiles[model.activeId].name;
+        $("scope-name").textContent = name;
+        $("scope-avatar").innerHTML = avatarHTML("ai");
+        const layoutActive = currentTab === "layout";
+        document.querySelector(".scope-picker[data-action='scope']").hidden = layoutActive;
+        $("layout-scope").hidden = !layoutActive;
+        $("footer-scope").textContent = layoutActive ? "全局聊天布局" : name + " 的主题";
+        document.querySelector('meta[name="theme-color"]').content = dark ? "#171e1a" : "#f5f6f2";
+      }
+      function syncStatus() {
+        const changed = dirty();
+        $("save-state").classList.toggle("dirty", changed);
+        $("save-state").querySelector("span").textContent = changed ? "未保存" : "已保存";
+        $("save-button").disabled = !changed;
+        const layoutChanged = JSON.stringify(common.layout) !== JSON.stringify(model.common.layout);
+        $("footer-status").textContent = currentTab === "layout"
+          ? (changed ? "有未保存的更改 · 布局对所有角色生效" : "所有角色共用这组布局")
+          : (changed ? (layoutChanged ? "有未保存的更改 · 含全局布局" : "有未保存的更改") : "仅应用到当前角色");
+      }
+      function renderPreview() {
+        $("inline-preview").innerHTML = currentTab === "layout" ? layoutPreviewHTML() : previewHTML();
+        $("inline-preview").hidden = !previewOpen;
+        document.querySelector(".preview-head").setAttribute("aria-expanded", String(previewOpen));
+        document.querySelector(".preview-head [data-icon]:last-child").dataset.icon = previewOpen
+          ? "chevron-up"
+          : "chevron-down";
+        if (modal?.type === "preview") $("modal-body").innerHTML = currentTab === "layout" ? layoutPreviewHTML() : previewHTML(true);
+      }
+      function render() {
+        applyVisuals();
+        renderPanels();
+        renderPreview();
+        syncStatus();
+        if (modal) renderModal();
+        hydrateIcons();
+      }
+      function notify(message) {
+        clearTimeout(toastTimer);
+        $("toast").textContent = message;
+        $("toast").classList.add("visible");
+        toastTimer = setTimeout(() => $("toast").classList.remove("visible"), 2500);
+      }
+      function change(key, value, full = true) {
+        put(key, value);
+        if (["userColor", "userText"].includes(key)) draft.userCustom = true;
+        if (["aiColor", "aiText"].includes(key)) draft.aiCustom = true;
+        if (full) render();
+        else {
+          applyVisuals();
+          renderPreview();
+          syncStatus();
+          syncControls(key);
+          hydrateIcons();
+        }
+      }
+      function syncControls(key) {
+        document.querySelectorAll("[data-range]").forEach((el) => {
+          if (el.dataset.range !== key) return;
+          el.value = get(key);
+          el.style.setProperty(
+            "--progress",
+            ((Number(el.value) - Number(el.min)) / (Number(el.max) - Number(el.min))) * 100 + "%",
+          );
+          el.closest(".control").querySelector("output").textContent =
+            (key.startsWith("layout.") ? layoutNumber(el.value) : Number(el.value).toFixed(Number(el.step) < 1 ? 1 : 0)) + el.dataset.suffix;
+          if (key.startsWith("layout.")) {
+            const fieldKey = key.slice(7), field = layoutFields[fieldKey];
+            el.closest(".control").querySelector("[data-reset-layout]").disabled = Number(el.value) === field.value;
+            el.closest(".control").querySelector("[data-edit-layout]").setAttribute("aria-label", `输入${field.title}，当前 ${layoutNumber(el.value)} ${field.unit}`);
+          }
+        });
+        document.querySelectorAll("[data-color], [data-hex]").forEach((el) => {
+          if (el.dataset.color === key || el.dataset.hex === key) {
+            if (el !== document.activeElement) el.value = get(key);
+            el.closest(".row").querySelector(".color-dot").style.setProperty("--color", get(key));
+          }
+        });
+        if (modal?.type === "crop" && key.startsWith("crop"))
+          $("crop-scene").innerHTML = sceneHTML(true);
+      }
+      function choices(key, values) {
+        return values
+          .map(
+            ([value, label, sub]) =>
+              `<button class="row choice-row" role="radio" aria-checked="${get(key) === value}" data-choice="${key}" data-value="${value}"><span class="row-copy"><span class="row-title">${label}</span>${sub ? `<span class="row-sub" style="display:block">${sub}</span>` : ""}</span><span class="option-mark">${icon("check")}</span></button>`,
+          )
+          .join("");
+      }
+      const modalHistory = [];
+      function openModal(type, data = {}) {
+        if (
+          modal &&
+          ((modal.type === "bubble" && ["font", "glass"].includes(type)) ||
+            (modal.type === "input-glass" && type === "glass"))
+        )
+          modalHistory.push({ ...modal });
+        else modalHistory.length = 0;
+        if ($("modal-overlay").hidden) previousFocus = document.activeElement;
+        modal = { type, ...data };
+        $("modal-overlay").hidden = false;
+        document.body.classList.add("modal-open");
+        renderModal();
+        $("modal-overlay").querySelector('[data-action="close-modal"]').focus();
+      }
+      function closeModal() {
+        if (modalHistory.length) {
+          modal = modalHistory.pop();
+          renderModal();
+          return;
+        }
+        modal = null;
+        $("modal-overlay").hidden = true;
+        document.body.classList.remove("modal-open");
+        previousFocus?.focus?.();
+      }
+      function fontKey(which) {
+        return which === "global" ? "font" : which + "Font";
+      }
+      function fontDataKey(which) {
+        return which === "global" ? "fontData" : which + "FontData";
+      }
+      function fontFileKey(which) {
+        return which === "global" ? "fontFile" : which + "FontFile";
+      }
+      function bubbleEditor(kind) {
+        return (
+          section(
+            "颜色与文字",
+            "palette",
+            colorRow(kind + "Color", "气泡颜色") +
+              colorRow(kind + "Text", "文字颜色") +
+              actionRow(
+                "font-" + kind,
+                "消息字体",
+                get(kind + "Font") === "file" ? esc(get(kind + "FontFile")) : "",
+                fontLabel(get(kind + "Font")),
+              ) +
+              toggle(kind + "Round", "圆角消息") +
+              range(kind + "Transparency", "背景透明度", 0, 100),
+          ) +
+          section(
+            "背景质感",
+            "blur",
+            segment(kind + "Glass", [
+              ["normal", "普通"],
+              ["frosted", "磨砂"],
+              ["water", "水玻璃"],
+            ]) +
+              actionRow(
+                "glass",
+                "玻璃参数",
+                "各区域共用",
+                `${draft.glassBlur} dp · ${draft.glassOpacity}%`,
+              ),
+          ) +
+          section(
+            "图片气泡",
+            "image",
+            `<div class="upload-preview">${get(kind + "Image") ? `<img src="${esc(get(kind + "Image"))}" alt="气泡图片" />` : '<span class="hint">选一张喜欢的气泡图片</span>'}</div><div class="media-actions"><button class="secondary" data-upload="${kind}-image">${icon("image", "small")}${get(kind + "Image") ? "更换图片" : "选择图片"}</button>${get(kind + "Image") ? `<button class="text-button" data-clear-image="${kind}">移除</button>` : ""}</div>${
+              get(kind + "Image")
+                ? segment("renderMode", [
+                    ["tile", "九宫格平铺"],
+                    ["nine", ".9 拉伸"],
+                  ]) +
+                  range(kind + "Decoration", "装饰大小", 40, 180) +
+                  range(kind + "Space", "文字留白", 4, 30, 1, " dp") +
+                  segment(
+                    kind + "Border",
+                    [
+                      ["small", "细"],
+                      ["normal", "标准"],
+                      ["large", "宽"],
+                    ],
+                    "边框预设",
+                  ) +
+                  `<details class="advanced-native"><summary>高级裁切</summary>${range(kind + "Slice", "边缘取样", 1, 50, 1, " px")}</details>`
+                : ""
+            }${get(kind + "Glass") !== "normal" ? '<p class="demo-skip">当前使用玻璃质感，图片保留但暂不显示。</p>' : ""}`,
+          )
+        );
+      }
+      function renderModal() {
+        const oldScroll = modal.rendered ? $("modal-body").scrollTop : 0;
+        modal.rendered = true;
+        let title = "",
+          body = "",
+          footer = `<button class="primary" data-action="close-modal">完成</button>`;
+        if (modal.type === "layout-number") {
+          const field = layoutFields[modal.key];
+          title = field.title;
+          body = `<p class="hint">${field.description}</p><label class="layout-number-wrap"><input id="layout-number-input" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${layoutNumber(common.layout[modal.key])}" aria-label="${field.title}" aria-describedby="layout-number-help layout-number-error" /><span>${field.unit}</span></label><p class="layout-number-help" id="layout-number-help">范围 ${layoutNumber(field.min)}–${layoutNumber(field.max)} ${field.unit}，默认 ${layoutNumber(field.value)} ${field.unit}。<br>支持小数，应用后可在预览中查看。</p><p class="layout-number-error" id="layout-number-error" role="status"></p>`;
+          footer = `<button class="text-button" data-action="close-modal">取消</button><button class="primary" data-action="apply-layout-number">应用数值</button>`;
+        } else if (modal.type === "more") {
+          title = "主题操作";
+          body =
+            actionRow(
+              "apply-all",
+              "应用到全部角色",
+              "把当前外观同步给其他角色",
+              "",
+              icon("users"),
+            ) +
+            actionRow("discard", "撤销未保存更改", "恢复上次保存的主题与全局设置", "", icon("reset")) +
+            actionRow("reset", "重置当前主题", "恢复角色外观，保留全局聊天布局", "", icon("sliders"));
+          footer = "";
+        } else if (modal.type === "scope") {
+          title = "选择角色主题";
+          body =
+            `<p class="hint">每个角色独立保存外观，切换不会修改当前使用的角色。</p>` +
+            Object.entries(model.profiles)
+              .map(
+                ([id, p]) =>
+                  `<button class="row choice-row" role="radio" aria-checked="${id === model.activeId}" data-scope="${id}"><span class="avatar">${icon("leaf")}</span><span class="row-copy"><span class="row-title">${esc(p.name)}</span><span class="row-sub" style="display:block">${modeLabel(p.theme.mode)} · ${presets.find((v) => v[0] === p.theme.palette)[1]}</span></span><span class="option-mark">${icon("check")}</span></button>`,
+              )
+              .join("");
+          footer = "";
+        } else if (modal.type === "confirm") {
+          title = modal.title;
+          body = `<p class="confirm-copy">${esc(modal.message)}</p>`;
+          footer = `<button class="text-button" data-action="close-modal">取消</button><button class="primary" data-action="confirm-operation">${modal.label || "确定"}</button>`;
+        } else if (modal.type === "unsaved") {
+          title = "先保存当前更改？";
+          body =
+            '<p class="confirm-copy">角色主题或全局设置还有未保存的更改。可以保存后切换，也可以舍弃这次调整。</p>';
+          footer =
+            '<button class="text-button" data-action="switch-discard">舍弃更改</button><button class="primary" data-action="switch-save">保存并切换</button>';
+        } else if (modal.type === "language") {
+          title = "应用语言";
+          body = `<p class="hint">这是全局设置，对所有角色生效。应用中切换后需重新打开。</p><div role="radiogroup" aria-label="应用语言">${choices("global.language", Object.entries(languages))}</div>`;
+        } else if (modal.type === "font") {
+          const which = modal.which,
+            key = fontKey(which);
+          title =
+            which === "global" ? "界面字体" : which === "user" ? "用户消息字体" : "AI 消息字体";
+          body =
+            choices(key, [
+              ["default", which === "global" ? "系统默认" : "跟随主题"],
+              ["serif", "衬线字体", "适合长文阅读"],
+              ["mono", "等宽字体", "让代码与数字排列整齐"],
+              ["file", "自定义字体", get(fontFileKey(which)) || "选择 TTF、OTF 或 TTC 文件"],
+            ]) +
+            `<div class="body-pad"><button class="secondary" data-upload="${which}-font">${icon("upload", "small")}选择字体文件</button></div><p class="font-specimen" style="font-family:${fontCSS(get(key), which === "global" ? "" : which)}">把日常，调成喜欢的样子。<br><span>Operit · 0123456789</span></p>`;
+        } else if (modal.type === "bubble") {
+          title = modal.which === "user" ? "用户消息外观" : "AI 消息外观";
+          body = bubbleEditor(modal.which);
+        } else if (modal.type === "glass") {
+          title = "玻璃参数";
+          body =
+            `<p class="hint">参数随当前主题保存，应用到已开启的玻璃区域。</p><div class="texture-sample"><span class="glass-demo">玻璃效果预览</span></div>` +
+            range("glassBlur", "模糊半径", 0, 40, 1, " dp") +
+            range("glassEdge", "边缘宽度", 0, 2, 0.1, " dp") +
+            range("glassHighlight", "边缘高光", 0, 100) +
+            range("glassShadow", "阴影半径", 0, 20, 1, " dp") +
+            range("glassOpacity", "表面不透明度", 0, 100) +
+            '<div class="body-pad"><button class="text-button" data-action="reset-glass">恢复默认玻璃参数</button></div>';
+        } else if (modal.type === "input-glass") {
+          title = "输入框质感";
+          body =
+            choices("inputGlass", [
+              ["normal", "普通", "保持主题背景"],
+              ["frosted", "磨砂玻璃", "柔和模糊背景"],
+              ["water", "水玻璃", "增加通透与高光层次"],
+            ]) + actionRow("glass", "调整共享玻璃参数", "", `${draft.glassBlur} dp`);
+        } else if (modal.type === "sidebar-colors") {
+          title = "侧栏与包管理配色";
+          body =
+            colorRow("sidebarColor", "侧栏背景", true) +
+            colorRow("sidebarSelected", "侧栏选中背景", true) +
+            colorRow("marketColor", "插件市场按钮", true) +
+            colorRow("addColor", "添加插件按钮", true) +
+            '<p class="hint">可以在聊天预览下方点击「看看侧栏」查看效果。</p>';
+        } else if (modal.type === "crop") {
+          title = "调整背景构图";
+          body =
+            `<div class="media-cover" id="crop-scene">${sceneHTML(true)}</div>` +
+            range("cropZoom", "缩放", 100, 220) +
+            range("cropX", "水平位置", 0, 100) +
+            range("cropY", "垂直位置", 0, 100) +
+            '<div class="body-pad"><button class="text-button" data-action="reset-crop">恢复居中</button></div>';
+        } else if (modal.type === "avatars") {
+          title = "头像与名称";
+          body =
+            segment(
+              "avatarShape",
+              [
+                ["circle", "圆形"],
+                ["square", "方形"],
+              ],
+              "头像形状",
+            ) +
+            (draft.avatarShape === "square"
+              ? range("avatarCorner", "方形圆角", 0, 18, 1, " dp")
+              : "") +
+            `<div class="avatar-options"><div class="avatar-card">${avatarHTML("user")}<span>当前角色的用户头像</span><button class="text-button small-button" data-upload="user-avatar">更换</button><button class="text-button small-button" data-clear-avatar="userAvatar">恢复全局头像</button></div><div class="avatar-card">${avatarHTML("ai")}<span>当前角色的 AI 头像</span><button class="text-button small-button" data-upload="ai-avatar">更换</button><button class="text-button small-button" data-clear-avatar="aiAvatar">恢复默认</button></div></div>` +
+            actionRow(
+              "upload-global-avatar",
+              "全局用户头像",
+              "角色未单独设置时使用",
+              common.avatar ? "已选择" : "默认",
+            ) +
+            `<div class="field"><label for="global-username">全局用户名称</label><input id="global-username" type="text" value="${esc(common.username)}" maxlength="30" data-text="global.username" placeholder="输入用户名称" /></div><p class="hint">用户名称与全局头像对所有角色生效。</p>`;
+        } else if (modal.type === "preview") {
+          title = "外观预览";
+          body = currentTab === "layout" ? layoutPreviewHTML() : previewHTML(true);
+          footer = `<button class="text-button" data-action="preview-cycle">${icon("reset", "small")}换一段对话</button><button class="primary" data-action="close-modal">完成</button>`;
+        }
+        $("modal-title").textContent = title;
+        $("modal-body").innerHTML = body;
+        $("modal-footer").innerHTML = footer;
+        $("modal-footer").hidden = !footer;
+        $("modal-body").scrollTop = oldScroll;
+      }
+      // 修改只更新草稿；保存和批量应用明确写入浏览器的本地存储。
+      function save(all = false) {
+        const next = clone(model);
+        next.common = clone(common);
+        if (all)
+          Object.values(next.profiles).forEach((p) => {
+            p.theme = clone(draft);
+          });
+        else next.profiles[next.activeId].theme = clone(draft);
+        try {
+          localStorage.setItem(STORE_KEY, JSON.stringify(next));
+        } catch (error) {
+          console.error("保存主题原型失败", error);
+          notify("未能保存，请检查浏览器存储或减小媒体文件");
+          return false;
+        }
+        model = next;
+        snapshot = JSON.stringify({ draft, common });
+        syncStatus();
+        notify(
+          all
+            ? `已应用到 ${Object.keys(model.profiles).length} 个示例角色`
+            : "主题已保存在当前浏览器",
+        );
+        return true;
+      }
+      function switchScope(id) {
+        model.activeId = id;
+        draft = clone(model.profiles[id].theme);
+        common = clone(model.common);
+        snapshot = JSON.stringify({ draft, common });
+        previewSidebar = false;
+        closeModal();
+        render();
+        installStoredFonts();
+      }
+      function setTab(tab, scroll = true) {
+        currentTab = tab;
+        applyVisuals();
+        renderPreview();
+        syncStatus();
+        hydrateIcons();
+        document.querySelectorAll("[data-tab]").forEach((el) => {
+          const active = el.dataset.tab === tab;
+          el.setAttribute("aria-selected", String(active));
+          el.tabIndex = active ? 0 : -1;
+        });
+        document.querySelectorAll('[role="tabpanel"]').forEach((el) => {
+          el.hidden = el.id !== "panel-" + tab;
+        });
+        if (scroll) {
+          const top = document.querySelector(".app-header").offsetHeight;
+          if (window.scrollY > top) window.scrollTo({ top, behavior: "smooth" });
+        }
+      }
+      function choosePreset(id) {
+        const p = presets.find((value) => value[0] === id);
+        draft.palette = id;
+        if (!draft.userCustom) {
+          draft.userColor = p[4];
+          draft.userText = p[5];
+        }
+        render();
+      }
+      async function installFont(which, data) {
+        if (!data) return;
+        const prefix = which === "global" ? "" : which;
+        if (fontFaces.get(prefix) === data) return;
+        const face = new FontFace("ThemeFont" + prefix, `url(${data})`);
+        await face.load();
+        document.fonts.add(face);
+        fontFaces.set(prefix, data);
+      }
+      function installStoredFonts() {
+        ["global", "user", "ai"].forEach((which) => {
+          const data = get(fontDataKey(which));
+          if (data)
+            installFont(which, data)
+              .then(() => {
+                applyVisuals();
+                renderPreview();
+              })
+              .catch((error) => {
+                console.error("加载已保存字体失败", error);
+                notify("字体未能加载，可重新选择文件");
+              });
+        });
+      }
+      function chooseFile(kind) {
+        fileRequest = { kind, profileId: model.activeId };
+        const picker = $("file-picker");
+        picker.accept = kind.endsWith("-font")
+          ? ".ttf,.otf,.ttc"
+          : kind === "background-video"
+            ? "video/*"
+            : "image/*";
+        picker.value = "";
+        picker.click();
+      }
+      $("file-picker").addEventListener("change", async (event) => {
+        const file = event.target.files[0],
+          request = fileRequest;
+        if (!file || !request) return;
+        if (request.profileId !== model.activeId) {
+          notify("已切换角色，请重新选择文件");
+          return;
+        }
+        const kind = request.kind;
+        if (file.size > 12 * 1024 * 1024) {
+          notify("预览文件请控制在 12 MB 内");
+          return;
+        }
+        if (
+          kind.endsWith("-font")
+            ? !/[.](ttf|otf|ttc)$/i.test(file.name)
+            : kind === "background-video"
+              ? !file.type.startsWith("video/")
+              : !file.type.startsWith("image/")
+        ) {
+          notify("文件格式不匹配，请重新选择");
+          return;
+        }
+        try {
+          const data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          });
+          if (request.profileId !== model.activeId) return;
+          if (kind.endsWith("-font")) {
+            const which = kind.slice(0, -5);
+            await installFont(which, data);
+            put(fontDataKey(which), data);
+            put(fontFileKey(which), file.name);
+            put(fontKey(which), "file");
+          } else if (kind.startsWith("background-")) {
+            Object.assign(draft, {
+              background: true,
+              mediaType: kind === "background-video" ? "video" : "image",
+              mediaData: data,
+              mediaName: file.name,
+              cropZoom: 100,
+              cropX: 50,
+              cropY: 50,
+            });
+          } else if (kind === "global-avatar") common.avatar = data;
+          else if (kind.endsWith("-avatar"))
+            draft[kind.startsWith("user") ? "userAvatar" : "aiAvatar"] = data;
+          else {
+            const who = kind.split("-")[0];
+            draft[who + "Image"] = data;
+            draft[who + "ImageName"] = file.name;
+          }
+          render();
+          notify("已载入 " + file.name);
+        } catch (error) {
+          console.error("载入预览素材失败", error);
+          notify("文件无法载入，请换一个文件重试");
+        }
+      });
+      const actions = {
+        back: () => {
+          closeModal();
+          setTab("theme");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        },
+        more: () => openModal("more"),
+        scope: () => openModal("scope"),
+        language: () => openModal("language"),
+        avatars: () => openModal("avatars"),
+        glass: () => openModal("glass"),
+        crop: () => openModal("crop"),
+        "input-glass": () => openModal("input-glass"),
+        "sidebar-colors": () => openModal("sidebar-colors"),
+        "font-global": () => openModal("font", { which: "global" }),
+        "font-user": () => openModal("font", { which: "user" }),
+        "font-ai": () => openModal("font", { which: "ai" }),
+        "bubble-user": () => openModal("bubble", { which: "user" }),
+        "bubble-ai": () => openModal("bubble", { which: "ai" }),
+        "upload-global-avatar": () => chooseFile("global-avatar"),
+        "close-modal": () => closeModal(),
+        save: () => save(),
+        "full-preview": () => openModal("preview"),
+        "fold-preview": () => {
+          previewOpen = !previewOpen;
+          renderPreview();
+          hydrateIcons();
+        },
+        "fold-display": () => {
+          displayOpen = !displayOpen;
+          renderPanels();
+        },
+        "preview-cycle": () => {
+          sampleIndex++;
+          renderPreview();
+        },
+        "preview-sidebar": () => {
+          previewSidebar = !previewSidebar;
+          renderPreview();
+        },
+        "preview-meta": () => {
+          previewDetails = !previewDetails;
+          renderPreview();
+        },
+        "preview-thinking": () => {
+          previewThinking = !previewThinking;
+          renderPreview();
+        },
+        "preview-send": () => {
+          if (previewRunning) return;
+          previewRunning = true;
+          renderPreview();
+          setTimeout(() => {
+            previewRunning = false;
+            sampleIndex++;
+            renderPreview();
+          }, 1000);
+        },
+        "clear-background": () => {
+          Object.assign(draft, {
+            mediaType: "image",
+            mediaData: "",
+            mediaName: "林间光影",
+            cropZoom: 100,
+            cropX: 50,
+            cropY: 50,
+          });
+          render();
+        },
+        "apply-layout-number": () => {
+          const field = layoutFields[modal.key], input = $("layout-number-input"), text = input.value.trim();
+          const value = Number(text);
+          if (!/^-?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)$/.test(text) || !Number.isFinite(value) || value < field.min || value > field.max) {
+            input.setAttribute("aria-invalid", "true");
+            $("layout-number-error").textContent = `请输入 ${layoutNumber(field.min)}–${layoutNumber(field.max)} 之间的数值。`;
+            input.focus();
+            return;
+          }
+          const key = modal.key;
+          closeModal();
+          change("layout." + key, value);
+        },
+        "reset-layout": () => openModal("confirm", {
+          title: "恢复布局默认值？",
+          message: "恢复聊天间距与 AI 回复排版的五项参数。角色配色、背景、头像和消息内容保持原样。保存更改后对所有角色生效。",
+          operation: "reset-layout",
+          label: "恢复默认",
+        }),
+        "reset-crop": () => {
+          Object.assign(draft, { cropZoom: 100, cropX: 50, cropY: 50 });
+          render();
+        },
+        "reset-glass": () => {
+          ["glassBlur", "glassEdge", "glassHighlight", "glassShadow", "glassOpacity"].forEach(
+            (key) => {
+              draft[key] = defaults[key];
+            },
+          );
+          render();
+        },
+        "apply-all": () =>
+          openModal("confirm", {
+            title: "应用到全部角色？",
+            message: "当前的主题、背景和消息外观将同步到全部示例角色。",
+            operation: "apply-all",
+            label: "应用并保存",
+          }),
+        discard: () =>
+          openModal("confirm", {
+            title: "撤销当前更改？",
+            message: "恢复当前角色上一次保存的主题及尚未保存的全局设置。",
+            operation: "discard",
+            label: "撤销更改",
+          }),
+        reset: () =>
+          openModal("confirm", {
+            title: "重置当前角色主题？",
+            message: "当前角色外观将恢复默认。全局布局、头像、用户名和语言会保留。",
+            operation: "reset",
+            label: "重置主题",
+          }),
+        "confirm-operation": () => {
+          const operation = modal.operation;
+          if (operation === "apply-all") {
+            if (save(true)) {
+              closeModal();
+              render();
+            }
+          }
+          if (operation === "discard") {
+            draft = clone(model.profiles[model.activeId].theme);
+            common = clone(model.common);
+            closeModal();
+            render();
+          }
+          if (operation === "reset-layout") {
+            common.layout = clone(layoutDefaults);
+            closeModal();
+            render();
+            notify("布局已恢复默认，保存后对所有角色生效");
+          }
+          if (operation === "reset") {
+            draft = clone(defaults);
+            closeModal();
+            render();
+            notify("已恢复默认，保存后生效");
+          }
+        },
+        "switch-discard": () => switchScope(modal.target),
+        "switch-save": () => {
+          const target = modal.target;
+          if (save()) switchScope(target);
+        },
+      };
+      document.addEventListener("click", (event) => {
+        const el = event.target.closest("button");
+        if (!el || el.disabled) return;
+        if (el.dataset.tab) {
+          setTab(el.dataset.tab);
+          return;
+        }
+        if (el.dataset.toggle) {
+          change(el.dataset.toggle, !get(el.dataset.toggle));
+          return;
+        }
+        if (el.dataset.set) {
+          change(el.dataset.set, el.dataset.value);
+          return;
+        }
+        if (el.dataset.palette) {
+          choosePreset(el.dataset.palette);
+          return;
+        }
+        if (el.dataset.choice) {
+          if (el.dataset.value === "file" && !get(fontDataKey(modal.which))) {
+            chooseFile(modal.which + "-font");
+            return;
+          }
+          change(el.dataset.choice, el.dataset.value);
+          return;
+        }
+        if (el.dataset.upload) {
+          chooseFile(el.dataset.upload);
+          return;
+        }
+        if (el.dataset.scope) {
+          if (el.dataset.scope === model.activeId) closeModal();
+          else if (dirty()) openModal("unsaved", { target: el.dataset.scope });
+          else switchScope(el.dataset.scope);
+          return;
+        }
+        if (el.dataset.editLayout) {
+          openModal("layout-number", { key: el.dataset.editLayout });
+          $("layout-number-input").focus();
+          $("layout-number-input").select();
+          return;
+        }
+        if (el.dataset.resetLayout) {
+          const key = el.dataset.resetLayout;
+          change("layout." + key, layoutFields[key].value);
+          return;
+        }
+        if (el.dataset.resetColor) {
+          change(el.dataset.resetColor, defaults[el.dataset.resetColor]);
+          return;
+        }
+        if (el.dataset.clearImage) {
+          const who = el.dataset.clearImage;
+          draft[who + "Image"] = "";
+          draft[who + "ImageName"] = "";
+          render();
+          return;
+        }
+        if (el.dataset.clearAvatar) {
+          change(el.dataset.clearAvatar, "");
+          return;
+        }
+        if (el.dataset.action) actions[el.dataset.action]();
+      });
+      document.addEventListener("input", (event) => {
+        const el = event.target;
+        if (el.id === "layout-number-input") {
+          el.removeAttribute("aria-invalid");
+          $("layout-number-error").textContent = "";
+        }
+        if (el.dataset.range) change(el.dataset.range, Number(el.value), false);
+        if (el.dataset.color) change(el.dataset.color, el.value, false);
+        if (el.dataset.text) change(el.dataset.text, el.value, false);
+        if (el.dataset.hex) {
+          const valid = /^#[0-9a-f]{6}$/i.test(el.value);
+          el.setAttribute("aria-invalid", String(!valid));
+          if (valid) change(el.dataset.hex, el.value, false);
+        }
+      });
+      $("modal-overlay").addEventListener("click", (event) => {
+        if (event.target === $("modal-overlay")) closeModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && modal?.type === "layout-number" && event.target.id === "layout-number-input") {
+          event.preventDefault();
+          actions["apply-layout-number"]();
+          return;
+        }
+        if (event.key === "Escape" && modal) {
+          closeModal();
+          return;
+        }
+        if (modal && event.key === "Tab") {
+          const focusable = Array.from(
+            $("modal-overlay").querySelectorAll('button, input, select, [tabindex="0"]'),
+          ).filter((el) => !el.disabled && !el.closest("[hidden]"));
+          const first = focusable[0],
+            last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        const tab = event.target.closest("[data-tab]");
+        if (tab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+          event.preventDefault();
+          const tabs = Array.from(document.querySelectorAll("[data-tab]"));
+          const index = tabs.indexOf(tab),
+            next =
+              event.key === "Home"
+                ? 0
+                : event.key === "End"
+                  ? tabs.length - 1
+                  : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+          setTab(tabs[next].dataset.tab);
+          tabs[next].focus();
+        }
+      });
+      window.addEventListener("beforeunload", (event) => {
+        if (dirty()) {
+          event.preventDefault();
+          event.returnValue = "";
+        }
+      });
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if (draft.mode === "system") render();
+      });
+      render();
+      setTab("layout", false);
+      installStoredFonts();
+      if (storageIssue) notify(storageIssue);
+    </script>
+  </body>
+</html>

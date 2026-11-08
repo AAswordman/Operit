@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#111715">
+  <meta name="color-scheme" content="dark light">
+  <title>Operit · 记忆空间与图谱</title>
+  <style>/* 页面使用统一的主题变量，图谱、表单和入口共享颜色与对比度。 */
+:root {
+  color-scheme: dark;
+  --bg:#111715; --surface:#1b2420; --raised:#222d27; --quiet:#18201c;
+  --ink:#e6eee8; --muted:#9cae9f; --faint:#708578; --line:#303d34;
+  --accent:#b4d4bd; --accent-ink:#173c28; --accent-soft:#263e2e; --active-line:#54755d;
+  --blue:#acc3e4; --blue-soft:#263442; --sand:#dfc59d; --sand-soft:#3d3528;
+  --danger:#efa79b; --canvas:#101713; --dot:#c3dbc41b; --edge:#506457;
+  --stage:#0b100d; --shadow:0 12px 40px #0003;
+  font-family:system-ui,-apple-system,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+html[data-theme="light"] {
+  color-scheme:light;
+  --bg:#f5f6f1; --surface:#fff; --raised:#edf1e9; --quiet:#f1f4ed;
+  --ink:#25372b; --muted:#6a7b6e; --faint:#89988b; --line:#dfe6dc;
+  --accent:#4d7557; --accent-ink:#fff; --accent-soft:#e6efe0; --active-line:#9ab493;
+  --blue:#526e98; --blue-soft:#edf1f8; --sand:#99723e; --sand-soft:#f5eddc;
+  --danger:#ae4d3c; --canvas:#f6f8f2; --dot:#6e876023; --edge:#a4b5a5;
+  --stage:#e7ebe2; --shadow:0 12px 40px #213a2410;
+}
+*{box-sizing:border-box} [hidden]{display:none!important}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none}
+body{font-size:14px;line-height:1.5;color:var(--ink);background:var(--stage)}
+button,input,textarea,select{font:inherit;color:inherit}
+button{border:0;background:none;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+button:active:not(:disabled){filter:brightness(.9)}
+input,textarea,select{min-width:0;max-width:100%;border-radius:12px;border:1px solid var(--line);background:var(--quiet);padding:12px;outline-offset:2px}
+input:focus,textarea:focus{border-color:var(--active-line)}
+input[type="search"]::-webkit-search-cancel-button{display:none}
+textarea{resize:vertical;min-height:130px;line-height:1.8}
+svg.icon{width:20px;height:20px;flex-shrink:0;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;fill:none;display:block}
+[data-icon]{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+h1,h2,h3,h4,p{margin:0} .icon-definitions{position:absolute;width:0;height:0;overflow:hidden;pointer-events:none}
+.preview-bar{height:36px;max-width:1120px;margin:auto;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--muted);font-size:11px;letter-spacing:.3px;gap:12px}
+.preview-bar>span{display:flex;align-items:center;gap:7px;white-space:nowrap}.preview-bar i{font-style:normal;opacity:.5}.preview-dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.preview-bar>div{display:flex;gap:8px}.preview-button{padding:5px 8px;font-size:11px;color:var(--muted);min-height:30px}
+.preview-layout{height:calc(100% - 36px);height:calc(100dvh - 36px);display:flex;justify-content:center;align-items:center;gap:105px;padding:22px 32px 32px}
+.design-notes{width:330px;align-self:center}.design-brand{font-size:19px;letter-spacing:4px;font-weight:650}.design-brand span{display:block;font-size:10px;letter-spacing:2px;color:var(--muted);margin-top:8px}
+.design-notes h1{font-size:34px;font-weight:560;line-height:1.6;letter-spacing:1px;margin:36px 0 18px}.design-notes>p{font-size:14px;line-height:2;color:var(--muted);max-width:290px}
+.note-divider{height:1px;background:var(--line);margin:30px 0 22px}.design-jump{display:flex;width:100%;gap:18px;text-align:left;align-items:center;padding:14px 0;color:var(--muted)}
+.design-jump b{font:14px ui-monospace,monospace;color:var(--faint)}.design-jump span{font-size:15px}.design-jump small{display:block;font-size:12px;line-height:1.7;margin-top:5px;color:var(--faint)}.design-jump.active{color:var(--ink)}.design-jump.active b{color:var(--accent)}
+.note-caption{font-size:11px;color:var(--faint);line-height:2.1;margin-top:28px}
+.app-shell{height:100%;max-height:920px;width:420px;flex-shrink:0;position:relative;background:var(--bg);overflow:hidden;border:1px solid var(--line);border-radius:28px;box-shadow:0 22px 90px #0002}
+#screens,.screen{height:100%;min-height:0}.screen{display:flex;flex-direction:column}.scrollable{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.app-bar{display:flex;align-items:center;gap:12px;padding:20px 20px 14px;flex-shrink:0}.overview-bar{padding-top:27px;padding-bottom:25px}.app-bar h2{font-size:23px;font-weight:600;letter-spacing:.5px}.app-bar p{font-size:12px;color:var(--muted);margin-top:4px}.app-bar>.icon-button:last-child{margin-left:auto}
+.brand-symbol{width:38px;height:44px;color:var(--accent)}.brand-symbol svg{width:30px;height:30px;stroke-width:1.4}
+.icon-button{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;flex-shrink:0;color:var(--muted);border-radius:12px}.icon-button:hover{background:var(--raised)}
+.small-icon{width:36px;height:40px}.small-icon .icon{width:18px;height:18px}
+.overview-content{padding:0 20px 24px;flex:1;min-height:0}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;min-height:36px}.section-heading h3{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600}.count{font-size:12px;font-weight:500;color:var(--muted);background:var(--raised);border-radius:6px;padding:1px 6px}
+.text-button{color:var(--accent);display:inline-flex;align-items:center;gap:4px;min-height:40px;padding:4px 0;font-size:13px;white-space:nowrap}.text-button .icon{width:16px;height:16px}.quiet-button{color:var(--muted)}.text-link{color:var(--accent);font-size:12px;min-width:36px;min-height:36px;padding:0 0 0 7px}
+.space-cards{display:grid;gap:12px}.space-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden}.space-card.is-global{border-color:var(--active-line);background:linear-gradient(125deg,var(--accent-soft),var(--surface) 75%)}
+.space-card-head{display:flex;align-items:center;gap:12px;padding:17px 15px 12px}.space-avatar{width:42px;height:42px;border-radius:14px;background:var(--raised);color:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}.is-global .space-avatar{background:var(--bg)}
+.space-naming{min-width:0;flex:1}.space-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.space-title-row h4{font-size:19px;font-weight:600;overflow-wrap:anywhere;line-height:1.3}.pill{font-size:11px;line-height:1.5;border-radius:6px;padding:2px 7px;color:var(--accent);background:var(--accent-soft);display:inline-flex;align-items:center;gap:3px;white-space:nowrap}.is-global .pill{background:var(--bg)}.pill .icon{width:11px;height:11px}.space-naming p{font-size:12px;color:var(--muted);margin-top:5px}
+.space-card-head>.icon-button{align-self:flex-start;width:36px;height:36px;margin-right:-5px;margin-top:-4px}
+.space-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 18px 16px}.space-stats div{border-right:1px solid var(--line)}.space-stats div:last-child{border:0}.space-stats strong{font-size:23px;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums}.space-stats small{display:block;margin-top:4px;color:var(--muted);font-size:11px}
+.space-enter{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;padding:13px 18px;border-top:1px solid var(--line);font-size:13px;font-weight:550;color:var(--accent)}.space-enter .icon{width:17px;height:17px}
+.global-description{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);line-height:1.6;margin:8px 0 22px}.global-description>span:nth-child(2){flex:1}.tiny-dot{width:4px;height:4px;background:var(--accent);border-radius:50%;flex-shrink:0}.section-note{font-size:11px;color:var(--faint)}
+.role-section{margin-top:8px}.role-row{width:100%;border:1px solid var(--line);border-radius:17px;background:var(--surface);padding:15px 14px;display:flex;align-items:center;gap:12px;text-align:left}.role-avatar{width:39px;height:39px;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft);border-radius:50%;font-size:17px;font-weight:500}.role-main{flex:1;min-width:0}.role-title{display:flex;align-items:center;justify-content:space-between;gap:8px}.role-title b{font-size:15px;font-weight:550}.role-title em{font-style:normal;font-size:11px;color:var(--muted);border:1px solid var(--line);padding:2px 6px;border-radius:6px}.role-main p{color:var(--muted);font-size:12px;margin-top:4px;overflow-wrap:anywhere}.role-row>.icon{width:15px;height:15px;color:var(--muted)}
+.recent-section{margin-top:28px}.recent-list{border-top:1px solid var(--line)}.recent-item{width:100%;display:flex;align-items:flex-start;gap:12px;padding:15px 0;border-bottom:1px solid var(--line);text-align:left}.recent-mark{margin-top:4px;color:var(--accent)}.recent-mark .icon{width:17px;height:17px}.recent-item>div{flex:1;min-width:0}.recent-item strong{font-size:14px;font-weight:500;display:block;line-height:1.65}.recent-item p{color:var(--faint);font-size:11px;margin-top:4px}.recent-item>.icon{width:14px;height:14px;color:var(--faint);margin-top:5px}.overview-bottom{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:29px;color:var(--faint);font-size:11px}.overview-bottom .icon{width:13px;height:13px}
+.library-bar{padding:15px 12px 9px;gap:6px}.space-heading{display:grid;grid-template-columns:auto 18px;column-gap:8px;text-align:left;flex:1;min-width:0}.space-heading .eyebrow{grid-column:1/3}.eyebrow{font-size:11px;letter-spacing:.6px;color:var(--faint);line-height:1.7;display:block}.space-heading strong{font-weight:600;font-size:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.5}.space-heading>[data-icon]{align-self:center}.space-heading .icon{width:14px;height:14px;color:var(--muted)}
+.library-tools{padding:4px 16px 8px;position:relative;z-index:2;flex-shrink:0;background:var(--bg)}.search-box{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:2px 6px 2px 12px;height:47px}.search-box>[data-icon]{color:var(--muted)}.search-box .icon{width:18px;height:18px}.search-box input{flex:1;width:0;background:none;border:0;border-radius:6px;padding:10px 2px;font-size:14px;height:40px}.search-box input::placeholder{color:var(--faint)}.search-box input:focus{outline:0}.search-box:focus-within{border-color:var(--active-line)}.search-options{border-left:1px solid var(--line);border-radius:0 8px 8px 0;padding-left:7px;width:36px}
+.library-filter-row{display:flex;align-items:center;justify-content:space-between;gap:9px;padding-top:11px}.folder-chip{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;min-height:36px;min-width:0;text-align:left}.folder-chip>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:130px}.folder-chip .icon{width:16px;height:16px}.folder-chip>span:last-child .icon{width:12px;height:12px}.view-switch{display:flex;border:1px solid var(--line);padding:3px;border-radius:11px;flex-shrink:0;gap:2px}.view-switch button{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);padding:5px 9px;min-height:29px;border-radius:7px}.view-switch button .icon{width:14px;height:14px}.view-switch button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.library-body{position:relative;flex:1;min-height:0;overflow:hidden;border-top:1px solid var(--line);background:var(--canvas)}.graph-viewport{position:absolute;inset:0;overflow:hidden;touch-action:none;background-image:radial-gradient(var(--dot) .8px,transparent .8px);background-size:20px 20px;cursor:grab}.graph-viewport:active{cursor:grabbing}.graph-topline{position:absolute;z-index:3;top:16px;left:18px;right:16px;display:flex;justify-content:space-between;gap:8px;align-items:flex-start;pointer-events:none}.graph-topline>div{max-width:75%}.breadcrumb{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--ink);pointer-events:auto;padding:0;min-height:28px;max-width:100%}.breadcrumb .icon{width:13px;height:13px;color:var(--muted)}.breadcrumb span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.graph-topline p{font-size:11px;color:var(--faint);margin-top:2px}.graph-count{font-size:11px;color:var(--muted);white-space:nowrap;margin-top:6px}
+.graph-world{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;width:1200px;height:1200px}.graph-edges{position:absolute;inset:0;overflow:visible;width:1200px;height:1200px;pointer-events:none}.graph-edge{fill:none;stroke:var(--edge);stroke-width:1.2;transition:opacity .16s,stroke .16s}.graph-edge.cross{stroke-dasharray:4 5}.graph-edge.is-adjacent{stroke:var(--accent);stroke-width:1.8;opacity:.9}.graph-edge.is-dim{opacity:.12}.edge-label rect{fill:var(--canvas)}.edge-label text{fill:var(--muted);text-anchor:middle;font-size:11px}.edge-label.is-adjacent text{fill:var(--accent)}.edge-hit{fill:none;stroke:transparent;stroke-width:18;pointer-events:stroke;cursor:pointer}
+.cluster-card{position:absolute;width:164px;min-height:127px;transform:translate(-50%,-50%);border:1px solid var(--active-line);background:var(--surface);padding:15px;border-radius:20px;text-align:left;box-shadow:var(--shadow);color:var(--accent);touch-action:none}.cluster-card.sand{color:var(--sand);border-color:color-mix(in srgb,var(--sand) 38%,var(--line))}.cluster-card.blue{color:var(--blue);border-color:color-mix(in srgb,var(--blue) 38%,var(--line))}.cluster-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}.cluster-top .icon{width:20px;height:20px}.cluster-top span:last-child{color:var(--muted);font-size:11px}.cluster-card strong{font-size:16px;font-weight:550;display:flex;align-items:center;gap:5px;line-height:1.5;overflow-wrap:anywhere}.cluster-card strong .icon{width:12px;height:12px;opacity:.65}.cluster-preview{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5}.cluster-dots{position:absolute;left:16px;bottom:-6px;display:flex;gap:4px}.cluster-dots i{width:5px;height:5px;border-radius:50%;background:currentColor;border:1px solid var(--canvas)}
+.memory-node{position:absolute;width:156px;min-height:78px;padding:11px 12px 10px;transform:translate(-50%,-50%);text-align:left;border-radius:15px;background:var(--surface);border:1px solid var(--line);box-shadow:0 4px 16px #0001;transition:opacity .15s,border-color .15s;touch-action:none;cursor:pointer;color:var(--ink)}.memory-node.is-selected{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft),var(--shadow)}.memory-node.is-dim{opacity:.22}.memory-node.is-checked{border-color:var(--accent);background:var(--accent-soft)}.node-kind{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);margin-bottom:5px}.node-kind i{width:4px;height:4px;border-radius:50%;background:var(--accent)}.memory-node.sand .node-kind i{background:var(--sand)}.memory-node.blue .node-kind i{background:var(--blue)}.node-title{font-size:14px;font-weight:550;line-height:1.6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.node-folder{font-size:10px;color:var(--faint);margin-top:5px}.node-check{position:absolute;right:8px;top:8px;width:15px;height:15px;border:1px solid var(--line);border-radius:4px;display:grid;place-items:center}.node-check .icon{width:12px;height:12px}.is-checked .node-check{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.graph-viewport.far-view .memory-node{width:44px;min-height:44px;height:44px;border-radius:50%;padding:0;background:var(--accent-soft);border-color:var(--active-line)}.graph-viewport.far-view .memory-node .node-title,.graph-viewport.far-view .memory-node .node-folder{display:none}.graph-viewport.far-view .memory-node .node-kind{margin:0;width:100%;height:100%;justify-content:center}.graph-viewport.far-view .node-kind i{width:9px;height:9px}.graph-viewport.far-view .node-kind span{display:none}
+.graph-controls{position:absolute;z-index:4;right:14px;bottom:77px;display:flex;flex-direction:column;align-items:center;border:1px solid var(--line);background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:4px}.graph-controls .icon-button{width:40px;height:44px;border-radius:8px}.graph-controls .icon{width:17px;height:17px}.graph-controls output{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;padding:2px 0}.control-separator{width:18px;height:1px;background:var(--line);margin:3px 0}.graph-legend{position:absolute;left:17px;right:17px;bottom:17px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:var(--faint);pointer-events:none}.graph-legend span:first-child{display:flex;align-items:center;gap:5px}.graph-legend i{height:1px;width:16px;border-top:1px dashed var(--faint)}.graph-legend span:last-child{margin-right:83px}.minimap{position:absolute;left:16px;bottom:53px;width:57px;height:88px;background:var(--surface);border:1px solid var(--line);border-radius:10px;opacity:.85;z-index:4;padding:4px}.minimap svg{width:100%;height:100%;overflow:visible}.minimap circle{fill:var(--muted)}.minimap rect{stroke:var(--accent);stroke-width:3;fill:var(--accent-soft);fill-opacity:.4}.add-memory{position:absolute;right:15px;bottom:12px;z-index:6;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 15px;height:43px;border-radius:14px;background:var(--accent);color:var(--accent-ink);box-shadow:var(--shadow);font-size:13px;font-weight:600}.add-memory .icon{width:19px;height:19px}
+.memory-peek{position:absolute;z-index:6;bottom:12px;left:12px;right:12px;padding:13px 14px 11px;background:var(--surface);border:1px solid var(--active-line);border-radius:19px;box-shadow:0 5px 35px #0003}.peek-top{display:flex;align-items:center;gap:8px;margin-bottom:6px}.peek-top .eyebrow{flex:1}.peek-top .icon-button{height:24px;width:28px}.peek-title{font-size:14px;font-weight:550;line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.peek-bottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:8px}.peek-meta{color:var(--faint);font-size:11px;line-height:1.6}.peek-actions{display:flex;gap:6px}.small-button{border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:11px;min-height:34px;white-space:nowrap}.small-button.accent{background:var(--accent-soft);color:var(--accent);border-color:var(--active-line)}
+.library-body.has-peek .graph-controls{bottom:174px}.library-body.has-peek .minimap{bottom:170px}.library-body.has-peek .graph-legend{bottom:152px}.selection-bar{position:absolute;z-index:7;bottom:12px;left:12px;right:12px;border:1px solid var(--active-line);background:var(--surface);border-radius:17px;padding:8px 10px;display:flex;align-items:center;gap:6px;box-shadow:var(--shadow);font-size:13px}.selection-bar>span{flex:1;font-size:12px}.selection-bar .icon-button{width:33px;height:36px}.selection-bar .icon{width:17px;height:17px}.danger{color:var(--danger)}.selection-rect{position:absolute;z-index:5;pointer-events:none;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);border-radius:5px}.library-body.is-selecting .graph-controls{bottom:90px}
+.memory-list-view,.search-results{position:absolute;inset:0;background:var(--bg);padding:14px 16px 80px;z-index:3}.list-heading{color:var(--muted);font-size:11px;margin:2px 0 12px;display:flex;align-items:center;justify-content:space-between}.memory-list-item{width:100%;display:flex;gap:11px;text-align:left;padding:15px 0;border-bottom:1px solid var(--line)}.memory-list-item:first-of-type{padding-top:5px}.list-icon{width:34px;height:36px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);border-radius:10px;flex-shrink:0}.list-icon.blue{color:var(--blue);background:var(--blue-soft)}.list-icon.sand{color:var(--sand);background:var(--sand-soft)}.list-icon .icon{width:17px;height:17px}.list-item-content{flex:1;min-width:0}.list-item-content strong{font-size:14px;font-weight:550;line-height:1.65;display:block}.list-item-content>p{font-size:12px;color:var(--muted);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:5px}.list-item-content>small{font-size:10px;color:var(--faint);display:block;margin-top:7px}.list-tail{width:20px;align-self:center;color:var(--faint)}.list-tail .icon{width:14px;height:14px}.list-tail.checked{color:var(--accent)}
+.empty-view{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:var(--bg);padding:30px 25px 80px;z-index:4}.empty-art{width:75px;height:75px;background:var(--accent-soft);border-radius:24px;color:var(--accent);margin-bottom:22px}.empty-art .icon{width:35px;height:35px;stroke-width:1.3}.empty-view h3{font-size:18px;font-weight:550}.empty-view p{font-size:13px;line-height:1.9;color:var(--muted);margin:12px 0 24px}.search-empty{padding:70px 20px;text-align:center;color:var(--muted)}.search-empty p{font-size:13px;margin-bottom:12px}
+/* 底部表单沿用页面层次，长内容在面板内部滚动。 */
+.modal-layer{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end}.modal-backdrop{position:absolute;inset:0;background:#0008;backdrop-filter:blur(2px)}.modal{position:relative;width:100%;max-height:91%;display:flex;flex-direction:column;background:var(--surface);border-radius:26px 26px 0 0;border:1px solid var(--line);border-bottom:0;box-shadow:0 -12px 65px #0003;padding-bottom:env(safe-area-inset-bottom,0px)}.sheet-handle{width:32px;height:4px;border-radius:4px;background:var(--line);margin:10px auto 3px;flex-shrink:0}.modal-heading{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 15px;gap:12px;flex-shrink:0}.modal-heading h3{font-size:20px;font-weight:550;line-height:1.6;overflow-wrap:anywhere}.modal-heading>.icon-button{margin-right:-7px}.modal-content{padding:0 20px 24px;min-height:0}.modal-description{color:var(--muted);font-size:13px;line-height:1.9;margin-bottom:18px}.choice-row{width:100%;display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line);text-align:left;min-height:64px}.choice-row>div{flex:1;min-width:0}.choice-row strong{font-size:14px;font-weight:550;display:block;overflow-wrap:anywhere}.choice-row p{font-size:12px;line-height:1.7;color:var(--muted);margin-top:4px}.choice-row>.icon{color:var(--accent);width:19px;height:19px}.choice-radio{width:18px;height:18px;border:1px solid var(--faint);border-radius:50%;display:grid;place-items:center;flex-shrink:0}.choice-row.selected .choice-radio{border-color:var(--accent)}.choice-row.selected .choice-radio::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}.choice-row.selected strong{color:var(--accent)}
+.form-field{display:flex;flex-direction:column;gap:8px;margin:14px 0;font-size:13px}.form-field span{color:var(--muted)}.form-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:22px}.primary-button,.secondary-button,.danger-button{border-radius:12px;min-height:44px;padding:11px 18px;font-size:13px;font-weight:550;display:inline-flex;align-items:center;justify-content:center;gap:6px}.primary-button{background:var(--accent);color:var(--accent-ink)}.secondary-button{border:1px solid var(--line);color:var(--muted)}.danger-button{background:var(--danger);color:var(--bg)}.form-error{color:var(--danger);font-size:12px;margin-top:10px}.form-help{font-size:11px;color:var(--faint);line-height:1.8;margin-top:8px}.menu-row{display:flex;align-items:center;gap:12px;text-align:left;width:100%;min-height:54px;border-bottom:1px solid var(--line);font-size:14px}.menu-row>.icon{width:18px;height:18px;color:var(--muted)}.menu-row span{flex:1}.menu-row small{font-size:11px;color:var(--faint)}.menu-row.danger>.icon{color:var(--danger)}
+.switch-row{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:14px;padding:15px 0;border-bottom:1px solid var(--line);cursor:pointer}.switch-row p{font-size:11px;color:var(--muted);margin-top:3px}.switch-row input[type="checkbox"]{appearance:none;width:37px;height:23px;border-radius:20px;position:relative;padding:0;flex-shrink:0;background:var(--raised);border:1px solid var(--line);transition:background .15s}.switch-row input::before{content:"";position:absolute;width:15px;height:15px;top:3px;left:3px;border-radius:50%;background:var(--muted);transition:transform .15s}.switch-row input:checked{background:var(--accent);border-color:var(--accent)}.switch-row input:checked::before{transform:translateX(14px);background:var(--accent-ink)}
+.detail-meta{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:18px}.detail-meta span{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 7px}.memory-body-text{font-size:14px;line-height:1.95;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ink);margin-bottom:22px}.detail-section-title{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;margin-bottom:8px}.relation-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 0;border-bottom:1px solid var(--line)}.relation-row>span:first-child{font-size:10px;color:var(--accent);background:var(--accent-soft);padding:4px 6px;min-width:40px;text-align:center;border-radius:6px}.relation-row strong{font-size:13px;font-weight:500;flex:1}.relation-row .icon{width:13px;height:13px;color:var(--faint)}.edge-code{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);background:var(--quiet);padding:10px 12px;border-radius:9px;margin-bottom:16px}.file-drop{display:flex;flex-direction:column;align-items:center;gap:10px;border:1px dashed var(--active-line);border-radius:18px;padding:25px 14px;color:var(--accent);cursor:pointer}.file-drop>.icon{width:27px;height:27px}.file-drop strong{font-size:14px;font-weight:550}.file-drop span{font-size:11px;color:var(--muted)}.file-drop input{font-size:11px;width:100%;margin-top:8px}.toast{position:absolute;z-index:30;left:25px;right:25px;bottom:30px;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:13px;box-shadow:var(--shadow);font-size:13px;text-align:center;pointer-events:none;line-height:1.7}
+@media(max-width:850px){.design-notes{display:none}.preview-layout{padding:8px 12px 14px}.app-shell{max-height:none;max-width:520px;width:100%}}
+@media(max-width:540px){.preview-layout{padding:0}.app-shell{width:100%;border:0;border-radius:0;box-shadow:none}.preview-bar{padding:0 14px}.app-shell{padding-bottom:env(safe-area-inset-bottom,0px)}.overview-bar{padding-top:21px}.overview-content{padding:0 20px 24px}.modal{max-height:93%}}
+@media(max-width:350px){.overview-content{padding-left:15px;padding-right:15px}.app-bar{padding-left:15px;padding-right:15px}.space-title-row h4{font-size:17px}.library-tools{padding-left:12px;padding-right:12px}.folder-chip>span:nth-child(2){max-width:95px}.section-note{font-size:10px}.peek-actions .small-button{padding-left:7px;padding-right:7px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+  <div class="preview-bar">
+    <span><span class="preview-dot"></span>交互预览 <i>·</i> 示例数据</span>
+    <div><button id="themeToggle" class="preview-button" aria-label="切换深浅主题">浅色</button><button id="resetDemo" class="preview-button" aria-label="重置示例数据">重置</button></div>
+  </div>
+  <div class="preview-layout">
+    <aside class="design-notes">
+      <div class="design-brand">OPERIT <span>DESIGN STUDY · 03</span></div>
+      <h1>记忆有归处，<br>关系看得清。</h1>
+      <p>把空间管理与记忆探索放回各自的位置。先看清内容分布，再靠近某一段记忆。</p>
+      <div class="note-divider"></div>
+      <button class="design-jump active" data-action="show-overview"><b>01</b><span>空间入口<small>全局默认与角色使用，一眼分清</small></span></button>
+      <button class="design-jump" data-action="open-library"><b>02</b><span>记忆图谱<small>分组总览 → 具体记忆 → 相邻关系</small></span></button>
+      <div class="note-caption">为 Android 手机设计<br>独立 HTML · 无需联网 · 示例内容</div>
+    </aside>
+    <div class="app-shell" id="app">
+      <div id="screens">
+        <section id="overviewScreen" class="screen" aria-label="记忆管理">
+          <header class="app-bar overview-bar"><div class="brand-symbol" aria-hidden="true" data-icon="layers"></div><div><h2>记忆管理</h2><p>空间与角色的记忆使用关系</p></div><button class="icon-button" data-action="help" aria-label="了解记忆空间" data-icon="help"></button></header>
+          <main class="overview-content scrollable">
+            <div class="section-heading"><h3>记忆空间 <span id="spaceCount" class="count">1</span></h3><button class="text-button" id="createSpace" data-action="create-space"><span data-icon="plus"></span>新建空间</button></div>
+            <div id="spaceCards" class="space-cards"></div>
+            <div class="global-description"><span class="tiny-dot"></span><span>跟随全局的角色，会使用标记为全局默认的空间。</span><button class="text-link" data-action="choose-global">更换</button></div>
+            <section class="role-section" id="roleSection"><div class="section-heading"><h3>角色使用 <span class="count">1</span></h3><span class="section-note">独立设置，互不影响</span></div><div id="roleCard"></div></section>
+            <section class="recent-section"><div class="section-heading"><h3>最近更新</h3><button class="text-button quiet-button" data-action="show-recent">查看全部<span data-icon="chevron"></span></button></div><div id="recentMemories" class="recent-list"></div></section>
+            <div class="overview-bottom"><span data-icon="layers"></span>每个空间独立存放记忆与关联</div>
+          </main>
+        </section>
+        <section id="libraryScreen" class="screen library-screen" aria-label="记忆库" hidden>
+          <header class="app-bar library-bar"><button class="icon-button" data-action="show-overview" aria-label="返回记忆管理" data-icon="back"></button><button class="space-heading" data-action="choose-library"><span class="eyebrow">记忆库</span><strong id="libraryName">Default</strong><span data-icon="down"></span></button><button class="icon-button" data-action="library-menu" aria-label="记忆库操作" data-icon="more"></button></header>
+          <div class="library-tools">
+            <div class="search-box"><span data-icon="search"></span><input id="searchInput" type="search" placeholder="查找一段记忆…" aria-label="搜索记忆" autocomplete="off"><button id="clearSearch" class="icon-button small-icon" data-action="clear-search" aria-label="清除搜索" data-icon="close" hidden></button><button class="icon-button small-icon search-options" data-action="search-options" aria-label="搜索范围" data-icon="sliders"></button></div>
+            <div class="library-filter-row"><button class="folder-chip" data-action="choose-folder"><span data-icon="folder"></span><span id="folderLabel">全部文件夹</span><span data-icon="down"></span></button><div class="view-switch" role="tablist" aria-label="记忆显示方式"><button id="graphTab" role="tab" aria-selected="true" data-action="view-graph"><span data-icon="graph"></span>图谱</button><button id="listTab" role="tab" aria-selected="false" data-action="view-list"><span data-icon="list"></span>列表</button></div></div>
+          </div>
+          <main class="library-body" id="libraryBody">
+            <div id="graphViewport" class="graph-viewport" aria-label="记忆图谱，拖动平移，双指缩放" tabindex="0">
+              <div class="graph-topline"><div><button id="graphBreadcrumb" class="breadcrumb" data-action="graph-overview"><span data-icon="grid"></span><span id="graphTitle">分组总览</span></button><p id="graphHint">点开一个文件夹，查看里面的记忆</p></div><span id="graphCount" class="graph-count">12 条记忆</span></div>
+              <div id="world" class="graph-world"><svg id="edges" class="graph-edges" aria-hidden="true"></svg><div id="nodes"></div></div>
+              <div id="selectionRect" class="selection-rect" hidden></div>
+              <div class="graph-controls"><button class="icon-button" data-action="zoom-in" aria-label="放大图谱" data-icon="plus"></button><output id="zoomLabel">100%</output><button class="icon-button" data-action="zoom-out" aria-label="缩小图谱" data-icon="minus"></button><div class="control-separator"></div><button class="icon-button" data-action="recenter" aria-label="图谱归中" data-icon="locate"></button></div>
+              <button class="minimap" id="minimap" data-action="recenter" aria-label="归中到当前图谱" hidden><svg id="miniSvg" viewBox="0 0 360 600" aria-hidden="true"></svg></button>
+              <div class="graph-legend" id="graphLegend"><span><i></i>跨文件夹关联</span><span id="legendDetail">按文件夹聚合</span></div>
+            </div>
+            <div id="listView" class="memory-list-view scrollable" hidden></div>
+            <div id="searchResults" class="search-results scrollable" hidden></div>
+            <div id="emptyView" class="empty-view" hidden><div class="empty-art" data-icon="graph"></div><h3>这里还没有记忆</h3><p>记录一件事，或导入一份文档。<br>有了关联，图谱就会慢慢连起来。</p><button class="primary-button" data-action="new-memory">创建第一条记忆</button></div>
+            <aside id="memoryPeek" class="memory-peek" aria-label="选中的记忆" hidden></aside>
+            <div id="selectionBar" class="selection-bar" hidden></div>
+            <button id="addMemory" class="add-memory" data-action="add-menu" aria-label="新建记忆或导入文档"><span data-icon="plus"></span><span>记忆</span></button>
+          </main>
+        </section>
+      </div>
+      <div id="modalLayer" class="modal-layer" hidden><div class="modal-backdrop" data-action="dismiss-modal"></div><section id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1"><div class="sheet-handle"></div><div class="modal-heading"><div><span id="modalEyebrow" class="eyebrow"></span><h3 id="modalTitle"></h3></div><button class="icon-button" data-action="dismiss-modal" aria-label="关闭弹窗" data-icon="close"></button></div><div id="modalContent" class="modal-content scrollable"></div></section></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    </div>
+  </div>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7M7 12h14"/></symbol><symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol><symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol><symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol><symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol><symbol id="i-graph" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="10" r="3"/><circle cx="9" cy="19" r="3"/><path d="m9 7 6 2M7 9l1 7m8-4-5 5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V5h6l3 3h9v11H3V7Z"/></symbol><symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol><symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 4 2c-1 .6-1.5 1.1-1.5 2.5M12 17h.01"/></symbol>
+    <symbol id="i-locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/><circle cx="12" cy="12" r="1"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L20 8a2 2 0 0 0-5-5L4 14v6Z"/></symbol><symbol id="i-link" viewBox="0 0 24 24"><path d="m9 15 6-6m-4-3 2-2a5 5 0 0 1 7 7l-3 3a5 5 0 0 1-7 0m3 4-2 2a5 5 0 0 1-7-7l3-3a5 5 0 0 1 7 0"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8m-8 4h6"/></symbol><symbol id="i-import" viewBox="0 0 24 24"><path d="M4 15v6h16v-6M12 3v12m-5-5 5 5 5-5"/></symbol><symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-select" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5M8 8h8v8H8Z"/></symbol><symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3 3 6 6 1-4.5 4.5 1 6.5-5.5-3-5.5 3 1-6.5L3 10l6-1 3-6Z"/></symbol><symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol><symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"/></symbol>
+  </defs></svg>
+  <script>'use strict';
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = value => String(value).replace(/[&<>"']/g, c => String.fromCharCode(38)+({'&':'amp','<':'lt','>':'gt','"':'quot',"'":'#39'}[c])+';');
+  const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"></use></svg>`;
+  const relations = {USES:'使用', INVOLVES:'涉及', DEPENDS_ON:'依赖', RELATED_TO:'相关', FOLLOWS:'遵循', EXPLAINS:'说明', PART_OF:'属于', UPDATES:'更新'};
+  const initialMemories = [
+    {id:'voice', title:'语音消息：录音、试听与发送', short:'语音消息的录制与发送', kind:'事件', folder:'Operit 开发', content:'语音作为一条独立消息发送。录制时显示真实波形，结束后先试听确认，原录音保留在消息中。\n\n这是交互稿的示例记忆，用于展示节点、正文与关联的层次。', date:'今天 11:24'},
+    {id:'audio', title:'音频理解：当前对话模型优先', short:'音频理解的处理顺序', kind:'决策', folder:'Operit 开发', content:'先使用当前对话模型的音频能力；再使用已配置的音频理解功能模型；最后使用当前 STT。\n取消处理时停止后续尝试。', date:'今天 11:18'},
+    {id:'models', title:'模型工作区：连接、参数与功能分配', short:'模型工作区的功能分配', kind:'事实', folder:'Operit 开发', content:'模型配置按连接、参数、上下文总结和功能分配组织。角色固定模型与全局功能分配分别生效。', date:'昨天 20:36'},
+    {id:'tools', title:'工具调用：并行执行与返回结果', short:'并行工具调用', kind:'事实', folder:'Operit 开发', content:'并行调用应保留每个工具的参数、执行状态和返回结果。关联的记忆可用于解释后续修复。', date:'昨天 16:20'},
+    {id:'terminal', title:'终端退出码：非零结果标记失败', short:'终端非零退出码', kind:'事件', folder:'Operit 开发', content:'终端正常完成且退出码为零时视为成功。非零退出码保留原始输出并显示失败状态。', date:'昨天 15:10'},
+    {id:'cursor', title:'命令框模式：用户语音卡片右对齐', short:'命令框语音右对齐', kind:'事件', folder:'Operit 开发', content:'紧凑语音卡片明确放在用户消息一侧，避免与助手回复混淆。', date:'今天 11:30'},
+    {id:'style', title:'交互偏好：简洁、温和、清楚', short:'日常交流与表达偏好', kind:'偏好', folder:'个人偏好', content:'交流保持自然、温和。说明执行结果时先说结论，再提供必要证据。', date:'昨天 19:30'},
+    {id:'verification', title:'验证偏好：检查范围与改动相称', short:'代码改动的验证方式', kind:'偏好', folder:'个人偏好', content:'简单修改采用相称的检查方式。提交后分别记录工作流受理状态与最终运行结果。', date:'昨天 18:10'},
+    {id:'language', title:'书写偏好：中文注释与 PR 说明', short:'中文注释与 PR 说明', kind:'偏好', folder:'个人偏好', content:'代码注释和 PR 说明使用中文，功能说明应与实际实现对应。', date:'前天 14:00'},
+    {id:'docs', title:'开发资料：功能说明与回归清单', short:'开发说明与回归清单', kind:'文档', folder:'资料与文档', content:'记录功能触发方式、用户可见行为与验证预期。完整清单保留已有检查项，并补充本次场景。', date:'昨天 21:00'},
+    {id:'graph', title:'图谱资料：节点、方向与关系类型', short:'记忆图谱使用说明', kind:'文档', folder:'资料与文档', content:'节点代表一条记忆。箭头表示关联方向，选中记忆后显示它的相邻关系。\n\n文件夹总览只聚合已有分类，不自动推断新的语义主题。', date:'今天 10:10'},
+    {id:'license', title:'资源资料：模型来源与许可记录', short:'模型来源与许可记录', kind:'资料', folder:'资料与文档', content:'模型资源需要记录来源、发布者、使用条件和独立依赖。设计稿中的本条内容仅为示例。', date:'前天 17:20'},
+  ];
+  const initialEdges = [
+    ['voice','audio','USES'],['voice','cursor','INVOLVES'],['audio','models','DEPENDS_ON'],['tools','terminal','RELATED_TO'],['models','tools','RELATED_TO'],['voice','verification','FOLLOWS'],['models','style','FOLLOWS'],['cursor','style','FOLLOWS'],['docs','language','FOLLOWS'],['docs','models','EXPLAINS'],['graph','docs','RELATED_TO'],['license','docs','PART_OF'],['verification','tools','UPDATES'],['language','style','RELATED_TO'],['verification','language','RELATED_TO'],['graph','voice','RELATED_TO'],['audio','docs','RELATED_TO'],['tools','voice','INVOLVES']
+  ].map((e,i) => ({id:`e${i}`,from:e[0],to:e[1],type:e[2]}));
+  let spaces, globalId, bindingId, libraryId, screen, folder, view, graphMode, selectedId, focusOnly, selecting, checked, query, showCross, allLabels, searchBody, nextId;
+  let positions = new Map(), visibleNodes = [], camera = {x:0,y:0,k:1}, worldSize = {w:360,h:550};
+  let toastTimer, savedFocus, modalKind = '', drag = null, pinch = null, suppressClickUntil = 0;
+  const pointers = new Map();
+  function reset() {
+    spaces = [{id:'default',name:'Default',folders:['Operit 开发','个人偏好','资料与文档'],memories:initialMemories.map((m,i)=>({...m,updatedAt:[120,110,70,30,20,130,60,50,10,80,100,15][i]})),edges:initialEdges.map(e=>({...e}))}];
+    globalId='default'; bindingId=null; libraryId='default'; screen='overview'; folder=null; view='graph'; graphMode='overview'; selectedId=null; focusOnly=false; selecting=false; checked=new Set(); query=''; showCross=true; allLabels=false; searchBody=true; nextId=1;
+    pointers.clear();drag=null;pinch=null;clearTimeout(toastTimer);$('toast').hidden=true;closeModal(false); render();
+  }
+  const currentSpace = () => spaces.find(s => s.id===libraryId);
+  const findSpace = id => spaces.find(s => s.id===id);
+  const memory = id => currentSpace().memories.find(m=>m.id===id);
+  const adjacentEdges = id => currentSpace().edges.filter(e=>e.from===id||e.to===id);
+  const folderColor = name => { const i=currentSpace().folders.indexOf(name); return i%3===1?'sand':i%3===2?'blue':''; };
+  const memoryIcon = m => m.kind==='文档'?'file':m.kind==='偏好'?'person':m.kind==='决策'?'spark':'graph';
+  function hydrate(root=document) { root.querySelectorAll('[data-icon]').forEach(el=>{ el.innerHTML=icon(el.dataset.icon); }); }
+  function toast(text) { clearTimeout(toastTimer); $('toast').textContent=text; $('toast').hidden=false; toastTimer=setTimeout(()=>$('toast').hidden=true,2600); }
+  function render() {
+    $('overviewScreen').hidden=screen!=='overview'; $('libraryScreen').hidden=screen!=='library';
+    document.querySelectorAll('.design-jump').forEach((el,i)=>el.classList.toggle('active',i===(screen==='overview'?0:1)));
+    renderOverview(); if(screen==='library') renderLibrary(true); hydrate();
+  }
+  function renderOverview() {
+    $('spaceCount').textContent=spaces.length;
+    $('spaceCards').innerHTML=spaces.map(sp=>{
+      const active=sp.id===globalId, used=(bindingId===sp.id || (!bindingId&&active));
+      return `<article class="space-card ${active?'is-global':''}"><div class="space-card-head"><div class="space-avatar">${icon('layers')}</div><div class="space-naming"><div class="space-title-row"><h4>${esc(sp.name)}</h4>${active?`<span class="pill">${icon('check')}全局默认</span>`:''}</div><p>${used?'Echo 正在使用':'尚未有角色使用'}</p></div><button class="icon-button" data-action="space-menu" data-id="${esc(sp.id)}" aria-label="管理 ${esc(sp.name)}">${icon('more')}</button></div><div class="space-stats"><div><strong>${sp.memories.length}</strong><small>条记忆</small></div><div><strong>${sp.edges.length}</strong><small>个关联</small></div><div><strong>${sp.folders.length}</strong><small>个文件夹</small></div></div><button class="space-enter" data-action="open-library" data-id="${esc(sp.id)}">打开记忆库${icon('arrow')}</button></article>`;
+    }).join('');
+    const roleSpace=findSpace(bindingId||globalId);
+    $('roleCard').innerHTML=`<button class="role-row" data-action="choose-binding"><span class="role-avatar">E</span><div class="role-main"><div class="role-title"><b>Echo</b><em>${bindingId?'固定空间':'跟随全局'}</em></div><p>${esc(roleSpace.name)}${bindingId?' · 全局更换时保持不变':''}</p></div>${icon('chevron')}</button>`;
+    const sp=findSpace(globalId);
+    $('recentMemories').innerHTML=sp.memories.length?sp.memories.slice().sort((a,b)=>b.updatedAt-a.updatedAt).slice(0,3).map(m=>`<button class="recent-item" data-action="recent-memory" data-space="${esc(sp.id)}" data-id="${esc(m.id)}"><span class="recent-mark">${icon(memoryIcon(m))}</span><div><strong>${esc(m.title)}</strong><p>${esc(m.folder)} · ${esc(m.date)}</p></div>${icon('chevron')}</button>`).join(''):'<p class="modal-description" style="padding-top:18px">这个空间暂时没有记忆，创建后会显示在这里。</p>';
+  }
+  function openLibrary(id=globalId,list=false) {
+    libraryId=id; screen='library'; folder=null; graphMode='overview'; view=list?'list':'graph'; selectedId=null; checked.clear(); selecting=false; query=''; focusOnly=false;
+    render();
+  }
+  function renderLibrary(resetCamera=false) {
+    const sp=currentSpace(); $('libraryName').textContent=sp.name; $('searchInput').value=query; $('clearSearch').hidden=!query;
+    $('folderLabel').textContent=folder||'全部文件夹'; $('graphTab').setAttribute('aria-selected',String(view==='graph')); $('listTab').setAttribute('aria-selected',String(view==='list'));
+    const empty=!sp.memories.length; $('emptyView').hidden=!empty;
+    $('graphViewport').hidden=empty||view!=='graph'||Boolean(query);
+    $('listView').hidden=empty||view!=='list'||Boolean(query); $('searchResults').hidden=empty||!query;
+    if(query) renderSearch(); else if(view==='list') renderList(); else if(!empty) renderGraph(resetCamera);
+    renderPeek(); renderSelection(); hydrate($('libraryScreen'));
+  }
+  function scopedMemories() { return currentSpace().memories.filter(m=>!folder||m.folder===folder); }
+  function listItem(m,search=false) {
+    const isChecked=checked.has(m.id);
+    return `<button class="memory-list-item" data-action="${selecting?'check-memory':search?'locate-memory':'read-memory'}" data-id="${esc(m.id)}"><span class="list-icon ${folderColor(m.folder)}">${icon(memoryIcon(m))}</span><div class="list-item-content"><strong>${esc(m.title)}</strong><p>${esc(m.content)}</p><small>${esc(m.folder)} · ${adjacentEdges(m.id).length} 个关联 · ${esc(m.date)}</small></div><span class="list-tail ${isChecked?'checked':''}">${icon(selecting?(isChecked?'check':'select'):'chevron')}</span></button>`;
+  }
+  function renderList() { const ms=scopedMemories(); $('listView').innerHTML=`<div class="list-heading"><span>${ms.length} 条记忆</span><span>按最近更新</span></div>${ms.length?ms.slice().sort((a,b)=>b.updatedAt-a.updatedAt).map(m=>listItem(m)).join(''):'<div class="search-empty"><p>这个文件夹还没有记忆</p><button class="text-button" data-action="new-memory">新建记忆</button></div>'}`; }
+  function renderSearch() {
+    const term=query.trim().toLocaleLowerCase();
+    const matches=scopedMemories().filter(m=>(m.title+(searchBody?m.content:'')).toLocaleLowerCase().includes(term));
+    $('searchResults').innerHTML=`<div class="list-heading"><span>找到 ${matches.length} 条记忆</span><span>${folder?esc(folder):'全部文件夹'}</span></div>${matches.length?matches.map(m=>listItem(m,true)).join(''):'<div class="search-empty"><p>没有找到对应的记忆</p><button class="text-button" data-action="clear-search">清除搜索</button></div>'}`;
+  }
+  function neighbors(id) { return new Set([id,...adjacentEdges(id).map(e=>e.from===id?e.to:e.from)]); }
+  function layoutNodes() {
+    const sp=currentSpace(); positions=new Map();
+    if(graphMode==='overview') {
+      visibleNodes=[]; const fs=sp.folders.filter(f=>sp.memories.some(m=>m.folder===f));
+      worldSize={w:360,h:Math.max(520,fs.length*155+75)};
+      fs.forEach((f,i)=>positions.set(f,{x:i%2===0?112:248,y:110+i*155}));
+      return fs;
+    }
+    let ms=scopedMemories();
+    if(folder&&showCross) {
+      const ids=new Set(ms.map(m=>m.id));
+      const linked=new Set(sp.edges.filter(e=>ids.has(e.from)||ids.has(e.to)).flatMap(e=>[e.from,e.to]));
+      ms=sp.memories.filter(m=>linked.has(m.id)||ids.has(m.id));
+    }
+    visibleNodes=ms;
+    // 记忆保持可读字号，用平移探索；总览始终回到文件夹层级。
+    const local=ms.filter(m=>!folder||m.folder===folder), external=ms.filter(m=>folder&&m.folder!==folder);
+    local.forEach((m,i)=>positions.set(m.id,{x:i%2===0?96:274,y:125+Math.floor(i/2)*166+(i%2?54:0)}));
+    external.forEach((m,i)=>positions.set(m.id,{x:i%2===0?470:650,y:145+Math.floor(i/2)*166+(i%2?64:0)}));
+    worldSize={w:external.length?750:380,h:Math.max(560,Math.ceil(local.length/2)*166+150,Math.ceil(external.length/2)*166+180)};
+    if(focusOnly&&selectedId&&positions.has(selectedId)) {
+      const near=neighbors(selectedId), offsets=[[-92,-183],[92,-117],[-92,137],[92,218],[280,20],[-280,35]];
+      positions.set(selectedId,{x:190,y:300});
+      ms.filter(m=>near.has(m.id)&&m.id!==selectedId).forEach((m,i)=>{const d=offsets[i%offsets.length];positions.set(m.id,{x:190+d[0]+Math.floor(i/offsets.length)*390,y:300+d[1]});});
+      ms.filter(m=>!near.has(m.id)).forEach((m,i)=>positions.set(m.id,{x:720+i%2*180,y:120+Math.floor(i/2)*160}));
+      worldSize={w:1000,h:Math.max(650,Math.ceil(ms.length/2)*160)};
+    }
+    return ms;
+  }
+  function anchor(a,b,hw,hh) { const dx=b.x-a.x,dy=b.y-a.y; const t=1/Math.max(Math.abs(dx)/hw,Math.abs(dy)/hh,1); return {x:a.x+dx*t,y:a.y+dy*t}; }
+  function curve(a,b,bend=18) {
+    const start=anchor(a,b,graphMode==='overview'?83:80,graphMode==='overview'?67:43),end=anchor(b,a,graphMode==='overview'?83:80,graphMode==='overview'?67:43);
+    const dx=end.x-start.x,dy=end.y-start.y,length=Math.max(1,Math.hypot(dx,dy));
+    const c={x:(start.x+end.x)/2-dy/length*bend,y:(start.y+end.y)/2+dx/length*bend};
+    return {path:`M${start.x},${start.y} Q${c.x},${c.y} ${end.x},${end.y}`,label:{x:(start.x+end.x)/4+c.x/2,y:(start.y+end.y)/4+c.y/2}};
+  }
+  let placedLabels=[];
+  function edgeLabel(x,y,text,active=false) {
+    const w=Math.max(35,text.length*11+12), hw=graphMode==='overview'?86:82, hh=graphMode==='overview'?70:53;
+    const candidates=[[0,0],[0,-23],[0,23],[-38,0],[38,0],[-38,-23],[38,23],[0,-46],[0,46]];
+    for(const [dx,dy] of candidates) {
+      const candidate={x:x+dx,y:y+dy};
+      const overlapsNode=[...positions.values()].some(p=>Math.abs(p.x-candidate.x)<hw+w/2+4&&Math.abs(p.y-candidate.y)<hh+12);
+      const overlapsLabel=placedLabels.some(p=>Math.abs(p.x-candidate.x)<(p.w+w)/2+5&&Math.abs(p.y-candidate.y)<23);
+      if(!overlapsNode&&!overlapsLabel){x=candidate.x;y=candidate.y;break;}
+    }
+    placedLabels.push({x,y,w}); return `<g class="edge-label ${active?'is-adjacent':''}" transform="translate(${x},${y})"><rect x="${-w/2}" y="-9" width="${w}" height="18" rx="7"/><text y="3.5">${esc(text)}</text></g>`; }
+  function renderGraph(resetCamera=false) {
+    const sp=currentSpace(), items=layoutNodes();placedLabels=[];
+    let edgesHtml='<defs><marker id="edgeArrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,1 L6,3.5 L0,6" fill="none" stroke="var(--accent)" stroke-width="1"/></marker></defs>';
+    if(graphMode==='overview') {
+      const aggregates=new Map();
+      sp.edges.forEach(e=>{const a=sp.memories.find(m=>m.id===e.from),b=sp.memories.find(m=>m.id===e.to);if(a.folder===b.folder)return;const pair=[a.folder,b.folder].sort();const key=JSON.stringify(pair);if(!aggregates.has(key))aggregates.set(key,{a:pair[0],b:pair[1],count:0});aggregates.get(key).count++;});
+      for(const e of aggregates.values()) { const line=curve(positions.get(e.a),positions.get(e.b),e.count*9); edgesHtml+=`<path class="graph-edge cross" d="${line.path}" style="stroke-width:${1+e.count*.25}"/>${edgeLabel(line.label.x,line.label.y,e.count+' 个关联')}`; }
+      $('nodes').innerHTML=items.map((f,i)=>{const p=positions.get(f),count=sp.memories.filter(m=>m.folder===f).length;return `<button class="cluster-card ${folderColor(f)}" style="left:${p.x}px;top:${p.y}px" data-action="open-folder" data-id="${esc(f)}" aria-label="打开 ${esc(f)}，${count} 条记忆"><div class="cluster-top">${icon('folder')}<span>${String(i+1).padStart(2,'0')}</span></div><strong>${esc(f)}${icon('chevron')}</strong><p class="cluster-preview">${count} 条记忆 · 点开查看</p><span class="cluster-dots"><i></i><i></i><i></i></span></button>`;}).join('');
+      $('graphTitle').textContent='分组总览'; $('graphHint').textContent='点开一个文件夹，查看里面的记忆'; $('graphCount').textContent=sp.memories.length+' 条记忆'; $('legendDetail').textContent=items.length+' 个文件夹'; $('minimap').hidden=true;
+    } else {
+      const near=selectedId?neighbors(selectedId):new Set();
+      const ids=new Set(items.map(m=>m.id));
+      sp.edges.filter(e=>ids.has(e.from)&&ids.has(e.to)).forEach((e,i)=>{
+        const a=memory(e.from),b=memory(e.to),active=e.from===selectedId||e.to===selectedId,cross=a.folder!==b.folder;
+        const line=curve(positions.get(e.from),positions.get(e.to),(i%2?1:-1)*(17+i%4*9));
+        edgesHtml+=`<path class="graph-edge ${cross?'cross':''} ${active?'is-adjacent':selectedId?'is-dim':''}" d="${line.path}" ${active?'marker-end="url(#edgeArrow)"':''}/><path class="edge-hit" data-action="read-edge" data-id="${esc(e.id)}" d="${line.path}"/>`;
+        if(active||allLabels) edgesHtml+=edgeLabel(line.label.x,line.label.y,relations[e.type]||e.type,active);
+      });
+      $('nodes').innerHTML=items.map(m=>{const p=positions.get(m.id);return `<button class="memory-node ${folderColor(m.folder)} ${m.id===selectedId?'is-selected':''} ${focusOnly&&selectedId&&!near.has(m.id)?'is-dim':''} ${checked.has(m.id)?'is-checked':''}" style="left:${p.x}px;top:${p.y}px" data-action="${selecting?'check-memory':'select-memory'}" data-id="${esc(m.id)}" aria-label="${esc(m.title)}" aria-pressed="${selecting?checked.has(m.id):m.id===selectedId}"><span class="node-kind"><i></i><span>${esc(m.kind)}</span></span><strong class="node-title">${esc(m.short||m.title)}</strong>${folder&&m.folder!==folder?`<div class="node-folder">↗ ${esc(m.folder)}</div>`:''}${selecting?`<span class="node-check">${checked.has(m.id)?icon('check'):''}</span>`:''}</button>`;}).join('');
+      $('graphTitle').textContent=folder||'全部记忆'; $('graphHint').textContent=selecting?'拖动空白框选，点节点可逐个选择':selectedId?'已突出相邻关系 · 拖动可继续探索':'点选记忆查看关联 · 可拖动与缩放'; $('graphCount').textContent=items.length+' 个节点'; $('legendDetail').textContent=focusOnly?'聚焦相邻关系':'选中后显示关系文字'; $('minimap').hidden=false;
+    }
+    $('edges').innerHTML=edgesHtml;
+    if(resetCamera) requestAnimationFrame(recenter); else applyCamera();
+  }
+  function graphSize() { const r=$('graphViewport').getBoundingClientRect();return {w:r.width,h:r.height}; }
+  function recenter() {
+    const {w,h}=graphSize(); if(!w||!h)return;
+    if(graphMode==='overview') { camera.k=Math.min(1.1,Math.max(.82,Math.min((w-18)/360,(h-102)/worldSize.h)));camera.x=(w-360*camera.k)/2;camera.y=66+(h-96-worldSize.h*camera.k)/2; }
+    else { camera.k=1; const p=positions.get(selectedId)||{x:180,y:240}; const usableH=h-(selectedId?145:50); camera.x=w/2-p.x;camera.y=Math.max(145,usableH/2+20)-p.y; }
+    applyCamera();
+  }
+  function centerOn(id) { const p=positions.get(id),{w,h}=graphSize();if(!p||!w)return;camera.k=Math.max(.95,camera.k);camera.x=w/2-p.x*camera.k;camera.y=Math.max(142,(h-140)/2)-p.y*camera.k;applyCamera(); }
+  function applyCamera() {
+    camera.k=Math.min(2,Math.max(.35,camera.k));
+    $('world').style.transform=`translate(${camera.x}px,${camera.y}px) scale(${camera.k})`;
+    $('zoomLabel').textContent=Math.round(camera.k*100)+'%';$('graphViewport').classList.toggle('far-view',graphMode!=='overview'&&camera.k<.65);
+    if(graphMode!=='overview') {const {w,h}=graphSize(); $('miniSvg').setAttribute('viewBox',`-20 0 ${worldSize.w+40} ${worldSize.h}`);$('miniSvg').innerHTML=visibleNodes.map(m=>{const p=positions.get(m.id);return `<circle cx="${p.x}" cy="${p.y}" r="${m.id===selectedId?11:7}" ${m.id===selectedId?'style="fill:var(--accent)"':''}/>`;}).join('')+`<rect x="${-camera.x/camera.k}" y="${-camera.y/camera.k}" width="${w/camera.k}" height="${h/camera.k}" rx="12"/>`;}
+  }
+  function zoomAt(factor,x,y) {const old=camera.k,next=Math.min(2,Math.max(.35,old*factor));camera.x=x-(x-camera.x)*next/old;camera.y=y-(y-camera.y)*next/old;camera.k=next;applyCamera();}
+  function renderPeek() {
+    const m=memory(selectedId),visible=Boolean(m)&&!selecting&&view==='graph'&&!query&&graphMode!=='overview';
+    $('memoryPeek').hidden=!visible;$('libraryBody').classList.toggle('has-peek',visible);$('addMemory').hidden=visible||selecting;
+    if(!visible)return;
+    $('memoryPeek').innerHTML=`<div class="peek-top"><span class="eyebrow">${esc(m.kind)} · ${esc(m.folder)}</span><button class="icon-button" data-action="clear-selected" aria-label="取消选中">${icon('close')}</button></div><h3 class="peek-title">${esc(m.title)}</h3><div class="peek-bottom"><span class="peek-meta">${adjacentEdges(m.id).length} 个关联<br>${esc(m.date)}</span><div class="peek-actions"><button class="small-button ${focusOnly?'accent':''}" data-action="toggle-focus" aria-pressed="${focusOnly}">${focusOnly?'显示其他':'只看关联'}</button><button class="small-button accent" data-action="read-memory" data-id="${esc(m.id)}">查看内容</button></div></div>`;
+  }
+  function renderSelection() {
+    $('selectionBar').hidden=!selecting;$('libraryBody').classList.toggle('is-selecting',selecting);if(!selecting)return;
+    $('selectionBar').innerHTML=`<button class="icon-button" data-action="end-selection" aria-label="退出多选">${icon('close')}</button><span>已选 ${checked.size} 条</span><button class="small-button" data-action="new-link" ${checked.size!==2?'disabled':''}>建立关联</button><button class="icon-button danger" data-action="delete-checked" aria-label="删除已选记忆" ${!checked.size?'disabled':''}>${icon('trash')}</button>`;
+  }
+  function selectMemory(id) {selectedId=id;focusOnly=true;renderLibrary(false);centerOn(id);}
+  function locateMemory(id) {const m=memory(id);if(!m)return;folder=m.folder;graphMode='nodes';view='graph';query='';selectedId=id;focusOnly=true;selecting=false;checked.clear();renderLibrary(true);}
+  function openFolder(name) {folder=name;graphMode='nodes';selectedId=null;focusOnly=false;query='';checked.clear();renderLibrary(true);}
+  function showModal(title,html,eyebrow='',kind='') {if($('modalLayer').hidden)savedFocus=document.activeElement;modalKind=kind;$('modalTitle').textContent=title;$('modalEyebrow').textContent=eyebrow;$('modalContent').innerHTML=html;$('modalLayer').hidden=false;$('screens').inert=true;$('modalContent').scrollTop=0;requestAnimationFrame(()=>$('modal').focus());}
+  function closeModal(restore=true) {$('modalLayer').hidden=true;$('screens').inert=false;modalKind='';if(restore&&savedFocus&&savedFocus.isConnected)savedFocus.focus();}
+  function choice(action,id,title,subtitle,selected=false) {return `<button aria-pressed="${selected}" class="choice-row ${selected?'selected':''}" data-action="${action}" data-id="${esc(id)}"><span class="choice-radio"></span><div><strong>${esc(title)}</strong><p>${esc(subtitle)}</p></div>${selected?icon('check'):''}</button>`;}
+  function menu(action,id,symbol,label,caption='',danger=false,disabled=false) {return `<button class="menu-row ${danger?'danger':''}" data-action="${action}" data-id="${esc(id)}" ${disabled?'disabled':''}>${icon(symbol)}<span>${esc(label)}</span>${caption?`<small>${esc(caption)}</small>`:''}</button>`;}
+  function spaceForm(id=null) {const sp=id?findSpace(id):null;showModal(sp?'重命名空间':'新建记忆空间',`<p class="modal-description">${sp?'修改名称不会改变空间内的记忆和角色使用关系。':'用不同空间区分内容。创建后，可以设为全局默认，或只让某个角色使用。'}</p><form id="spaceForm" data-id="${esc(id||'')}" novalidate><label class="form-field"><span>空间名称</span><input id="spaceName" name="name" value="${esc(sp?sp.name:'')}" maxlength="30" placeholder="例如：工作、生活、项目资料" required></label><p id="formError" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary-button" data-action="dismiss-modal">取消</button><button class="primary-button" type="submit">${sp?'保存名称':'创建空间'}</button></div></form>`,'空间设置','space');}
+  function chooseGlobal() {showModal('更换全局空间',`<p class="modal-description">跟随全局的角色会一起切换。已经固定空间的角色保持原来的设置。</p>${spaces.map(sp=>choice('set-global',sp.id,sp.name,sp.id===globalId?'当前全局默认':sp.memories.length+' 条记忆',sp.id===globalId)).join('')}`,'全局使用');}
+  function chooseBinding() {showModal('Echo 使用哪个空间',`<p class="modal-description">跟随全局便于统一切换；固定空间适合为这个角色单独保留记忆。</p>${choice('set-binding','follow','跟随全局','当前使用 '+findSpace(globalId).name,!bindingId)}<div class="detail-section-title">固定使用一个空间</div>${spaces.map(sp=>choice('set-binding',sp.id,sp.name,sp.memories.length+' 条记忆 · 不受全局更换影响',sp.id===bindingId)).join('')}`,'角色使用');}
+  function memoryForm(id=null) {const m=id?memory(id):null;showModal(m?'编辑记忆':'新建记忆',`<form id="memoryForm" data-id="${esc(id||'')}" novalidate><label class="form-field"><span>标题</span><input name="title" maxlength="120" value="${esc(m?m.title:'')}" placeholder="简短说清这件事" required></label><label class="form-field"><span>内容</span><textarea name="content" placeholder="写下需要保留的内容…" required>${esc(m?m.content:'')}</textarea></label><label class="form-field"><span>文件夹</span><select name="folder">${currentSpace().folders.map(f=>`<option value="${esc(f)}" ${(m?m.folder:folder)===f?'selected':''}>${esc(f)}</option>`).join('')}${!currentSpace().folders.length?'<option value="未分类">未分类</option>':''}</select></label><p id="formError" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary-button" data-action="dismiss-modal">取消</button><button class="primary-button" type="submit">保存记忆</button></div></form>`,'内容','memory');}
+  function readMemory(id) {const m=memory(id);if(!m)return;const links=adjacentEdges(id);showModal(m.title,`<div class="detail-meta"><span>${esc(m.kind)}</span><span>${esc(m.folder)}</span><span>${esc(m.date)}</span></div><div class="memory-body-text">${esc(m.content)}</div><div class="detail-section-title">关联记忆 · ${links.length}</div>${links.map(e=>{const other=memory(e.from===id?e.to:e.from);return `<button class="relation-row" data-action="related-memory" data-id="${esc(other.id)}"><span>${e.from===id?'→':'←'} ${esc(relations[e.type]||e.type)}</span><strong>${esc(other.title)}</strong>${icon('chevron')}</button>`;}).join('')||'<p class="form-help">还没有关联，可以把相关记忆连接起来。</p>'}<div class="form-actions"><button class="secondary-button" data-action="edit-memory" data-id="${esc(id)}">${icon('edit')}编辑</button><button class="secondary-button" data-action="new-link" data-id="${esc(id)}">${icon('link')}关联</button><button class="primary-button" data-action="locate-from-detail" data-id="${esc(id)}">在图谱定位</button></div>`,'记忆详情','detail');}
+  function linkForm(fromId=null) {const ids=[...checked];const from=fromId||ids[0]||selectedId||currentSpace().memories[0]?.id,to=ids[1]||currentSpace().memories.find(m=>m.id!==from)?.id;const options=id=>currentSpace().memories.map(m=>`<option value="${esc(m.id)}" ${m.id===id?'selected':''}>${esc(m.title)}</option>`).join('');showModal('建立记忆关联',`<p class="modal-description">从一条记忆指向另一条，选择它们之间的关系。</p><form id="linkForm" novalidate><label class="form-field"><span>起点记忆</span><select name="from">${options(from)}</select></label><label class="form-field"><span>关系类型</span><select name="type">${Object.entries(relations).map(([code,name])=>`<option value="${code}">${name} · ${code}</option>`).join('')}</select></label><label class="form-field"><span>目标记忆</span><select name="to">${options(to)}</select></label><p id="formError" class="form-error" role="alert"></p><div class="form-actions"><button type="button" class="secondary-button" data-action="dismiss-modal">取消</button><button type="submit" class="primary-button">建立关联</button></div></form>`,'关联','link');}
+  function confirmDelete(ids) {showModal('删除选中的记忆',`<p class="modal-description">将删除 ${ids.length} 条记忆及与它们相连的关联。</p><div class="form-actions"><button class="secondary-button" data-action="dismiss-modal">保留</button><button class="danger-button" data-action="confirm-delete" data-id="${esc(JSON.stringify(ids))}">删除 ${ids.length} 条</button></div>`,'内容管理');}
+  function readEdge(id) {const e=currentSpace().edges.find(e=>e.id===id);if(!e)return;showModal(relations[e.type]||e.type,`<p class="modal-description">${esc(memory(e.from).title)}<br>↓<br>${esc(memory(e.to).title)}</p><div class="edge-code">${esc(e.type)}</div><p class="form-help">箭头表示关系方向，虚线表示跨文件夹的关联。</p><div class="form-actions"><button class="secondary-button" data-action="remove-edge" data-id="${esc(id)}">移除关联</button><button class="primary-button" data-action="related-memory" data-id="${esc(e.to)}">查看目标记忆</button></div>`,'关联详情');}
+  function performAction(el) {
+    const a=el.dataset.action,id=el.dataset.id;
+    if(el.disabled)return;
+    switch(a) {
+      case 'show-overview':closeModal();screen='overview';render();break;
+      case 'open-library':closeModal();openLibrary(id||globalId);break;
+      case 'show-recent':openLibrary(globalId,true);break;
+      case 'recent-memory':libraryId=el.dataset.space;screen='library';view='graph';graphMode='nodes';selectedId=id;folder=memory(id).folder;query='';focusOnly=true;selecting=false;checked.clear();render();break;
+      case 'create-space':spaceForm();break;
+      case 'rename-space':spaceForm(id);break;
+      case 'space-menu':{const sp=findSpace(id);showModal(sp.name,menu('rename-space',id,'edit','重命名空间')+menu('set-global',id,'check','设为全局默认',id===globalId?'当前使用':'',false,id===globalId)+menu('delete-space',id,'trash','删除空间',id==='default'?'默认空间保留':'',true,id==='default'),'空间管理');break;}
+      case 'delete-space':showModal('删除空间',`<p class="modal-description">删除「${esc(findSpace(id).name)}」及其中的示例内容。${id===globalId?'全局默认将恢复为 Default。':''}${bindingId===id?' Echo 将恢复为跟随全局。':''}</p><div class="form-actions"><button class="secondary-button" data-action="dismiss-modal">取消</button><button class="danger-button" data-action="confirm-delete-space" data-id="${esc(id)}">删除空间</button></div>`);break;
+      case 'confirm-delete-space':if(id==='default')return;spaces=spaces.filter(sp=>sp.id!==id);if(globalId===id)globalId='default';if(bindingId===id)bindingId=null;closeModal();screen='overview';render();toast('已删除示例空间');break;
+      case 'choose-global':chooseGlobal();break;
+      case 'set-global':globalId=id;closeModal();renderOverview();toast('全局默认已更换为 '+findSpace(id).name);break;
+      case 'choose-binding':chooseBinding();break;
+      case 'set-binding':bindingId=id==='follow'?null:id;closeModal();renderOverview();toast(bindingId?'Echo 已固定使用 '+findSpace(id).name:'Echo 已跟随全局空间');break;
+      case 'choose-library':showModal('打开记忆空间',spaces.map(sp=>choice('switch-library',sp.id,sp.name,`${sp.memories.length} 条记忆${sp.id===globalId?' · 全局默认':''}`,sp.id===libraryId)).join(''),'记忆库');break;
+      case 'switch-library':closeModal();openLibrary(id);break;
+      case 'view-graph':view='graph';renderLibrary(true);break;
+      case 'view-list':view='list';selectedId=null;renderLibrary();break;
+      case 'choose-folder':showModal('文件夹',choice('filter-folder','all','全部文件夹',currentSpace().memories.length+' 条记忆',!folder)+currentSpace().folders.map(f=>choice('filter-folder',f,f,currentSpace().memories.filter(m=>m.folder===f).length+' 条记忆',folder===f)).join('')+menu('new-folder','','plus','新建文件夹'),'内容分类');break;
+      case 'filter-folder':closeModal();folder=id==='all'?null:id;graphMode=folder?'nodes':'overview';selectedId=null;focusOnly=false;checked.clear();renderLibrary(true);break;
+      case 'open-folder':openFolder(id);break;
+      case 'new-folder':showModal('新建文件夹','<form id="folderForm" novalidate><label class="form-field"><span>文件夹名称</span><input name="name" maxlength="30" placeholder="例如：项目资料" required></label><p id="formError" class="form-error" role="alert"></p><div class="form-actions"><button class="primary-button" type="submit">创建文件夹</button></div></form>','内容分类');break;
+      case 'graph-overview':folder=null;graphMode='overview';selectedId=null;focusOnly=false;selecting=false;checked.clear();query='';renderLibrary(true);break;
+      case 'recenter':recenter();break;
+      case 'zoom-in':{const {w,h}=graphSize();zoomAt(1.18,w/2,h/2);break;}
+      case 'zoom-out':{const {w,h}=graphSize();zoomAt(1/1.18,w/2,h/2);break;}
+      case 'select-memory':selectMemory(id);break;
+      case 'clear-selected':selectedId=null;focusOnly=false;renderLibrary();break;
+      case 'toggle-focus':focusOnly=!focusOnly;renderLibrary();break;
+      case 'locate-memory':$('searchInput').blur();locateMemory(id);break;
+      case 'locate-from-detail':closeModal();locateMemory(id);break;
+      case 'read-memory':readMemory(id);break;
+      case 'edit-memory':memoryForm(id);break;
+      case 'related-memory':readMemory(id);break;
+      case 'read-edge':readEdge(id);break;
+      case 'remove-edge':{const edge=currentSpace().edges.find(e=>e.id===id);showModal('移除这条关联',`<p class="modal-description">只移除「${esc(relations[edge.type]||edge.type)}」关系，保留两端的记忆。</p><div class="form-actions"><button class="secondary-button" data-action="dismiss-modal">取消</button><button class="danger-button" data-action="confirm-remove-edge" data-id="${esc(id)}">移除关联</button></div>`);break;}
+      case 'confirm-remove-edge':currentSpace().edges=currentSpace().edges.filter(e=>e.id!==id);closeModal();renderLibrary();renderOverview();toast('已移除关联');break;
+      case 'clear-search':query='';renderLibrary();$('searchInput').focus();break;
+      case 'search-options':showModal('搜索范围',`<label class="switch-row"><div>同时搜索正文<p>关闭时只匹配记忆标题</p></div><input id="searchBodyToggle" type="checkbox" ${searchBody?'checked':''}></label><p class="form-help">范围限定在当前选择的记忆空间与文件夹。</p>`,'搜索');break;
+      case 'library-menu':showModal('记忆库操作',menu('start-selection','','select','选择记忆','框选或逐个选择')+menu('new-link','','link','建立关联')+menu('graph-settings','','sliders','图谱显示')+menu('choose-folder','','folder','文件夹')+menu('add-menu','','plus','新建或导入'),'当前空间 · '+currentSpace().name);break;
+      case 'graph-settings':showModal('图谱显示',`<label class="switch-row"><div>跨文件夹关联<p>在分组中显示其他文件夹的相邻记忆</p></div><input id="crossToggle" type="checkbox" ${showCross?'checked':''}></label><label class="switch-row"><div>始终显示关系文字<p>默认只显示选中记忆的相邻关系</p></div><input id="labelsToggle" type="checkbox" ${allLabels?'checked':''}></label><div class="form-actions"><button class="secondary-button" data-action="expand-all">展开全部记忆</button><button class="primary-button" data-action="dismiss-modal">完成</button></div>`,'图谱');break;
+      case 'expand-all':closeModal();graphMode='nodes';folder=null;selectedId=null;view='graph';renderLibrary(true);break;
+      case 'add-menu':showModal('添加内容',menu('new-memory','','plus','新建记忆')+menu('import-document','','import','导入文档','文本或 Markdown'),'记忆库');break;
+      case 'new-memory':memoryForm();break;
+      case 'import-document':showModal('导入文档',`<p class="modal-description">选择文本或 Markdown 文件，内容会成为当前空间中的一条文档记忆。</p><label class="file-drop">${icon('import')}<strong>选取一个本地文件</strong><span>.txt / .md · 最多 1 MB</span><input id="importInput" type="file" accept=".txt,.md,text/plain,text/markdown"></label><p class="form-help">文件内容仅用于本页预览，刷新后恢复示例。</p>`,'文档','import');break;
+      case 'start-selection':closeModal();selecting=true;selectedId=null;focusOnly=false;checked.clear();if(graphMode==='overview')graphMode='nodes';renderLibrary(true);break;
+      case 'end-selection':selecting=false;checked.clear();renderLibrary();break;
+      case 'check-memory':checked.has(id)?checked.delete(id):checked.add(id);renderLibrary();break;
+      case 'delete-checked':confirmDelete([...checked]);break;
+      case 'confirm-delete':{const ids=new Set(JSON.parse(id));const sp=currentSpace();sp.memories=sp.memories.filter(m=>!ids.has(m.id));sp.edges=sp.edges.filter(e=>!ids.has(e.from)&&!ids.has(e.to));checked.clear();selectedId=null;selecting=false;closeModal();render();toast('已删除选中的示例记忆');break;}
+      case 'new-link':linkForm(id||null);break;
+      case 'help':showModal('空间与角色如何配合','<p class="modal-description">每个空间独立保存记忆、文件夹与关联。\n</p><div class="detail-section-title">全局默认</div><p class="modal-description">供跟随全局的角色使用，更换全局时一起切换。</p><div class="detail-section-title">角色固定空间</div><p class="modal-description">只影响该角色，全局更换时仍使用指定空间。</p><div class="detail-section-title">关于这份预览</div><p class="modal-description">页面全部使用示例内容，仅在当前打开的 HTML 中交互，不会连接或修改真实记忆库。</p>','使用关系');break;
+      case 'dismiss-modal':closeModal();break;
+    }
+  }
+  document.addEventListener('click',event=>{const el=event.target.closest('[data-action]');if(!el||event.target.closest('button:disabled'))return;if(performance.now()<suppressClickUntil&&event.target.closest('#graphViewport'))return;performAction(el);});
+  $('searchInput').addEventListener('input',event=>{query=event.target.value;renderLibrary();});
+  $('themeToggle').addEventListener('click',()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'dark';$('themeToggle').textContent=light?'深色':'浅色';document.querySelector('meta[name="theme-color"]').content=light?'#f5f6f1':'#111715';});
+  $('resetDemo').addEventListener('click',()=>{reset();toast('示例已重置');});
+  document.addEventListener('change',event=>{switch(event.target.id){case 'searchBodyToggle':searchBody=event.target.checked;renderLibrary();break;case 'crossToggle':showCross=event.target.checked;renderLibrary();break;case 'labelsToggle':allLabels=event.target.checked;renderLibrary();break;case 'importInput':importFile(event.target.files[0]);break;}});
+  function formError(text) {$('formError').textContent=text;}
+  document.addEventListener('submit',event=>{
+    const form=event.target;event.preventDefault();const f=new FormData(form),sp=currentSpace();
+    if(form.id==='spaceForm') {const name=f.get('name').trim();if(!name)return formError('请填写空间名称');if(spaces.some(s=>s.name===name&&s.id!==form.dataset.id))return formError('已经有同名空间，请换个名称');if(form.dataset.id)findSpace(form.dataset.id).name=name;else spaces.push({id:'s'+nextId++,name,folders:[],memories:[],edges:[]});closeModal();renderOverview();toast('空间已保存');}
+    else if(form.id==='memoryForm') {const title=f.get('title').trim(),content=f.get('content').trim(),path=f.get('folder');if(!title||!content)return formError('请填写标题与内容');let m=memory(form.dataset.id);if(m){m.title=title;m.short=title;m.content=content;m.folder=path;m.date='刚刚';m.updatedAt=1000+nextId++;sp.memories=sp.memories.filter(x=>x!==m).concat(m);}else{m={id:'m'+nextId++,title,short:title,content,folder:path,kind:'记忆',date:'刚刚',updatedAt:1000+nextId++};sp.memories.push(m);}if(!sp.folders.includes(path))sp.folders.push(path);closeModal();locateMemory(m.id);renderOverview();toast('记忆已保存');}
+    else if(form.id==='folderForm') {const name=f.get('name').trim();if(!name)return formError('请填写文件夹名称');if(sp.folders.includes(name))return formError('已经有同名文件夹');sp.folders.push(name);closeModal();openFolder(name);renderOverview();toast('文件夹已创建');}
+    else if(form.id==='linkForm') {const from=f.get('from'),to=f.get('to'),type=f.get('type');if(!from||!to)return formError('至少需要两条记忆才能建立关联');if(from===to)return formError('请选择两条不同的记忆');if(sp.edges.some(e=>e.from===from&&e.to===to&&e.type===type))return formError('这两条记忆已经存在相同关联');sp.edges.push({id:'new-e'+nextId++,from,to,type});closeModal();selecting=false;checked.clear();locateMemory(from);renderOverview();toast('关联已建立');}
+  });
+  async function importFile(file) {
+    if(!file)return;if(!/\.(txt|md)$/i.test(file.name)){toast('请选择 .txt 或 .md 文件');return;}if(file.size>1024*1024){toast('文件超过 1 MB，请选择更小的文件');return;}
+    const spaceId=libraryId,importFolder=folder||'资料与文档',input=$('importInput');
+    try {const content=await file.text();if(!content.trim()){toast('文件内容为空');return;}if(libraryId!==spaceId||modalKind!=='import'||$('modalLayer').hidden||$('importInput')!==input)return;const sp=findSpace(spaceId),m={id:'m'+nextId++,title:file.name,short:file.name,content,folder:importFolder,kind:'文档',date:'刚刚',updatedAt:1000+nextId++};sp.memories.push(m);if(!sp.folders.includes(importFolder))sp.folders.push(importFolder);closeModal();locateMemory(m.id);renderOverview();toast('已在预览中导入 '+file.name);}catch(error){console.error('读取示例文档失败',error);toast('读取文件失败，请重新选择');}
+  }
+  // 单指平移，双指缩放；多选模式用空白区域拖动形成选框。
+  const viewport=$('graphViewport');
+  function point(event) {const r=viewport.getBoundingClientRect();return {x:event.clientX-r.left,y:event.clientY-r.top};}
+  function startPinch() {const ps=[...pointers.values()];if(ps.length!==2)return;pinch={distance:Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y),x:(ps[0].x+ps[1].x)/2,y:(ps[0].y+ps[1].y)/2};if(drag)drag.moved=true;$('selectionRect').hidden=true;}
+  viewport.addEventListener('pointerdown',event=>{
+    if(event.button!==0||event.target.closest('.graph-controls,.minimap,.graph-topline'))return;
+    const p=point(event);pointers.set(event.pointerId,p);viewport.setPointerCapture(event.pointerId);
+    if(pointers.size===2){startPinch();return;}
+    const target=event.target.closest('[data-action]');drag={start:p,base:{...camera},target,moved:false,box:selecting&&!target};
+  });
+  viewport.addEventListener('pointermove',event=>{
+    if(!pointers.has(event.pointerId))return;const p=point(event);pointers.set(event.pointerId,p);
+    if(pointers.size===2){const ps=[...pointers.values()],distance=Math.hypot(ps[0].x-ps[1].x,ps[0].y-ps[1].y),cx=(ps[0].x+ps[1].x)/2,cy=(ps[0].y+ps[1].y)/2;if(pinch&&pinch.distance>0){zoomAt(distance/pinch.distance,pinch.x,pinch.y);camera.x+=cx-pinch.x;camera.y+=cy-pinch.y;applyCamera();}pinch={distance,x:cx,y:cy};return;}
+    if(!drag)return;const dx=p.x-drag.start.x,dy=p.y-drag.start.y;if(Math.hypot(dx,dy)>5)drag.moved=true;if(!drag.moved)return;
+    if(drag.box){const rect=$('selectionRect');rect.hidden=false;Object.assign(rect.style,{left:Math.min(p.x,drag.start.x)+'px',top:Math.min(p.y,drag.start.y)+'px',width:Math.abs(dx)+'px',height:Math.abs(dy)+'px'});}else{camera.x=drag.base.x+dx;camera.y=drag.base.y+dy;applyCamera();}
+  });
+  function endPointer(event) {
+    if(!pointers.has(event.pointerId))return;const wasPinch=Boolean(pinch),p=point(event);pointers.delete(event.pointerId);
+    if(pointers.size){pinch=null;drag=null;return;}
+    if(drag&&!wasPinch&&event.type!=='pointercancel'){
+      if(drag.box&&drag.moved){const left=Math.min(p.x,drag.start.x),right=Math.max(p.x,drag.start.x),top=Math.min(p.y,drag.start.y),bottom=Math.max(p.y,drag.start.y);visibleNodes.forEach(m=>{const pos=positions.get(m.id),x=pos.x*camera.k+camera.x,y=pos.y*camera.k+camera.y;if(x>=left&&x<=right&&y>=top&&y<=bottom)checked.add(m.id);});renderLibrary();}
+      else if(!drag.moved&&drag.target){performAction(drag.target);}
+    }
+    suppressClickUntil=performance.now()+300;drag=null;pinch=null;$('selectionRect').hidden=true;
+  }
+  viewport.addEventListener('pointerup',endPointer);viewport.addEventListener('pointercancel',endPointer);
+  viewport.addEventListener('wheel',event=>{event.preventDefault();const p=point(event);zoomAt(Math.exp(-event.deltaY*.0015),p.x,p.y);},{passive:false});
+  document.addEventListener('keydown',event=>{
+    if(!$('modalLayer').hidden){if(event.key==='Escape'){event.preventDefault();closeModal();return;}if(event.key==='Tab'){const els=[...$('modal').querySelectorAll('button:not(:disabled),input,textarea,select,[tabindex="0"]')].filter(e=>e.getClientRects().length);if(!els.length)return;const first=els[0],last=els[els.length-1];if(event.shiftKey&&(document.activeElement===first||document.activeElement===$('modal'))){event.preventDefault();last.focus();}else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===$('modal'))){event.preventDefault();first.focus();}}return;}
+    if(event.target.matches('input,textarea,select')||screen!=='library')return;
+    if(event.key==='Escape'){selectedId=null;focusOnly=false;selecting=false;checked.clear();renderLibrary();return;}
+    if(document.activeElement!==viewport)return;
+    const key=event.key,{w,h}=graphSize();if(key==='+'||key==='='){event.preventDefault();zoomAt(1.18,w/2,h/2);}else if(key==='-'){event.preventDefault();zoomAt(1/1.18,w/2,h/2);}else if(key==='0'){event.preventDefault();recenter();}else if(key.startsWith('Arrow')){event.preventDefault();camera.x+=key==='ArrowLeft'?35:key==='ArrowRight'?-35:0;camera.y+=key==='ArrowUp'?35:key==='ArrowDown'?-35:0;applyCamera();}
+  });
+  if(typeof ResizeObserver!=='undefined')new ResizeObserver(()=>{if(screen==='library'&&view==='graph'&&!query)recenter();}).observe($('libraryBody'));
+  reset();if(location.hash==='#graph')openLibrary();
+})();</script>
+</body>
+</html>

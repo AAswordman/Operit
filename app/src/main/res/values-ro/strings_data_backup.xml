@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="data_backup_title">Date și backup</string>
+    <string name="data_backup_settings_desc">Backup și recuperare, gestionarea chat-ului, utilizarea simbolurilor și jurnalele de diagnosticare</string>
+    <string name="data_backup_tab_restore">Backup și restaurare</string>
+    <string name="data_backup_tab_chats">Gestionarea chatului</string>
+    <string name="data_backup_tab_logs">Jurnalul de diagnosticare</string>
+    <string name="data_backup_overview">Prezentare generală a datelor</string>
+    <string name="data_backup_current_profile">Configurație curentă · %1$s</string>
+    <string name="data_backup_count_chats">Istoricul chat-urilor</string>
+    <string name="data_backup_count_characters">cartea de caractere</string>
+    <string name="data_backup_count_memories">intrare de memorie</string>
+    <string name="data_backup_count_links">asocierea memoriei</string>
+    <string name="data_backup_token_entry_desc">Vedeți statisticile de utilizare, cost și model</string>
+    <string name="data_backup_never">Nicio rezervă încă</string>
+    <string name="data_backup_recent">Backup recent · %1$s</string>
+    <string name="data_backup_files">Backup fișiere</string>
+    <string name="data_backup_snapshot_title">Fișier instantaneu</string>
+    <string name="data_backup_snapshot_desc">Pachetați fișierele și configurațiile aplicației și trebuie să reporniți după recuperare.</string>
+    <string name="data_backup_snapshot_export">Exportați instantaneu</string>
+    <string name="data_backup_snapshot_restore">Restaurați instantaneul</string>
+    <string name="data_backup_daily_on">Backupul zilnic automat este activat</string>
+    <string name="data_backup_daily_off">Backup-ul zilnic automat nu este activat</string>
+    <string name="data_backup_db_summary">%1$s · Rezervați copii %2$d</string>
+    <string name="data_backup_file_count">%1$d copii</string>
+    <string name="data_backup_individual">Import și export un singur articol</string>
+    <string name="data_backup_individual_desc">Chat, carduri de caractere, memorie și configurație model</string>
+    <string name="data_backup_export_directory">Director de export · Descărcare/Operit</string>
+    <string name="data_backup_help">Instrucțiuni de backup</string>
+    <string name="data_backup_done">Am înțeles</string>
+    <string name="data_backup_snapshot_export_title">Exportați instantaneul fișierului</string>
+    <string name="data_backup_start_export">Începeți exportul</string>
+    <string name="data_backup_choose_file">Selectați fișierul de rezervă</string>
+    <string name="data_backup_choose_file_desc">Selectați instantaneul ZIP pentru restaurare</string>
+    <string name="data_backup_manage_links">Gestionați asociațiile</string>
+    <string name="data_backup_build_memory">Construiește memoria</string>
+    <string name="data_backup_chat_records">Gestionarea istoricului chatului</string>
+    <string name="data_backup_chat_records_desc">Modificați asocierile în loturi, organizați înregistrări sau construiți amintiri.</string>
+    <string name="data_backup_message_count_suffix">· Mesaje %1$d</string>
+    <string name="data_backup_workspace_count">%1$d</string>
+    <string name="data_backup_workspace_desc">Următoarele foldere nu sunt folosite de niciun chat. Ștergeți numai folderele selectate.</string>
+    <string name="data_backup_locked_notice">Ștergerea omite conversațiile blocate</string>
+    <string name="data_backup_clear_chats">înregistrare clară</string>
+    <string name="data_backup_clear_chats_confirm">Toate chaturile deblocate și mesajele lor vor fi șterse. Chaturile blocate vor fi păstrate, continuați?</string>
+    <string name="data_backup_export_app_logs">Exportați jurnalele aplicației</string>
+    <string name="data_backup_export_app_logs_desc">Informațiile de diagnosticare sunt păstrate pentru a facilita localizarea problemelor operaționale.</string>
+    <string name="data_backup_log_format">TXT · Jurnalul de aplicații poate fi exportat</string>
+    <string name="data_backup_export_logs">Export jurnal</string>
+    <string name="data_backup_log_filters">Export de filtrare</string>
+    <string name="data_backup_filters_none">Jurnal complet · Nicio filtrare activată</string>
+    <string name="data_backup_filters_count">Filtrarea pe elementele %1$d a fost activată</string>
+    <string name="data_backup_log_directory">Salvați pentru a descărca/operit</string>
+    <string name="data_backup_clear_logs">Ștergeți jurnalul</string>
+    <string name="data_backup_clear_logs_confirm">Jurnalul curent al aplicației va fi șters. Această operațiune nu va șterge istoricul chat-urilor sau statisticile tokenului. Vrei să continui?</string>
+    <string name="data_backup_memory_window_hint">Procesați 8-48 de mesaje simultan</string>
+    <string name="data_backup_locked_chat">chat blocat</string>
+    <string name="data_backup_ungrouped">Nu sunt grupate</string>
+    <string name="data_backup_memory_build_desc">%1$d chaturi selectate. Amintirile vor fi extrase din mesajele selectate, ceea ce poate duce la utilizarea modelului.</string>
+</resources>

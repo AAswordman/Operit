@@ -28,7 +28,7 @@ class VectorIndexManager<T : Item<Id, FloatArray>, Id : Any>(
             try {
                 ObjectInputStream(indexFile.inputStream()).use { it.readObject() as HnswIndex<Id, FloatArray, T, Float> }
             } catch (e: Exception) {
-                com.ai.assistance.operit.util.AppLogger.e("VectorIndexManager", "Failed to load index, creating new one.", e)
+                com.ai.assistance.operit.util.logging.AppLogger.e("VectorIndexManager", "Failed to load index, creating new one.", e)
                 // 如果加载失败，删除可能已损坏的文件并创建一个新的
                 indexFile.delete()
                 HnswIndex
@@ -79,7 +79,7 @@ class VectorIndexManager<T : Item<Id, FloatArray>, Id : Any>(
                 indexFile.parentFile?.mkdirs()
                 ObjectOutputStream(indexFile.outputStream()).use { it.writeObject(index) }
             } catch (e: IOException) {
-                com.ai.assistance.operit.util.AppLogger.e("VectorIndexManager", "Failed to save index to ${indexFile.absolutePath}", e)
+                com.ai.assistance.operit.util.logging.AppLogger.e("VectorIndexManager", "Failed to save index to ${indexFile.absolutePath}", e)
             }
         }
     }

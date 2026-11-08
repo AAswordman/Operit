@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="market_transfer_percent">%1$d%%</string>
+    <string name="market_transfer_amount">%1$s / %2$s</string>
+    <string name="market_transfer_unknown_total">Total tidak diketahui</string>
+    <string name="market_transfer_speed">%1$s/s</string>
+    <string name="market_transfer_measuring">Mengukur kecepatan</string>
+    <string name="market_transfer_elapsed">Berlalu %1$s</string>
+    <string name="market_transfer_remaining">Sekitar %1$s tersisa</string>
+    <string name="market_transfer_unknown_remaining">Sisa waktu belum diketahui</string>
+</resources>

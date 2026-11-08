@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">눌러서 단일 키를 편집하고 화살표로 키 풀 열기</string>
+    <string name="model_workspace_open_key_pool">키 풀 설정</string>
+    <string name="patch_update_no_matching_chain">설치된 APK에서 대상 버전으로 이어지는 증분 경로가 없습니다. 전체 APK로 업데이트하세요.</string>
+    <string name="patch_update_base_changed">설치된 APK가 이 패치의 기준 파일과 일치하지 않습니다. 전체 APK로 업데이트하세요.</string>
+    <string name="workflow_run_details">실행 상세 및 기록</string>
+    <string name="workflow_run_load_failed">실행 기록을 읽을 수 없습니다. 워크플로 폴더 접근 권한을 확인하세요.</string>
+    <string name="workflow_run_older">이전 기록</string>
+    <string name="workflow_run_newer">다음 기록</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">소요 시간: %1$.2f초</string>
+    <string name="workflow_run_legacy">이 기록에는 노드 상세가 없습니다. 업데이트 후 새 실행부터 전체 결과를 저장합니다.</string>
+    <string name="workflow_run_node_success">성공</string>
+    <string name="workflow_run_node_failed">실패</string>
+    <string name="workflow_run_node_skipped">조건에 따라 건너뜀</string>
+    <string name="workflow_run_node_not_run">실행하지 않음</string>
+    <string name="workflow_run_node_cancelled">취소됨</string>
+    <string name="workflow_run_queued">다른 예약 작업을 기다리는 중</string>
+    <string name="workflow_issue_timeout">응답 시간이 초과되었습니다. 서비스와 노드 제한 시간을 확인하세요.</string>
+    <string name="workflow_issue_network">네트워크 연결에 실패했습니다. 네트워크와 서비스 주소를 확인하세요.</string>
+    <string name="workflow_issue_auth">서비스 인증에 실패했습니다. 키나 계정을 확인하세요.</string>
+    <string name="workflow_issue_quota">서비스 할당량이나 요청 한도에 도달했습니다. 잔액과 호출 빈도를 확인하세요.</string>
+    <string name="workflow_issue_permission">필요한 권한이 없습니다. 도구의 시스템 권한을 확인하세요.</string>
+    <string name="workflow_issue_tool_missing">도구를 사용할 수 없습니다. 패키지 설치 및 활성화 상태를 확인하세요.</string>
+    <string name="workflow_issue_input">노드 입력이나 작업 설정이 잘못되었습니다. 매개변수를 확인하세요.</string>
+    <string name="workflow_issue_reference">참조한 노드 결과를 사용할 수 없습니다. 연결과 참조를 확인하세요.</string>
+    <string name="workflow_issue_busy">실행 환경이 사용 중입니다. 현재 작업이 끝날 때까지 기다리세요.</string>
+    <string name="workflow_issue_cancelled">이 실행이 취소되었습니다.</string>
+    <string name="workflow_issue_cycle">노드 연결에 순환 의존성이 있습니다. 연결을 수정하세요.</string>
+    <string name="workflow_issue_trigger">사용 가능한 트리거가 없습니다. 트리거 설정을 확인하세요.</string>
+    <string name="workflow_issue_runtime">실행 환경이 준비되지 않았습니다. 잠시 후 다시 시도하세요.</string>
+    <string name="workflow_issue_unknown">노드 작업을 완료하지 못했습니다. 입력과 도구 설정을 확인하세요.</string>
+    <string name="sent_image_count">이미지 %1$d개</string>
+    <string name="sent_image_expired_count">이미지 %1$d개 만료됨</string>
+    <string name="workflow_run_failed_nodes">실패한 노드: %1$s</string>
+</resources>

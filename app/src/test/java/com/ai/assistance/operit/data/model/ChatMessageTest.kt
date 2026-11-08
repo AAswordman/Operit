@@ -6,6 +6,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.ai.assistance.operit.core.chat.message.ChatMessageTimestampAllocator
 
 class ChatMessageTest {
 

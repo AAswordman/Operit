@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="hub_update_available">설치됨, 업데이트 가능</string>
+    <string name="hub_update_resource">리소스 업데이트</string>
+</resources>

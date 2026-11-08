@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.theme
 
 import android.content.Context
 import android.net.Uri
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font

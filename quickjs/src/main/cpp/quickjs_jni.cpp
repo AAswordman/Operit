@@ -1,7 +1,10 @@
 #include <jni.h>
 
 #include <atomic>
+#include <chrono>
 #include <cstdio>
+#include <cstdlib>
+#include <malloc.h>
 #include <mutex>
 #include <optional>
 #include <stdexcept>
@@ -271,7 +274,7 @@ class QuickJsVm {
 public:
     QuickJsVm(JavaVM* java_vm, JNIEnv* env, jobject host_bridge)
         : java_vm_(java_vm), interrupted_(false) {
-        runtime_ = JS_NewRuntime();
+        runtime_ = JS_NewRuntime2(&kMallocFunctions, this);
         if (runtime_ == nullptr) {
             throw std::runtime_error("JS_NewRuntime failed");
         }
@@ -478,17 +481,128 @@ public:
         return executed;
     }
 
+    // 资源约束按实例设置，未设置的现有执行器保持原有行为。
+    void SetLimits(int64_t memory_bytes, int64_t timeout_ms) {
+        std::lock_guard<std::mutex> guard(lock_);
+        memory_limit_bytes_.store(memory_bytes);
+        execution_timeout_ms_.store(timeout_ms);
+        JS_SetMemoryLimit(runtime_, static_cast<size_t>(memory_bytes));
+        JS_SetMaxStackSize(runtime_, 256 * 1024);
+    }
+
     void Interrupt() {
         interrupted_.store(true);
     }
 
+    std::string GetMemoryUsageJson() {
+        std::lock_guard<std::mutex> guard(lock_);
+        JSMemoryUsage usage{};
+        JS_ComputeMemoryUsage(runtime_, &usage);
+        std::string result = "{";
+        result += "\"mallocSizeBytes\":" + std::to_string(usage.malloc_size);
+        result += ",\"memoryUsedBytes\":" + std::to_string(usage.memory_used_size);
+        result += ",\"peakMallocSizeBytes\":" +
+            std::to_string(peak_native_allocation_bytes_.load());
+        result += "}";
+        return result;
+    }
+
+    void ResetMemoryPeak() {
+        std::lock_guard<std::mutex> guard(lock_);
+        peak_native_allocation_bytes_.store(current_native_allocation_bytes_.load());
+    }
+
 private:
+    static void* JsMalloc(JSMallocState* state, size_t size) {
+        auto* owner = static_cast<QuickJsVm*>(state->opaque);
+        if (!owner->CanAllocate(size, 0)) return nullptr;
+        void* pointer = std::malloc(size);
+        if (pointer != nullptr) {
+            auto* vm = static_cast<QuickJsVm*>(state->opaque);
+            vm->RecordAllocation(MallocUsableSize(pointer));
+        }
+        return pointer;
+    }
+
+    static void JsFree(JSMallocState* state, void* pointer) {
+        if (pointer != nullptr) {
+            auto* vm = static_cast<QuickJsVm*>(state->opaque);
+            vm->RecordFree(MallocUsableSize(pointer));
+        }
+        std::free(pointer);
+    }
+
+    static void* JsRealloc(JSMallocState* state, void* pointer, size_t size) {
+        const size_t old_size = pointer == nullptr ? 0U : MallocUsableSize(pointer);
+        if (size == 0U) {
+            if (pointer != nullptr) {
+                auto* vm = static_cast<QuickJsVm*>(state->opaque);
+                vm->RecordFree(old_size);
+            }
+            std::free(pointer);
+            return nullptr;
+        }
+
+        auto* owner = static_cast<QuickJsVm*>(state->opaque);
+        if (!owner->CanAllocate(size, old_size)) return nullptr;
+        void* new_pointer = std::realloc(pointer, size);
+        if (new_pointer != nullptr) {
+            auto* vm = static_cast<QuickJsVm*>(state->opaque);
+            const size_t new_size = MallocUsableSize(new_pointer);
+            vm->RecordReallocation(old_size, new_size);
+        }
+        return new_pointer;
+    }
+
+    static size_t MallocUsableSize(const void* pointer) {
+        return pointer == nullptr ? 0U : malloc_usable_size(pointer);
+    }
+
+    bool CanAllocate(size_t requested, size_t released) const {
+        const int64_t limit = memory_limit_bytes_.load();
+        if (limit <= 0) return true;
+        const int64_t current = current_native_allocation_bytes_.load();
+        // 预留分配器对齐开销；自定义分配器必须自行执行实例内存上限。
+        const int64_t available = limit - current + static_cast<int64_t>(released) - 64;
+        return available >= 0 && requested <= static_cast<size_t>(available);
+    }
+
+    void RecordAllocation(size_t size) {
+        const int64_t current = current_native_allocation_bytes_.fetch_add(
+            static_cast<int64_t>(size)
+        ) + static_cast<int64_t>(size);
+        UpdatePeak(current);
+    }
+
+    void RecordFree(size_t size) {
+        current_native_allocation_bytes_.fetch_sub(static_cast<int64_t>(size));
+    }
+
+    void RecordReallocation(size_t old_size, size_t new_size) {
+        const int64_t delta = static_cast<int64_t>(new_size) - static_cast<int64_t>(old_size);
+        const int64_t current = current_native_allocation_bytes_.fetch_add(delta) + delta;
+        UpdatePeak(current);
+    }
+
+    void UpdatePeak(int64_t current) {
+        int64_t peak = peak_native_allocation_bytes_.load();
+        while (current > peak &&
+               !peak_native_allocation_bytes_.compare_exchange_weak(peak, current)) {
+        }
+    }
+
+    static const JSMallocFunctions kMallocFunctions;
+
     void BeginExecutionTrace(
         const std::string& file_name,
         size_t script_length,
         const std::string& script_preview
     ) {
         interrupted_.store(false);
+        const int64_t timeout = execution_timeout_ms_.load();
+        execution_deadline_ = timeout > 0
+            ? std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout)
+            : std::chrono::steady_clock::time_point::max();
         current_file_name_ = file_name;
         current_script_length_ = script_length;
         current_script_preview_ = PreviewText(script_preview);
@@ -502,7 +616,9 @@ private:
         if (vm == nullptr) {
             return 0;
         }
-        return vm->interrupted_.load() ? 1 : 0;
+        return vm->interrupted_.load() ||
+            (vm->execution_timeout_ms_.load() > 0 &&
+             std::chrono::steady_clock::now() >= vm->execution_deadline_) ? 1 : 0;
     }
 
     static JSValue HostCallEntry(
@@ -719,12 +835,24 @@ private:
     jmethodID on_call_method_ = nullptr;
     std::mutex lock_;
     std::atomic_bool interrupted_;
+    std::atomic<int64_t> memory_limit_bytes_{0};
+    std::atomic<int64_t> execution_timeout_ms_{0};
+    std::chrono::steady_clock::time_point execution_deadline_{};
+    std::atomic<int64_t> current_native_allocation_bytes_{0};
+    std::atomic<int64_t> peak_native_allocation_bytes_{0};
     std::string current_file_name_;
     size_t current_script_length_ = 0;
     std::string current_script_preview_;
     std::vector<std::string> recent_host_calls_;
     size_t host_call_counter_ = 0;
     size_t active_host_call_depth_ = 0;
+};
+
+const JSMallocFunctions QuickJsVm::kMallocFunctions = {
+    &QuickJsVm::JsMalloc,
+    &QuickJsVm::JsFree,
+    &QuickJsVm::JsRealloc,
+    &QuickJsVm::MallocUsableSize,
 };
 
 QuickJsVm* FromHandle(jlong handle) {
@@ -851,6 +979,29 @@ Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeEx
     return vm->ExecutePendingJobs(max_jobs);
 }
 
+extern "C" JNIEXPORT jstring JNICALL
+Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeGetMemoryUsage(
+    JNIEnv* env,
+    jclass,
+    jlong handle
+) {
+    auto* vm = FromHandle(handle);
+    const std::string result = vm == nullptr ? "{}" : vm->GetMemoryUsageJson();
+    return env->NewStringUTF(result.c_str());
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeResetMemoryPeak(
+    JNIEnv*,
+    jclass,
+    jlong handle
+) {
+    auto* vm = FromHandle(handle);
+    if (vm != nullptr) {
+        vm->ResetMemoryPeak();
+    }
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeInterrupt(
     JNIEnv*,
@@ -861,4 +1012,23 @@ Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeIn
     if (vm != nullptr) {
         vm->Interrupt();
     }
+}
+
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_ai_assistance_operit_core_tools_javascript_QuickJsNativeBridge_nativeSetLimits(
+    JNIEnv* env,
+    jclass,
+    jlong handle,
+    jlong memory_bytes,
+    jlong timeout_ms
+) {
+    auto* vm = FromHandle(handle);
+    if (vm == nullptr || memory_bytes <= 0 || timeout_ms <= 0 || timeout_ms > 60000) {
+        jclass error = env->FindClass("java/lang/IllegalArgumentException");
+        env->ThrowNew(error, "Invalid QuickJS execution limits");
+        env->DeleteLocalRef(error);
+        return;
+    }
+    vm->SetLimits(memory_bytes, timeout_ms);
 }

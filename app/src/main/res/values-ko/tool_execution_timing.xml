@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_timing_simple">%1$s • %2$d회%3$s</string>
+    <string name="tool_timing_combined">%1$s%2$s • 사고 %3$d회 • 호출 %4$d회</string>
+    <string name="tool_timing_elapsed"> (%1$d초)</string>
+    <string name="tool_timing_completed">완료</string>
+    <string name="tool_timing_running">실행 중</string>
+    <string name="tool_timing_stopped">중지됨</string>
+    <string name="tool_timing_searches">검색 %1$d회</string>
+    <string name="tool_timing_elapsed_millis"> (%1$d밀리초)</string>
+</resources>

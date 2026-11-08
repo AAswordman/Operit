@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">Toque para editar uma chave; a seta abre o conjunto de chaves</string>
+    <string name="model_workspace_open_key_pool">Configurações do conjunto de chaves</string>
+    <string name="patch_update_no_matching_chain">Não há um caminho incremental completo a partir do APK instalado. Atualize com o APK completo.</string>
+    <string name="patch_update_base_changed">O APK instalado não corresponde à base deste patch. Atualize com o APK completo.</string>
+    <string name="workflow_run_details">Detalhes e histórico de execução</string>
+    <string name="workflow_run_load_failed">Não foi possível ler os registros. Verifique o acesso à pasta de fluxos.</string>
+    <string name="workflow_run_older">Mais antigo</string>
+    <string name="workflow_run_newer">Mais recente</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">Duração: %1$.2f s</string>
+    <string name="workflow_run_legacy">Este registro não tem detalhes dos nós. Novas execuções salvarão os resultados completos.</string>
+    <string name="workflow_run_node_success">Concluído</string>
+    <string name="workflow_run_node_failed">Falhou</string>
+    <string name="workflow_run_node_skipped">Ignorado pela condição</string>
+    <string name="workflow_run_node_not_run">Não executado</string>
+    <string name="workflow_run_node_cancelled">Cancelado</string>
+    <string name="workflow_run_queued">Na fila, aguardando outra tarefa agendada</string>
+    <string name="workflow_issue_timeout">O tempo de resposta esgotou. Verifique o serviço ou o limite do nó.</string>
+    <string name="workflow_issue_network">A conexão falhou. Verifique a rede e o endereço do serviço.</string>
+    <string name="workflow_issue_auth">A autenticação falhou. Verifique a chave ou a conta.</string>
+    <string name="workflow_issue_quota">A cota ou o limite de solicitações foi atingido. Verifique o saldo e a frequência.</string>
+    <string name="workflow_issue_permission">Falta uma permissão. Verifique as permissões do sistema para esta ferramenta.</string>
+    <string name="workflow_issue_tool_missing">A ferramenta não está disponível. Verifique se o pacote está instalado e ativado.</string>
+    <string name="workflow_issue_input">A entrada ou ação do nó é inválida. Verifique os parâmetros.</string>
+    <string name="workflow_issue_reference">O resultado de um nó referenciado não está disponível. Verifique as conexões.</string>
+    <string name="workflow_issue_busy">O ambiente de execução está ocupado. Aguarde a tarefa atual terminar.</string>
+    <string name="workflow_issue_cancelled">Esta execução foi cancelada.</string>
+    <string name="workflow_issue_cycle">Há uma dependência circular. Ajuste as conexões dos nós.</string>
+    <string name="workflow_issue_trigger">Não há um gatilho disponível. Verifique as configurações de acionamento.</string>
+    <string name="workflow_issue_runtime">O ambiente de execução não está pronto. Tente novamente em instantes.</string>
+    <string name="workflow_issue_unknown">O nó não concluiu a ação. Verifique as entradas e as configurações da ferramenta.</string>
+    <string name="sent_image_count">%1$d imagens</string>
+    <string name="sent_image_expired_count">%1$d imagens expiradas</string>
+    <string name="workflow_run_failed_nodes">Nós com falha: %1$s</string>
+</resources>

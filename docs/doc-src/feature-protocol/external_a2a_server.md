@@ -45,7 +45,7 @@ The server supports these A2A 1.0 JSON-RPC methods:
 - `CancelTask`
 - `SubscribeToTask`
 
-Text input uses a Message with `ROLE_USER` and one or more text Parts. File and data Parts are not supported.
+Text input uses a Message with `ROLE_USER` and one or more text Parts. File and data Parts are not supported. A Part's kind follows the `text`, `raw`, `url`, or `data` member it sets, so `mediaType`, `filename`, and `metadata` are accepted next to `text` and do not change it into another kind.
 
 ## Send A Message
 
@@ -117,15 +117,21 @@ curl -N -X POST "http://DEVICE_IP:8094/a2a" \
   }'
 ```
 
-The first event contains `result.task`. Subsequent events contain `result.statusUpdate` or `result.artifactUpdate`. The final `statusUpdate` carries `final: true`, then the SSE connection closes.
+The first event contains `result.task`. Subsequent events contain `result.statusUpdate` or `result.artifactUpdate`. Each member carries only the fields its A2A 1.0 message type declares. A `statusUpdate` has `taskId`, `contextId`, `status` and optional `metadata`; the task state alone says whether the task ended. After the `statusUpdate` whose `status.state` is `TASK_STATE_COMPLETED`, `TASK_STATE_FAILED`, `TASK_STATE_CANCELED` or `TASK_STATE_REJECTED`, the SSE connection closes.
+
+Live text chunks use `append: true`. Before a normally collected response reaches its terminal status, a final artifact update uses the same `artifactId` with `append: false` and `lastChunk: true`. Clients must replace that artifact's text, including when the replacement is empty. This update removes discarded output from an automatically retried request and makes the final streamed text agree with `GetTask`.
 
 ```text
 data: {"jsonrpc":"2.0","id":2,"result":{"task":{"id":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_WORKING"}}}}
 
 data: {"jsonrpc":"2.0","id":2,"result":{"artifactUpdate":{"taskId":"task-uuid","contextId":"context-uuid","artifact":{"artifactId":"task-uuid-result","parts":[{"text":"这是回答的第一部分。"}]},"append":true,"lastChunk":false}}}
 
-data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_COMPLETED"},"final":true}}}
+data: {"jsonrpc":"2.0","id":2,"result":{"artifactUpdate":{"taskId":"task-uuid","contextId":"context-uuid","artifact":{"artifactId":"task-uuid-result","parts":[{"text":"这是完整的最终回答。"}]},"append":false,"lastChunk":true}}}
+
+data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","contextId":"context-uuid","status":{"state":"TASK_STATE_COMPLETED"}}}}
 ```
+
+Because the stream ends on the terminal status instead of a separate flag, clients that parse responses strictly, including the official A2A SDK, accept every event.
 
 ## Read, List, Cancel, And Subscribe
 
@@ -144,6 +150,8 @@ data: {"jsonrpc":"2.0","id":2,"result":{"statusUpdate":{"taskId":"task-uuid","co
 ```
 
 `SubscribeToTask` returns the same SSE format as `SendStreamingMessage`. It is available while a task is active. `CancelTask` returns the canceled Task and changes the task to `TASK_STATE_CANCELED`.
+
+The initial task snapshot includes output accumulated before the subscription. Subsequent artifact events contain changes published after that snapshot; a chunk already included in the snapshot is not appended a second time.
 
 Tasks are held in memory for the lifetime of the external HTTP service. Restarting or disabling that service removes its A2A task records.
 

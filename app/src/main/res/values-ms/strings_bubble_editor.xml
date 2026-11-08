@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">Laraskan saiz hiasan dan jarak teks dahulu. Pilih pratetap bingkai jika tepi berubah bentuk. Peluncur jarak mengubah kedua-dua sisi.</string>
+    <string name="chat_bubble_decoration_size">Saiz hiasan</string>
+    <string name="chat_bubble_text_space">Jarak sisi teks</string>
+    <string name="chat_bubble_text_space_value">Kiri %1$d · Kanan %2$d dp</string>
+    <string name="chat_bubble_reset_size">Tetapkan semula saiz dan jarak</string>
+    <string name="chat_bubble_border_presets">Hiasan bingkai untuk dikekalkan</string>
+    <string name="chat_bubble_border_small">Kurang</string>
+    <string name="chat_bubble_border_normal">Seimbang</string>
+    <string name="chat_bubble_border_large">Lebih</string>
+    <string name="chat_bubble_advanced">Pelarasan terperinci</string>
+    <string name="chat_bubble_advanced_hint">Bahagian tengah mengembang mengikut teks, manakala hiasan tepi dikekalkan. Pemangkasan membuang ruang kosong di luar imej.</string>
+    <string name="chat_bubble_horizontal_region">Kawasan isian mendatar</string>
+    <string name="chat_bubble_vertical_region">Kawasan isian menegak</string>
+</resources>

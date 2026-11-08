@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.*
+import com.ai.assistance.operit.ui.features.conversation.chat.viewmodel.ChatViewModel
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,18 +24,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.compose.rememberNavController
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.data.announcement.RemoteAnnouncementDisplay
-import com.ai.assistance.operit.data.announcement.RemoteAnnouncementRepository
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import com.ai.assistance.operit.data.security.PluginDenylistRepository
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
-import com.ai.assistance.operit.data.preferences.RemoteAnnouncementPreferences
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.common.NavItem
-import com.ai.assistance.operit.ui.features.announcement.RemoteAnnouncementDialog
 import com.ai.assistance.operit.ui.main.layout.PhoneLayout
 import com.ai.assistance.operit.ui.main.layout.TabletLayout
 import com.ai.assistance.operit.ui.main.navigation.AppNavigationModel
@@ -47,7 +47,7 @@ import com.ai.assistance.operit.ui.main.navigation.NavigationSurface
 import com.ai.assistance.operit.ui.main.navigation.RouteEntrySource
 import com.ai.assistance.operit.ui.main.navigation.LocalRouteBackGuardRegistry
 import com.ai.assistance.operit.ui.main.navigation.RouteBackGuardRegistry
-import com.ai.assistance.operit.util.NetworkUtils
+import com.ai.assistance.operit.util.network.NetworkUtils
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
@@ -58,8 +58,13 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.ui.features.update.screens.UpdateScreen
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.ui.features.management.update.screens.UpdateScreen
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatSidebarState
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalMainChatViewModel
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalOpenMainChatSidebar
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.LocalRunMainChatAction
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.sidebar.rememberChatSidebarState
 
 // 为TopAppBar的actions提供CompositionLocal
 // 它允许子组件（如AIChatScreen）向上提供它们的action Composable
@@ -91,6 +96,9 @@ fun OperitApp(
     routeNavRequest: String? = null,
     routeNavArgs: Map<String, Any?> = emptyMap(),
     routeNavRequestId: Long = 0L,
+    chatOpenRequest: String? = null,
+    chatOpenRequestId: Long = 0L,
+    onChatOpenHandled: (Long) -> Unit = {},
     onShortcutNavHandled: (Long) -> Unit = {},
     onCurrentNavItemChanged: (NavItem) -> Unit = {},
     onRouteNavHandled: (Long) -> Unit = {}
@@ -100,11 +108,16 @@ fun OperitApp(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val appContext = remember(context) { context.applicationContext }
+    val mainChatViewModel: ChatViewModel = viewModel { ChatViewModel(appContext) }
+    val chatSidebarState = rememberChatSidebarState(mainChatViewModel)
+    LaunchedEffect(mainChatViewModel, context) {
+        mainChatViewModel.moveTaskToBackEvents.collect {
+            (context as? android.app.Activity)?.moveTaskToBack(true)
+        }
+    }
     val packageManager = remember {
         PackageManager.getInstance(context, AIToolHandler.getInstance(context))
     }
-    val remoteAnnouncementRepository = remember { RemoteAnnouncementRepository() }
-    val remoteAnnouncementPreferences = remember { RemoteAnnouncementPreferences(context) }
     val pluginDenylistRepository = remember { PluginDenylistRepository(appContext) }
     var navigationRevision by remember { mutableStateOf(0) }
     val configuration = LocalConfiguration.current
@@ -141,6 +154,7 @@ fun OperitApp(
     var topBarTitleContent by remember { mutableStateOf<TopBarTitleContent?>(null) }
     var lastHandledShortcutRequestId by remember { mutableStateOf(0L) }
     var lastHandledRouteRequestId by remember { mutableStateOf(0L) }
+    var lastHandledChatOpenRequestId by remember { mutableStateOf(0L) }
     var isRouteTransitionInProgress by remember { mutableStateOf(false) }
     var queuedRouteTransition by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -230,6 +244,37 @@ fun OperitApp(
             )
         }
     }
+    LaunchedEffect(chatOpenRequestId, chatOpenRequest) {
+        val requestChatId = chatOpenRequest?.trim().orEmpty()
+        if (requestChatId.isBlank() || chatOpenRequestId == 0L) {
+            return@LaunchedEffect
+        }
+        if (chatOpenRequestId == lastHandledChatOpenRequestId) {
+            return@LaunchedEffect
+        }
+        lastHandledChatOpenRequestId = chatOpenRequestId
+        val chatHistoryManager = ChatHistoryManager.getInstance(context)
+        val chatExists = runCatching { chatHistoryManager.chatExists(requestChatId) }
+            .getOrDefault(false)
+        if (!chatExists) {
+            AppLogger.w(TAG, "Ignored chat open request for missing chatId=$requestChatId")
+            onChatOpenHandled(chatOpenRequestId)
+            return@LaunchedEffect
+        }
+        runCatching {
+            chatHistoryManager.setCurrentChatId(requestChatId)
+        }.onFailure { e ->
+            AppLogger.e(TAG, "Failed to open chat from notification: ${e.message}", e)
+            onChatOpenHandled(chatOpenRequestId)
+            return@LaunchedEffect
+        }
+        requestRouteTransition {
+            isNavigatingBack = false
+            navigationTransitionSource = NavigationTransitionSource.DEFAULT
+            routerState.resetTo(AppRouteCatalog.initialEntry(NavItem.AiChat))
+        }
+        onChatOpenHandled(chatOpenRequestId)
+    }
 
     // 当currentScreen改变时，检查是否需要清空TopBarActions
     // 这是为了解决从有action的屏幕导航到无action的屏幕时，action残留的问题
@@ -266,6 +311,18 @@ fun OperitApp(
                     source = nextEntry.source,
                     routeSpec = navigationModel.routesById[nextEntry.routeId]
                 )
+            }
+        }
+    }
+
+    fun runMainChatAction(action: () -> Unit) {
+        requestRouteTransition {
+            action()
+            val nextEntry = AppRouteCatalog.toEntry(Screen.AiChat, RouteEntrySource.DRAWER)
+            if (routerState.currentEntry.routeId != nextEntry.routeId) {
+                isNavigatingBack = false
+                navigationTransitionSource = NavigationTransitionSource.DRAWER
+                routerState.resetTo(nextEntry)
             }
         }
     }
@@ -355,26 +412,15 @@ fun OperitApp(
     // - 600dp and above: tablet
     val useTabletLayout = screenWidthDp >= 600
 
-    var remoteAnnouncement by remember { mutableStateOf<RemoteAnnouncementDisplay?>(null) }
 
-    fun dismissRemoteAnnouncement() {
-        remoteAnnouncement?.let { announcement ->
-            remoteAnnouncementPreferences.setAcknowledgedVersion(announcement.version)
-        }
-        remoteAnnouncement = null
-    }
 
     val navItems = listOf(
         NavItem.AiChat,
-        NavItem.AssistantConfig,
+        // 助手配置暂不展示在侧边栏，路由与业务逻辑仍保留。
         NavItem.Packages,
-        NavItem.MemoryBase,
-        NavItem.Toolbox,
         NavItem.ShizukuCommands,
         NavItem.Workflow,
-        NavItem.Settings,
-        NavItem.Help,
-        NavItem.About
+        NavItem.Settings
     )
 
     // Network state monitoring
@@ -398,17 +444,8 @@ fun OperitApp(
     }
 
     LaunchedEffect(isNetworkAvailable) {
-        if (!isNetworkAvailable) return@LaunchedEffect
-
-        launch {
+        if (isNetworkAvailable) {
             pluginDenylistRepository.refreshFromRemote()
-        }
-
-        if (remoteAnnouncement != null) return@LaunchedEffect
-
-        val announcement = remoteAnnouncementRepository.fetchDisplayableAnnouncement()
-        if (announcement != null && remoteAnnouncementPreferences.shouldShow(announcement.version)) {
-            remoteAnnouncement = announcement
         }
     }
 
@@ -432,7 +469,8 @@ fun OperitApp(
     }
 
     // Calculate drawer width for phone mode
-    val drawerWidth = (screenWidthDp * 0.75).dp // Drawer width is 3/4 of screen width
+    // 为嵌套对话目录留足宽度，同时保留可点击关闭的右侧区域。
+    val drawerWidth = (screenWidthDp * 0.66f).dp
 
     // Main app container
     Box(modifier = Modifier.fillMaxSize().background(Color.Transparent)) {
@@ -496,6 +534,13 @@ fun OperitApp(
             }
         }
         CompositionLocalProvider(
+            LocalMainChatViewModel provides mainChatViewModel,
+            LocalMainChatSidebarState provides chatSidebarState,
+            LocalRunMainChatAction provides ::runMainChatAction,
+            LocalOpenMainChatSidebar provides {
+                if (useTabletLayout) isTabletSidebarExpanded = true
+                else scope.launch { drawerState.open() }
+            },
             LocalAppNavigationModel provides navigationModel,
             LocalRouteBackGuardRegistry provides routeBackGuardRegistry,
             LocalTopBarActions provides { actions: @Composable RowScope.() -> Unit ->
@@ -577,14 +622,5 @@ fun OperitApp(
             }
         }
 
-        remoteAnnouncement?.let { announcement ->
-            RemoteAnnouncementDialog(
-                title = announcement.title,
-                body = announcement.body,
-                acknowledgeText = announcement.acknowledgeText,
-                countdownSeconds = announcement.countdownSec,
-                onAcknowledge = { dismissRemoteAnnouncement() }
-            )
-        }
     }
 }

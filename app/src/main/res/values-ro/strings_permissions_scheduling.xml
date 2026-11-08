@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_allow_hint">rulează automat</string>
+    <string name="tp_ask_hint">Confirmați de fiecare dată</string>
+    <string name="tp_forbid_hint">Nu are voie să alerge</string>
+    <string name="tp_all">Toate</string>
+    <string name="tp_search">Numele sau descrierea instrumentului de căutare</string>
+    <string name="tp_follow_default">urmați implicit</string>
+    <string name="tp_follow_default_with_value">Urmați implicit · %1$s</string>
+    <string name="tp_selected_count">Articol %1$d selectat</string>
+    <string name="tp_select_visible">Selectați toate rezultatele curente</string>
+    <string name="tp_no_matches">Niciun instrument de potrivire, încercați alte cuvinte cheie</string>
+    <string name="tp_already_configured">Configurat ca regulă țintă</string>
+    <string name="tp_apply_count">Aplicați la articolul %1$d</string>
+    <string name="tp_default_title">Mod de execuție implicit</string>
+    <string name="tp_default_description">Instrumentele care nu sunt configurate individual folosesc această regulă. Modificarea modului implicit nu va suprascrie regulile individuale.</string>
+    <string name="tp_saved">Setările de permisiuni au fost salvate</string>
+    <string name="tp_save_failed">Salvarea eșuată, vă rugăm să încercați din nou</string>
+    <string name="tp_rules_count">Regula unică · %1$d</string>
+    <string name="tp_batch">Managementul loturilor</string>
+    <string name="tp_rules_description">Regulile individuale au prioritate; selectați „Follow Default” pentru a elimina această setare.</string>
+    <string name="tp_results_count">Se afișează articolele %1$d</string>
+    <string name="tp_empty_rules">Nu există încă o regulă unică, toate instrumentele urmează metoda implicită</string>
+    <string name="tp_empty_filter">Nu există încă o regulă unică pentru această categorie</string>
+    <string name="tp_change">Modificați regulile</string>
+    <string name="tp_batch_title">Modificați regulile %1$d</string>
+    <string name="tp_help">Modul de execuție implicit este folosit pentru instrumente fără reguli individuale: allow va rula automat, ask va cere confirmarea înainte de fiecare execuție, iar disallow va împiedica rularea. \n\n Regulile unice au întotdeauna prioritate, iar modificarea modului implicit nu le va suprascrie. Permite, cere și interzice pot fi setate individual; selectarea Urmare implicită va elimina regulile individuale. \n\nPuteți căuta nume sau descrieri de instrumente și puteți filtra după stare. Adăugarea și gestionarea loturilor vor păstra selecția între căutări și filtre și se vor aplica numai instrumentelor selectate; anularea nu o va salva. „Anulați ultima modificare” din zona de reguli poate restabili ultima modificare de pe această pagină; utilizați promptul luminos pentru a salva rezultatul. \n\nAceastă setare gestionează doar confirmarea execuției instrumentului și nu înlocuiește permisiunile de sistem Android.</string>
+    <string name="workflow_schedule_invalid">Vă rugăm să verificați configurația: intervalul este de cel puțin 15 minute și nu poate depăși; Cron necesită cinci câmpuri valide; data trebuie să existe efectiv; planul activat trebuie să aibă următoarea execuție înainte de termenul limită.</string>
+    <string name="workflow_repeat_daily_hint">După activarea repetată, acesta va fi executat la ora locală în fiecare zi de la data specificată; va fi executat o singură dată când este închis.</string>
+    <string name="workflow_repeat_hint">După activarea repetată, va continua să fie executat conform intervalelor sau regulilor Cron; când este închis, se va executa doar data viitoare.</string>
+    <string name="workflow_end_time_label">Termen limită (opțional)</string>
+    <string name="workflow_end_time_hint">Lăsați necompletat pentru a indica nicio limită. Utilizați ora locală aaaa-LL-zz HH:mm:ss; execuția nu va începe după depășirea termenului limită.</string>
+    <string name="workflow_schedule_timing_hint">Interval fix așteaptă pentru întregul interval de la activarea sau modificarea programului, cel puțin 15 minute; Cron se potrivește cu ceasul din fusul orar curent al sistemului. Fundalul este programat de Android WorkManager. Sleep, economisirea energiei, restricțiile de fundal și așteptarea sarcinilor pot întârzia execuția, iar punctualitatea nu poate fi garantată. După oprirea forțată, trebuie să redeschideți aplicația pentru a relua.</string>
+    <string name="tp_undo_last">Anulați ultima modificare</string>
+    <string name="tp_restored">Ultima modificare a fost anulată</string>
+</resources>

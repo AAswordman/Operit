@@ -2,7 +2,7 @@ package com.ai.assistance.operit.data.security
 
 import android.content.Context
 import android.util.AtomicFile
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import java.io.File
 import java.io.IOException
 import java.net.URI

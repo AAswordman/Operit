@@ -1,0 +1,5 @@
+$/issues = [{id:"login",title:"修复登录",status:"处理中"},{id:"layout",title:"调整排版",status:"待处理"}]
+$/query = ""
+root = Column(children=[Header(text="任务清单",status="演示数据"),TextField(label="筛选标题",value=$/query),rows,empty])
+rows = Repeat(items=arrayFilter(items=$/issues,field="title",operator="contains",value=$/query),key="id",maxItems=20,child=Panel(child=InfoRow(label=item(field="title"),text=item(field="status")),background="inset"))
+empty = Conditional(visible=equals(a=arrayLength(items=arrayFilter(items=$/issues,field="title",operator="contains",value=$/query)),b=0),children=[Text(text="没有匹配的任务")])

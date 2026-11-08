@@ -13,7 +13,7 @@ function logQQBotStartup(message) {
 }
 function registerToolPkg() {
     logQQBotStartup("registerToolPkg start");
-    ToolPkg.registerToolboxUiModule({
+    ToolPkg.registerUiModule({
         id: "qqbot_settings",
         runtime: "compose_dsl",
         screen: index_ui_js_1.default,

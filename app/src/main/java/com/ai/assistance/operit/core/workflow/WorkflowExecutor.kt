@@ -3,27 +3,34 @@ package com.ai.assistance.operit.core.workflow
 import android.content.Context
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.config.SystemToolPrompts
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.data.model.AITool
-import com.ai.assistance.operit.data.model.ConditionNode
-import com.ai.assistance.operit.data.model.ConditionOperator
-import com.ai.assistance.operit.data.model.ExecuteNode
-import com.ai.assistance.operit.data.model.ExtractMode
-import com.ai.assistance.operit.data.model.ExtractNode
-import com.ai.assistance.operit.data.model.LogicNode
-import com.ai.assistance.operit.data.model.LogicOperator
-import com.ai.assistance.operit.data.model.ParameterValue
-import com.ai.assistance.operit.data.model.ToolParameter
-import com.ai.assistance.operit.data.model.ToolParameterSchema
-import com.ai.assistance.operit.data.model.TriggerNode
-import com.ai.assistance.operit.data.model.Workflow
-import com.ai.assistance.operit.data.model.WorkflowExecutionFailureStage
-import com.ai.assistance.operit.data.model.WorkflowExecutionLogEntry
-import com.ai.assistance.operit.data.model.WorkflowExecutionRecord
-import com.ai.assistance.operit.data.model.WorkflowLogLevel
-import com.ai.assistance.operit.data.model.WorkflowNode
-import com.ai.assistance.operit.data.model.WorkflowNodeConnection
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.protocol.AITool
+import com.ai.assistance.operit.core.workflow.model.ConditionNode
+import com.ai.assistance.operit.core.workflow.model.ConditionOperator
+import com.ai.assistance.operit.core.workflow.model.ExecuteNode
+import com.ai.assistance.operit.core.workflow.model.ExtractMode
+import com.ai.assistance.operit.core.workflow.model.ExtractNode
+import com.ai.assistance.operit.core.workflow.model.LogicNode
+import com.ai.assistance.operit.core.workflow.model.LogicOperator
+import com.ai.assistance.operit.core.workflow.model.ParameterValue
+import com.ai.assistance.operit.core.tools.protocol.ToolParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolParameterSchema
+import com.ai.assistance.operit.core.workflow.model.TriggerNode
+import com.ai.assistance.operit.core.workflow.model.Workflow
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionFailureStage
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionLogEntry
+import com.ai.assistance.operit.core.workflow.runtime.classifyWorkflowIssue
+import com.ai.assistance.operit.core.workflow.runtime.readableWorkflowFailure
+import com.ai.assistance.operit.core.workflow.runtime.readableWorkflowName
+import com.ai.assistance.operit.core.workflow.runtime.workflowFailureCause
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeExecutionReport
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeRunStatus
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionIssue
+import com.ai.assistance.operit.core.workflow.model.WorkflowExecutionRecord
+import com.ai.assistance.operit.core.workflow.model.WorkflowLogLevel
+import com.ai.assistance.operit.core.workflow.model.WorkflowNode
+import com.ai.assistance.operit.core.workflow.model.WorkflowNodeConnection
 import com.ai.assistance.operit.core.tools.MessageSendResultData
 import com.ai.assistance.operit.data.preferences.initAndroidPermissionPreferences
 import kotlinx.coroutines.CancellationException
@@ -71,6 +78,13 @@ data class WorkflowExecutionResult(
 )
 
 class WorkflowExecutionRetryableException(message: String) : Exception(message)
+
+internal class WorkflowExecutionCancelledException(
+    val record: WorkflowExecutionRecord,
+    cause: CancellationException,
+) : CancellationException(cause.message) {
+    init { initCause(cause) }
+}
 
 /**
  * 工作流执行器
@@ -534,6 +548,17 @@ class WorkflowExecutor(private val context: Context) {
         val runId = UUID.randomUUID().toString()
         val runLogger = WorkflowRunLogger(TAG)
         val nodeResults = mutableMapOf<String, NodeExecutionState>()
+        val nodeStartedAt = mutableMapOf<String, Long>()
+        val nodeFinishedAt = mutableMapOf<String, Long>()
+        fun reportNodeState(nodeId: String, state: NodeExecutionState) {
+            val now = System.currentTimeMillis()
+            if (state is NodeExecutionState.Running) nodeStartedAt.putIfAbsent(nodeId, now)
+            if (state is NodeExecutionState.Success || state is NodeExecutionState.Failed || state is NodeExecutionState.Skipped) {
+                nodeStartedAt.putIfAbsent(nodeId, now)
+                nodeFinishedAt[nodeId] = now
+            }
+            onNodeStateChange(nodeId, state)
+        }
 
         fun buildResult(
             success: Boolean,
@@ -543,6 +568,15 @@ class WorkflowExecutor(private val context: Context) {
             failureReason: String? = if (success) null else message,
             shouldRetry: Boolean = false
         ): WorkflowExecutionResult {
+            val nodeNames = workflow.nodes.associate { it.id to it.readableWorkflowName() }
+            val userMessage = if (success) message else {
+                val failures = workflow.nodes.mapNotNull { node ->
+                    val error = (nodeResults[node.id] as? NodeExecutionState.Failed)?.error ?: return@mapNotNull null
+                    context.getString(R.string.workflow_failure_named_node, node.readableWorkflowName(), readableWorkflowFailure(error, nodeNames))
+                }
+                if (failures.isNotEmpty()) failures.joinToString("\n")
+                else readableWorkflowFailure(failureReason ?: message, nodeNames)
+            }
             val finishedAt = System.currentTimeMillis()
             val executionRecord =
                 WorkflowExecutionRecord(
@@ -553,16 +587,42 @@ class WorkflowExecutor(private val context: Context) {
                     startedAt = startedAt,
                     finishedAt = finishedAt,
                     success = success,
-                    message = message,
+                    message = userMessage,
                     logs = runLogger.entries,
                     failureStage = failureStage,
-                    failureReason = failureReason
+                    failureReason = failureReason,
+                    issue = if (success) null else {
+                        val error = nodeResults.values.filterIsInstance<NodeExecutionState.Failed>().firstOrNull()?.error
+                        if (failureStage == WorkflowExecutionFailureStage.CANCELLATION) WorkflowExecutionIssue.CANCELLED
+                        else if (failureStage == WorkflowExecutionFailureStage.RUNTIME_INITIALIZATION) WorkflowExecutionIssue.RUNTIME
+                        else classifyWorkflowIssue(error ?: failureReason.orEmpty())
+                    },
+                    nodes = workflow.nodes.map { node ->
+                        val state = nodeResults[node.id]
+                        WorkflowNodeExecutionReport(
+                            nodeId = node.id,
+                            nodeName = node.readableWorkflowName(),
+                            status = when (state) {
+                                is NodeExecutionState.Success -> if (isSkippedState(state)) WorkflowNodeRunStatus.SKIPPED else WorkflowNodeRunStatus.SUCCESS
+                                is NodeExecutionState.Failed -> WorkflowNodeRunStatus.FAILED
+                                is NodeExecutionState.Skipped -> WorkflowNodeRunStatus.SKIPPED
+                                is NodeExecutionState.Running -> if (failureStage == WorkflowExecutionFailureStage.CANCELLATION) WorkflowNodeRunStatus.CANCELLED else WorkflowNodeRunStatus.NOT_RUN
+                                else -> WorkflowNodeRunStatus.NOT_RUN
+                            },
+                            startedAt = nodeStartedAt[node.id],
+                            finishedAt = nodeFinishedAt[node.id] ?: finishedAt.takeIf { state is NodeExecutionState.Running },
+                            issue = (state as? NodeExecutionState.Failed)?.error?.let(::classifyWorkflowIssue),
+                            resultSummary = (state as? NodeExecutionState.Success)?.result?.take(800),
+                            failureReason = (state as? NodeExecutionState.Failed)?.error,
+                            actionName = (node as? ExecuteNode)?.actionType?.takeIf { it.isNotBlank() },
+                        )
+                    },
                 )
             return WorkflowExecutionResult(
                 workflowId = workflow.id,
                 success = success,
                 nodeResults = nodeResults,
-                message = message,
+                message = userMessage,
                 executionTime = finishedAt,
                 executionRecord = executionRecord,
                 shouldRetry = shouldRetry
@@ -665,7 +725,7 @@ class WorkflowExecutor(private val context: Context) {
                 )
                 val triggerPayload = org.json.JSONObject(triggerExtras).toString()
                 nodeResults[triggerNode.id] = NodeExecutionState.Success(triggerPayload)
-                onNodeStateChange(triggerNode.id, NodeExecutionState.Success(triggerPayload))
+                reportNodeState(triggerNode.id, NodeExecutionState.Success(triggerPayload))
             }
             
             // 6. 使用拓扑排序执行所有后续节点
@@ -675,7 +735,7 @@ class WorkflowExecutor(private val context: Context) {
                 dependencyGraph = dependencyGraph,
                 nodeResults = nodeResults,
                 triggerExtras = triggerExtras,
-                onNodeStateChange = onNodeStateChange,
+                onNodeStateChange = ::reportNodeState,
                 runLogger = runLogger
             )
             
@@ -696,7 +756,14 @@ class WorkflowExecutor(private val context: Context) {
             
         } catch (e: CancellationException) {
             runLogger.w(context.getString(R.string.workflow_log_execution_cancelled, workflow.name))
-            throw e
+            throw WorkflowExecutionCancelledException(
+                buildResult(
+                    success = false,
+                    message = context.getString(R.string.workflow_execution_cancelled),
+                    failureStage = WorkflowExecutionFailureStage.CANCELLATION,
+                ).executionRecord,
+                e,
+            )
         } catch (e: Exception) {
             runLogger.e(context.getString(R.string.workflow_log_execution_exception), throwable = e)
             return@withContext buildResult(
@@ -1127,7 +1194,7 @@ class WorkflowExecutor(private val context: Context) {
             } catch (e: CancellationException) {
                 throwCancellation(node, runLogger, e)
             } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.workflow_node_execution_exception, e.message ?: "")
+                val errorMsg = context.getString(R.string.workflow_node_execution_exception, readableWorkflowFailure(workflowFailureCause(e)))
                 runLogger.e(errorMsg, nodeId = node.id, nodeName = node.name, throwable = e)
                 nodeResults[node.id] = NodeExecutionState.Failed(errorMsg)
                 onNodeStateChange(node.id, NodeExecutionState.Failed(errorMsg))
@@ -1158,7 +1225,7 @@ class WorkflowExecutor(private val context: Context) {
             } catch (e: CancellationException) {
                 throwCancellation(node, runLogger, e)
             } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.workflow_node_execution_exception, e.message ?: "")
+                val errorMsg = context.getString(R.string.workflow_node_execution_exception, readableWorkflowFailure(workflowFailureCause(e)))
                 runLogger.e(errorMsg, nodeId = node.id, nodeName = node.name, throwable = e)
                 nodeResults[node.id] = NodeExecutionState.Failed(errorMsg)
                 onNodeStateChange(node.id, NodeExecutionState.Failed(errorMsg))
@@ -1220,7 +1287,7 @@ class WorkflowExecutor(private val context: Context) {
             } catch (e: CancellationException) {
                 throwCancellation(node, runLogger, e)
             } catch (e: Exception) {
-                val errorMsg = context.getString(R.string.workflow_node_execution_exception, e.message ?: "")
+                val errorMsg = context.getString(R.string.workflow_node_execution_exception, readableWorkflowFailure(workflowFailureCause(e)))
                 runLogger.e(errorMsg, nodeId = node.id, nodeName = node.name, throwable = e)
                 nodeResults[node.id] = NodeExecutionState.Failed(errorMsg)
                 onNodeStateChange(node.id, NodeExecutionState.Failed(errorMsg))
@@ -1282,8 +1349,10 @@ class WorkflowExecutor(private val context: Context) {
                     } else {
                         resultData.toString()
                     }
+                // 完整结果供下游节点使用，日志只保留预览，避免再次复制并持有整段输出。
+                val resultPreview = resultMessage.take(800) + if (resultMessage.length > 800) "…" else ""
                 runLogger.d(
-                    context.getString(R.string.workflow_log_node_success, node.name, resultMessage),
+                    context.getString(R.string.workflow_log_node_success, node.name, resultPreview),
                     nodeId = node.id,
                     nodeName = node.name
                 )
@@ -1305,7 +1374,7 @@ class WorkflowExecutor(private val context: Context) {
         } catch (e: CancellationException) {
             throwCancellation(node, runLogger, e)
         } catch (e: Exception) {
-            val errorMsg = context.getString(R.string.workflow_node_execution_exception, e.message ?: "")
+            val errorMsg = context.getString(R.string.workflow_node_execution_exception, readableWorkflowFailure(workflowFailureCause(e)))
             runLogger.e(
                 context.getString(R.string.workflow_log_node_exception, node.name),
                 nodeId = node.id,

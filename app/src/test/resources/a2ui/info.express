@@ -1,0 +1,7 @@
+
+root = Card(child=Column(children=[
+ Header(text="example.com",label="域名状态 · 演示数据",status="活动中",tone="success"),
+ Divider(),
+ InfoRow(label="到期日期",text="2028/09/29"),
+ InfoRow(label="自动续费",text="已开启",tone="success")
+]))

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="character_card_tab_speech">Speech</string>
+    <string name="character_speech_scope">Settings for the role being edited</string>
+    <string name="character_speech_draft_hint">Speech settings are saved with the role card. Cancel discards these changes. Turning off Waifu mode keeps the configured values.</string>
+    <string name="character_speech_load_failed">Could not load speech settings for this role. Please retry.</string>
+    <string name="character_speech_save_before_emoji">Save the role card before managing its custom emoji.</string>
+    <string name="character_speech_emoji_hint">Manage this role’s emoji library. Category and image changes are saved immediately.</string>
+</resources>

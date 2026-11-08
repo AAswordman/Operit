@@ -1,0 +1,459 @@
+name: Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      gradle_task:
+        description: Gradle task to run
+        required: true
+        default: ':app:verifyCiPreviewRelease'
+        type: choice
+        options:
+          - assembleDebug
+          - ':app:assembleNightly'
+          - ':app:assembleClone'
+          - ':app:verifyCiPreviewRelease'
+          - ':app:bundleRelease'
+          - publishOfflineResources
+      publish_release:
+        description: 发布独立发行 Release 并生成增量包
+        required: true
+        default: false
+        type: boolean
+      complete_repository_migration:
+        description: +15 发布核对成功后清理已迁移的主仓库历史 Release，保留源码标签
+        required: true
+        default: false
+        type: boolean
+      cleanup_merged_branches:
+        description: 正式发布成功后清理本轮已合入的工作分支
+        required: true
+        default: false
+        type: boolean
+      previous_tag:
+        description: 可选的基础 Release 标签；留空选择同一基础版本的最新正式包
+        required: false
+        default: ''
+        type: string
+      resource_artifact_id:
+        description: 固定资源 ZIP 产物 ID，需属于所选提交；仅发布离线资源时填写
+        required: false
+        default: ''
+        type: string
+      release_notes:
+        description: 本次发布说明
+        required: false
+        default: ''
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/build.yml
+      - .gitmodules
+      - .npmrc
+      - app/**
+      - build.gradle.kts
+      - ci/distribution/**
+      - ci/script/download_android_dependencies.sh
+      - ci/script/prepare_android_dependencies.py
+      - cmake/**
+      - examples/**
+      - gradle/**
+      - gradle.properties
+      - gradlew
+      - gradlew.bat
+      - llm/**
+      - package.json
+      - package-lock.json
+      - npm-shrinkwrap.json
+      - pnpm-workspace.yaml
+      - quickjs/**
+      - settings.gradle.kts
+      - material-icons-subset/**
+      - tools/icons/**
+      - showerclient/**
+      - terminal/**
+      - terminal
+      - tools/native_ripgrep/**
+      - tools/native_apply_patch/**
+      - tools/web_chat_cli/**
+      - tools/terminal_commands/**
+      - .github/actions/terminal-commands/**
+      - tools/packages_whitelist.txt
+      - tools/example_packages/sync_example_packages.py
+      - web-chat/**
+
+concurrency:
+  group: android-build-${{ github.event_name }}-${{ github.ref }}-${{ inputs.gradle_task }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  JAVA_VERSION: '21'
+  NODE_VERSION: '22'
+  ANDROID_NDK_VERSION: '25.1.8937393'
+  ANDROID_CMAKE_VERSION: '3.22.1'
+  ANDROID_API_LEVEL: '26'
+  RUST_VERSION: '1.88.0'
+  MANUAL_DEPS_DIR: manual-deps
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_dispatch' || inputs.gradle_task != 'publishOfflineResources'
+    name: Build Android artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate distribution publishing inputs
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          DISPATCH_GRADLE_TASK: ${{ inputs.gradle_task }}
+        shell: bash
+        run: |
+          if [ "$DISPATCH_GRADLE_TASK" != ':app:verifyCiPreviewRelease' ]; then
+            echo '发布独立发行版必须选择 :app:verifyCiPreviewRelease' >&2
+            exit 1
+          fi
+      - name: Validate migration completion inputs
+        if: github.event_name == 'workflow_dispatch' && inputs.complete_repository_migration
+        env:
+          PUBLISH_RELEASE: ${{ inputs.publish_release }}
+          DISPATCH_GRADLE_TASK: ${{ inputs.gradle_task }}
+        shell: bash
+        run: |
+          if [ "$PUBLISH_RELEASE" != 'true' ] || [ "$DISPATCH_GRADLE_TASK" != ':app:verifyCiPreviewRelease' ]; then
+            echo '完成迁移必须同时发布 +15 签名发行版' >&2
+            exit 1
+          fi
+      - name: Validate merged branch cleanup inputs
+        if: github.event_name == 'workflow_dispatch' && inputs.cleanup_merged_branches
+        env:
+          PUBLISH_RELEASE: ${{ inputs.publish_release }}
+        shell: bash
+        run: |
+          if [ "$PUBLISH_RELEASE" != 'true' ] || [ "$GITHUB_REF" != 'refs/heads/main' ]; then
+            echo '分支清理必须由 main 的正式发布触发' >&2
+            exit 1
+          fi
+      - name: Validate cross-repository release access
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: python3 ci/distribution/repositories/check_publish_access.py --mode release
+      - name: Check distribution patch publishing
+        run: python3 -m unittest discover -s ci/distribution/updates/tests -v
+      - name: Migrate and verify historical distribution releases
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release && inputs.complete_repository_migration
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: python3 ci/distribution/repositories/migrate_releases.py --output .ci-repository-migration --apply
+      - name: Initialize terminal submodule
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule sync -- terminal
+          git submodule update --init --recursive --depth 1 terminal
+          git submodule status -- terminal
+
+      - name: Check Material icon references
+        run: python3 tools/icons/sync_material_icons.py --check
+      - name: Set up JDK
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4
+        with:
+          packages: ''
+
+      - name: Install Android SDK, NDK and CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "platforms;android-36" \
+            "build-tools;34.0.0" \
+            "build-tools;35.0.0" \
+            "ndk;$ANDROID_NDK_VERSION" \
+            "cmake;$ANDROID_CMAKE_VERSION"
+
+      - name: Restore Android CMake source cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            **/.cxx/operit_deps/*-src
+          key: android-cmake-sources-${{ runner.os }}-${{ runner.arch }}-arm64-v8a-ndk-${{ env.ANDROID_NDK_VERSION }}-cmake-${{ env.ANDROID_CMAKE_VERSION }}-${{ hashFiles('cmake/**', '**/CMakeLists.txt', '**/*.cmake', '**/build.gradle.kts', 'gradle.properties') }}
+
+      - name: Restore Android dependency cache
+        id: cache-manual-deps
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ env.MANUAL_DEPS_DIR }}
+          key: android-full-deps-${{ runner.os }}-${{ hashFiles('ci/script/download_android_dependencies.sh', 'ci/script/prepare_android_dependencies.py') }}
+
+      - name: Restore generated STT asset cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: app/build/generated/stt-model-assets
+          key: shared-vad-asset-v1-${{ runner.os }}-${{ hashFiles('app/config/stt-model-assets.properties') }}
+
+      - name: Download Android dependencies
+        if: steps.cache-manual-deps.outputs.cache-hit != 'true'
+        run: bash ci/script/download_android_dependencies.sh full "$MANUAL_DEPS_DIR"
+
+      - name: Prepare Android dependencies
+        run: |
+          python3 ci/script/prepare_android_dependencies.py \
+            --profile full \
+            --archives "$MANUAL_DEPS_DIR" \
+            --repository "$GITHUB_WORKSPACE"
+
+      - name: Prepare terminal apply_patch
+        uses: ./.github/actions/terminal-commands
+
+      - name: Restore native ripgrep cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            tools/native_ripgrep/target
+          key: native-ripgrep-arm64-${{ runner.os }}-${{ runner.arch }}-ndk-${{ env.ANDROID_NDK_VERSION }}-api-${{ env.ANDROID_API_LEVEL }}-rust-${{ env.RUST_VERSION }}-${{ hashFiles('tools/native_ripgrep/Cargo.toml', 'tools/native_ripgrep/Cargo.lock', 'tools/native_ripgrep/**/*.rs', 'tools/native_ripgrep/build_native_ripgrep.ps1') }}
+
+      - name: Build native ripgrep
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          rustup toolchain install "$RUST_VERSION" --profile minimal
+          rustup target add --toolchain "$RUST_VERSION" aarch64-linux-android
+          cargo "+$RUST_VERSION" build \
+            --manifest-path tools/native_ripgrep/Cargo.toml \
+            --release \
+            --target aarch64-linux-android \
+            --locked
+          install -Dm755 \
+            tools/native_ripgrep/target/aarch64-linux-android/release/liboperit_ripgrep.so \
+            app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+          test -s app/src/main/jniLibs/arm64-v8a/liboperit_ripgrep.so
+
+      - name: Install JavaScript dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g pnpm@10.34.5
+          npm ci --no-audit --no-fund
+          npm --prefix web-chat ci --no-audit --no-fund
+
+      - name: Build WebChat assets
+        run: |
+          npm run build:webchat
+
+      - name: Build bundled ToolPkg packages
+        run: |
+          npm run build:examples:github
+          python3 tools/example_packages/sync_example_packages.py --no-hot-reload
+
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Prepare distribution signing
+        if: github.event_name == 'workflow_dispatch' && (inputs.gradle_task == ':app:verifyCiPreviewRelease' || inputs.gradle_task == ':app:bundleRelease')
+        env:
+          OPERIT_DISTRIBUTION_KEYSTORE_BASE64: ${{ secrets.OPERIT_DISTRIBUTION_KEYSTORE_BASE64 }}
+        run: python3 ci/distribution/prepare_signing.py
+
+      - name: Run Gradle build
+        env:
+          DISPATCH_GRADLE_TASK: ${{ inputs.gradle_task }}
+          EVENT_NAME: ${{ github.event_name }}
+          OPERIT_DISTRIBUTION_STORE_PASSWORD: ${{ secrets.OPERIT_DISTRIBUTION_STORE_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            push) gradle_task=assembleDebug ;;
+            workflow_dispatch) gradle_task="$DISPATCH_GRADLE_TASK" ;;
+            *) echo "Unsupported workflow event: $EVENT_NAME" >&2; exit 2 ;;
+          esac
+          chmod +x ./gradlew
+          ./gradlew "$gradle_task" --stacktrace --no-daemon
+
+      - name: Verify packaged terminal command
+        if: github.event_name == 'push' || inputs.gradle_task != ':app:bundleRelease'
+        run: |
+          python3 tools/terminal_commands/verify_assets.py \
+            --verify-apks app/build/outputs/apk \
+            --output app/build/generated/terminal-command-assets
+
+      - name: Verify external resource packaging and report APK size
+        if: github.event_name == 'push' || inputs.gradle_task != ':app:bundleRelease'
+        run: python3 ci/distribution/resources/verify_packaged_resources.py
+
+      - name: Upload Android reports
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: operit-android-reports-${{ github.run_number }}
+          path: |
+            app/build/reports/**
+            build/reports/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload successful Android outputs
+        if: success()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: operit-android-${{ github.run_number }}
+          path: |
+            app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish distribution release and patch
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+          PREVIOUS_TAG: ${{ inputs.previous_tag }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          script = Path("ci/distribution/updates/publish_release.py")
+          source = script.read_text(encoding="utf-8")
+
+          # 仅发布到统一发行仓库，避免无加号版本再次向源码仓库发布。
+          # 移除源码标签创建，并避免发行摘要引用未创建的源码标签。
+          replacements = {
+              "    destinations = release_repositories(version)\n":
+                  "    destinations = (UPDATE_REPOSITORY,)\n",
+              "    ensure_source_tag(tag, args.commit)\n":
+                  "",
+              "**source_info(args.commit, tag)":
+                  '**{key: value for key, value in source_info(args.commit, tag).items() if key != "sourceTag"}',
+          }
+
+          # 脚本结构变化时明确报错，防止规则失效后继续创建源码标签。
+          for old, new in replacements.items():
+              count = source.count(old)
+              if count != 1:
+                  raise RuntimeError(
+                      f"发布脚本结构已变化，预期匹配一次，实际匹配 {count} 次：{old!r}"
+                  )
+              source = source.replace(old, new, 1)
+
+          compile(source, str(script), "exec")
+          script.write_text(source, encoding="utf-8")
+          print("本次发布仅写入发行仓库，不创建源码仓库版本标签")
+          PY
+
+          python3 ci/distribution/updates/publish_release.py \
+            --apk app/build/outputs/apk/release/app-kong.apk \
+            --build-tools "$ANDROID_HOME/build-tools/35.0.0" \
+            --repository "$GITHUB_REPOSITORY" \
+            --commit "$GITHUB_SHA" \
+            --previous-tag "$PREVIOUS_TAG" \
+            --notes "$RELEASE_NOTES"
+
+      - name: Clean merged work branches after verified publication
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release && inputs.cleanup_merged_branches
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: |
+          python3 ci/distribution/repositories/cleanup_merged_branches.py \
+            --plan ci/distribution/repositories/branch-cleanup-plan.json \
+            --release-plan .ci-release/release-plan.json \
+            --commit "$GITHUB_SHA"
+
+      - name: Complete verified repository migration
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release && inputs.complete_repository_migration
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: |
+          python3 ci/distribution/repositories/cleanup_main_releases.py \
+            --receipts .ci-repository-migration/cleanup-receipts.json \
+            --release-plan .ci-release/release-plan.json \
+            --commit "$GITHUB_SHA" \
+            --apply
+      - name: Upload distribution release and migration reports
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.publish_release
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: operit-distribution-reports-${{ github.run_number }}
+          path: |
+            .ci-release/release-plan.json
+            .ci-release/distribution-release.json
+            .ci-release/cleanup-report.json
+            .ci-release/branch-cleanup-report.json
+            .ci-repository-migration/source-releases.json
+            .ci-repository-migration/migration-plan.json
+            .ci-repository-migration/verified-receipts.json
+            .ci-repository-migration/cleanup-receipts.json
+          if-no-files-found: warn
+          retention-days: 30
+          include-hidden-files: true
+
+  resources:
+    if: github.event_name == 'workflow_dispatch' && inputs.gradle_task == 'publishOfflineResources'
+    name: Publish fixed offline resources
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: publish-offline-resources-v1
+      cancel-in-progress: false
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Validate cross-repository resource access
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+        run: python3 ci/distribution/repositories/check_publish_access.py --mode resources
+      - name: Prepare, verify and publish resources
+        env:
+          GH_TOKEN: ${{ secrets.OPERIT_DISTRIBUTION_TOKEN }}
+          SOURCE_ARTIFACT_ID: ${{ inputs.resource_artifact_id }}
+        run: python3 ci/distribution/resources/publish_resources.py --source-artifact-id "${SOURCE_ARTIFACT_ID:-0}"

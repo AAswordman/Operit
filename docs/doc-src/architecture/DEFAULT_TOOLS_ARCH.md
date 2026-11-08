@@ -15,7 +15,7 @@
 3. **工具执行实现**（Kotlin 侧真正做事的逻辑）
 4. **脚本侧封装（JS Tools）**（给 JS/TS 脚本更好用的 API）
 5. **示例与类型定义**（examples/types 与 examples/**）
-6. **文档**（docs/doc-src/package-dev 等）
+6. **文档**（docs/doc-src/toolpkg_developer_documentation 等）
 7. **打包资源 / 产物**（app/src/main/assets/packages/*.js 等）
 
 其中 (1)(4)(5)(6) 是“对外契约”，(2)(3) 是“实现”。
@@ -40,7 +40,7 @@
 
 ### 2.2 必改：工具注册（toolName -> executor）
 
-- **文件**：`app/src/main/java/com/ai/assistance/operit/core/tools/ToolRegistration.kt`
+- **文件**：`app/src/main/java/com/ai/assistance/operit/core/tools/runtime/ToolRegistration.kt`
 - **你要做的事**：
   - 确认工具名不变时，一般无需改注册，但要确认调用到的 executor 没变
   - 若工具名/分组变更，需要同步调整注册项
@@ -52,15 +52,19 @@
 ### 2.3 必改：Kotlin 执行实现（参数读取与校验）
 
 - **常见目录**：
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/standard/*`
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/debugger/*`
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/admin/*`
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/root/*`
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/accessbility/*`
-  - `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/ToolGetter.kt`（按权限级别选择具体实现）
+  - `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/filesystem/`
+  - `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ui/`
+  - `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/system/`
+  - `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/web/`
+  - `app/src/main/java/com/ai/assistance/operit/core/tools/builtin/ToolGetter.kt`（按三档模式取得工具）
+- **权限模型**：
+  - 用户模式只有 `STANDARD`、`ADMIN`、`ROOT`
+  - 管理员工具直接包含无障碍与 Shell 操作，按实际授权选择执行能力
+  - Root 复用管理员公共能力，并保留专有 UI 实现
+  - 无障碍、Shizuku 是执行后端，历史无障碍、调试模式仅由偏好迁移入口转换为管理员
 - **你要做的事**：
   - 将旧参数的读取逻辑替换为新参数（`tool.parameters.find { it.name == "..." }`）
-  - 如果某个工具在 `debugger/root/admin/accessibility` 目录下有 override / 替代实现：这些实现里同样要同步更新参数读取与校验
+  - 同一功能目录中的标准、管理员、Root 实现有 override 时，同步更新参数读取与校验
   - 新增参数合法性校验：必填、互斥、默认值、兼容性策略
   - 更新错误消息（要能引导正确用法）
 
@@ -143,7 +147,7 @@
 ### 2.8 必改：文档
 
 - **常见位置**：
-  - `docs/doc-src/package-dev/*.md`
+  - `docs/doc-src/toolpkg_developer_documentation/**/*.md`
   - `docs/doc-src/**/*.md`
 - **你要做的事**：
   - 更新 API 描述、参数说明、示例

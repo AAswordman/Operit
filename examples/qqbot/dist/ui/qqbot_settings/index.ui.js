@@ -525,9 +525,7 @@ function Screen(ctx) {
             return;
         }
         await runAction(checked ? "start_service" : "stop_service", async () => {
-            return await (0, qqbot_ipc_js_1.withContext)("main", { checked }, async () => {
-                return checked ? await (0, qqbot_ipc_js_1.qqbot_service_start)({}) : await (0, qqbot_ipc_js_1.qqbot_service_stop)({});
-            });
+            return await (0, qqbot_ipc_js_1.withContext)("main", { checked }, async () => checked ? await (0, qqbot_ipc_js_1.qqbot_service_start)({}) : await (0, qqbot_ipc_js_1.qqbot_service_stop)({}), qqbot_common_js_1.LISTENER_TOGGLE_IPC_TIMEOUT_MS);
         }, text.actionDone);
     };
     const statusLines = [

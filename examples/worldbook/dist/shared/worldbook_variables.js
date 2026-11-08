@@ -8,50 +8,44 @@ const DEFAULT_VARIABLE_NAME = "stat_data";
 function getVariableStoreFile() {
     return `${(0, worldbook_storage_js_1.getWorldBookDir)()}/${VARIABLE_STORE_FILE}`;
 }
-async function ensureVariableStore() {
-    const dir = (0, worldbook_storage_js_1.getWorldBookDir)();
-    const file = getVariableStoreFile();
-    await Tools.Files.mkdir(dir, true);
-    const existsResult = await Tools.Files.exists(file);
-    if (!existsResult?.exists) {
-        await Tools.Files.write(file, JSON.stringify({
-            global_variables: {},
-            character_variables: {},
-            chats: {}
-        }, null, 2), false);
-    }
+function isVariableRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 async function readVariableStore() {
-    await ensureVariableStore();
-    try {
-        const fileResult = await Tools.Files.read(getVariableStoreFile());
-        const parsed = JSON.parse(String(fileResult?.content || "{}"));
-        const globalVariables = parsed && typeof parsed.global_variables === "object" && !Array.isArray(parsed.global_variables)
-            ? parsed.global_variables
-            : {};
-        const characterVariables = parsed && typeof parsed.character_variables === "object" && !Array.isArray(parsed.character_variables)
-            ? parsed.character_variables
-            : {};
-        const chats = parsed && typeof parsed.chats === "object" && !Array.isArray(parsed.chats)
-            ? parsed.chats
-            : {};
-        return {
-            global_variables: globalVariables,
-            character_variables: characterVariables,
-            chats
+    await (0, worldbook_storage_js_1.ensureWorldBookStorage)();
+    const parsed = await (0, worldbook_storage_js_1.readWorldBookJson)(getVariableStoreFile());
+    if (!isVariableRecord(parsed) || !isVariableRecord(parsed.global_variables) ||
+        !isVariableRecord(parsed.character_variables) || !isVariableRecord(parsed.chats)) {
+        console.error("Invalid world book variable store", getVariableStoreFile());
+        throw new Error("世界书变量文件格式无效，已停止本次操作");
+    }
+    const characterVariables = {};
+    for (const [key, value] of Object.entries(parsed.character_variables)) {
+        if (!isVariableRecord(value)) {
+            console.error("Invalid world book character variables", key);
+            throw new Error("世界书角色变量格式无效，已停止本次操作");
+        }
+        characterVariables[key] = value;
+    }
+    const chats = {};
+    for (const [key, value] of Object.entries(parsed.chats)) {
+        if (!isVariableRecord(value) || !isVariableRecord(value.local_variables) ||
+            !Array.isArray(value.processed_message_timestamps) ||
+            !value.processed_message_timestamps.every((item) => typeof item === "number" && Number.isFinite(item)) ||
+            typeof value.last_scanned_timestamp !== "number" || !Number.isFinite(value.last_scanned_timestamp)) {
+            console.error("Invalid world book chat variables", key);
+            throw new Error("世界书会话变量格式无效，已停止本次操作");
+        }
+        chats[key] = {
+            local_variables: value.local_variables,
+            processed_message_timestamps: value.processed_message_timestamps,
+            last_scanned_timestamp: value.last_scanned_timestamp
         };
     }
-    catch (_error) {
-        return {
-            global_variables: {},
-            character_variables: {},
-            chats: {}
-        };
-    }
+    return { global_variables: parsed.global_variables, character_variables: characterVariables, chats };
 }
 async function writeVariableStore(store) {
-    await ensureVariableStore();
-    await Tools.Files.write(getVariableStoreFile(), JSON.stringify(store, null, 2));
+    await (0, worldbook_storage_js_1.writeWorldBookJson)(getVariableStoreFile(), store);
 }
 function createEmptyChatState() {
     return {
@@ -593,84 +587,88 @@ function getScopedVariableValue(context, scope, path) {
     return getByDotPath(context.localVariables, path);
 }
 async function syncWorldBookVariableContext(chatId, entries, callerCardId) {
-    const normalizedChatId = String(chatId || "").trim();
-    if (!normalizedChatId) {
-        return null;
-    }
-    const store = await readVariableStore();
-    const chatState = store.chats[normalizedChatId] || createEmptyChatState();
-    const normalizedCallerCardId = String(callerCardId || "").trim();
-    const characterVariables = normalizedCallerCardId && store.character_variables[normalizedCallerCardId]
-        ? store.character_variables[normalizedCallerCardId]
-        : {};
-    let changed = false;
-    let stateDirty = !(normalizedChatId in store.chats);
-    let characterStateDirty = false;
-    const initTemplate = findInitVariableTemplate(entries, callerCardId);
-    if (!chatState.local_variables[DEFAULT_VARIABLE_NAME] ||
-        typeof chatState.local_variables[DEFAULT_VARIABLE_NAME] !== "object") {
-        if (initTemplate) {
-            chatState.local_variables[DEFAULT_VARIABLE_NAME] = cloneVariableTemplate(initTemplate);
-            changed = true;
-            stateDirty = true;
+    return await (0, worldbook_storage_js_1.withWorldBookStorage)(async () => {
+        const normalizedChatId = String(chatId || "").trim();
+        if (!normalizedChatId) {
+            return null;
         }
-    }
-    if (normalizedCallerCardId &&
-        (!characterVariables[DEFAULT_VARIABLE_NAME] ||
-            typeof characterVariables[DEFAULT_VARIABLE_NAME] !== "object") &&
-        initTemplate) {
-        characterVariables[DEFAULT_VARIABLE_NAME] = cloneVariableTemplate(initTemplate);
-        store.character_variables[normalizedCallerCardId] = characterVariables;
-        changed = true;
-        characterStateDirty = true;
-    }
-    try {
-        const messageResult = await Tools.Chat.getMessages(normalizedChatId, { order: "asc" });
-        const messages = Array.isArray(messageResult?.messages)
-            ? messageResult.messages
-            : [];
-        const processedSet = new Set(chatState.processed_message_timestamps || []);
-        let latestTimestamp = chatState.last_scanned_timestamp || 0;
-        for (const message of messages) {
-            const timestamp = Number(message.timestamp || 0);
-            if (!timestamp || timestamp <= latestTimestamp || processedSet.has(timestamp)) {
-                continue;
+        const store = await readVariableStore();
+        const chatState = store.chats[normalizedChatId] || createEmptyChatState();
+        const normalizedCallerCardId = String(callerCardId || "").trim();
+        const characterVariables = normalizedCallerCardId && store.character_variables[normalizedCallerCardId]
+            ? store.character_variables[normalizedCallerCardId]
+            : {};
+        let changed = false;
+        let stateDirty = !(normalizedChatId in store.chats);
+        let characterStateDirty = false;
+        const initTemplate = findInitVariableTemplate(entries, callerCardId);
+        if (!chatState.local_variables[DEFAULT_VARIABLE_NAME] ||
+            typeof chatState.local_variables[DEFAULT_VARIABLE_NAME] !== "object") {
+            if (initTemplate) {
+                chatState.local_variables[DEFAULT_VARIABLE_NAME] = cloneVariableTemplate(initTemplate);
+                changed = true;
+                stateDirty = true;
             }
-            const sender = String(message.sender || "");
-            if (!isAssistantMessage(sender)) {
+        }
+        if (normalizedCallerCardId &&
+            (!characterVariables[DEFAULT_VARIABLE_NAME] ||
+                typeof characterVariables[DEFAULT_VARIABLE_NAME] !== "object") &&
+            initTemplate) {
+            characterVariables[DEFAULT_VARIABLE_NAME] = cloneVariableTemplate(initTemplate);
+            store.character_variables[normalizedCallerCardId] = characterVariables;
+            changed = true;
+            characterStateDirty = true;
+        }
+        try {
+            const messageResult = await Tools.Chat.getMessages(normalizedChatId, { order: "asc" });
+            const messages = Array.isArray(messageResult?.messages)
+                ? messageResult.messages
+                : [];
+            const processedSet = new Set(chatState.processed_message_timestamps || []);
+            let latestTimestamp = chatState.last_scanned_timestamp || 0;
+            for (const message of messages) {
+                const timestamp = Number(message.timestamp || 0);
+                if (!timestamp || timestamp <= latestTimestamp || processedSet.has(timestamp)) {
+                    continue;
+                }
+                const sender = String(message.sender || "");
+                if (!isAssistantMessage(sender)) {
+                    latestTimestamp = Math.max(latestTimestamp, timestamp);
+                    processedSet.add(timestamp);
+                    stateDirty = true;
+                    continue;
+                }
+                const content = String(message.content || "");
+                const operations = extractJsonPatchOperations(content);
+                if (operations.length > 0) {
+                    const patchChanged = applyPatchOperations(chatState.local_variables, operations);
+                    changed = patchChanged || changed;
+                    stateDirty = patchChanged || stateDirty;
+                }
                 latestTimestamp = Math.max(latestTimestamp, timestamp);
                 processedSet.add(timestamp);
                 stateDirty = true;
-                continue;
             }
-            const content = String(message.content || "");
-            const operations = extractJsonPatchOperations(content);
-            if (operations.length > 0) {
-                const patchChanged = applyPatchOperations(chatState.local_variables, operations);
-                changed = patchChanged || changed;
-                stateDirty = patchChanged || stateDirty;
-            }
-            latestTimestamp = Math.max(latestTimestamp, timestamp);
-            processedSet.add(timestamp);
-            stateDirty = true;
+            chatState.last_scanned_timestamp = latestTimestamp;
+            chatState.processed_message_timestamps = [...processedSet].sort((left, right) => left - right);
         }
-        chatState.last_scanned_timestamp = latestTimestamp;
-        chatState.processed_message_timestamps = [...processedSet].sort((left, right) => left - right);
-    }
-    catch (_error) {
-    }
-    store.chats[normalizedChatId] = chatState;
-    if (normalizedCallerCardId && characterStateDirty) {
-        store.character_variables[normalizedCallerCardId] = characterVariables;
-    }
-    if (changed || stateDirty || characterStateDirty) {
-        await writeVariableStore(store);
-    }
-    return {
-        localVariables: chatState.local_variables,
-        characterVariables,
-        globalVariables: store.global_variables
-    };
+        catch (error) {
+            console.error("World book message history read failed", error);
+            throw error;
+        }
+        store.chats[normalizedChatId] = chatState;
+        if (normalizedCallerCardId && characterStateDirty) {
+            store.character_variables[normalizedCallerCardId] = characterVariables;
+        }
+        if (changed || stateDirty || characterStateDirty) {
+            await writeVariableStore(store);
+        }
+        return {
+            localVariables: chatState.local_variables,
+            characterVariables,
+            globalVariables: store.global_variables
+        };
+    });
 }
 function renderWorldBookContent(content, context) {
     if (!context) {

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">Memory management</string>
+    <string name="memory_management_subtitle">Manage memory spaces and character bindings</string>
+    <string name="memory_overview_global">Global use</string>
+    <string name="memory_overview_current_global">Current memory space</string>
+    <string name="memory_overview_change">Change</string>
+    <string name="memory_overview_spaces">Memory spaces</string>
+    <string name="memory_overview_roles">Character bindings</string>
+    <string name="memory_overview_active_count">Global space · %1$d characters use it</string>
+    <string name="memory_overview_bound_count">%1$d characters bound to this space</string>
+    <string name="memory_overview_fixed">Fixed · %1$s</string>
+    <string name="memory_overview_missing_space">Bound memory space is missing; choose another</string>
+
+    <string name="memory_overview_follow">Follows global · %1$s</string>
+    <string name="memory_overview_choose_global">Change global memory space</string>
+    <string name="memory_overview_create">Create memory space</string>
+    <string name="memory_overview_rename">Rename memory space</string>
+    <string name="memory_overview_name">Space name</string>
+    <string name="memory_overview_delete_title">Delete memory space</string>
+    <string name="memory_overview_delete_warning">Delete “%1$s” and its memories and user profile? Characters bound to it will follow the global space. This cannot be undone.</string>
+    <string name="memory_overview_binding_title">Memory space for %1$s</string>
+    <string name="memory_overview_space_actions">Memory space actions</string>
+    <string name="memory_action_select">Select nodes</string>
+    <string name="memory_action_delete_selected">Delete selected nodes</string>
+    <string name="memory_action_link">Link nodes</string>
+    <string name="memory_action_add">Add memory</string>
+    <string name="memory_action_create">Create memory</string>
+    <string name="memory_action_import">Import document</string>
+</resources>

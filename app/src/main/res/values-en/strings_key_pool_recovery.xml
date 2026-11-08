@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="api_key_pool_cooling_remaining">Temporarily cooling down: %1$d seconds remaining</string>
+    <string name="api_key_pool_cooling_summary">%1$d keys cooling down; shortest wait: %2$d seconds</string>
+    <string name="api_key_pool_states_cleared">Test marks and temporary cooldowns cleared</string>
+    <string name="api_key_pool_no_available_marks">No keys in \"%1$s\" are marked available. Clear the test marks, then test again.</string>
+    <string name="api_key_pool_all_cooling">Candidate keys in \"%1$s\" are cooling down. Retry in %2$d seconds.</string>
+    <string name="api_key_pool_already_tried">All candidate keys in \"%1$s\" were tried during this request. Please retry later.</string>
+    <string name="api_key_pool_no_enabled_keys">No enabled keys are available in \"%1$s\". Check the key pool settings.</string>
+    <string name="api_key_pool_endpoint_error">The request path or method was not found. Check the provider type and full API path. Custom paths such as /v2 are used as entered; OpenAI-compatible endpoints usually need /chat/completions. Original error: %1$s</string>
+    <string name="api_key_pool_model_cooling_remaining">Model %1$s is cooling down: %2$d seconds remaining</string>
+</resources>

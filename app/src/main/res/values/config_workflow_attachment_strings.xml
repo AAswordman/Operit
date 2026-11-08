@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="model_workspace_single_key_hint">点击输入单个密钥；右侧按钮打开密钥池</string>
+    <string name="model_workspace_open_key_pool">密钥池设置</string>
+    <string name="patch_update_no_matching_chain">没有连接当前安装包与目标版本的完整增量路径。请使用完整 APK 更新。</string>
+    <string name="patch_update_base_changed">当前安装包与此增量包要求的基础包不一致，请使用完整 APK 更新。</string>
+    <string name="workflow_run_details">执行详情与历史</string>
+    <string name="workflow_run_load_failed">无法读取执行记录，请检查工作流目录的访问权限。</string>
+    <string name="workflow_run_older">较早记录</string>
+    <string name="workflow_run_newer">较新记录</string>
+    <string name="workflow_run_position">%1$d / %2$d</string>
+    <string name="workflow_run_duration">耗时 %1$.2f 秒</string>
+    <string name="workflow_run_legacy">此记录尚未保存节点明细，更新后的新运行会记录完整结果。</string>
+    <string name="workflow_run_node_success">执行成功</string>
+    <string name="workflow_run_node_failed">执行失败</string>
+    <string name="workflow_run_node_skipped">条件未满足，已跳过</string>
+    <string name="workflow_run_node_not_run">未执行</string>
+    <string name="workflow_run_node_cancelled">已取消</string>
+    <string name="workflow_run_queued">排队中，等待其他定时任务完成</string>
+    <string name="workflow_issue_timeout">等待响应超时，请检查服务或节点等待时间。</string>
+    <string name="workflow_issue_network">网络连接失败，请检查网络与服务地址。</string>
+    <string name="workflow_issue_auth">服务认证失败，请检查密钥或账号状态。</string>
+    <string name="workflow_issue_quota">服务额度不足或请求受限，请检查余额与调用频率。</string>
+    <string name="workflow_issue_permission">缺少执行权限，请检查该工具需要的系统授权。</string>
+    <string name="workflow_issue_tool_missing">所需工具不可用，请检查工具包是否安装并启用。</string>
+    <string name="workflow_issue_input">节点输入或操作配置无效，请检查参数填写。</string>
+    <string name="workflow_issue_reference">引用节点的结果不可用，请检查连接和引用来源。</string>
+    <string name="workflow_issue_busy">执行环境正在忙碌，请等待当前任务结束后再执行。</string>
+    <string name="workflow_issue_cancelled">本次执行已被取消。</string>
+    <string name="workflow_issue_cycle">节点连接存在循环依赖，请调整连接后重试。</string>
+    <string name="workflow_issue_trigger">没有可用的触发节点，请检查触发方式。</string>
+    <string name="workflow_issue_runtime">执行环境未完成初始化，请稍后重试。</string>
+    <string name="workflow_issue_unknown">节点未能完成操作，请检查该节点的输入与工具配置。</string>
+    <string name="sent_image_count">%1$d 张</string>
+    <string name="sent_image_expired_count">共 %1$d 张图片已过期</string>
+    <string name="workflow_run_failed_nodes">失败节点：%1$s</string>
+</resources>

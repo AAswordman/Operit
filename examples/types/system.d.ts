@@ -4,10 +4,10 @@
 
 import {
     SleepResultData, SystemSettingData, AppOperationData, AppListData,
-    AppUsageTimeResultData, DeviceInfoResultData, NotificationData, LocationData,
+    AppUsageTimeResultData, PerformanceMetricsResultData, DeviceInfoResultData, NotificationData, LocationData,
     BluetoothStateData, BluetoothBondedDevicesData, BluetoothScanResultData, BluetoothSessionData,
     BluetoothTransferData, BluetoothReadData, BluetoothBleServicesData, BluetoothBleNotificationData,
-    ADBResultData, IntentResultData, TerminalCommandResultData, TerminalStreamEventData, HiddenTerminalCommandResultData,
+    ADBResultData, IntentResultData, TerminalCommandResultData, TerminalTaskResultData, TerminalStreamEventData, HiddenTerminalCommandResultData,
     TerminalSessionCreationResultData, TerminalSessionCloseResultData, TerminalSessionScreenResultData,
     MusicPlaybackResultData
 } from './results';
@@ -111,6 +111,13 @@ export namespace System {
         limit?: number | string;
         includeSystemApps?: boolean;
     }): Promise<AppUsageTimeResultData>;
+    /**
+     * 获取 Operit 当前软件性能指标；传入 pluginId 时只返回指定插件及其上下文。
+     * @param options 查询选项；pluginId 使用 ToolPkg containerPackageName
+     */
+    function getPerformanceMetrics(options?: {
+        pluginId?: string;
+    }): Promise<PerformanceMetricsResultData>;
 
     /**
      * Get device location
@@ -275,12 +282,24 @@ export namespace System {
          */
         function create(sessionName?: string): Promise<TerminalSessionCreationResultData>;
 
+        /** 启动托管任务；yieldMs 只限制本次等待，timeoutMs 是包含排队时间的执行期限。 */
+        function start(sessionId: string, command: string, options?: {
+            timeoutMs?: number | string;
+            yieldMs?: number | string;
+        }): Promise<TerminalTaskResultData>;
+
+        /** 查询同一 runId；等待结束不会取消命令，yieldMs 范围为 0～30000。 */
+        function poll(runId: string, options?: { yieldMs?: number | string }): Promise<TerminalTaskResultData>;
+
+        /** 精确取消该任务，返回取消状态与底层清理结果。 */
+        function cancel(runId: string): Promise<TerminalTaskResultData>;
+
         /**
          * Execute a command in a terminal session.
          * @param sessionId The ID of the session.
          * @param command The command to execute.
          * @param timeoutMs Optional timeout in milliseconds. Strongly recommended to always pass explicitly.
-         * @returns Promise resolving to the command execution result. On timeout, the current command is cancelled, the terminal session is kept, and the returned result has `timedOut === true`.
+         * @returns 正常完成时返回命令结果；超时则精确取消本次命令并拒绝 Promise；无法恢复的会话会被关闭，异常的 data 中保留输出及 timedOut === true。
          */
         function exec(sessionId: string, command: string, timeoutMs?: number | string): Promise<TerminalCommandResultData>;
 
@@ -290,7 +309,7 @@ export namespace System {
          * @param sessionId The ID of the session.
          * @param command The command to execute.
          * @param options Streaming execution options.
-         * @returns Promise resolving to the final command execution result.
+         * @returns 正常完成时返回最终命令结果；超时拒绝 Promise，异常的 data 中保留已收集输出及 timedOut === true。
          */
         function execStreaming(sessionId: string, command: string, options?: {
             timeoutMs?: number | string;
@@ -302,7 +321,7 @@ export namespace System {
          * Commands using the same executorKey reuse the same hidden login context and are not shown in the visible terminal UI.
          * @param command The command to execute.
          * @param options Optional hidden executor options.
-         * @returns Promise resolving to the hidden command execution result. On timeout, the current command is cancelled, the hidden executor session is kept, and the returned result has `timedOut === true`.
+         * @returns 正常完成时返回隐藏命令结果；超时拒绝 Promise，异常的 data 中保留输出及 timedOut === true，隐藏执行器继续按原有规则管理。
          */
         function hiddenExec(command: string, options?: {
             executorKey?: string;

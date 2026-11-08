@@ -1,15 +1,15 @@
 package com.ai.assistance.operit.services.core
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.api.chat.EnhancedAIService
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.ApiKeyFormatValidator
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyFormatValidator
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.character.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.FunctionType
-import com.ai.assistance.operit.data.model.ModelConfigData
-import com.ai.assistance.operit.data.model.ModelConfigDefaults
+import com.ai.assistance.operit.data.config.model.ModelConfigData
+import com.ai.assistance.operit.data.config.model.ModelConfigDefaults
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
@@ -545,42 +545,6 @@ class ApiConfigDelegate(
         }
     }
 
-    suspend fun saveDeepSeekConfiguration(expectedConfigId: String, apiKey: String) {
-        try {
-            val normalizedApiKey = ApiKeyFormatValidator.normalize(apiKey)
-            require(ApiKeyFormatValidator.isValid(normalizedApiKey)) {
-                "DeepSeek API Key format is invalid"
-            }
-            check(_activeConfigId.value == expectedConfigId) {
-                "Active chat configuration changed while saving"
-            }
-            val targetConfig = checkNotNull(modelConfigManager.getModelConfig(expectedConfigId)) {
-                "Active chat configuration no longer exists"
-            }
-            check(
-                ApiProviderType.fromProviderTypeId(targetConfig.apiProviderTypeId) ==
-                    ApiProviderType.DEEPSEEK
-            ) {
-                "Active chat configuration is not a DeepSeek configuration"
-            }
-            modelConfigManager.updateSingleApiKey(expectedConfigId, normalizedApiKey)
-            check(_activeConfigId.value == expectedConfigId) {
-                "Active chat configuration changed while saving"
-            }
-            val enhancedAiService =
-                withContext(Dispatchers.IO) {
-                    EnhancedAIService.refreshServiceForFunction(context, FunctionType.CHAT)
-                    EnhancedAIService.getInstance(context)
-                }
-            withContext(Dispatchers.Main) { onConfigChanged(enhancedAiService) }
-            _isConfigured.value = true
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            AppLogger.e(TAG, "保存 DeepSeek 配置失败: ${e.message}", e)
-            throw e
-        }
-    }
 
     private suspend fun persistApiSettings(
         apiKey: String,
@@ -661,6 +625,7 @@ class ApiConfigDelegate(
         configScope.launch {
             val newValue = !_disableStreamOutput.value
             apiPreferences.saveDisableStreamOutput(newValue)
+            com.ai.assistance.operit.api.chat.EnhancedAIService.refreshAllServices(context)
             _disableStreamOutput.value = newValue
         }
     }
@@ -769,7 +734,7 @@ class ApiConfigDelegate(
                     enableSummary = current.enableSummary,
                     summaryTokenThreshold = current.summaryTokenThreshold,
                     enableSummaryByMessageCount = current.enableSummaryByMessageCount,
-                    summaryMessageCountThreshold = threshold
+                    summaryMessageCountThreshold = threshold.coerceIn(1, ModelConfigDefaults.MAX_SUMMARY_MESSAGE_COUNT_THRESHOLD)
             )
         }
     }

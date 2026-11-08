@@ -1,0 +1,9 @@
+
+root = Column(gap="xs",children=[main,question,split,branches])
+main = Flow(label="请求处理：收到请求后校验参数",direction="vertical",steps=[{title:"收到请求",icon:"download"},{title:"校验参数",icon:"search"}])
+question = Row(justify="center",children=[Badge(text="参数是否有效？",tone="info")])
+split = Vector(label="分成两个分支",width=320,height=36,shapes=[{type:"arrow",x1:160,y1:2,x2:80,y2:34},{type:"arrow",x1:160,y1:2,x2:240,y2:34}])
+branches = Grid(columnCount=2,children=[
+ Flow(label="有效分支",direction="vertical",steps=[{title:"有效",icon:"check",tone:"success"},{title:"执行业务",icon:"build"},{title:"返回结果",icon:"upload"}]),
+ Flow(label="无效分支",direction="vertical",steps=[{title:"无效",icon:"warning",tone:"error"},{title:"返回错误",caption:"附带原因"}])
+])

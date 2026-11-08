@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">글자 색상</string>
+    <string name="studio_message_background_color">메시지 배경색</string>
+    <string name="studio_message_text_color">메시지 글자 색상</string>
+    <string name="studio_border">테두리</string>
+    <string name="studio_border_edit_hint">너비가 0일 때 테두리 색상을 선택하면 1dp로 설정됩니다. 너비를 0으로 설정하면 테두리가 숨겨집니다. 배경 투명도는 테두리에 영향을 주지 않습니다.</string>
+    <string name="studio_line_color">선 색상</string>
+    <string name="studio_padding_hint">구성요소의 기존 간격에 여백을 추가합니다. 0이면 추가 여백이 없습니다.</string>
+    <string name="studio_text_color_priority_hint">메시지 및 구성요소의 개별 글자 색상이 우선합니다. 전체 글자 색상은 전체 색상표의 본문 색상을 덮어씁니다.</string>
+    <string name="studio_message_color_hint">메시지 배경색은 메시지 모양 설정의 배경 투명도를 따릅니다. 글자 색상은 별도로 적용됩니다.</string>
+    <string name="studio_avatar_fill_hint">아바타 채우기는 이미지 뒤에 그려집니다. 불투명한 이미지가 채우기를 가립니다.</string>
+    <string name="studio_min_height_hint">높이의 하한을 설정합니다. 구성요소의 기본 최소 높이보다 작아지지는 않습니다.</string>
+</resources>

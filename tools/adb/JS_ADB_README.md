@@ -51,7 +51,7 @@ This makes them suitable for:
 
 ## JS Test Suites In This Repo
 
-The directory [app/src/androidTest/js](/d:/Code/prog/assistance/app/src/androidTest/js) contains real JS runtime tests and probes, including:
+The directory [app/src/androidTest/js](../../app/src/androidTest/js) contains real JS runtime tests and probes, including:
 
 - bridge contract tests
 - bridge edge-case tests
@@ -61,11 +61,11 @@ The directory [app/src/androidTest/js](/d:/Code/prog/assistance/app/src/androidT
 
 Representative locations:
 
-- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract)
-- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges)
-- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract)
-- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/browser/main.js](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/core/tools/defaultTool/standard/browser/main.js)
-- [app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js](/d:/Code/prog/assistance/app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js)
+- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_contract)
+- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/bridge_edges)
+- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/javascript/script_mode_contract)
+- [app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/web/browser/main.js](../../app/src/androidTest/js/com/ai/assistance/operit/core/tools/builtin/web/browser/main.js)
+- [app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js](../../app/src/androidTest/js/com/ai/assistance/operit/util/ttscleaner/ttscleaner.js)
 
 ## Quick Choice
 
@@ -134,7 +134,7 @@ More realistic examples:
 
 ```cmd
 tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\javascript\bridge_contract\bridge_contract_runner.js run @params.json
-tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\defaultTool\standard\browser\main.js run "{}"
+tools\adb\execute_js_dir.bat app\src\androidTest\js com\ai\assistance\operit\core\tools\builtin\web\browser\main.js run "{}"
 ```
 
 You can still pass inline JSON directly. The scripts now write that JSON into a temporary file and push it to the device, which avoids the old `adb shell am broadcast --es params ...` quoting breakage. On PowerShell, prefer single-quoted JSON like `'{"param1":"value1"}'` or use `@params.json`.
@@ -400,7 +400,7 @@ This is best for:
 
 ### 2. Add a directory-based runtime test
 
-If the test needs multiple local modules, put it under [app/src/androidTest/js](/d:/Code/prog/assistance/app/src/androidTest/js) and organize it as a small directory-based suite.
+If the test needs multiple local modules, put it under [app/src/androidTest/js](../../app/src/androidTest/js) and organize it as a small directory-based suite.
 
 Recommended shape:
 

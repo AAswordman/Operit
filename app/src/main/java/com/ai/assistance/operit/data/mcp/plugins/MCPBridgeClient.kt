@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.data.mcp.plugins
 
 import android.content.Context
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import com.ai.assistance.operit.R
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean

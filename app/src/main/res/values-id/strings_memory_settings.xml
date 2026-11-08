@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_user_profile">Profil pengguna</string>
+    <string name="role_user_profile_title">Profil pengguna untuk %1$s</string>
+    <string name="role_user_profile_hint">Profil disimpan di ruang memori yang terikat pada karakter ini. Penguncian hanya mencegah pembaruan otomatis; penyuntingan manual tetap tersedia.</string>
+    <string name="memory_settings_title">Pengaturan memori</string>
+    <string name="memory_settings_space">Ruang memori: %1$s</string>
+    <string name="memory_settings_space_missing">Ruang memori ini telah dihapus. Pilih ruang lain.</string>
+    <string name="memory_settings_auto_extract_tab">Ekstraksi</string>
+    <string name="memory_settings_retrieval_tab">Pencarian</string>
+    <string name="memory_settings_history_tab">Bangun riwayat</string>
+    <string name="memory_settings_queue">Antrean ekstraksi</string>
+    <string name="memory_settings_queue_status">Menunggu %1$d / %2$d obrolan · Diproses %3$d · Gagal %4$d</string>
+    <string name="memory_settings_next_run_unset">Pemeriksaan berikutnya belum dijadwalkan</string>
+    <string name="memory_settings_next_run">Pemeriksaan berikutnya: sekitar %1$d menit lagi</string>
+    <string name="memory_settings_auto_extract_hint">Ekstraksi dimulai setelah terkumpul minimal %1$d kandidat, termasuk percobaan ulang kandidat gagal. Hasil disimpan di ruang memori ini.</string>
+    <string name="memory_settings_interval_value">%1$d menit</string>
+    <string name="memory_settings_profile_lock_hint">Cegah model menimpa user.md secara otomatis. Penyuntingan manual tetap tersedia.</string>
+    <string name="memory_settings_cloud_embedding">Vektor cloud</string>
+    <string name="memory_settings_cloud_embedding_hint">Saat aktif, teks memori dan pencarian dikirim ke layanan vektor yang terikat.</string>
+    <string name="memory_settings_rebuild_saved_hint">Pembangunan ulang memakai sakelar tersimpan dan model fungsi yang terikat. Simpan perubahan terlebih dahulu.</string>
+    <string name="memory_settings_threshold">Ambang relevansi</string>
+    <string name="memory_settings_simulation_hint">Jalankan pencarian nyata dengan bobot, ambang, dan sakelar vektor saat ini tanpa menyimpan draf pengaturan.</string>
+    <string name="memory_settings_select_chats">Pilih obrolan</string>
+    <string name="memory_settings_no_chats">Belum ada obrolan yang terikat pada ruang memori ini.</string>
+    <string name="memory_settings_history_hint">Ekstrak memori dari riwayat dalam jendela pesan, menambah atau memperbarui konten tanpa menghapus memori lama. Aturan ekstraksi dan kebijakan profil tersimpan digunakan.</string>
+    <string name="memory_settings_rebuild_busy">Pembangunan riwayat sedang berlangsung. Tunggu selesai sebelum memulai lagi.</string>
+    <string name="memory_settings_unsaved_title">Buang pengaturan yang belum disimpan?</string>
+    <string name="memory_settings_unsaved_message">Menutup akan membuang perubahan pengaturan memori.</string>
+    <string name="memory_settings_clear_selection">Hapus pilihan</string>
+</resources>

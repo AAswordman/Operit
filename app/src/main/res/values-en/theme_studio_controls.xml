@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">Text color</string>
+    <string name="studio_message_background_color">Message background color</string>
+    <string name="studio_message_text_color">Message text color</string>
+    <string name="studio_border">Border</string>
+    <string name="studio_border_edit_hint">Choosing a border color sets the width to 1dp when it is zero. Set the width to 0 to hide the border. Background transparency does not affect the border.</string>
+    <string name="studio_line_color">Line color</string>
+    <string name="studio_padding_hint">Adds padding to the existing component spacing. A value of 0 adds no extra padding.</string>
+    <string name="studio_text_color_priority_hint">Message and component text colors take priority. The global text color overrides body text colors in the global palette.</string>
+    <string name="studio_message_color_hint">The message background color follows the background transparency in message appearance settings. Text color is independent.</string>
+    <string name="studio_avatar_fill_hint">Avatar fill is drawn behind the image. An opaque avatar image covers the fill.</string>
+    <string name="studio_min_height_hint">Sets a lower height limit. It cannot shrink a component below its native minimum height.</string>
+</resources>

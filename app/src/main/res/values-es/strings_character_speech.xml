@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="character_card_tab_speech">hablar</string>
+    <string name="character_speech_scope">Configurar solo el rol que se está editando</string>
+    <string name="character_speech_draft_hint">La configuración de voz se guarda con la tarjeta de personaje; cancelar no se guardará y desactivar el modo Waifu no borrará el contenido configurado.</string>
+    <string name="character_speech_load_failed">No se pueden leer las configuraciones de voz de este personaje. Inténtalo de nuevo.</string>
+    <string name="character_speech_save_before_emoji">Primero guarde la tarjeta de personaje y luego administre sus expresiones personalizadas.</string>
+    <string name="character_speech_emoji_hint">Administrar la biblioteca de expresiones de este personaje; Las adiciones y eliminaciones de grupos e imágenes se guardarán inmediatamente.</string>
+</resources>

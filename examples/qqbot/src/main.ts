@@ -17,7 +17,7 @@ function logQQBotStartup(message: string): void {
 export function registerToolPkg() {
   logQQBotStartup("registerToolPkg start");
 
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "qqbot_settings",
     runtime: "compose_dsl",
     screen: qqbotSettingsScreen,

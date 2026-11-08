@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_batch_enter">Batch actions</string>
+    <string name="chat_batch_exit">Exit selection</string>
+    <string name="chat_batch_summarize">Summarize titles</string>
+    <string name="chat_batch_progress">Processing %1$d/%2$d</string>
+    <string name="chat_batch_locked_hint">Locked chats are kept when deleting.</string>
+    <string name="chat_batch_delete_title">Delete selected chats</string>
+    <string name="chat_batch_delete_message">Delete %1$d chats and keep %2$d locked chats. This cannot be undone.</string>
+    <string name="chat_batch_result">Batch complete: %1$d succeeded, %2$d skipped, %3$d failed</string>
+    <string name="language_follow_system">Follow system</string>
+    <string name="language_global_info">Language applies to all characters. The app reopens after switching.</string>
+    <string name="language_change_failed">Could not change language. Please try again.</string>
+</resources>

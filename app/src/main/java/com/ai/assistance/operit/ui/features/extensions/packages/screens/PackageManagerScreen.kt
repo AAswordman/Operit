@@ -1,0 +1,1253 @@
+package com.ai.assistance.operit.ui.features.extensions.packages.screens
+
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+
+import com.ai.assistance.operit.util.logging.AppLogger
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.ai.assistance.operit.ui.features.management.resources.OfflineResourcesActivity
+import com.ai.assistance.operit.data.api.MarketV2Entry
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Extension
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.AutoMode
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import com.ai.assistance.operit.ui.components.CustomScaffold
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.PackageTool
+import com.ai.assistance.operit.core.tools.ToolPackage
+import com.ai.assistance.operit.core.tools.EnvVar
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateCreateError
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateFactory
+import com.ai.assistance.operit.core.tools.packTool.install.PackageTemplateKind
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgMarketOrigin
+import com.ai.assistance.operit.data.mcp.MCPRepository
+import com.ai.assistance.operit.data.preferences.EnvPreferences
+import com.ai.assistance.operit.data.preferences.ApiPreferences
+import com.ai.assistance.operit.data.skill.SkillRepository
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.components.MCPEnvironmentVariablesDialog
+import com.ai.assistance.operit.core.tools.protocol.ToolResult
+import com.ai.assistance.operit.ui.components.ErrorDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.components.EmptyState
+import com.ai.assistance.operit.ui.features.extensions.packages.components.PackageTab
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageAddActionDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.BuiltInResourceImportDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.PackageTemplateIdentityDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.dialogs.QuickPluginCreatorDialog
+import com.ai.assistance.operit.ui.features.extensions.packages.lists.PackagesList
+import com.ai.assistance.operit.ui.features.extensions.packages.market.BindMarketSearchToTopBar
+import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.market.PluginCreationIntent
+import java.io.File
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import com.ai.assistance.operit.R
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PackageAcquisitionActions
+import com.ai.assistance.operit.ui.features.extensions.packages.management.getStandaloneScripts
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PackageManagerMenu
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginFilter
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginListPreferences
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginListPreferenceError
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginListToolbar
+import com.ai.assistance.operit.ui.features.extensions.packages.management.PluginSortSelection
+import com.ai.assistance.operit.ui.features.extensions.packages.management.mergeVisiblePluginOrder
+private data class ExternalPackageImportResult(
+    val message: String,
+    val marketOrigin: ToolPkgMarketOrigin?,
+    val availablePackages: Map<String, ToolPackage>,
+    val allAvailablePackages: Map<String, ToolPackage>,
+    val pluginContainers: Map<String, PackageManager.ToolPkgContainerDetails>,
+    val importedPackages: List<String>,
+    val packageLoadErrors: Map<String, String>,
+    val packageLoadErrorInfos: List<PackageManager.PackageLoadErrorInfo>,
+    val newPackageLoadErrors: Map<String, String>
+)
+
+private data class PackageManagerSnapshot(
+    val availablePackages: Map<String, ToolPackage>,
+    val allAvailablePackages: Map<String, ToolPackage>,
+    val pluginContainers: Map<String, PackageManager.ToolPkgContainerDetails>,
+    val importedPackages: List<String>,
+    val packageLoadErrors: Map<String, String>,
+    val packageLoadErrorInfos: List<PackageManager.PackageLoadErrorInfo>
+)
+
+private suspend fun runQuickPluginCreatorSetupAndPublishResult(
+    context: android.content.Context,
+    packageManager: PackageManager,
+    toolHandler: AIToolHandler,
+    onRunningChange: (Boolean) -> Unit,
+    onResult: (ToolResult?) -> Unit,
+    onMessage: suspend (String, Boolean) -> Unit
+) {
+    onRunningChange(true)
+    onResult(null)
+    val result =
+        withContext(Dispatchers.IO) {
+            runQuickPluginCreatorSetup(
+                context = context,
+                packageManager = packageManager,
+                toolHandler = toolHandler
+            )
+        }
+    onResult(result)
+    onRunningChange(false)
+    onMessage(
+        if (result.success) {
+            result.result.toString()
+        } else {
+            result.error ?: context.getString(R.string.quick_plugin_creator_setup_failed)
+        }, result.success
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@Composable
+fun PackageManagerScreen(
+    onNavigateToMCPMarket: () -> Unit = {},
+    onNavigateToSkillMarket: () -> Unit = {},
+    onNavigateToArtifactMarket: () -> Unit = {},
+    onStartPluginCreation: (PluginCreationIntent) -> Unit = {},
+    onOpenPackageDetail: (String, String) -> Unit = { _, _ -> },
+    onOpenMarketDetail: (MarketV2Entry) -> Unit = {},
+) {
+    val context = LocalContext.current
+    val toolHandler = remember { AIToolHandler.getInstance(context) }
+    val packageManager = remember {
+        PackageManager.getInstance(context, toolHandler)
+    }
+    val scope = rememberCoroutineScope()
+    val mcpRepository = remember { MCPRepository(context) }
+    val skillRepository = remember { SkillRepository.getInstance(context.applicationContext) }
+
+    val envPreferences = remember { EnvPreferences.getInstance(context) }
+    val apiPreferences = remember { ApiPreferences.getInstance(context) }
+
+    // State for available and imported packages
+    val availablePackages = remember { mutableStateOf<Map<String, ToolPackage>>(emptyMap()) }
+    val allAvailablePackages = remember { mutableStateOf<Map<String, ToolPackage>>(emptyMap()) }
+    val pluginContainers =
+        remember { mutableStateOf<Map<String, PackageManager.ToolPkgContainerDetails>>(emptyMap()) }
+    val importedPackages = remember { mutableStateOf<List<String>>(emptyList()) }
+    // UI展示用的导入状态列表，与后端状态分离
+    val visibleImportedPackages = remember { mutableStateOf<List<String>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // State for snackbar
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Tab selection state
+    var selectedTab by rememberSaveable { mutableStateOf(PackageTab.PLUGINS) }
+    var pluginSearchInput by rememberSaveable { mutableStateOf("") }
+    var pluginSearchQuery by rememberSaveable { mutableStateOf("") }
+    val pluginListPreferences = remember { PluginListPreferences(context) }
+    var invalidPluginPreferences by remember { mutableStateOf(pluginListPreferences.hasInvalidValues()) }
+    if (invalidPluginPreferences) {
+        PluginListPreferenceError {
+            pluginListPreferences.resetPresentation()
+            invalidPluginPreferences = false
+        }
+        return
+    }
+    var pluginSort by remember { mutableStateOf(pluginListPreferences.readSort()) }
+    var pluginFilter by remember { mutableStateOf(pluginListPreferences.readFilter()) }
+    val pluginActivities by packageManager.pluginActivityStore.activities.collectAsState()
+    var refreshGeneration by remember { mutableStateOf(0) }
+    val updateRevision by com.ai.assistance.operit.core.tools.packTool.runtime.PackageUpdateState.revision.collectAsState()
+    LaunchedEffect(updateRevision) { refreshGeneration++ }
+
+    val filteredPluginContainers by remember(
+        pluginContainers.value, pluginSearchQuery, pluginFilter, visibleImportedPackages.value
+    ) {
+        derivedStateOf {
+            val searchText = pluginSearchQuery.trim()
+            pluginContainers.value.filter { (packageName, details) ->
+                val enabled = packageName in visibleImportedPackages.value
+                val matchesFilter = when (pluginFilter) {
+                    PluginFilter.ALL -> true
+                    PluginFilter.ENABLED -> enabled
+                    PluginFilter.DISABLED -> !enabled
+                    PluginFilter.BUILT_IN -> details.isBuiltIn
+                }
+                matchesFilter && (searchText.isEmpty() || pluginMatchesSearch(packageName, details, searchText))
+            }
+        }
+    }
+    var packageSearchInput by rememberSaveable { mutableStateOf("") }
+    var packageSearchQuery by rememberSaveable { mutableStateOf("") }
+    var sandboxFilterName by rememberSaveable { mutableStateOf(PluginFilter.ALL.name) }
+    val sandboxFilter = PluginFilter.valueOf(sandboxFilterName)
+    var filteredAvailablePackages by remember { mutableStateOf<Map<String, ToolPackage>>(emptyMap()) }
+    var isPackageSearchFiltering by remember { mutableStateOf(false) }
+    var skillSearchInput by rememberSaveable { mutableStateOf("") }
+    var skillSearchQuery by rememberSaveable { mutableStateOf("") }
+    var mcpSearchInput by rememberSaveable { mutableStateOf("") }
+    var mcpSearchQuery by rememberSaveable { mutableStateOf("") }
+
+    // Environment variables dialog state
+    var showEnvDialog by remember { mutableStateOf(false) }
+    var envVariables by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+
+    val packageLoadErrors = remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val packageLoadErrorInfos =
+        remember { mutableStateOf<List<PackageManager.PackageLoadErrorInfo>>(emptyList()) }
+    var showPackageLoadErrorsDialog by remember { mutableStateOf(false) }
+    var importErrorMessage by remember { mutableStateOf<String?>(null) }
+    var marketOriginImportNotice by remember { mutableStateOf<ToolPkgMarketOrigin?>(null) }
+    var pluginOrder by remember { mutableStateOf<List<String>>(emptyList()) }
+    var skillOrder by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showQuickPluginCreatorDialog by remember { mutableStateOf(false) }
+    var quickPluginRequirement by rememberSaveable { mutableStateOf("") }
+    var quickPluginSetupRunning by remember { mutableStateOf(false) }
+    var quickPluginSetupResult by remember { mutableStateOf<ToolResult?>(null) }
+    var showPackageAddActionDialog by remember { mutableStateOf(false) }
+    var builtInImportIsPlugin by rememberSaveable { mutableStateOf<Boolean?>(null) }
+    var pendingTemplateKind by remember { mutableStateOf<PackageTemplateKind?>(null) }
+
+    val environmentPackages by remember {
+        derivedStateOf {
+            val packagesMap = allAvailablePackages.value
+            val imported = importedPackages.value.toSet()
+
+            imported
+                .mapNotNull { packageName ->
+                    packagesMap[packageName]
+                }
+                .filter { toolPackage -> toolPackage.env.isNotEmpty() }
+                .sortedBy { it.name }
+        }
+    }
+
+    val requiredEnvKeys by remember {
+        derivedStateOf {
+            environmentPackages
+                .flatMap { it.env }
+                .map { it.name }
+                .toSet()
+                .toList()
+                .sorted()
+        }
+    }
+
+    LaunchedEffect(pluginSearchInput) {
+        delay(320)
+        pluginSearchQuery = pluginSearchInput.trim()
+    }
+
+    LaunchedEffect(packageSearchInput) {
+        delay(320)
+        packageSearchQuery = packageSearchInput.trim()
+    }
+
+    LaunchedEffect(skillSearchInput) {
+        delay(320)
+        skillSearchQuery = skillSearchInput.trim()
+    }
+
+    LaunchedEffect(mcpSearchInput) {
+        delay(320)
+        mcpSearchQuery = mcpSearchInput.trim()
+    }
+
+    LaunchedEffect(availablePackages.value, packageSearchQuery, sandboxFilter, visibleImportedPackages.value) {
+        val packagesMap = availablePackages.value.filter { (name, toolPackage) ->
+            when (sandboxFilter) {
+                PluginFilter.ALL -> true
+                PluginFilter.ENABLED -> name in visibleImportedPackages.value
+                PluginFilter.DISABLED -> name !in visibleImportedPackages.value
+                PluginFilter.BUILT_IN -> toolPackage.isBuiltIn
+            }
+        }
+        val searchText = packageSearchQuery.trim()
+        if (searchText.isEmpty()) {
+            filteredAvailablePackages = packagesMap
+            isPackageSearchFiltering = false
+            return@LaunchedEffect
+        }
+
+        isPackageSearchFiltering = true
+        filteredAvailablePackages =
+            withContext(Dispatchers.Default) {
+                packagesMap.filter { (packageName, toolPackage) ->
+                    packageMatchesSearch(
+                        context = context,
+                        packageName = packageName,
+                        toolPackage = toolPackage,
+                        searchText = searchText
+                    )
+                }
+            }
+        isPackageSearchFiltering = false
+    }
+
+    // File picker launcher for importing external packages
+    val packageFilePicker =
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                scope.launch {
+                    try {
+                        val fileName: String? =
+                            withContext(Dispatchers.IO) {
+                                var name: String? = null
+                                context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                                    val nameIndex = cursor.getColumnIndex("_display_name")
+                                    if (cursor.moveToFirst() && nameIndex >= 0) {
+                                        name = cursor.getString(nameIndex)
+                                    }
+                                }
+                                name
+                            }
+
+                        if (fileName == null) {
+                            OKToast.warning(context, context.getString(R.string.no_filename), OKToast.LENGTH_SHORT).show()
+                            return@launch
+                        }
+
+                        // 根据当前选中的标签页处理不同类型的文件
+                        when (selectedTab) {
+                            PackageTab.PLUGINS,
+                            PackageTab.PACKAGES -> {
+                                val fileNameNonNull = fileName ?: return@launch
+                                val lowerFileName = fileNameNonNull.lowercase()
+                                val supported =
+                                    when (selectedTab) {
+                                        PackageTab.PLUGINS ->
+                                            lowerFileName.endsWith(".toolpkg")
+                                        PackageTab.PACKAGES ->
+                                            lowerFileName.endsWith(".js") ||
+                                                lowerFileName.endsWith(".ts") ||
+                                                lowerFileName.endsWith(".hjson")
+                                        else -> false
+                                    }
+                                if (!supported) {
+                                    OKToast.warning(context,
+                                            context.getString(
+                                                if (selectedTab == PackageTab.PLUGINS) {
+                                                    R.string.plugin_toolpkg_only
+                                                } else {
+                                                    R.string.package_script_only
+                                                }
+                                            ), OKToast.LENGTH_SHORT).show()
+                                    return@launch
+                                }
+
+                                isLoading = true
+                                val loadResult =
+                                    withContext(Dispatchers.IO) {
+                                        val inputStream = context.contentResolver.openInputStream(uri)
+                                        val tempFile = File(context.cacheDir, fileNameNonNull)
+                                        try {
+                                            inputStream?.use { input ->
+                                                tempFile.outputStream().use { output -> input.copyTo(output) }
+                                            }
+
+                                            val errorsBeforeImport = packageManager.getPackageLoadErrors()
+                                            val importResult =
+                                                packageManager.addPackageFileFromExternalStorage(tempFile.absolutePath)
+
+                                            val available = packageManager.getStandaloneScripts(forceRefresh = true)
+                                            val allAvailable = packageManager.getAvailablePackages()
+                                            val plugins =
+                                                packageManager
+                                                    .getToolPkgPluginContainerDetails(context)
+                                                    .associateBy { it.packageName }
+                                            val imported = packageManager.getEnabledPackageNames()
+                                            val errors = packageManager.getPackageLoadErrors()
+                                            val errorInfos = packageManager.getPackageLoadErrorInfos()
+                                            val newErrors =
+                                                errors.filter { (key, value) -> errorsBeforeImport[key] != value }
+
+                                            ExternalPackageImportResult(
+                                                message = importResult.message,
+                                                marketOrigin = importResult.marketOrigin,
+                                                availablePackages = available,
+                                                allAvailablePackages = allAvailable,
+                                                pluginContainers = plugins,
+                                                importedPackages = imported,
+                                                packageLoadErrors = errors,
+                                                packageLoadErrorInfos = errorInfos,
+                                                newPackageLoadErrors = newErrors
+                                            )
+                                        } finally {
+                                            if (tempFile.exists()) {
+                                                tempFile.delete()
+                                            }
+                                        }
+                                    }
+
+                                availablePackages.value = loadResult.availablePackages
+                                allAvailablePackages.value = loadResult.allAvailablePackages
+                                pluginContainers.value = loadResult.pluginContainers
+                                importedPackages.value = loadResult.importedPackages
+                                packageLoadErrors.value = loadResult.packageLoadErrors
+                                packageLoadErrorInfos.value = loadResult.packageLoadErrorInfos
+                                visibleImportedPackages.value = importedPackages.value.toList()
+                                isLoading = false
+
+                                val importSucceeded =
+                                    loadResult.message.startsWith(
+                                        prefix = "Successfully imported",
+                                        ignoreCase = true
+                                    )
+
+                                if (importSucceeded) {
+                                    val marketOrigin = loadResult.marketOrigin
+                                    if (marketOrigin != null) {
+                                        marketOriginImportNotice = marketOrigin
+                                    } else {
+                                        OKToast.success(context, context.getString(R.string.external_package_imported), OKToast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    importErrorMessage =
+                                        buildString {
+                                            append(loadResult.message)
+                                            if (loadResult.newPackageLoadErrors.isNotEmpty()) {
+                                                append("\n\n")
+                                                append(
+                                                    loadResult.newPackageLoadErrors
+                                                        .toSortedMap()
+                                                        .entries
+                                                        .joinToString(separator = "\n\n") { (packageName, errorText) ->
+                                                            "$packageName:\n$errorText"
+                                                        }
+                                                )
+                                            }
+                                        }
+                                }
+                            }
+                            else -> {
+                                OKToast.warning(context, context.getString(R.string.current_tab_not_support_import), OKToast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        isLoading = false
+                        AppLogger.e("PackageManagerScreen", "Failed to import file", e)
+                        importErrorMessage =
+                            context.getString(
+                                R.string.import_failed,
+                                e.message ?: context.getString(R.string.unknown_error)
+                            ) + "\n\n" + e.stackTraceToString()
+                    }
+                }
+            }
+
+        }
+
+    val isCurrentScreen = LocalIsCurrentScreen.current
+    LaunchedEffect(isCurrentScreen) {
+        if (isCurrentScreen) refreshGeneration++
+    }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshGeneration++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    // 返回页面时重新读取已准备的内置扩展。
+    LaunchedEffect(refreshGeneration) {
+        isLoading = true
+        try {
+            val loadResult =
+                withContext(Dispatchers.IO) {
+                    val available = packageManager.getStandaloneScripts(forceRefresh = true)
+                    val allAvailable = packageManager.getAvailablePackages()
+                    val plugins =
+                        packageManager
+                            .getToolPkgPluginContainerDetails(context)
+                            .associateBy { it.packageName }
+                    val imported = packageManager.getEnabledPackageNames()
+                    val errors = packageManager.getPackageLoadErrors()
+                    val errorInfos = packageManager.getPackageLoadErrorInfos()
+                    PackageManagerSnapshot(
+                        availablePackages = available,
+                        allAvailablePackages = allAvailable,
+                        pluginContainers = plugins,
+                        importedPackages = imported,
+                        packageLoadErrors = errors,
+                        packageLoadErrorInfos = errorInfos
+                    )
+                }
+
+            availablePackages.value = loadResult.availablePackages
+            allAvailablePackages.value = loadResult.allAvailablePackages
+            pluginContainers.value = loadResult.pluginContainers
+            importedPackages.value = loadResult.importedPackages
+            packageLoadErrors.value = loadResult.packageLoadErrors
+            packageLoadErrorInfos.value = loadResult.packageLoadErrorInfos
+            // 初始化UI显示状态
+            visibleImportedPackages.value = importedPackages.value.toList()
+            // 加载插件排序
+            pluginOrder = apiPreferences.getPluginOrder()
+            // 加载技能排序
+            skillOrder = apiPreferences.getSkillOrder()
+        } catch (e: Exception) {
+            AppLogger.e("PackageManagerScreen", "Failed to load packages", e)
+        } finally {
+            isLoading = false
+        }
+    }
+
+    val activeSearchInput =
+        when (selectedTab) {
+            PackageTab.PLUGINS -> pluginSearchInput
+            PackageTab.PACKAGES -> packageSearchInput
+            PackageTab.SKILLS -> skillSearchInput
+            PackageTab.MCP -> mcpSearchInput
+        }
+    val activeSearchPlaceholderRes =
+        when (selectedTab) {
+            PackageTab.PLUGINS -> R.string.plugin_market_search_placeholder
+            PackageTab.PACKAGES -> R.string.package_market_search_placeholder
+            PackageTab.SKILLS -> R.string.skill_market_search_placeholder
+            PackageTab.MCP -> R.string.mcp_market_search_placeholder
+        }
+    val activeSearchApplying =
+        when (selectedTab) {
+            PackageTab.PLUGINS -> pluginSearchInput.trim() != pluginSearchQuery
+            PackageTab.PACKAGES ->
+                packageSearchInput.trim() != packageSearchQuery || isPackageSearchFiltering
+            PackageTab.SKILLS -> skillSearchInput.trim() != skillSearchQuery
+            PackageTab.MCP -> mcpSearchInput.trim() != mcpSearchQuery
+        }
+
+    BindMarketSearchToTopBar(
+        enabled = true,
+        searchQuery = activeSearchInput,
+        onSearchQueryChanged = { query ->
+            when (selectedTab) {
+                PackageTab.PLUGINS -> pluginSearchInput = query
+                PackageTab.PACKAGES -> packageSearchInput = query
+                PackageTab.SKILLS -> skillSearchInput = query
+                PackageTab.MCP -> mcpSearchInput = query
+            }
+        },
+        searchPlaceholderRes = activeSearchPlaceholderRes,
+        isSearching = activeSearchApplying,
+        additionalActions = {
+            if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
+                PackageManagerMenu(
+                    isPluginTab = selectedTab == PackageTab.PLUGINS,
+                    isLoading = isLoading,
+                    errorCount = packageLoadErrors.value.size,
+                    onRefresh = { refreshGeneration++ },
+                    onEnvironmentVariables = {
+                        envVariables = requiredEnvKeys.associateWith { envPreferences.getEnv(it) ?: "" }
+                        showEnvDialog = true
+                    },
+                    onLoadErrors = { showPackageLoadErrorsDialog = true }
+                )
+            }
+        }
+    )
+
+    CustomScaffold { paddingValues ->
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+        ) {
+            // 固定四栏必须等分整行；长名称在各自栏内换行，不能由文字宽度决定标签宽度。
+            TabRow(
+                selectedTabIndex = selectedTab.ordinal,
+                modifier = Modifier.fillMaxWidth(),
+                divider = {
+                    HorizontalDivider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant
+                    )
+                },
+                indicator = { tabPositions ->
+                    if (selectedTab.ordinal < tabPositions.size) {
+                        TabRowDefaults.PrimaryIndicator(
+                            modifier =
+                                Modifier.tabIndicatorOffset(
+                                    tabPositions[selectedTab.ordinal]
+                                ),
+                            height = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            ) {
+                // 插件标签
+                Tab(
+                    selected = selectedTab == PackageTab.PLUGINS,
+                    onClick = { selectedTab = PackageTab.PLUGINS },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Apps,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (selectedTab == PackageTab.PLUGINS)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            context.getString(R.string.nav_group_plugins),
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodySmall,
+                            softWrap = true,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = if (selectedTab == PackageTab.PLUGINS)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 包管理标签
+                Tab(
+                    selected = selectedTab == PackageTab.PACKAGES,
+                    onClick = { selectedTab = PackageTab.PACKAGES },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Extension,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (selectedTab == PackageTab.PACKAGES)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            context.getString(R.string.packages),
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodySmall,
+                            softWrap = true,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = if (selectedTab == PackageTab.PACKAGES)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 技能标签
+                Tab(
+                    selected = selectedTab == PackageTab.SKILLS,
+                    onClick = { selectedTab = PackageTab.SKILLS },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Build,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (selectedTab == PackageTab.SKILLS)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            context.getString(R.string.package_tab_skills),
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodySmall,
+                            softWrap = true,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = if (selectedTab == PackageTab.SKILLS)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // 模型上下文协议标签
+                Tab(
+                    selected = selectedTab == PackageTab.MCP,
+                    onClick = { selectedTab = PackageTab.MCP },
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Cloud,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                            tint = if (selectedTab == PackageTab.MCP)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            context.getString(R.string.hub_mcp_title),
+                            modifier = Modifier.weight(1f, fill = false),
+                            style = MaterialTheme.typography.bodySmall,
+                            softWrap = true,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            color = if (selectedTab == PackageTab.MCP)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) {
+                PackageAcquisitionActions(
+                    marketLabelRes = if (selectedTab == PackageTab.PLUGINS) R.string.plugin_market else R.string.package_market,
+                    importLabelRes = if (selectedTab == PackageTab.PLUGINS) R.string.package_add_dialog_title_plugin else R.string.package_add_dialog_title_package,
+                    onMarketClick = onNavigateToArtifactMarket,
+                    onImportClick = { showPackageAddActionDialog = true },
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                )
+            }
+            if (selectedTab == PackageTab.PLUGINS) {
+                Box(Modifier.padding(horizontal = 16.dp)) {
+                    PluginListToolbar(
+                        count = filteredPluginContainers.size,
+                        sort = pluginSort,
+                        filter = pluginFilter,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("package"))
+                        },
+                        onSortChanged = {
+                            pluginSort = it
+                            pluginListPreferences.saveSort(it)
+                        },
+                        onFilterChanged = {
+                            pluginFilter = it
+                            pluginListPreferences.saveFilter(it)
+                        }
+                    )
+                }
+            }
+            if (selectedTab == PackageTab.PACKAGES) {
+                Box(Modifier.padding(horizontal = 16.dp)) {
+                    PluginListToolbar(
+                        count = filteredAvailablePackages.size, sort = pluginSort, filter = sandboxFilter,
+                        onSortChanged = {}, onFilterChanged = { sandboxFilterName = it.name }, showSorting = false, scripts = true,
+                        updateControls = {
+                            com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateToolbar(packageManager,
+                                com.ai.assistance.operit.ui.features.extensions.packages.market.ExtensionUpdateScope("script"))
+                        },
+                    )
+                }
+            }
+            if ((selectedTab == PackageTab.PLUGINS || selectedTab == PackageTab.PACKAGES) && packageLoadErrors.value.isNotEmpty()) {
+                TextButton(
+                    onClick = { showPackageLoadErrorsDialog = true },
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                ) {
+                    Text(
+                        context.getString(R.string.plugin_manage_load_errors, packageLoadErrors.value.size),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // 列表占据剩余高度，工具栏固定在上方。
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                when (selectedTab) {
+                    PackageTab.PLUGINS -> {
+                        PluginTabContent(
+                            plugins = filteredPluginContainers,
+                            enabledPackageNames = visibleImportedPackages.value,
+                            isLoading = isLoading,
+                            isSearchActive = pluginSearchQuery.isNotBlank(),
+                            onPluginClick = { packageName ->
+                                onOpenPackageDetail(packageName, filteredPluginContainers.getValue(packageName).displayName)
+                            },
+                             onTogglePlugin = { details, isChecked ->
+                                val currentImported =
+                                    visibleImportedPackages.value.toMutableList()
+                                if (isChecked) {
+                                    if (!currentImported.contains(details.packageName)) {
+                                        currentImported.add(details.packageName)
+                                    }
+                                } else {
+                                    currentImported.remove(details.packageName)
+                                    details.subpackages.forEach { subpackage ->
+                                        currentImported.remove(subpackage.packageName)
+                                    }
+                                }
+                                visibleImportedPackages.value = currentImported
+
+                                scope.launch {
+                                    try {
+                                        val updatedImported =
+                                            withContext(Dispatchers.IO) {
+                                                if (isChecked) {
+                                                    packageManager.enablePackage(details.packageName)
+                                                } else {
+                                                    packageManager.disablePackage(details.packageName)
+                                                }
+                                                packageManager.getEnabledPackageNames()
+                                            }
+
+                                        importedPackages.value = updatedImported
+                                        visibleImportedPackages.value = updatedImported.toList()
+                                    } catch (e: Exception) {
+                                        AppLogger.e(
+                                            "PackageManagerScreen",
+                                            if (isChecked) "Failed to enable plugin" else "Failed to disable plugin",
+                                            e
+                                        )
+                                        visibleImportedPackages.value = importedPackages.value
+                                        OKToast.error(context,
+                                                if (isChecked) {
+                                                    context.getString(R.string.plugin_enable_failed)
+                                                } else {
+                                                    context.getString(R.string.plugin_disable_failed)
+                                                }, OKToast.LENGTH_SHORT).show()
+                                    }
+                                 }
+                             },
+                             loadPluginLogo = { packageName ->
+                                 packageManager.readToolPkgLogoBytes(packageName)
+                             },
+                             pluginOrder = pluginOrder,
+                             sort = pluginSort,
+                             activities = pluginActivities,
+                            onSavePluginOrder = { newOrder ->
+                                val completeOrder = mergeVisiblePluginOrder(
+                                    allPluginNames = pluginContainers.value.keys.toList(),
+                                    previousOrder = pluginOrder,
+                                    visibleOrder = newOrder
+                                )
+                                pluginOrder = completeOrder
+                                pluginSort = PluginSortSelection()
+                                pluginListPreferences.saveSort(pluginSort)
+                                packageManager.updateToolPkgPluginOrder(completeOrder)
+                                scope.launch {
+                                    apiPreferences.savePluginOrder(completeOrder)
+                                }
+                            },
+                        )
+                    }
+
+                    PackageTab.PACKAGES -> {
+                        PackageTabContent(
+                            packages = filteredAvailablePackages,
+                            enabledPackageNames = visibleImportedPackages.value,
+                            isLoading = isLoading,
+                            isSearchActive = packageSearchQuery.isNotBlank() || sandboxFilter != PluginFilter.ALL,
+                            onQuickPluginCreatorClick = {
+                                showQuickPluginCreatorDialog = true
+                            },
+                            onPackageClick = { packageName ->
+                                val script = filteredAvailablePackages.getValue(packageName)
+                                onOpenPackageDetail(packageName, script.displayName.resolve(context).ifBlank { script.name })
+                            },
+                            onTogglePackage = { packageName, isChecked ->
+                                val currentImported =
+                                    visibleImportedPackages.value.toMutableList()
+                                if (isChecked) {
+                                    if (!currentImported.contains(packageName)) {
+                                        currentImported.add(packageName)
+                                    }
+                                } else {
+                                    currentImported.remove(packageName)
+                                }
+                                visibleImportedPackages.value = currentImported
+
+                                scope.launch {
+                                    try {
+                                        val updatedImported =
+                                            withContext(Dispatchers.IO) {
+                                                if (isChecked) {
+                                                    packageManager.enablePackage(packageName)
+                                                } else {
+                                                    packageManager.disablePackage(packageName)
+                                                }
+                                                packageManager.getEnabledPackageNames()
+                                            }
+
+                                        importedPackages.value = updatedImported
+                                        visibleImportedPackages.value = updatedImported.toList()
+                                    } catch (e: Exception) {
+                                        AppLogger.e(
+                                            "PackageManagerScreen",
+                                            if (isChecked) "Failed to import package" else "Failed to remove package",
+                                            e
+                                        )
+                                        visibleImportedPackages.value = importedPackages.value
+                                        OKToast.error(context,
+                                                if (isChecked) {
+                                                    context.getString(R.string.package_import_failed)
+                                                } else {
+                                                    context.getString(R.string.package_remove_failed)
+                                                }, OKToast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
+                        )
+                    }
+
+                    PackageTab.SKILLS -> {
+                        SkillConfigScreen(
+                            skillRepository = skillRepository,
+                            snackbarHostState = snackbarHostState,
+                            onNavigateToSkillMarket = onNavigateToSkillMarket,
+                            onOpenSkillMarketDetail = onOpenMarketDetail,
+                            searchQuery = skillSearchQuery,
+                            skillOrder = skillOrder,
+                            onSaveSkillOrder = { newOrder ->
+                                skillOrder = newOrder
+                                scope.launch {
+                                    apiPreferences.saveSkillOrder(newOrder)
+                                }
+                            },
+                        )
+                    }
+
+                    PackageTab.MCP -> {
+                        MCPConfigScreen(
+                            onNavigateToMCPMarket = onNavigateToMCPMarket,
+                            onOpenMcpMarketDetail = onOpenMarketDetail,
+                            searchQuery = mcpSearchQuery
+                        )
+                    }
+                }
+            }
+
+            // Environment Variables Dialog for packages
+            if (showEnvDialog) {
+                PackageEnvironmentVariablesDialog(
+                    toolPackages = environmentPackages,
+                    currentValues = envVariables,
+                    onDismiss = { showEnvDialog = false },
+                    onConfirm = { updated ->
+                        val merged = envPreferences.getAllEnv().toMutableMap().apply {
+                            updated.forEach { (key, value) ->
+                                if (value.isBlank()) {
+                                    remove(key)
+                                } else {
+                                    this[key] = value
+                                }
+                            }
+                        }
+                        envPreferences.setAllEnv(merged)
+                        envVariables = updated
+                        showEnvDialog = false
+                    }
+                )
+            }
+
+            if (showPackageLoadErrorsDialog) {
+                PackageLoadErrorsDialog(
+                    errorInfos = packageLoadErrorInfos.value,
+                    onDeleteSource = { sourcePath ->
+                        scope.launch {
+                            val deleted =
+                                withContext(Dispatchers.IO) {
+                                    packageManager.deleteExternalPackageSource(sourcePath)
+                                }
+                            if (!deleted) {
+                                OKToast.error(context, context.getString(R.string.package_conflict_delete_failed), OKToast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            val refreshed =
+                                withContext(Dispatchers.IO) {
+                                    PackageManagerSnapshot(
+                                        availablePackages = packageManager.getStandaloneScripts(forceRefresh = true),
+                                        allAvailablePackages = packageManager.getAvailablePackages(),
+                                        pluginContainers =
+                                            packageManager
+                                                .getToolPkgPluginContainerDetails(context)
+                                                .associateBy { it.packageName },
+                                        importedPackages = packageManager.getEnabledPackageNames(),
+                                        packageLoadErrors = packageManager.getPackageLoadErrors(),
+                                        packageLoadErrorInfos = packageManager.getPackageLoadErrorInfos()
+                                    )
+                                }
+                            availablePackages.value = refreshed.availablePackages
+                            allAvailablePackages.value = refreshed.allAvailablePackages
+                            pluginContainers.value = refreshed.pluginContainers
+                            importedPackages.value = refreshed.importedPackages
+                            packageLoadErrors.value = refreshed.packageLoadErrors
+                            packageLoadErrorInfos.value = refreshed.packageLoadErrorInfos
+                            visibleImportedPackages.value = refreshed.importedPackages.toList()
+
+                            if (packageLoadErrorInfos.value.isEmpty()) {
+                                showPackageLoadErrorsDialog = false
+                            }
+                            OKToast.success(context, context.getString(R.string.package_conflict_delete_success), OKToast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onDismiss = { showPackageLoadErrorsDialog = false }
+                )
+            }
+
+            importErrorMessage?.let { errorMessage ->
+                ErrorDialog(
+                    errorMessage = errorMessage,
+                    onDismiss = { importErrorMessage = null }
+                )
+            }
+
+            marketOriginImportNotice?.let { origin ->
+                AlertDialog(
+                    onDismissRequest = { marketOriginImportNotice = null },
+                    title = { Text(stringResource(R.string.package_market_origin_title)) },
+                    text = {
+                        Text(
+                            stringResource(
+                                R.string.package_market_origin_message,
+                                origin.toolpkgId,
+                                origin.version,
+                                origin.author.joinToString(", ")
+                            )
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { marketOriginImportNotice = null }) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    }
+                )
+            }
+
+            if (showPackageAddActionDialog) {
+                PackageAddActionDialog(
+                    isPluginTab = selectedTab == PackageTab.PLUGINS,
+                    onImport = {
+                        showPackageAddActionDialog = false
+                        packageFilePicker.launch("*/*")
+                    },
+                    onImportBuiltIn = {
+                        showPackageAddActionDialog = false
+                        builtInImportIsPlugin = selectedTab == PackageTab.PLUGINS
+                    },
+                    onCreateTemplate = { kind ->
+                        showPackageAddActionDialog = false
+                        pendingTemplateKind = kind
+                    },
+                    onDismiss = { showPackageAddActionDialog = false }
+                )
+            }
+
+            builtInImportIsPlugin?.let { isPlugin ->
+                BuiltInResourceImportDialog(isPlugin, packageManager, onDismiss = { builtInImportIsPlugin = null })
+            }
+            pendingTemplateKind?.let { kind ->
+                PackageTemplateIdentityDialog(
+                    kind = kind,
+                    onConfirm = { displayName, packageId ->
+                        val creatingKind = kind
+                        pendingTemplateKind = null
+                        scope.launch {
+                            isLoading = true
+                            val created =
+                                withContext(Dispatchers.IO) {
+                                    PackageTemplateFactory.create(
+                                        packagesDir = packageManager.getExternalPackagesDirectory(),
+                                        kind = creatingKind,
+                                        displayName = displayName,
+                                        packageId = packageId
+                                    )
+                                }
+                            if (!created.success || created.file == null) {
+                                isLoading = false
+                                OKToast.typed(context,
+                                        when (created.error) {
+                                            PackageTemplateCreateError.INVALID_DISPLAY_NAME ->
+                                                context.getString(R.string.package_template_display_name_required)
+                                            PackageTemplateCreateError.INVALID_PACKAGE_ID ->
+                                                context.getString(
+                                                    if (PackageTemplateFactory.isToolPkgKind(creatingKind)) {
+                                                        R.string.package_template_toolpkg_id_invalid
+                                                    } else {
+                                                        R.string.package_template_package_id_invalid
+                                                    }
+                                                )
+                                            PackageTemplateCreateError.FILE_EXISTS ->
+                                                context.getString(
+                                                    R.string.package_template_file_exists,
+                                                    created.file?.name ?: packageId
+                                                )
+                                            else ->
+                                                context.getString(R.string.package_template_create_failed)
+                                        }, if (created.error == PackageTemplateCreateError.INVALID_DISPLAY_NAME || created.error == PackageTemplateCreateError.INVALID_PACKAGE_ID || created.error == PackageTemplateCreateError.FILE_EXISTS) OKToast.Kind.Warning else OKToast.Kind.Error, OKToast.LENGTH_SHORT).show()
+                                return@launch
+                            }
+
+                            val errorsBeforeCreate = packageManager.getPackageLoadErrors()
+                            val loadResult =
+                                withContext(Dispatchers.IO) {
+                                    val available =
+                                        packageManager.getStandaloneScripts(forceRefresh = true)
+                                    val allAvailable = packageManager.getAvailablePackages()
+                                    val plugins =
+                                        packageManager
+                                            .getToolPkgPluginContainerDetails(context)
+                                            .associateBy { it.packageName }
+                                    val imported = packageManager.getEnabledPackageNames()
+                                    val errors = packageManager.getPackageLoadErrors()
+                                    val errorInfos = packageManager.getPackageLoadErrorInfos()
+                                    val newErrors =
+                                        errors.filter { (key, value) -> errorsBeforeCreate[key] != value }
+                                    if (PackageTemplateFactory.isToolPkgKind(creatingKind) && newErrors.isEmpty()) {
+                                        packageManager.recordPluginInstallation(created.packageId)
+                                    }
+                                    ExternalPackageImportResult(
+                                        message = "template created",
+                                        marketOrigin = null,
+                                        availablePackages = available,
+                                        allAvailablePackages = allAvailable,
+                                        pluginContainers = plugins,
+                                        importedPackages = imported,
+                                        packageLoadErrors = errors,
+                                        packageLoadErrorInfos = errorInfos,
+                                        newPackageLoadErrors = newErrors
+                                    )
+                                }
+
+                            availablePackages.value = loadResult.availablePackages
+                            allAvailablePackages.value = loadResult.allAvailablePackages
+                            pluginContainers.value = loadResult.pluginContainers
+                            importedPackages.value = loadResult.importedPackages
+                            packageLoadErrors.value = loadResult.packageLoadErrors
+                            packageLoadErrorInfos.value = loadResult.packageLoadErrorInfos
+                            visibleImportedPackages.value = importedPackages.value.toList()
+                            isLoading = false
+
+                            if (loadResult.newPackageLoadErrors.isNotEmpty()) {
+                                importErrorMessage =
+                                    buildString {
+                                        append(context.getString(R.string.package_template_create_failed))
+                                        append("\n\n")
+                                        append(
+                                            loadResult.newPackageLoadErrors
+                                                .toSortedMap()
+                                                .entries
+                                                .joinToString(separator = "\n\n") { (packageName, errorText) ->
+                                                    "$packageName:\n$errorText"
+                                                }
+                                        )
+                                    }
+                            } else {
+                                OKToast.success(context, context.getString(R.string.package_template_created), OKToast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onDismiss = { pendingTemplateKind = null }
+                )
+            }
+
+            if (showQuickPluginCreatorDialog) {
+                QuickPluginCreatorDialog(
+                    requirement = quickPluginRequirement,
+                    onRequirementChange = { quickPluginRequirement = it },
+                    setupRunning = quickPluginSetupRunning,
+                    setupResult = quickPluginSetupResult,
+                    onRunSetup = {
+                        scope.launch {
+                            runQuickPluginCreatorSetupAndPublishResult(
+                                context = context,
+                                packageManager = packageManager,
+                                toolHandler = toolHandler,
+                                onRunningChange = { quickPluginSetupRunning = it },
+                                onResult = { quickPluginSetupResult = it },
+                                onMessage = { message, success ->
+                                    OKToast.typed(context, message, if (success) OKToast.Kind.Success else OKToast.Kind.Error, OKToast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    },
+                    onDismiss = { showQuickPluginCreatorDialog = false },
+                    onConfirm = {
+                        val requirement = quickPluginRequirement.trim()
+                        if (requirement.isBlank()) {
+                            scope.launch {
+                                OKToast.warning(context, context.getString(R.string.quick_plugin_creator_requirement_empty), OKToast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            showQuickPluginCreatorDialog = false
+                            quickPluginRequirement = ""
+                            onStartPluginCreation(PluginCreationIntent.Fresh(requirement))
+                        }
+                    }
+                )
+            }
+        }
+    }
+}

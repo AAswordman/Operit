@@ -1,0 +1,298 @@
+{
+  "schemaVersion": 1,
+  "reference": "https://github.com/AAswordman/Operit2",
+  "referenceTree": "095c2eebfd3bd31986b5cb551cea0d37a6b858b9",
+  "models": [
+    {
+      "id": "sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+      "version": "98590b7ed6443e77b714204da2757d75e1a642f4",
+      "name": "Sherpa ONNX Zipformer",
+      "description": "中英双语流式识别。",
+      "purpose": "STT",
+      "engine": "sherpa_onnx",
+      "license": "apache-2.0",
+      "languages": [
+        "zh",
+        "en"
+      ],
+      "hfRepository": "csukuangfj/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+      "modelScopeRepository": "pkufool/sherpa-onnx-streaming-zipformer-bilingual-zh-en-2023-02-20",
+      "modelScopeRevision": "master",
+      "modelScopePrefix": "",
+      "driver": {
+        "type": "transducer",
+        "encoder": "encoder-epoch-99-avg-1.int8.onnx",
+        "decoder": "decoder-epoch-99-avg-1.onnx",
+        "joiner": "joiner-epoch-99-avg-1.int8.onnx",
+        "tokens": "tokens.txt"
+      },
+      "files": [
+        {
+          "path": "encoder-epoch-99-avg-1.int8.onnx",
+          "bytes": 181895032,
+          "sha256": "8fa764187a261844f859d7143ebaa563af5d10adfece4c18a8f414c88cba2a9b"
+        },
+        {
+          "path": "decoder-epoch-99-avg-1.onnx",
+          "bytes": 13876452,
+          "sha256": "2e3b5ec371f8899ee6acd829fd753ba45772df57a91bdf37cde3136354e7db7d"
+        },
+        {
+          "path": "joiner-epoch-99-avg-1.int8.onnx",
+          "bytes": 3228404,
+          "sha256": "1ed689c5ed19dbaa725d9d191bb4822b5f4855a39e1ffd28cbc1f340d25b2ee0"
+        },
+        {
+          "path": "tokens.txt",
+          "bytes": 56317,
+          "sha256": "a8e0e4ec53810e433789b54a5c0134a7eaa2ffca595a6334d54c00da858841d3"
+        }
+      ]
+    },
+    {
+      "id": "vits-zh-aishell3-int8",
+      "version": "e3e808eaab2385b812286c6707323362251bba65",
+      "name": "VITS AISHELL-3 · int8",
+      "description": "中文多说话人语音合成，轻量量化版本。",
+      "purpose": "TTS",
+      "engine": "sherpa_onnx",
+      "license": "apache-2.0",
+      "languages": [
+        "zh"
+      ],
+      "hfRepository": "csukuangfj/vits-zh-aishell3",
+      "modelScopeRepository": "KuaiTec-Labs/kuaitec-model-suite",
+      "modelScopeRevision": "master",
+      "modelScopePrefix": "vits-aishell3/",
+      "driver": {
+        "type": "vits",
+        "model": "vits-aishell3.int8.onnx",
+        "lexicon": "lexicon.txt",
+        "tokens": "tokens.txt",
+        "speakers": 175
+      },
+      "files": [
+        {
+          "path": "vits-aishell3.int8.onnx",
+          "bytes": 39870124,
+          "sha256": "5ef667dbbe0795688da93d779828cf38e6ad8ef8e82aa7dc5804873a50556057"
+        },
+        {
+          "path": "lexicon.txt",
+          "bytes": 2042943,
+          "sha256": "ab2e61d357551e7b24ddd965d924aca784c20165ff58c150794e539c6b5e9e35"
+        },
+        {
+          "path": "tokens.txt",
+          "bytes": 1671,
+          "sha256": "50b45a7b7de1752fd3c7b4755661c285f1547f59186eca2281089a81307ad953"
+        }
+      ]
+    },
+    {
+      "id": "sherpa-onnx-vits-zh-ll",
+      "version": "7ddf37bcacf05ed56afee360d96835be633a5265",
+      "name": "VITS zh-ll",
+      "description": "中文五说话人语音合成。",
+      "purpose": "TTS",
+      "engine": "sherpa_onnx",
+      "license": "community",
+      "languages": [
+        "zh"
+      ],
+      "hfRepository": "csukuangfj/sherpa-onnx-vits-zh-ll",
+      "modelScopeRepository": "liaowenbin/sherpa-onnx-vits-zh-ll",
+      "modelScopeRevision": "master",
+      "modelScopePrefix": "",
+      "driver": {
+        "type": "vits",
+        "model": "model.onnx",
+        "lexicon": "lexicon.txt",
+        "tokens": "tokens.txt",
+        "speakers": 5,
+        "ruleFsts": [
+          "phone.fst",
+          "number.fst",
+          "date.fst",
+          "new_heteronym.fst"
+        ]
+      },
+      "files": [
+        {
+          "path": "model.onnx",
+          "bytes": 121100803,
+          "sha256": "6c349bdd73dc928234dd7bc86929748bba32cd5264d32d915bf7b7aa0595965b"
+        },
+        {
+          "path": "lexicon.txt",
+          "bytes": 376868,
+          "sha256": "b3a82f16b286c424953dea3686039e7ab465fa8e15d87ef8abd0ec69175beb21"
+        },
+        {
+          "path": "tokens.txt",
+          "bytes": 331,
+          "sha256": "34b035b9aeb070df6188b022f29c00e0e142c7ade9f25611ced65db5e9cc8402"
+        },
+        {
+          "path": "phone.fst",
+          "bytes": 88630,
+          "sha256": "1ac2b6fa56b1442320c4de7db08353bab8963a2b57f365eebcdd3a2d3562f8d7"
+        },
+        {
+          "path": "number.fst",
+          "bytes": 64482,
+          "sha256": "743f402181fcfebf76cc2f0546b71fa26476e626fbe4e460fb7b4c3a7a8bd5bd"
+        },
+        {
+          "path": "date.fst",
+          "bytes": 59154,
+          "sha256": "eb8aa079ae3cb81d8f4404992f39d61a0cb990947512b5b8d1e54d1f6980e718"
+        },
+        {
+          "path": "new_heteronym.fst",
+          "bytes": 21974,
+          "sha256": "ca14b2127e27baa571664e4bb791e143e7425f56a6bc29db08d74f97e6aa4e29"
+        }
+      ]
+    },
+    {
+      "id": "matcha-icefall-zh-baker",
+      "version": "75e64a57a80fb370abb18a4e4d86bb090ed46e93",
+      "name": "Matcha Baker",
+      "description": "中文单说话人语音合成，包含独立声码器。",
+      "purpose": "TTS",
+      "engine": "sherpa_onnx",
+      "license": "non-commercial",
+      "languages": [
+        "zh"
+      ],
+      "hfRepository": "csukuangfj/matcha-icefall-zh-baker",
+      "modelScopeRepository": "liaowenbin/matcha-icefall-zh-baker",
+      "modelScopeRevision": "master",
+      "modelScopePrefix": "",
+      "driver": {
+        "type": "matcha",
+        "model": "model-steps-3.onnx",
+        "vocoder": "vocos-22khz-univ.onnx",
+        "lexicon": "lexicon.txt",
+        "tokens": "tokens.txt",
+        "speakers": 1,
+        "ruleFsts": [
+          "phone.fst",
+          "number.fst",
+          "date.fst"
+        ]
+      },
+      "files": [
+        {
+          "path": "model-steps-3.onnx",
+          "bytes": 75624611,
+          "sha256": "ef7ebdf5987e16a5836136a51d6f3560ca997ffd33d06a40daab5af92b4b86e5"
+        },
+        {
+          "path": "tokens.txt",
+          "bytes": 19591,
+          "sha256": "56209b2bf609d5ac1d66ede6dae7bf5254bd3f8aa24c4a6823713d5b884d87ba"
+        },
+        {
+          "path": "lexicon.txt",
+          "bytes": 1363705,
+          "sha256": "38b886d46aefa50da6322a64d72fd595d5f4fae1051adb160d647541b1e0a4a2"
+        },
+        {
+          "path": "phone.fst",
+          "bytes": 88630,
+          "sha256": "1ac2b6fa56b1442320c4de7db08353bab8963a2b57f365eebcdd3a2d3562f8d7"
+        },
+        {
+          "path": "number.fst",
+          "bytes": 64482,
+          "sha256": "743f402181fcfebf76cc2f0546b71fa26476e626fbe4e460fb7b4c3a7a8bd5bd"
+        },
+        {
+          "path": "date.fst",
+          "bytes": 59154,
+          "sha256": "eb8aa079ae3cb81d8f4404992f39d61a0cb990947512b5b8d1e54d1f6980e718"
+        },
+        {
+          "path": "vocos-22khz-univ.onnx",
+          "bytes": 53884024,
+          "sha256": "0574a135aa1db2de6e181050db2ec528496cacd4a4701fc5d7faf9f9804c0081",
+          "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/vocoder-models/vocos-22khz-univ.onnx"
+        }
+      ]
+    },
+    {
+      "id": "kitten-nano-en-v0_8-int8",
+      "version": "tts-models",
+      "name": "Kitten nano · int8",
+      "description": "英文八说话人语音合成，支持离线使用。",
+      "purpose": "TTS",
+      "engine": "sherpa_onnx",
+      "license": "apache-2.0",
+      "languages": [
+        "en"
+      ],
+      "hfRepository": "",
+      "modelScopeRepository": "",
+      "modelScopeRevision": "master",
+      "modelScopePrefix": "",
+      "driver": {
+        "type": "kitten",
+        "model": "kitten-nano-en-v0_8-int8/model.int8.onnx",
+        "voices": "kitten-nano-en-v0_8-int8/voices.bin",
+        "tokens": "kitten-nano-en-v0_8-int8/tokens.txt",
+        "dataDir": "kitten-nano-en-v0_8-int8/espeak-ng-data",
+        "speakers": 8
+      },
+      "files": [
+        {
+          "path": "kitten-nano-en-v0_8-int8/model.int8.onnx",
+          "bytes": 24370878,
+          "sha256": "0ba1e21eda9c8bcc4a70ada7e0d27fefc9ba775aaa037547248ec71f9a3d9b7d"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/voices.bin",
+          "bytes": 3276800,
+          "sha256": "d520519c4a3519d44fcfcd943ed0b1e3c5da5cee0eea501d922fac1a93cd24dc"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/tokens.txt",
+          "bytes": 1064,
+          "sha256": "934a4188addc7665dd3410256bb622169242357fbb99d840d9351209b486dabb"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/espeak-ng-data/phontab",
+          "bytes": 55796,
+          "sha256": "886f3fa402cb0ba73d483aa8ad000af47a6b7cc06293c75a97913fba68a530f6"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/espeak-ng-data/phondata",
+          "bytes": 550424,
+          "sha256": "4e0288957874029a8c3c9f41a8f517ad4bf18127046decbdd4b9d1d6807ce3a3"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/espeak-ng-data/phonindex",
+          "bytes": 39074,
+          "sha256": "3ca7b8fa3b42624e4b0f152707e7a39245fce569aa99ea47c055d9e622fcf0c4"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/espeak-ng-data/en_dict",
+          "bytes": 166944,
+          "sha256": "71bd330ba8a2e3e8076e631508208ef49449d6147c17b7bd2b4b1e1468292e35"
+        },
+        {
+          "path": "kitten-nano-en-v0_8-int8/espeak-ng-data/lang/gmw/en-US",
+          "bytes": 257,
+          "sha256": "41534c2a22df5dd4f1052ff9e1a33a3ea7bff5a26b5c02bdad5ba8ddb7524704"
+        }
+      ],
+      "archive": {
+        "path": "kitten-nano-en-v0_8-int8.tar.bz2",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kitten-nano-en-v0_8-int8.tar.bz2",
+        "bytes": 31220690,
+        "sha256": "6fa5be852612ce761094ba74ee6123b4fc4acfefa79bf64dc63acae4a83af2fd"
+      }
+    }
+  ]
+}

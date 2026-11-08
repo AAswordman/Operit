@@ -1,0 +1,5 @@
+<resources>
+    <string name="workflow_failure_named_node">Nod “%1$s” gagal: %2$s</string>
+    <string name="workflow_failure_action">Tindakan: %1$s</string>
+    <string name="workflow_failure_reason">Sebab: %1$s</string>
+</resources>

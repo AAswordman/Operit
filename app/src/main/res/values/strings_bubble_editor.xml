@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_bubble_easy_hint">先调装饰大小和文字留白；边框变形时再选预设。留白滑块同时调整左右两侧。</string>
+    <string name="chat_bubble_decoration_size">装饰大小</string>
+    <string name="chat_bubble_text_space">文字左右留白</string>
+    <string name="chat_bubble_text_space_value">左 %1$d · 右 %2$d dp</string>
+    <string name="chat_bubble_reset_size">恢复大小与留白</string>
+    <string name="chat_bubble_border_presets">保留多少边框装饰</string>
+    <string name="chat_bubble_border_small">少一些</string>
+    <string name="chat_bubble_border_normal">适中</string>
+    <string name="chat_bubble_border_large">多一些</string>
+    <string name="chat_bubble_advanced">高级微调</string>
+    <string name="chat_bubble_advanced_hint">中间区域随文字扩展，四周保留装饰；裁切用于去掉图片外侧空白。</string>
+    <string name="chat_bubble_horizontal_region">横向扩展区域</string>
+    <string name="chat_bubble_vertical_region">纵向扩展区域</string>
+</resources>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="speech_workbench_tab_tts">Read TTS</string>
+    <string name="speech_workbench_tab_stt">Listen STT</string>
+    <string name="speech_workbench_tts_profile">Current reading profile</string>
+    <string name="speech_workbench_stt_profile">Current recognition profile</string>
+    <string name="speech_workbench_profile_active_hint">Active when selected</string>
+    <string name="speech_workbench_switch">Switch</string>
+    <string name="speech_workbench_manage_profile">Manage current profile</string>
+    <string name="speech_workbench_duplicate">Duplicate profile</string>
+    <string name="speech_workbench_copy_name">%1$s copy</string>
+    <string name="speech_workbench_copy_current">Copy settings from current profile</string>
+    <string name="speech_workbench_delete_current_hint">Another profile will become active</string>
+    <string name="speech_workbench_keep_one_profile">Keep at least one profile</string>
+    <string name="speech_workbench_saving">Saving changes…</string>
+    <string name="speech_workbench_saved">Changes are saved automatically</string>
+    <string name="speech_workbench_save_error">Changes not saved: %1$s</string>
+    <string name="speech_workbench_connection">Engine and connection</string>
+    <string name="speech_workbench_local">Local · runs on this device</string>
+    <string name="speech_workbench_online">Online · connects to a speech service</string>
+    <string name="speech_workbench_voice_style">Voice and reading preferences</string>
+    <string name="speech_workbench_http_advanced_hint">Method, headers, request body and response processing</string>
+    <string name="speech_workbench_secret_visibility">Toggle credential visibility</string>
+    <string name="speech_workbench_search_hint">Search names or IDs</string>
+    <string name="speech_workbench_empty_choices">No matching items</string>
+    <string name="speech_workbench_manual_value">Enter manually</string>
+    <string name="speech_workbench_use_value">Use entered value</string>
+    <string name="speech_workbench_cleaner_count">%1$d rules · remove text before reading</string>
+    <string name="speech_workbench_rule_number">Rule %1$d</string>
+    <string name="speech_workbench_regex_error">Enter a valid regular expression</string>
+    <string name="speech_workbench_preview_title">Hear the current voice</string>
+    <string name="speech_workbench_preview_hint">Uses the reading settings currently being edited</string>
+    <string name="speech_workbench_preview_play">Read this text</string>
+    <string name="speech_workbench_preparing">Preparing speech…</string>
+    <string name="speech_workbench_sample_text">Hello from Operit. Adjust the rate and pitch to hear the current voice.</string>
+    <string name="speech_workbench_stt_preview_title">Try saying something</string>
+    <string name="speech_workbench_local_stt_hint">Uses Sherpa NCNN on this device. No service URL or API key is needed. Prepare the required offline resources first.</string>
+    <string name="speech_workbench_wake_listening">Background listening</string>
+    <string name="speech_workbench_wake_method">How to wake</string>
+    <string name="speech_workbench_wake_after">After waking</string>
+    <string name="speech_workbench_wake_stt">STT text match</string>
+    <string name="speech_workbench_wake_personal">Personal wake</string>
+    <string name="speech_workbench_wake_local_hint">Background wake detection uses local Sherpa NCNN. Online recognition profiles are not used for background listening.</string>
+    <string name="speech_workbench_attachment_keywords">Trigger keywords</string>
+</resources>

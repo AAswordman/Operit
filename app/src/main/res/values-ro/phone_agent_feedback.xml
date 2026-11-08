@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">Asistent pentru telefon</string>
+    <string name="phone_agent_scanning">Scanare ecran…</string>
+    <string name="phone_agent_planning">Planificare…</string>
+    <string name="phone_agent_tapping">Atingere…</string>
+    <string name="phone_agent_typing">Introducere text…</string>
+    <string name="phone_agent_swiping">Glisare…</string>
+    <string name="phone_agent_entering_app">Deschidere aplicație…</string>
+    <string name="phone_agent_back">Revenire…</string>
+    <string name="phone_agent_home">Revenire la ecranul principal…</string>
+    <string name="phone_agent_waiting">Se așteaptă răspunsul paginii…</string>
+    <string name="phone_agent_working">Executare acțiune…</string>
+    <string name="phone_agent_paused">În pauză</string>
+    <string name="phone_agent_needs_user">Se așteaptă intervenția ta</string>
+    <string name="phone_agent_completed">Sarcină finalizată</string>
+    <string name="phone_agent_unconfirmed">Acțiune neconfirmată. Verifică ecranul curent.</string>
+    <string name="phone_agent_pause_task">Pune sarcina în pauză</string>
+    <string name="phone_agent_resume_task">Reia sarcina</string>
+    <string name="phone_agent_stop_task">Oprește sarcina</string>
+    <string name="phone_agent_screen_unavailable">Ecranul nu poate fi citit momentan</string>
+</resources>

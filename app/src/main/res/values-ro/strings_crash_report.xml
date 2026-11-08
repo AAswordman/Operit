@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">Rulați raportul</string>
+    <string name="crash_report_interrupted">Aplicația a fost întreruptă în mod neașteptat</string>
+    <string name="crash_report_restart_hint">Reporniți aplicația pentru a continua să o utilizați.</string>
+    <string name="crash_report_this_error">Această eroare</string>
+    <string name="crash_report_keep_hint">De asemenea, puteți salva mai întâi raportul de eroare.</string>
+    <string name="crash_report_restart_compact">Reporniți aplicația</string>
+    <string name="crash_report_app_logs">Jurnalul de aplicații</string>
+    <string name="crash_report_app_logs_hint">Conține înregistrări de rulare înainte și după această eroare</string>
+    <string name="crash_report_export_logs_compact">Export jurnal</string>
+    <string name="crash_report_local_only">Rapoartele de eroare sunt salvate doar local</string>
+    <string name="crash_report_no_stack">Nicio stivă de erori disponibilă.</string>
+    <string name="crash_report_unknown_exception">Excepție nerecunoscută</string>
+    <string name="crash_report_more_actions">Mai multe operațiuni de raportare</string>
+    <string name="crash_report_save_report">Salvați raportul de eroare</string>
+    <string name="crash_report_collapse_stack">Restrânge stiva</string>
+    <string name="crash_report_expand_stack">extinde stiva</string>
+    <string name="crash_report_expand_hint">Faceți clic pe săgeata din colțul din dreapta sus pentru a extinde stiva completă</string>
+    <string name="crash_report_stack_lines">%1$d rând · stivă</string>
+    <string name="crash_report_wrap_stack">Înfășurare automată a liniei</string>
+    <string name="crash_reason_memory">Din memorie</string>
+    <string name="crash_reason_stack">depășire a stivei de apeluri</string>
+    <string name="crash_reason_storage">Nu este suficient spațiu de stocare</string>
+    <string name="crash_reason_permission">Permisiuni restricționate</string>
+    <string name="crash_reason_network">Anormalitate de conexiune la rețea</string>
+    <string name="crash_reason_database">Excepție baza de date</string>
+    <string name="crash_reason_file">Excepție pentru citirea și scrierea fișierelor</string>
+    <string name="crash_reason_component">Excepție de încărcare a componentelor</string>
+    <string name="crash_reason_remote">Excepție de comunicare de proces</string>
+    <string name="crash_reason_null">Obiectul nu este inițializat</string>
+    <string name="crash_reason_state">Stare de funcționare anormală</string>
+    <string name="crash_reason_unknown">Excepție nerecunoscută</string>
+</resources>

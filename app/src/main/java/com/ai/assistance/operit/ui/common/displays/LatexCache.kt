@@ -2,7 +2,7 @@ package com.ai.assistance.operit.ui.common.displays
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.util.LruCache
 import ru.noties.jlatexmath.JLatexMathDrawable
 

@@ -8,9 +8,9 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.data.model.ActivePrompt
-import com.ai.assistance.operit.data.model.CustomEmoji
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.data.character.ActivePrompt
+import com.ai.assistance.operit.data.emoji.CustomEmoji
+import com.ai.assistance.operit.util.logging.AppLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
@@ -44,10 +44,6 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
         private val LEGACY_ALL_CATEGORIES = stringSetPreferencesKey("all_categories")
         private val LEGACY_BUILTIN_EMOJIS_INITIALIZED = booleanPreferencesKey("builtin_emojis_initialized")
 
-        val BUILTIN_EMOTIONS = listOf(
-            "happy", "sad", "angry", "surprised", "confused",
-            "crying", "like_you", "miss_you", "speechless"
-        )
     }
 
     private val json = Json {
@@ -135,9 +131,7 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
     fun getAllCategories(target: ActivePrompt): Flow<List<String>> {
         return context.customEmojiDataStore.data.map { preferences ->
             val storedCategories = preferences[categoriesKey(target)] ?: emptySet()
-            val builtin = BUILTIN_EMOTIONS.filter { it in storedCategories }
-            val custom = storedCategories.filter { it !in BUILTIN_EMOTIONS }.sorted()
-            builtin + custom
+            storedCategories.sorted()
         }
     }
 
@@ -157,42 +151,6 @@ class CustomEmojiPreferences private constructor(private val context: Context) {
             if (!currentCategories.contains(categoryName)) {
                 preferences[categoriesKey(target)] = currentCategories + categoryName
                 AppLogger.d(TAG, "Added category: $categoryName to target: $target")
-            }
-        }
-    }
-
-    suspend fun addCategories(target: ActivePrompt, categoryNames: List<String>) {
-        context.customEmojiDataStore.edit { preferences ->
-            val currentCategories = preferences[categoriesKey(target)] ?: emptySet()
-            val newCategories = categoryNames.filter { it !in currentCategories }
-            if (newCategories.isNotEmpty()) {
-                preferences[categoriesKey(target)] = currentCategories + newCategories
-                AppLogger.d(TAG, "Added categories: $newCategories to target: $target")
-            }
-        }
-    }
-
-    suspend fun clearAllEmojis(target: ActivePrompt) {
-        context.customEmojiDataStore.edit { preferences ->
-            preferences[customEmojisKey(target)] = "[]"
-            preferences.remove(categoriesKey(target))
-            preferences.remove(builtinInitializedKey(target))
-            AppLogger.d(TAG, "Cleared all emojis for target: $target")
-        }
-    }
-
-    fun isBuiltinEmojisInitialized(target: ActivePrompt): Flow<Boolean> {
-        return context.customEmojiDataStore.data.map { preferences ->
-            preferences[builtinInitializedKey(target)] ?: false
-        }
-    }
-
-    suspend fun setBuiltinEmojisInitialized(target: ActivePrompt, initialized: Boolean) {
-        context.customEmojiDataStore.edit { preferences ->
-            if (initialized) {
-                preferences[builtinInitializedKey(target)] = true
-            } else {
-                preferences.remove(builtinInitializedKey(target))
             }
         }
     }

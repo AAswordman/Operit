@@ -1,10 +1,10 @@
-import toolboxUI from "./linux_ssh_setup/index.ui.js";
+import packageUI from "./linux_ssh_setup/index.ui.js";
 
 export function registerToolPkg() {
-  ToolPkg.registerToolboxUiModule({
+  ToolPkg.registerUiModule({
     id: "linux_ssh_setup",
     runtime: "compose_dsl",
-    screen: toolboxUI,
+    screen: packageUI,
     params: {},
     title: {
       zh: "Linux SSH 管理",

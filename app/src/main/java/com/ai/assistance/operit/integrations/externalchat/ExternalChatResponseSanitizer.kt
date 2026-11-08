@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.integrations.externalchat
 
-import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.core.chat.protocol.ChatMarkupRegex
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamGroup
 import com.ai.assistance.operit.util.stream.splitBy
@@ -90,7 +90,8 @@ object ExternalChatResponseSanitizer {
             ChatMarkupRegex.normalizeToolLikeTagName(ChatMarkupRegex.extractOpeningTagName(xml))
         return normalizedTagName == "status" ||
             normalizedTagName == "tool" ||
-            normalizedTagName == "tool_result"
+            normalizedTagName == "tool_result" ||
+            normalizedTagName == "meta"
     }
 
     private fun sanitizeResidualWhitespace(content: String): String? {

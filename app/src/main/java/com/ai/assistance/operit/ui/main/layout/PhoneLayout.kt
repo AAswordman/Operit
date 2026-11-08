@@ -1,5 +1,12 @@
 package com.ai.assistance.operit.ui.main.layout
 
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptSurface
+import com.ai.assistance.operit.data.preferences.glass.GlassRegion
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.spring
@@ -82,11 +89,17 @@ fun PhoneLayout(
         /** 当前导航栈中仍存活的路由 screenKey（路由级 ViewModelStore 清理依据）。 */
         aliveScreenKeys: Set<String>
 ) {
+        val focus = LocalFocusManager.current
+        val keyboard = LocalSoftwareKeyboardController.current
+        fun dismissDrawerInput() {
+                focus.clearFocus()
+                keyboard?.hide()
+        }
         // 使用 updateTransition 来创建更复杂的动画
         val transition = updateTransition(drawerState.targetValue, label = "drawer_transition")
         val drawerTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
-        val drawerProgress by
+        val drawerProgressState =
                 transition.animateFloat(
                         label = "drawerProgress",
                         transitionSpec = {
@@ -109,33 +122,6 @@ fun PhoneLayout(
                 drawerState.currentValue == DrawerValue.Open ||
                         drawerState.targetValue == DrawerValue.Open
 
-        val contentTranslationX =
-                if (enableNavigationAnimation) {
-                        drawerWidth * (0.82f * drawerProgress)
-                } else {
-                        drawerWidth * drawerProgress
-                }
-        val contentTranslationY =
-                if (enableNavigationAnimation) 12.dp * drawerProgress else 0.dp
-        val contentScale =
-                if (enableNavigationAnimation) 1f - (0.08f * drawerProgress) else 1f
-        val contentRotationY =
-                if (enableNavigationAnimation) -7f * drawerProgress else 0f
-        val contentCornerRadius =
-                if (enableNavigationAnimation) 24.dp * drawerProgress else 0.dp
-        val contentShadowElevation =
-                if (enableNavigationAnimation) 18.dp * drawerProgress else 0.dp
-
-        val drawerOffset = -drawerWidth * (1f - drawerProgress)
-        val sidebarElevation =
-                if (enableNavigationAnimation) 16.dp * drawerProgress
-                else 3.dp * drawerProgress
-        val drawerScale =
-                if (enableNavigationAnimation) 0.92f + (0.08f * drawerProgress)
-                else 1f
-        val drawerContentAlpha =
-                if (enableNavigationAnimation) 0.72f + (0.28f * drawerProgress)
-                else 0.8f + (0.2f * drawerProgress)
         val scrimColor = Color.Transparent
 
         // 侧边栏相关拖拽状态
@@ -170,6 +156,7 @@ fun PhoneLayout(
                         }
 
                         if (isDrawerOpen && currentDrag < -dragThreshold) {
+                                 dismissDrawerInput()
                                 scope.launch {
                                         drawerState.close()
                                         currentDrag = 0f
@@ -185,6 +172,7 @@ fun PhoneLayout(
                         Modifier.fillMaxSize()
                                 .draggable(
                                         state = draggableState,
+                                        enabled = !isDrawerOpen,
                                         orientation = Orientation.Horizontal,
                                         onDragStarted = {
                                                 currentDrag = 0f
@@ -200,6 +188,7 @@ fun PhoneLayout(
                                                 rememberDraggableState { delta ->
                                                         verticalDrag += delta
                                                 },
+                                        enabled = !isDrawerOpen,
                                         orientation = Orientation.Vertical,
                                         onDragStarted = { /* 不需要额外操作 */},
                                         onDragStopped = { /* 不需要额外操作 */}
@@ -211,17 +200,13 @@ fun PhoneLayout(
                     modifier =
                             Modifier.fillMaxSize()
                                     .graphicsLayer {
-                                            translationX = contentTranslationX.toPx()
-                                            translationY = contentTranslationY.toPx()
-                                            scaleX = contentScale
-                                            scaleY = contentScale
-                                            rotationY = contentRotationY
-                                            transformOrigin = TransformOrigin(0f, 0.5f)
+                                            val progress = drawerProgressState.value
+                                            // 主页面平移让出侧栏空间，不再旋转、缩放或给自身投影。
+                                            translationX = drawerWidth.toPx() * progress
+                                            clip = true
                                     }
                                     .zIndex(1f),
-                    shape = RoundedCornerShape(contentCornerRadius),
                     color = Color.Transparent,
-                    shadowElevation = contentShadowElevation
                 ) {
                     // 普通调用AppContent，但由于我们的优化，它不会在动画时重组
                     AppContent(
@@ -266,43 +251,48 @@ fun PhoneLayout(
                                         .padding(top = drawerTopInset)
                                         .fillMaxHeight()
                                         .graphicsLayer {
-                                                translationX = drawerOffset.toPx()
-                                                scaleX = drawerScale
-                                                scaleY = drawerScale
-                                                alpha = drawerContentAlpha
+                                                val progress = drawerProgressState.value
+                                                translationX = -drawerWidth.toPx() * (1f - progress)
+                                                val scale = if (enableNavigationAnimation) 0.92f + 0.08f * progress else 1f
+                                                scaleX = scale
+                                                scaleY = scale
+                                                alpha = if (enableNavigationAnimation) 0.72f + 0.28f * progress else 0.8f + 0.2f * progress
+                                                shape = drawerShape
+                                                shadowElevation = if (drawerAppearance.waterGlassEnabled) 0f
+                                                    else (if (enableNavigationAnimation) 16.dp else 3.dp).toPx() * progress
                                                 transformOrigin = TransformOrigin(0f, 0.5f)
                                         }
                                         .waterGlass(
                                                 enabled = drawerAppearance.waterGlassEnabled,
                                                 shape = drawerShape,
                                                 containerColor = drawerAppearance.containerColor,
-                                                shadowElevation = sidebarElevation,
-                                                borderWidth = 0.7.dp,
-                                                overlayAlphaBoost =
-                                                        if (enableNavigationAnimation) 0.07f
-                                                        else 0.04f
+                                                // 侧栏保留已调整的低强度折射，聊天区域单独恢复原有效果。
+                                                subtleRefraction = true,
+                                            region = GlassRegion.SIDEBAR,
                                         )
                                         .zIndex(2f),
                         shape = drawerShape,
                         color =
                                 if (drawerAppearance.waterGlassEnabled) Color.Transparent
                                 else drawerAppearance.containerColor,
-                        shadowElevation = if (drawerAppearance.waterGlassEnabled) 0.dp else sidebarElevation
+                        shadowElevation = 0.dp
                 ) {
-                        DrawerContent(
-                                navItems = navItems,
-                                pluginEntries = pluginSidebarEntries,
-                                selectedItem = selectedItem,
-                                selectedRouteId = selectedRouteId,
-                                isNetworkAvailable = isNetworkAvailable,
-                                networkType = networkType,
-                                appearance = drawerAppearance,
-                                topContentPadding = 0.dp,
-                                scope = scope,
-                                drawerState = drawerState,
-                                onScreenSelected = onDrawerItemSelected,
-                                onNavigationEntrySelected = onNavigationEntrySelected
-                        )
+                    ThemeScriptSurface("navigation", originalShape = drawerShape) {
+                            DrawerContent(
+                                    navItems = navItems,
+                                    pluginEntries = pluginSidebarEntries,
+                                    selectedItem = selectedItem,
+                                    selectedRouteId = selectedRouteId,
+                                    isNetworkAvailable = isNetworkAvailable,
+                                    networkType = networkType,
+                                    appearance = drawerAppearance,
+                                    topContentPadding = 0.dp,
+                                    scope = scope,
+                                    drawerState = drawerState,
+                                    onScreenSelected = onDrawerItemSelected,
+                                    onNavigationEntrySelected = onNavigationEntrySelected
+                            )
+                    }
                 }
 
                 // 在主内容上方放置遮罩层，阻止右侧内容继续响应点击
@@ -315,6 +305,18 @@ fun PhoneLayout(
                                                 Modifier.fillMaxSize()
                                                         .padding(start = drawerWidth)
                                                         .background(scrimColor)
+                                                        .draggable(
+                                                                state = draggableState,
+                                                                orientation = Orientation.Horizontal,
+                                                                onDragStarted = {
+                                                                        currentDrag = 0f
+                                                                        verticalDrag = 0f
+                                                                },
+                                                                onDragStopped = {
+                                                                        currentDrag = 0f
+                                                                        verticalDrag = 0f
+                                                                }
+                                                        )
                                                         .clickable(
                                                                 interactionSource =
                                                                         remember {
@@ -322,6 +324,7 @@ fun PhoneLayout(
                                                                         },
                                                                 indication = null,
                                                                 onClick = {
+                                                                        dismissDrawerInput()
                                                                         scope.launch {
                                                                                 drawerState.close()
                                                                         }
@@ -330,5 +333,9 @@ fun PhoneLayout(
                                 )
                         }
                 }
+        }
+        BackHandler(enabled = isDrawerOpen) {
+                dismissDrawerInput()
+                scope.launch { drawerState.close() }
         }
 }

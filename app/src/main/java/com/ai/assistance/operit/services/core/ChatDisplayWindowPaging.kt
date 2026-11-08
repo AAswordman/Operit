@@ -2,6 +2,7 @@ package com.ai.assistance.operit.services.core
 
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ChatMessagePageMetadata
 
 internal const val DISPLAY_PAGE_TRIGGER_COUNT = 5
 internal const val MAX_DISPLAY_PAGE_COUNT = 2
@@ -43,6 +44,15 @@ internal fun resolveDisplayPageRanges(
         timestampOf = ChatMessageLocatorPreview::timestamp,
         triggerMessagesPerPage = triggerMessagesPerPage,
     )
+
+internal fun resolveDisplayPageRangesFromMetadata(
+    messages: List<ChatMessagePageMetadata>,
+): List<DisplayPageRange> = resolveDisplayPageRanges(
+    messages = messages,
+    senderOf = ChatMessagePageMetadata::sender,
+    timestampOf = ChatMessagePageMetadata::timestamp,
+    triggerMessagesPerPage = DISPLAY_PAGE_TRIGGER_COUNT,
+)
 
 internal fun takeNewestDisplayPages(
     messages: List<ChatMessage>,

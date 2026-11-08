@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="crash_report_running_report">보고서 실행</string>
+    <string name="crash_report_interrupted">애플리케이션이 예기치 않게 중단되었습니다.</string>
+    <string name="crash_report_restart_hint">계속 사용하려면 앱을 다시 시작하세요.</string>
+    <string name="crash_report_this_error">이 오류</string>
+    <string name="crash_report_keep_hint">오류 보고서를 먼저 저장할 수도 있습니다.</string>
+    <string name="crash_report_restart_compact">애플리케이션 다시 시작</string>
+    <string name="crash_report_app_logs">애플리케이션 로그</string>
+    <string name="crash_report_app_logs_hint">이 오류 전후의 실행 기록을 포함합니다.</string>
+    <string name="crash_report_export_logs_compact">로그 내보내기</string>
+    <string name="crash_report_local_only">오류 보고서는 로컬에만 저장됩니다.</string>
+    <string name="crash_report_no_stack">사용 가능한 오류 스택이 없습니다.</string>
+    <string name="crash_report_unknown_exception">인식할 수 없는 예외</string>
+    <string name="crash_report_more_actions">추가 보고 작업</string>
+    <string name="crash_report_save_report">오류 보고서 저장</string>
+    <string name="crash_report_collapse_stack">스택 접기</string>
+    <string name="crash_report_expand_stack">스택 확장</string>
+    <string name="crash_report_expand_hint">전체 스택을 확장하려면 오른쪽 상단에 있는 화살표를 클릭하세요.</string>
+    <string name="crash_report_stack_lines">%1$d 행 · 스택</string>
+    <string name="crash_report_wrap_stack">자동 줄 바꿈</string>
+    <string name="crash_reason_memory">메모리 부족</string>
+    <string name="crash_reason_stack">호출 스택 오버플로</string>
+    <string name="crash_reason_storage">저장 공간이 충분하지 않습니다.</string>
+    <string name="crash_reason_permission">제한된 권한</string>
+    <string name="crash_reason_network">네트워크 연결 이상</string>
+    <string name="crash_reason_database">데이터베이스 예외</string>
+    <string name="crash_reason_file">파일 읽기 및 쓰기 예외</string>
+    <string name="crash_reason_component">구성요소 로딩 예외</string>
+    <string name="crash_reason_remote">프로세스 통신 예외</string>
+    <string name="crash_reason_null">개체가 초기화되지 않았습니다.</string>
+    <string name="crash_reason_state">비정상적인 작동 상태</string>
+    <string name="crash_reason_unknown">인식할 수 없는 예외</string>
+</resources>

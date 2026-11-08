@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_agent_title">手机助手</string>
+    <string name="phone_agent_scanning">正在扫描屏幕…</string>
+    <string name="phone_agent_planning">正在规划…</string>
+    <string name="phone_agent_tapping">正在点击…</string>
+    <string name="phone_agent_typing">正在输入…</string>
+    <string name="phone_agent_swiping">正在滑动…</string>
+    <string name="phone_agent_entering_app">正在进入应用…</string>
+    <string name="phone_agent_back">正在返回…</string>
+    <string name="phone_agent_home">正在返回桌面…</string>
+    <string name="phone_agent_waiting">等待页面响应…</string>
+    <string name="phone_agent_working">正在操作…</string>
+    <string name="phone_agent_paused">已暂停</string>
+    <string name="phone_agent_needs_user">等待你处理</string>
+    <string name="phone_agent_completed">任务已完成</string>
+    <string name="phone_agent_unconfirmed">操作未确认，请检查当前页面</string>
+    <string name="phone_agent_pause_task">暂停任务</string>
+    <string name="phone_agent_resume_task">继续任务</string>
+    <string name="phone_agent_stop_task">停止任务</string>
+    <string name="phone_agent_source_nodes">节点定位</string>
+    <string name="phone_agent_source_coordinates">坐标单步</string>
+    <string name="phone_agent_launch_confirmed">已确认“%1$s”在前台，启动任务已完成。</string>
+    <string name="phone_agent_launch_unconfirmed">已请求启动“%1$s”，但未确认前台 Activity；任务未确认完成。</string>
+    <string name="phone_agent_screen_unavailable">暂时无法读取屏幕</string>
+</resources>

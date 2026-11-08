@@ -1,24 +1,23 @@
 package com.ai.assistance.operit.ui.main
 
-import android.Manifest
+import com.ai.assistance.operit.ui.common.oktoast.OKToast
+
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
-import com.ai.assistance.operit.util.AppLogger
-import android.widget.Toast
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptAlertDialog as AlertDialog
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
+import com.ai.assistance.operit.ui.theme.script.ThemeScriptTextButton as TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -27,7 +26,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Observer
@@ -35,56 +33,58 @@ import androidx.lifecycle.lifecycleScope
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
 import com.ai.assistance.operit.core.application.OperitApplication
-import com.ai.assistance.operit.core.tools.AIToolHandler
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
 import com.ai.assistance.operit.data.preferences.AgreementPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
-import com.ai.assistance.operit.data.preferences.androidPermissionPreferences
+import com.ai.assistance.operit.data.preferences.OrientationReloadPolicy
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.data.updates.UpdateManager
 import com.ai.assistance.operit.data.updates.UpdateStatus
 import com.ai.assistance.operit.ui.common.NavItem
-import com.ai.assistance.operit.ui.features.agreement.screens.AgreementScreen
-import com.ai.assistance.operit.ui.features.permission.screens.PermissionGuideScreen
-import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingScreenWithState
-import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingState
-import com.ai.assistance.operit.ui.features.startup.screens.LocalPluginLoadingState
-import com.ai.assistance.operit.ui.features.startup.screens.PluginLoadingStateRegistry
+import com.ai.assistance.operit.ui.features.support.onboarding.screens.WelcomeScreen
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.McpLoadingState
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.LocalMcpLoadingState
+import com.ai.assistance.operit.ui.features.extensions.packages.screens.mcp.loading.McpLoadingStateRegistry
 import com.ai.assistance.operit.ui.theme.OperitTheme
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
-import com.ai.assistance.operit.util.AnrMonitor
-import com.ai.assistance.operit.util.LocaleUtils
+import com.ai.assistance.operit.core.diagnostics.AnrMonitor
+import com.ai.assistance.operit.util.android.LocaleUtils
 import java.util.*
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.ai.assistance.operit.data.mcp.MCPRepository
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.ui.res.stringResource
-import com.ai.assistance.operit.widget.ToolPkgDesktopWidgetHost
+import com.ai.assistance.operit.integrations.appwidget.ToolPkgDesktopWidgetHost
 import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     companion object {
+        const val EXTRA_RESTORE_COMPLETED_NOTICE = "operit.restore_completed_notice"
         const val ACTION_OPEN_SETTINGS_SHORTCUT = "com.ai.assistance.operit.action.OPEN_SETTINGS_SHORTCUT"
+        const val EXTRA_OPEN_CHAT_ID = "open_chat_id"
     }
 
     private val TAG = "MainActivity"
 
     // ======== 屏幕方向变更状态 ========
     private var showOrientationChangeDialog by mutableStateOf(false)
-
+    private var orientationReloadPolicy = OrientationReloadPolicy.ASK
     private var lastOrientation: Int? = null
 
     // ======== 工具和管理器 ========
     private lateinit var toolHandler: AIToolHandler
     private lateinit var agreementPreferences: AgreementPreferences
     private var updateCheckPerformed = false
+    private var isRestoringActivityState = false
     private lateinit var anrMonitor: AnrMonitor
     private lateinit var mcpRepository: MCPRepository
 
-    // ======== MCP插件状态 ========
-    private val pluginLoadingState = PluginLoadingState()
+    // ======== 模型上下文协议后台加载状态 ========
+    private val mcpLoadingState = McpLoadingState()
 
     // ======== 双击返回退出相关变量 ========
     private var backPressedTime: Long = 0
@@ -93,8 +93,6 @@ class MainActivity : ComponentActivity() {
     // UpdateManager实例
     private lateinit var updateManager: UpdateManager
 
-    // 是否显示权限引导界面
-    private var showPermissionGuide by mutableStateOf(false)
 
     // 存储待处理的分享文件URIs
     private var pendingSharedFileUris: List<Uri>? = null
@@ -106,18 +104,10 @@ class MainActivity : ComponentActivity() {
     private var pendingRouteId by mutableStateOf<String?>(null)
     private var pendingRouteArgs by mutableStateOf<Map<String, Any?>>(emptyMap())
     private var pendingRouteRequestId by mutableStateOf(0L)
+    private var pendingOpenChatId by mutableStateOf<String?>(null)
+    private var pendingOpenChatRequestId by mutableStateOf(0L)
+    private var nextChatOpenRequestId = 0L
 
-    // 通知权限请求启动器
-    private val notificationPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            AppLogger.d(TAG, "通知权限已授予")
-        } else {
-            AppLogger.d(TAG, "通知权限被拒绝")
-            Toast.makeText(this, getString(R.string.notification_permission_denied), Toast.LENGTH_LONG).show()
-        }
-    }
 
     private fun processPendingSharedText() {
         if (pendingSharedFileUris != null) {
@@ -176,6 +166,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        isRestoringActivityState = savedInstanceState != null
         lastOrientation = resources.configuration.orientation
         AppLogger.d(TAG, "onCreate: Android SDK version: ${Build.VERSION.SDK_INT}")
 
@@ -193,16 +184,18 @@ class MainActivity : ComponentActivity() {
         initializeComponents()
         anrMonitor.start()
         configureDisplaySettings()
-
-        // 设置上下文以便获取插件元数据
-        pluginLoadingState.setAppContext(this)
-        PluginLoadingStateRegistry.bind(pluginLoadingState, lifecycleScope)
-
-        // 设置跳过加载的回调
-        pluginLoadingState.setOnSkipCallback {
-            AppLogger.d(TAG, "用户跳过了插件加载过程")
-            Toast.makeText(this, getString(R.string.plugin_loading_skipped), Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            DisplayPreferencesManager.getInstance(this@MainActivity).orientationReloadPolicy.collect { policy ->
+                orientationReloadPolicy = policy
+                if (policy != OrientationReloadPolicy.ASK) showOrientationChangeDialog = false
+            }
         }
+
+        // 后台检查已配置且启用的服务，整个加载过程不挂载界面浮层。
+        mcpLoadingState.setAppContext(this)
+        McpLoadingStateRegistry.bind(mcpLoadingState, lifecycleScope)
+
+        mcpLoadingState.startConfiguredServers(applicationContext, lifecycleScope)
 
         // 设置初始界面
         setAppContent()
@@ -262,6 +255,13 @@ class MainActivity : ComponentActivity() {
             AppLogger.d(TAG, "Shortcut requested opening route: $pendingWidgetRouteId")
             return true
         }
+        val openChatId = intent?.getStringExtra(EXTRA_OPEN_CHAT_ID)?.trim().orEmpty()
+        if (openChatId.isNotBlank()) {
+            pendingOpenChatId = openChatId
+            pendingOpenChatRequestId = ++nextChatOpenRequestId
+            AppLogger.d(TAG, "Notification requested opening chat: $openChatId")
+            return true
+        }
 
         // Handle opened and shared files
         when (intent?.action) {
@@ -319,6 +319,8 @@ class MainActivity : ComponentActivity() {
     }
 
     private suspend fun prepareStartupChatIfNeeded() {
+        // Android 恢复原界面时继续原聊天，避免“启动新聊天”掩盖已保存的草稿。
+        if (isRestoringActivityState) return
         try {
             val displayPreferencesManager =
                 DisplayPreferencesManager.getInstance(this@MainActivity)
@@ -363,34 +365,7 @@ class MainActivity : ComponentActivity() {
     // ======== 执行初始化检查 ========
     private fun performInitialChecks() {
         lifecycleScope.launch {
-            // 1. 检查通知权限（Android 13+）
-            checkNotificationPermission()
-
-            // 2. 检查权限级别设置
-            checkPermissionLevelSet()
-
             prepareStartupChatIfNeeded()
-
-            // 3. 在协议已接受且无需权限引导时，启动插件加载
-            if (!showPermissionGuide && agreementPreferences.isAgreementAccepted()) {
-                startPluginLoading()
-            }
-        }
-    }
-
-    // ======== 启动插件加载 ========
-    private fun startPluginLoading() {
-        // 显示插件加载界面
-        pluginLoadingState.show()
-
-        // 启动超时检测（30秒）
-        pluginLoadingState.startTimeoutCheck(30000L, lifecycleScope)
-
-        // 初始化MCP服务器并启动插件
-        // 轻微延迟让首帧 Compose 完成，避免启动阶段后台重任务立刻抢占导致掉帧
-        lifecycleScope.launch {
-            delay(500)
-            pluginLoadingState.initializeMCPServer(this@MainActivity, lifecycleScope)
         }
     }
 
@@ -417,10 +392,10 @@ class MainActivity : ComponentActivity() {
                 pendingSharedText = null
             } catch (e: Exception) {
                 AppLogger.e(TAG, "Failed to process shared files", e)
-                Toast.makeText(
+                OKToast.error(
                     this@MainActivity,
                     getString(R.string.chat_process_shared_files_failed, e.message ?: ""),
-                    Toast.LENGTH_LONG
+                    OKToast.LENGTH_LONG
                 ).show()
                 pendingSharedFileUris = null
             }
@@ -438,7 +413,7 @@ class MainActivity : ComponentActivity() {
                         if (currentTime - backPressedTime > backPressedInterval) {
                             // 第一次点击，显示提示
                             backPressedTime = currentTime
-                            Toast.makeText(this@MainActivity, getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
+                            OKToast.info(this@MainActivity, getString(R.string.press_back_again_to_exit), OKToast.LENGTH_SHORT).show()
                         } else {
                             // 第二次点击，退出应用
                             finish()
@@ -453,10 +428,10 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         AppLogger.d(TAG, "onDestroy called")
 
-        PluginLoadingStateRegistry.unbind(pluginLoadingState)
+        McpLoadingStateRegistry.unbind(mcpLoadingState)
 
-        // 确保隐藏加载界面
-        pluginLoadingState.hide()
+        // 主界面销毁时取消其加载批次，停止尚未完成的服务启动。
+        mcpLoadingState.cancel()
 
         // 主界面销毁时，确保关闭虚拟屏幕 Overlay 并断开 Shower WebSocket 连接
         try {
@@ -472,9 +447,6 @@ class MainActivity : ComponentActivity() {
         super.onConfigurationChanged(newConfig)
         AppLogger.d(TAG, "onConfigurationChanged: new orientation=${newConfig.orientation}, last orientation=${lastOrientation}")
 
-        // 屏幕方向变化时，确保加载界面不可见
-        pluginLoadingState.hide()
-
         // 仅当方向确实发生变化时才处理
         if (newConfig.orientation != lastOrientation) {
             // 记录变化前的方向
@@ -489,9 +461,22 @@ class MainActivity : ComponentActivity() {
                 return
             }
             
-            // 如果不是“转回去”，或者弹窗还未显示，则显示弹窗
-            showOrientationChangeDialog = true
+            when (orientationReloadPolicy) {
+                OrientationReloadPolicy.ALWAYS -> {
+                    showOrientationChangeDialog = false
+                    recreate()
+                }
+                OrientationReloadPolicy.ASK -> showOrientationChangeDialog = true
+                OrientationReloadPolicy.NEVER -> showOrientationChangeDialog = false
+            }
         }
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        val message = intent?.getStringExtra(EXTRA_RESTORE_COMPLETED_NOTICE) ?: return
+        intent.removeExtra(EXTRA_RESTORE_COMPLETED_NOTICE)
+        window.decorView.post { OKToast.success(this, message, OKToast.LENGTH_LONG).show() }
     }
 
     // ======== 初始化组件 ========
@@ -507,49 +492,6 @@ class MainActivity : ComponentActivity() {
         // 初始化协议偏好管理器
         agreementPreferences = AgreementPreferences(this)
 
-    }
-
-    // ======== 检查通知权限 ========
-    private fun checkNotificationPermission() {
-        // Android 13 (API 33) 及以上需要请求通知权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permission = Manifest.permission.POST_NOTIFICATIONS
-            when {
-                ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED -> {
-                    AppLogger.d(TAG, "通知权限已授予")
-                }
-                shouldShowRequestPermissionRationale(permission) -> {
-                    // 用户之前拒绝过，显示说明并再次请求
-                    AppLogger.d(TAG, "需要显示通知权限说明")
-                    Toast.makeText(
-                        this,
-                        getString(R.string.notification_permission_rationale),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    notificationPermissionLauncher.launch(permission)
-                }
-                else -> {
-                    // 直接请求权限
-                    AppLogger.d(TAG, "请求通知权限")
-                    notificationPermissionLauncher.launch(permission)
-                }
-            }
-        } else {
-            // Android 13 以下不需要运行时通知权限
-            AppLogger.d(TAG, "Android 版本 < 13，无需请求通知权限")
-        }
-    }
-
-    // ======== 检查权限级别设置 ========
-    private fun checkPermissionLevelSet() {
-        // 检查是否已设置权限级别
-        val permissionLevel = androidPermissionPreferences.getPreferredPermissionLevel()
-        AppLogger.d(TAG, "当前权限级别: $permissionLevel")
-        showPermissionGuide = permissionLevel == null
-        AppLogger.d(
-                TAG,
-                "权限级别检查: 已设置=${!showPermissionGuide}, 将${if(showPermissionGuide) "" else "不"}显示权限引导界面"
-        )
     }
 
     // ======== 显示与性能配置 ========
@@ -596,38 +538,14 @@ class MainActivity : ComponentActivity() {
         setContent {
             OperitTheme {
                 Box {
-                    // 检查是否需要显示用户协议
-                        if (!agreementPreferences.isAgreementAccepted()) {
-                            AgreementScreen(
-                                    onAgreementAccepted = {
-                                        agreementPreferences.acceptCurrentAgreement()
-                                        // 协议接受后，检查权限级别设置
-                                        lifecycleScope.launch {
-                                            // 确保使用非阻塞方式更新UI
-                                            delay(300) // 短暂延迟确保UI状态更新
-                                            checkPermissionLevelSet()
-                                            if (!showPermissionGuide) {
-                                                startPluginLoading()
-                                            }
-                                            // 重新设置应用内容
-                                            setAppContent()
-                                        }
-                                    }
-                            )
-                        }
-                        // 检查是否需要显示权限引导界面
-                        else if (showPermissionGuide) {
-                            PermissionGuideScreen(
-                                    onComplete = {
-                                        showPermissionGuide = false
-                                        // 权限设置完成后，启动插件加载并更新内容
-                                        startPluginLoading()
-                                        setAppContent()
-                                    }
-                            )
-                        }
-                        // 显示主应用界面
-                        else {
+                    val onboardingCompleted by agreementPreferences.onboardingCompletedFlow.collectAsState()
+                    if (!onboardingCompleted) {
+                        WelcomeScreen(
+                            onStart = {
+                                agreementPreferences.markOnboardingCompleted()
+                            }
+                        )
+                    } else {
                             // 处理待处理的分享文件
                             processPendingSharedFiles()
                             processPendingSharedText()
@@ -636,12 +554,14 @@ class MainActivity : ComponentActivity() {
                             val routeNavRequest = pendingRouteId
                             val routeNavArgs = pendingRouteArgs
                             val routeNavRequestId = pendingRouteRequestId
+                            val chatOpenRequest = pendingOpenChatId
+                            val chatOpenRequestId = pendingOpenChatRequestId
                             val initialNavItem = when {
                                 shortcutNavItem != null -> shortcutNavItem
                                 else -> currentMainNavItem
                             }
 
-                            CompositionLocalProvider(LocalPluginLoadingState provides pluginLoadingState) {
+                            CompositionLocalProvider(LocalMcpLoadingState provides mcpLoadingState) {
                                 // 主应用界面 (始终存在于底层)
                                 OperitApp(
                                         initialNavItem = initialNavItem,
@@ -651,6 +571,8 @@ class MainActivity : ComponentActivity() {
                                         routeNavRequest = routeNavRequest,
                                         routeNavArgs = routeNavArgs,
                                         routeNavRequestId = routeNavRequestId,
+                                        chatOpenRequest = chatOpenRequest,
+                                        chatOpenRequestId = chatOpenRequestId,
                                         onShortcutNavHandled = { handledRequestId ->
                                             if (pendingShortcutRequestId == handledRequestId) {
                                                 pendingShortcutNavItem = null
@@ -666,16 +588,17 @@ class MainActivity : ComponentActivity() {
                                                 pendingRouteArgs = emptyMap()
                                                 pendingRouteRequestId = 0L
                                             }
+                                        },
+                                        onChatOpenHandled = { handledRequestId ->
+                                            if (pendingOpenChatRequestId == handledRequestId) {
+                                                pendingOpenChatId = null
+                                                pendingOpenChatRequestId = 0L
+                                            }
                                         }
                                 )
                             }
                         }
                     }
-                    // 插件加载界面 (带有淡出效果) - 始终在最上层
-                    PluginLoadingScreenWithState(
-                            loadingState = pluginLoadingState,
-                            modifier = Modifier.zIndex(10f) // 确保加载界面在最上层
-                    )
                 }
 
                 // 方向改变时显示对话框
@@ -801,10 +724,10 @@ class MainActivity : ComponentActivity() {
         AppLogger.d(TAG, "发现新版本: $newVersion，当前版本: $currentVersion")
 
         // 显示更新提示
-        Toast.makeText(
+        OKToast.info(
             this,
             getString(R.string.main_update_available_toast, newVersion),
-            Toast.LENGTH_LONG
+            OKToast.LENGTH_LONG
         ).show()
     }
 

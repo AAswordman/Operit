@@ -15,6 +15,9 @@ class MarkdownLinkParserTest(unittest.TestCase):
     def test_parentheses_in_destination_are_preserved(self) -> None:
         self.assertEqual(inline_targets("[English](README(E).md)"), ["README(E).md"])
 
+    def test_locale_suffix_in_destination_is_preserved(self) -> None:
+        self.assertEqual(inline_targets("[中文](README.zh-CN.md)"), ["README.zh-CN.md"])
+
     def test_inline_code_is_ignored(self) -> None:
         self.assertEqual(inline_targets("Use `[label](missing.md)` here."), [])
 

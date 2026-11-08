@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.system.Os
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.work.Configuration as WorkConfiguration
 import androidx.work.WorkManager
@@ -22,15 +22,15 @@ import com.ai.assistance.operit.BuildConfig
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.chat.AIMessageManager
 import com.ai.assistance.operit.api.chat.AIForegroundService
-import com.ai.assistance.operit.api.chat.library.MemoryAutoSaveScheduler
+import com.ai.assistance.operit.core.memory.extraction.MemoryAutoSaveScheduler
 import com.ai.assistance.operit.plugins.PluginRegistry
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleEvent
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookParams
 import com.ai.assistance.operit.plugins.lifecycle.AppLifecycleHookPluginRegistry
 import com.ai.assistance.operit.core.config.SystemPromptConfig
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.system.AndroidShellExecutor
-import com.ai.assistance.operit.core.tools.system.Terminal
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.system.shell.AndroidShellExecutor
+import com.ai.assistance.operit.core.tools.system.terminal.Terminal
 import com.ai.assistance.operit.core.workflow.WorkflowSchedulerInitializer
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupPreferences
 import com.ai.assistance.operit.data.backup.RoomDatabaseBackupScheduler
@@ -43,17 +43,17 @@ import com.ai.assistance.operit.data.preferences.initUserPreferencesManager
 import com.ai.assistance.operit.data.preferences.preferencesManager
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
 import com.ai.assistance.operit.data.stats.TokenUsageRepository
-import com.ai.assistance.operit.ui.features.chat.webview.LocalWebServer
-import com.ai.assistance.operit.ui.features.chat.webview.workspace.editor.language.LanguageFactory
-import com.ai.assistance.operit.util.GlobalExceptionHandler
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.LocaleUtils
-import com.ai.assistance.operit.util.MediaPoolManager
-import com.ai.assistance.operit.util.CrashRecoveryState
-import com.ai.assistance.operit.util.OperitPaths
-import com.ai.assistance.operit.util.SkillRepoZipPoolManager
-import com.ai.assistance.operit.util.SerializationSetup
-import com.ai.assistance.operit.util.TextSegmenter
+import com.ai.assistance.operit.ui.features.conversation.workspace.preview.LocalWebServer
+import com.ai.assistance.operit.ui.features.conversation.workspace.editor.language.LanguageFactory
+import com.ai.assistance.operit.core.diagnostics.GlobalExceptionHandler
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.android.LocaleUtils
+import com.ai.assistance.operit.util.media.MediaPoolManager
+import com.ai.assistance.operit.core.diagnostics.CrashRecoveryState
+import com.ai.assistance.operit.util.files.OperitPaths
+import com.ai.assistance.operit.data.skill.SkillRepoZipPoolManager
+import com.ai.assistance.operit.data.serialization.SerializationSetup
+import com.ai.assistance.operit.util.text.TextSegmenter
 import com.ai.assistance.operit.util.WaifuMessageProcessor
 import com.ai.assistance.operit.core.tools.agent.ShowerController
 import com.ai.assistance.operit.ui.common.displays.VirtualDisplayOverlay
@@ -117,9 +117,17 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
     override fun onCreate() {
         super.onCreate()
+        com.ai.assistance.operit.ui.common.oktoast.OKToast.initialize(this)
         val startTime = System.currentTimeMillis()
         appStartupTimeMs = startTime
         instance = this
+        AppLogger.bindContext(this)
+        com.ai.assistance.operit.terminal.TerminalManager.setLocalSessionInitializer { context ->
+            com.ai.assistance.operit.core.terminal.commands.NativeTerminalCommands.sessionInitializer(context)
+        }
+        com.ai.assistance.operit.terminal.TerminalManager.setUbuntuArchivePreparer { context, destination ->
+            com.ai.assistance.operit.data.resources.OfflineResources.prepareUbuntuArchive(context, destination)
+        }
 
         // Workers and receivers can cold-start the process without creating an Activity.
         // Initialize process-wide preference dependencies before those entry points can run.
@@ -156,7 +164,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
 
         // 每次应用冷启动时重置上一轮日志，避免日志无限增长
         val isCrashReportRecoveryStartup = CrashRecoveryState.consumePendingCrashReportLaunch(this)
-        if (!isCrashReportRecoveryStartup) {
+        if (!isCrashReportRecoveryStartup && AppLogger.refreshLogWritingEnabled()) {
             AppLogger.resetLogFile()
         }
 
@@ -169,8 +177,20 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
         AppLogger.d(TAG, "【启动计时】应用启动开始")
         AppLogger.d(TAG, "【启动计时】实例初始化完成 - ${System.currentTimeMillis() - startTime}ms")
 
+        // 仅在主应用初始化时恢复，避免修复、崩溃独立进程同时清理终端目录。
+        applicationScope.launch {
+            try {
+                com.ai.assistance.operit.data.resources.OfflineResources.resumePendingUbuntuDeletion(applicationContext)
+            } catch (error: kotlinx.coroutines.CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "恢复未完成的 Ubuntu 删除失败，可在离线资源页重试", error)
+            }
+        }
         launchCleanOnExitCleanup()
         AppLogger.d(TAG, "【启动计时】cleanOnExit 清理任务已提交（异步IO） - ${System.currentTimeMillis() - startTime}ms")
+        launchExternalCodeMediaShield()
+        AppLogger.d(TAG, "【启动计时】开发目录媒体隔离任务已提交（异步IO） - ${System.currentTimeMillis() - startTime}ms")
 
         val defaultProfileName = applicationContext.getString(R.string.default_profile)
         initUserPreferencesManager(applicationContext, defaultProfileName)
@@ -225,11 +245,11 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             .also { it.start() }
         AppLogger.d(TAG, "【启动计时】长期记忆自动保存轮询器启动完成 - ${System.currentTimeMillis() - startTime}ms")
 
-        // 初始化当前活跃角色目标的自定义表情
+        // 整理自定义表情存储，不再预置图片和分组
         applicationScope.launch {
             val emojiStartTime = System.currentTimeMillis()
-            CustomEmojiRepository.getInstance(applicationContext).initializeBuiltinEmojis()
-            AppLogger.d(TAG, "【启动计时】当前角色自定义表情初始化完成（异步） - ${System.currentTimeMillis() - emojiStartTime}ms")
+            CustomEmojiRepository.getInstance(applicationContext).initializeStorage()
+            AppLogger.d(TAG, "【启动计时】自定义表情存储整理完成（异步） - ${System.currentTimeMillis() - emojiStartTime}ms")
         }
 
         // 初始化AndroidShellExecutor上下文
@@ -290,6 +310,7 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
             val dbStartTime = System.currentTimeMillis()
             // 简单访问数据库以触发初始化
             database.openHelper.writableDatabase
+            com.ai.assistance.operit.data.db.MessageSectionBackfill.run(database)
             AppLogger.d(TAG, "【启动计时】数据库预加载完成（异步） - ${System.currentTimeMillis() - dbStartTime}ms")
         }
 
@@ -419,6 +440,16 @@ class OperitApplication : Application(), ImageLoaderFactory, WorkConfiguration.P
                 WorkManager.initialize(applicationContext, workManagerConfiguration)
             } catch (_: IllegalStateException) {
 
+            }
+        }
+    }
+
+    private fun launchExternalCodeMediaShield() {
+        applicationScope.launch {
+            try {
+                OperitPaths.ensureExternalCodeMediaShield()
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "写入开发目录 .nomedia 失败", e)
             }
         }
     }

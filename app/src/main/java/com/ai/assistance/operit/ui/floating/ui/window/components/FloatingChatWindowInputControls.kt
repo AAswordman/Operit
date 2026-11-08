@@ -28,10 +28,10 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeOutlinedTextField as OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
+import com.ai.assistance.operit.ui.theme.script.text.ThemeTextField as TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -61,8 +61,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.AIForegroundService
-import com.ai.assistance.operit.data.model.PromptFunctionType
-import com.ai.assistance.operit.ui.features.chat.components.AttachmentChip
+import com.ai.assistance.operit.core.config.PromptFunctionType
+import com.ai.assistance.operit.ui.features.conversation.chat.modules.attachments.AttachmentChip
 import com.ai.assistance.operit.ui.floating.FloatContext
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.floating.ui.window.viewmodel.FloatingChatWindowModeViewModel
@@ -121,6 +121,7 @@ private fun BottomInputBar(
                 items(floatContext.attachments) { attachmentInfo ->
                     AttachmentChip(
                         attachmentInfo = attachmentInfo,
+                        attachments = floatContext.attachments,
                         onInsert = {},
                         onRemove = { floatContext.onRemoveAttachment?.invoke(attachmentInfo.filePath) }
                     )

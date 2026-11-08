@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- 补齐此前缺少的本地化译文。 -->
+    <string name="tp_allow_hint">berjalan secara automatik</string>
+    <string name="tp_ask_hint">Sahkan setiap masa</string>
+    <string name="tp_forbid_hint">Tidak dibenarkan berlari</string>
+    <string name="tp_all">Semua</string>
+    <string name="tp_search">Nama alat carian atau penerangan</string>
+    <string name="tp_follow_default">ikut lalai</string>
+    <string name="tp_follow_default_with_value">Ikut lalai · %1$s</string>
+    <string name="tp_selected_count">Item %1$d dipilih</string>
+    <string name="tp_select_visible">Pilih semua hasil semasa</string>
+    <string name="tp_no_matches">Tiada alat padanan, cuba kata kunci lain</string>
+    <string name="tp_already_configured">Dikonfigurasikan sebagai peraturan sasaran</string>
+    <string name="tp_apply_count">Mohon pada item %1$d</string>
+    <string name="tp_default_title">Mod pelaksanaan lalai</string>
+    <string name="tp_default_description">Alat yang tidak disediakan secara individu menggunakan peraturan ini. Mengubah suai mod lalai tidak akan menimpa peraturan individu.</string>
+    <string name="tp_saved">Tetapan kebenaran disimpan</string>
+    <string name="tp_save_failed">Simpan gagal, sila cuba lagi</string>
+    <string name="tp_rules_count">Peraturan tunggal · %1$d</string>
+    <string name="tp_batch">Pengurusan kelompok</string>
+    <string name="tp_rules_description">Peraturan individu diutamakan; pilih \"Ikuti Lalai\" untuk mengalih keluar tetapan ini.</string>
+    <string name="tp_results_count">Menunjukkan item %1$d</string>
+    <string name="tp_empty_rules">Tiada peraturan tunggal lagi, semua alat mengikut kaedah lalai</string>
+    <string name="tp_empty_filter">Tiada peraturan individu untuk kategori ini lagi</string>
+    <string name="tp_change">Ubah suai peraturan</string>
+    <string name="tp_batch_title">Ubah suai peraturan %1$d</string>
+    <string name="tp_help">Mod pelaksanaan lalai digunakan untuk alatan tanpa peraturan individu: benarkan akan dijalankan secara automatik, tanya akan meminta pengesahan sebelum setiap pelaksanaan dan tidak benarkan akan menghalangnya daripada berjalan. \n\n Peraturan tunggal sentiasa diutamakan dan mengubah suai mod lalai tidak akan menimpanya. Benarkan, tanya dan larang boleh ditetapkan secara individu; memilih ikut lalai akan mengalih keluar peraturan individu. \n\nAnda boleh mencari nama alat atau penerangan dan menapis mengikut status. Menambah dan pengurusan kelompok akan mengekalkan pemilihan merentas carian dan penapis, dan hanya akan digunakan pada alatan yang dipilih; membatalkan tidak akan menyimpannya. \"Buat asal pengubahsuaian terakhir\" dalam kawasan peraturan boleh memulihkan perubahan terakhir pada halaman ini; gunakan gesaan cahaya untuk menyimpan hasilnya. \n\nTetapan ini hanya mengurus pengesahan pelaksanaan alat dan tidak menggantikan kebenaran sistem Android.</string>
+    <string name="workflow_schedule_invalid">Sila semak konfigurasi: selang sekurang-kurangnya 15 minit dan tidak boleh melimpah; Cron memerlukan lima medan yang sah; tarikh mesti benar-benar wujud; pelan yang didayakan mesti mempunyai pelaksanaan seterusnya sebelum tarikh akhir.</string>
+    <string name="workflow_repeat_daily_hint">Selepas pengaktifan berulang, ia akan dilaksanakan pada waktu tempatan setiap hari dari tarikh yang ditetapkan; ia hanya akan dilaksanakan sekali apabila ia ditutup.</string>
+    <string name="workflow_repeat_hint">Selepas pengaktifan berulang, ia akan terus dilaksanakan mengikut selang masa atau peraturan Cron; apabila ia ditutup, ia hanya akan dilaksanakan pada kali seterusnya.</string>
+    <string name="workflow_end_time_label">Tarikh akhir (pilihan)</string>
+    <string name="workflow_end_time_hint">Biarkan kosong untuk menunjukkan tiada potongan. Gunakan waktu tempatan yyyy-MM-dd HH:mm:ss; pelaksanaan tidak akan dimulakan selepas tarikh akhir melebihi.</string>
+    <string name="workflow_schedule_timing_hint">Selang tetap menunggu selang penuh daripada mendayakan atau mengubah suai jadual, sekurang-kurangnya 15 minit; Cron sepadan dengan jam dalam zon waktu semasa sistem. Latar belakang dijadualkan oleh Android WorkManager. Tidur, penjimatan kuasa, sekatan latar belakang dan giliran tugas mungkin melambatkan pelaksanaan dan ketepatan masa tidak dapat dijamin. Selepas berhenti paksa, anda perlu membuka semula permohonan untuk menyambung semula.</string>
+    <string name="tp_undo_last">Buat asal pengubahsuaian terakhir</string>
+    <string name="tp_restored">Pengubahsuaian terakhir telah dibuat asal</string>
+</resources>

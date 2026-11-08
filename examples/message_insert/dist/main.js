@@ -53,7 +53,7 @@ function resolveHookActivePrompt(input) {
     return input.eventPayload.metadata?.activePrompt;
 }
 function registerToolPkg() {
-    ToolPkg.registerToolboxUiModule({
+    ToolPkg.registerUiModule({
         id: "message_insert_settings",
         runtime: "compose_dsl",
         screen: index_ui_js_1.default,

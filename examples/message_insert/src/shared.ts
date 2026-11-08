@@ -48,9 +48,9 @@ export type ExtraInfoInjectionSettings = {
 export type ExtraInfoI18n = {
   menuTitle: string;
   menuDescription: string;
-  toolboxTitle: string;
-  toolboxSubtitle: string;
-  toolboxBanner: string;
+  settingsTitle: string;
+  settingsSubtitle: string;
+  settingsBanner: string;
   masterSectionTitle: string;
   masterToggleTitle: string;
   masterToggleDescription: string;
@@ -182,9 +182,9 @@ export type ExtraInfoI18n = {
 const ZH_CN_I18N: ExtraInfoI18n = {
   menuTitle: "额外信息注入",
   menuDescription: "发送消息时自动附加时间、电量、天气、位置、通知、记忆等额外信息，并与设置页开关同步",
-  toolboxTitle: "额外信息注入",
-  toolboxSubtitle: "把时间、电量、天气、位置、通知、记忆作为显性附件注入到用户消息里，并可单独控制是否随聊天记录一起保存。",
-  toolboxBanner: "这里的开关和输入菜单里的“额外信息注入”是同一个状态；你可以分别控制注入项目、是否落盘保存，以及记忆检索是否允许重复命中。",
+  settingsTitle: "额外信息注入",
+  settingsSubtitle: "把时间、电量、天气、位置、通知、记忆作为显性附件注入到用户消息里，并可单独控制是否随聊天记录一起保存。",
+  settingsBanner: "这里的开关和输入菜单里的“额外信息注入”是同一个状态；你可以分别控制注入项目、是否落盘保存，以及记忆检索是否允许重复命中。",
   masterSectionTitle: "注入开关",
   masterToggleTitle: "额外信息注入",
   masterToggleDescription: "和输入菜单里的“额外信息注入”开关完全同步，切一个地方，另一个地方会一起变化。",
@@ -316,9 +316,9 @@ const ZH_CN_I18N: ExtraInfoI18n = {
 const EN_US_I18N: ExtraInfoI18n = {
   menuTitle: "Extra Info Injection",
   menuDescription: "Automatically attach time, battery, weather, location, notifications, memories, and other extra info when sending messages, synced with the settings switch",
-  toolboxTitle: "Extra Info Injection",
-  toolboxSubtitle: "Attach time, battery, weather, location, notifications, and memories as visible attachments to the user message, with a separate option for whether they are persisted in chat history.",
-  toolboxBanner: "This switch is the same state as the input-menu toggle. You can separately control the injected items, whether they are persisted, and whether memory hits may repeat in the same chat.",
+  settingsTitle: "Extra Info Injection",
+  settingsSubtitle: "Attach time, battery, weather, location, notifications, and memories as visible attachments to the user message, with a separate option for whether they are persisted in chat history.",
+  settingsBanner: "This switch is the same state as the input-menu toggle. You can separately control the injected items, whether they are persisted, and whether memory hits may repeat in the same chat.",
   masterSectionTitle: "Injection Switch",
   masterToggleTitle: "Extra Info Injection",
   masterToggleDescription: "This is the exact same switch as the input-menu toggle. Changing either one keeps the other in sync.",

@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.ui.common.displays
 
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import org.scilab.forge.jlatexmath.Atom
 import org.scilab.forge.jlatexmath.ColorAtom
 import org.scilab.forge.jlatexmath.EmptyAtom

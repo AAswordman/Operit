@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="speech_workbench_tab_tts">朗读 TTS</string>
+    <string name="speech_workbench_tab_stt">识别 STT</string>
+    <string name="speech_workbench_tts_profile">当前朗读档案</string>
+    <string name="speech_workbench_stt_profile">当前识别档案</string>
+    <string name="speech_workbench_profile_active_hint">切换即生效</string>
+    <string name="speech_workbench_switch">切换</string>
+    <string name="speech_workbench_manage_profile">管理当前档案</string>
+    <string name="speech_workbench_duplicate">复制为新档案</string>
+    <string name="speech_workbench_copy_name">%1$s 副本</string>
+    <string name="speech_workbench_copy_current">从当前档案复制参数</string>
+    <string name="speech_workbench_delete_current_hint">删除后切换到另一份档案</string>
+    <string name="speech_workbench_keep_one_profile">至少保留一份档案</string>
+    <string name="speech_workbench_saving">正在保存修改…</string>
+    <string name="speech_workbench_saved">修改会自动保存</string>
+    <string name="speech_workbench_save_error">修改未保存：%1$s</string>
+    <string name="speech_workbench_connection">引擎与连接</string>
+    <string name="speech_workbench_local">本地 · 在设备上运行</string>
+    <string name="speech_workbench_online">在线 · 连接语音服务</string>
+    <string name="speech_workbench_voice_style">声音与朗读习惯</string>
+    <string name="speech_workbench_http_advanced_hint">请求方法、请求头、正文与响应处理</string>
+    <string name="speech_workbench_secret_visibility">切换密钥可见性</string>
+    <string name="speech_workbench_search_hint">搜索名称或 ID</string>
+    <string name="speech_workbench_empty_choices">没有匹配的项目</string>
+    <string name="speech_workbench_manual_value">手动填写</string>
+    <string name="speech_workbench_use_value">使用输入值</string>
+    <string name="speech_workbench_cleaner_count">%1$d 条规则 · 移除不需要读出的文本</string>
+    <string name="speech_workbench_rule_number">规则 %1$d</string>
+    <string name="speech_workbench_regex_error">请输入有效的正则表达式</string>
+    <string name="speech_workbench_preview_title">听听现在的声音</string>
+    <string name="speech_workbench_preview_hint">使用当前编辑的朗读配置</string>
+    <string name="speech_workbench_preview_play">试听这段文字</string>
+    <string name="speech_workbench_preparing">正在准备语音…</string>
+    <string name="speech_workbench_sample_text">你好，这是一段语音试听。试着调整一下语速和音调，听听现在的声音。</string>
+    <string name="speech_workbench_stt_preview_title">试着说一句</string>
+    <string name="speech_workbench_local_stt_hint">使用设备上的 Sherpa NCNN 识别，无需在线地址或密钥。请先准备对应的离线资源。</string>
+    <string name="speech_workbench_wake_listening">后台监听</string>
+    <string name="speech_workbench_wake_method">怎样唤醒</string>
+    <string name="speech_workbench_wake_after">唤醒以后</string>
+    <string name="speech_workbench_wake_stt">STT 文字匹配</string>
+    <string name="speech_workbench_wake_personal">个性化唤醒</string>
+    <string name="speech_workbench_wake_local_hint">后台唤醒词检测使用本地 Sherpa NCNN；在线识别档案不用于后台监听。</string>
+    <string name="speech_workbench_attachment_keywords">触发关键词</string>
+</resources>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.PixelFormat
 import android.os.Build
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -30,7 +31,7 @@ import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.ai.assistance.operit.services.ServiceLifecycleOwner
 import com.ai.assistance.operit.services.UIDebuggerService
-import com.ai.assistance.operit.ui.features.toolbox.screens.uidebugger.UIDebuggerOverlay
+import com.ai.assistance.operit.ui.features.support.diagnostics.uidebugger.UIDebuggerOverlay
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.savedstate.SavedStateRegistryOwner
@@ -113,13 +114,17 @@ class UIDebuggerWindowManager(
     private fun updateWindowLayout() {
         params?.let { layoutParams ->
             if (isExpanded.value) {
-                // Expand to full screen
-                layoutParams.width = WindowManager.LayoutParams.MATCH_PARENT
-                layoutParams.height = WindowManager.LayoutParams.MATCH_PARENT
+                // 限制浮窗范围，否则全屏窗口会截走底层应用的点击和滑动。
+                val density = context.resources.displayMetrics.density
+                val screen = context.resources.displayMetrics
+                layoutParams.width = minOf((360 * density).toInt(), screen.widthPixels)
+                layoutParams.height = minOf((460 * density).toInt(), screen.heightPixels / 2)
+                layoutParams.gravity = Gravity.BOTTOM or Gravity.END
                 layoutParams.x = 0
                 layoutParams.y = 0
             } else {
                 // Shrink back to floating ball
+                layoutParams.gravity = Gravity.TOP or Gravity.START
                 layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT
                 layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT
                 layoutParams.x = ballX.value.toInt()
@@ -129,6 +134,11 @@ class UIDebuggerWindowManager(
                 windowManager.updateViewLayout(view, layoutParams)
             }
         }
+    }
+
+    fun setWindowVisible(visible: Boolean) {
+        // 读取当前页面时移开调试窗，避免 get_page_info 读取到调试器自己。
+        composeView?.visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     fun remove() {

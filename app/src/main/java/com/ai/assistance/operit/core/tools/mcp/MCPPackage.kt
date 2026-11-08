@@ -45,12 +45,12 @@ data class MCPPackage(
                     errorMessage = mcpManager.getLastConnectionFailureReason(serverConfig.name)
                         ?: "Connection failed"
                 )
-            com.ai.assistance.operit.util.AppLogger.d(TAG, "正在连接到MCP服务器: ${serverConfig.name}")
+            com.ai.assistance.operit.util.logging.AppLogger.d(TAG, "正在连接到MCP服务器: ${serverConfig.name}")
 
             try {
                 val connected = runBlocking { session.connect() }
                 if (!connected) {
-                    com.ai.assistance.operit.util.AppLogger.w(TAG, "无法连接到MCP服务器: ${serverConfig.name}")
+                    com.ai.assistance.operit.util.logging.AppLogger.w(TAG, "无法连接到MCP服务器: ${serverConfig.name}")
                     return LoadResult(
                         mcpPackage = null,
                         errorMessage = mcpManager.getLastConnectionFailureReason(serverConfig.name)
@@ -58,19 +58,19 @@ data class MCPPackage(
                     )
                 }
 
-                com.ai.assistance.operit.util.AppLogger.d(TAG, "成功连接到MCP服务器: ${serverConfig.name}，开始获取工具列表")
+                com.ai.assistance.operit.util.logging.AppLogger.d(TAG, "成功连接到MCP服务器: ${serverConfig.name}，开始获取工具列表")
 
                 // 获取工具列表
                 val runtimeTools = runBlocking { session.listTools() }
                 if (runtimeTools.isEmpty()) {
-                    com.ai.assistance.operit.util.AppLogger.w(TAG, "MCP服务器 ${serverConfig.name} 没有提供任何工具")
+                    com.ai.assistance.operit.util.logging.AppLogger.w(TAG, "MCP服务器 ${serverConfig.name} 没有提供任何工具")
                     // 不要因为没有工具就返回null
                     // 返回一个包含空工具列表的有效包
-                    com.ai.assistance.operit.util.AppLogger.d(TAG, "创建不包含工具的MCP包 - 服务已连接但没有工具")
+                    com.ai.assistance.operit.util.logging.AppLogger.d(TAG, "创建不包含工具的MCP包 - 服务已连接但没有工具")
                     return LoadResult(mcpPackage = MCPPackage(serverConfig, emptyList()))
                 }
 
-                com.ai.assistance.operit.util.AppLogger.d(TAG, "成功从MCP服务器获取 ${runtimeTools.size} 个工具")
+                com.ai.assistance.operit.util.logging.AppLogger.d(TAG, "成功从MCP服务器获取 ${runtimeTools.size} 个工具")
 
                 // 将运行时工具转换为MCPTool
                 val mcpTools =
@@ -112,15 +112,15 @@ data class MCPPackage(
 
                                 MCPTool(name, description, params)
                             } catch (e: Exception) {
-                                com.ai.assistance.operit.util.AppLogger.e(TAG, "解析MCP工具时出错: ${e.message}")
+                                com.ai.assistance.operit.util.logging.AppLogger.e(TAG, "解析MCP工具时出错: ${e.message}")
                                 null
                             }
                         }
 
-                com.ai.assistance.operit.util.AppLogger.d(TAG, "成功创建MCP包，包含 ${mcpTools.size} 个工具，保持连接活跃")
+                com.ai.assistance.operit.util.logging.AppLogger.d(TAG, "成功创建MCP包，包含 ${mcpTools.size} 个工具，保持连接活跃")
                 return LoadResult(mcpPackage = MCPPackage(serverConfig, mcpTools))
             } catch (e: Exception) {
-                com.ai.assistance.operit.util.AppLogger.e(TAG, "创建MCP包时出错: ${e.message}", e)
+                com.ai.assistance.operit.util.logging.AppLogger.e(TAG, "创建MCP包时出错: ${e.message}", e)
                 return LoadResult(
                     mcpPackage = null,
                     errorMessage = e.message ?: "Unexpected exception while creating MCP package"

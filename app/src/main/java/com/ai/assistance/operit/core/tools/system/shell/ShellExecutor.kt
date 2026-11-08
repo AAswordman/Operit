@@ -1,7 +1,7 @@
 package com.ai.assistance.operit.core.tools.system.shell
 
-import com.ai.assistance.operit.core.tools.system.AndroidPermissionLevel
-import com.ai.assistance.operit.core.tools.system.ShellIdentity
+import com.ai.assistance.operit.core.tools.permissions.AndroidPermissionLevel
+import com.ai.assistance.operit.core.tools.system.shell.ShellIdentity
 
 /** 通用Shell命令执行接口 定义了不同权限级别Shell操作的统一接口 */
 interface ShellExecutor {

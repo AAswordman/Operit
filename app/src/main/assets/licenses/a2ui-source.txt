@@ -1,0 +1,11 @@
+A2UI 原生界面来源说明
+
+本发行版 ui/common/a2ui 的原生卡片宿主、Express 编译器、相关示例与 Lucide 图标生成资料，
+参考并移植自 Rainy / CATMIAOZHI 维护的 Operit Ry：
+https://github.com/CATMIAOZHI/Operit
+固定参考提交：9902726bec086d2950e6472c14f6acb9cca85413
+
+保留 Operit 原项目与贡献者的著作权和仓库 LICENSE，遵守对应许可证。
+本分支适配消息片段、流式传输、交互发送、历史与生命周期，并将生成工具原生化。
+AndroidX A2UI 的本地兼容源码、来源与适配记录保存在 a2ui-compat，遵守各自的开源许可证。
+Lucide 0.456.0 使用 ISC，包含 Feather MIT 许可部分；完整文本随 assets/licenses 分发。

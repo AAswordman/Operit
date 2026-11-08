@@ -1,0 +1,31 @@
+<resources>
+    <string name="workspace_properties_title">Properties</string>
+    <string name="workspace_properties_name">Name</string>
+    <string name="workspace_properties_directory">Directory</string>
+    <string name="workspace_properties_type">Type</string>
+    <string name="workspace_properties_size">Size</string>
+    <string name="workspace_properties_modified">Modified</string>
+    <string name="workspace_properties_file_count">Files</string>
+    <string name="workspace_properties_folder_count">Folders</string>
+    <string name="workspace_properties_file">File</string>
+    <string name="workspace_properties_folder">Folder</string>
+    <string name="workspace_properties_symlink">Symbolic link</string>
+    <string name="workspace_properties_extension_type">%1$s file</string>
+    <string name="workspace_properties_recursive_hint">Includes descendants at every level, excluding this folder. Symbolic links are not followed.</string>
+    <string name="workspace_properties_unknown">Unknown</string>
+    <string name="workspace_properties_calculating">Calculating…</string>
+    <string name="workspace_properties_incomplete">Incomplete: %1$d unreadable directories and %2$d files with unknown size.</string>
+    <string name="workspace_properties_more">More</string>
+    <string name="workspace_properties_change_time">Change modification time</string>
+    <string name="workspace_properties_time_format">Format: yyyy-MM-dd HH:mm:ss, for example 2026-10-28 21:30:00</string>
+    <string name="workspace_properties_now">Use current time</string>
+    <string name="workspace_properties_apply_children">Also apply to all descendant files and folders</string>
+    <string name="workspace_properties_time_result">Updated %1$d items; %2$d failed.</string>
+    <string name="workspace_properties_time_unsupported">This file source does not support changing modification time.</string>
+    <string name="workspace_properties_copied">Copied</string>
+    <string name="workspace_properties_retry">Retry</string>
+    <string name="workspace_properties_read_failed">Unable to read file information. Check directory access.</string>
+    <string name="workspace_properties_entry_missing">The file or folder does not exist or is no longer accessible.</string>
+    <string name="workspace_properties_source_missing">Directory access is no longer available. Grant access again.</string>
+    <string name="workspace_properties_source_unsupported">Properties are unavailable for this workspace file source.</string>
+</resources>

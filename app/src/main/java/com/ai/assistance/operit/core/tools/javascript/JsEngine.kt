@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.core.tools.javascript
 
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.jsonPrimitive
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.Looper
@@ -9,21 +11,23 @@ import androidx.core.content.ContextCompat
 import com.ai.assistance.operit.core.application.ActivityLifecycleManager
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
-import com.ai.assistance.operit.core.tools.AIToolHandler
-import com.ai.assistance.operit.core.tools.packTool.PackageManager
-import com.ai.assistance.operit.core.tools.packTool.TOOLPKG_EVENT_MESSAGE_PROCESSING
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgApiCompatibility
-import com.ai.assistance.operit.core.tools.packTool.ToolPkgApiVersion
+import com.ai.assistance.operit.core.tools.runtime.AIToolHandler
+import com.ai.assistance.operit.core.tools.packTool.runtime.PackageManager
+import com.ai.assistance.operit.core.tools.packTool.metadata.TOOLPKG_EVENT_MESSAGE_PROCESSING
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgApiCompatibility
+import com.ai.assistance.operit.core.tools.packTool.metadata.ToolPkgApiVersion
+import com.ai.assistance.operit.core.tools.packTool.uidsl.ToolPkgComposeDslRenderResult
+import com.ai.assistance.operit.core.tools.packTool.runtime.ToolPkgRuntimeMonitor
 import com.ai.assistance.operit.ui.main.navigation.AppRouteDiscoveryGateway
 import com.ai.assistance.operit.ui.main.navigation.AppRouterGateway
 import com.ai.assistance.operit.ui.main.navigation.RouteEntrySource
 import com.ai.assistance.operit.ui.main.navigation.RouteRuntime
 import com.ai.assistance.operit.ui.common.composedsl.ComposeDslFilePickerHostRegistry
 import com.ai.assistance.operit.ui.common.composedsl.ComposeDslWebViewHostRegistry
-import com.ai.assistance.operit.util.AppLogger
-import com.ai.assistance.operit.util.ImagePoolManager
-import com.ai.assistance.operit.util.LocaleUtils
-import com.ai.assistance.operit.util.OperitPaths
+import com.ai.assistance.operit.util.logging.AppLogger
+import com.ai.assistance.operit.util.media.ImagePoolManager
+import com.ai.assistance.operit.util.android.LocaleUtils
+import com.ai.assistance.operit.util.files.OperitPaths
 import java.util.UUID
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
@@ -32,6 +36,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -53,6 +58,7 @@ class JsEngine(private val context: Context) {
         private const val DIRECT_SCRIPT_EXECUTION_FUNCTION = "__operit_run_inline_code__"
     }
 
+    private val pendingComposeActionIds = mutableMapOf<String, Int>()
     private val bitmapRegistry = ConcurrentHashMap<String, Bitmap>()
     private val binaryDataRegistry = ConcurrentHashMap<String, ByteArray>()
     private val javaObjectRegistry = ConcurrentHashMap<String, Any>()
@@ -88,8 +94,11 @@ class JsEngine(private val context: Context) {
         val dispatchIntermediateOnMain: Boolean,
         val envOverrides: Map<String, String>,
         val packageChatId: String?,
+        val packageName: String?,
         val toolPkgApiVersion: ToolPkgApiVersion?,
         val toolPkgLogSnapshot: JsToolPkgExecutionContext.LogSnapshot,
+        val runtimeMonitorCall: ToolPkgRuntimeMonitor.CallHandle?,
+        val runtimeFailureMessage: AtomicReference<String?>,
         val executionListener: JsExecutionListener?
     )
 
@@ -193,6 +202,30 @@ class JsEngine(private val context: Context) {
                 throw e
             }
         }
+    }
+
+    private fun quickJsMemorySample(resetPeak: Boolean): ToolPkgRuntimeMonitor.MemorySample? {
+        val engine = quickJs ?: return null
+        if (resetPeak) {
+            engine.resetMemoryPeak()
+        }
+        val usage = engine.getMemoryUsage()
+        return ToolPkgRuntimeMonitor.MemorySample(
+            timestampMs = System.currentTimeMillis(),
+            jsHeapUsedKb = usage.memoryUsedBytes / 1024L,
+            jsMallocUsedKb = usage.mallocSizeBytes / 1024L,
+            jsPeakMallocUsedKb = usage.peakMallocSizeBytes / 1024L
+        )
+    }
+
+    internal fun getQuickJsMemoryUsage(): QuickJsMemoryUsage? {
+        return quickJs?.getMemoryUsage()
+    }
+
+    /** QuickJS 运行线程的内核 tid，供 /proc/self/task 采样 CPU 用；引擎未创建时为 null。 */
+    internal fun getQuickJsRuntimeTid(): Long? {
+        val engine = quickJs ?: return null
+        return engine.getRuntimeTid().takeIf { it > 0 }
     }
 
     private fun interruptQuickJs(reason: String) {
@@ -312,6 +345,7 @@ class JsEngine(private val context: Context) {
         onIntermediateResult: ((Any?) -> Unit)?,
         dispatchIntermediateOnMain: Boolean,
         toolPkgApiVersion: ToolPkgApiVersion?,
+        runtimeMonitorCall: ToolPkgRuntimeMonitor.CallHandle?,
         executionListener: JsExecutionListener?
     ): ExecutionSession {
         return ExecutionSession(
@@ -325,8 +359,11 @@ class JsEngine(private val context: Context) {
                     ?.toString()
                     ?.trim()
                     ?.ifBlank { null },
+            packageName = params["__operit_package_name"]?.toString(),
             toolPkgApiVersion = toolPkgApiVersion,
             toolPkgLogSnapshot = toolPkgExecutionContext.capture(script, functionName, params),
+            runtimeMonitorCall = runtimeMonitorCall,
+            runtimeFailureMessage = AtomicReference(null),
             executionListener = executionListener
         )
     }
@@ -460,6 +497,11 @@ class JsEngine(private val context: Context) {
         val sessions = activeExecutionSessions.values.toList()
         activeExecutionSessions.clear()
         sessions.forEach { session ->
+            ToolPkgRuntimeMonitor.finishCall(
+                handle = session.runtimeMonitorCall,
+                success = false,
+                message = reason
+            )
             if (!session.future.isDone) {
                 session.future.complete(buildJsExecutionErrorPayload(reason))
             }
@@ -821,6 +863,14 @@ class JsEngine(private val context: Context) {
                     explicitApiVersion = toolPkgApiVersion
                 )
             val callId = nextExecutionCallId()
+            val runtimeMonitorStartMemory = quickJsMemorySample(resetPeak = true)
+            val runtimeMonitorCall =
+                ToolPkgRuntimeMonitor.beginCall(
+                    callId = callId,
+                    functionName = functionName,
+                    params = effectiveParams,
+                    startMemory = runtimeMonitorStartMemory
+                )
             val session =
                 createExecutionSession(
                     callId = callId,
@@ -831,13 +881,14 @@ class JsEngine(private val context: Context) {
                     onIntermediateResult = onIntermediateResult,
                     dispatchIntermediateOnMain = dispatchIntermediateOnMain,
                     toolPkgApiVersion = executionToolPkgApiVersion,
+                    runtimeMonitorCall = runtimeMonitorCall,
                     executionListener = executionListener
                 )
             activeExecutionSessions[callId] = session
 
             val buildExecutionScriptStartTime = if (shouldLogTiming) messageTimingNow() else 0L
             val paramsObject = JSONObject(effectiveParams)
-            val paramsJson = paramsObject.toString()
+            // 参数只随执行参数序列化一次，避免总结等大上下文为计时日志再复制一份 JSON。
             val safeTimeoutMillis = timeoutMillis?.let { if (it <= 0L) 1L else it }
             val safeTimeoutSec =
                 safeTimeoutMillis?.let { milliseconds ->
@@ -867,7 +918,7 @@ class JsEngine(private val context: Context) {
                 logMessageTiming(
                     stage = "toolpkg.jsEngine.buildExecutionScript",
                     startTimeMs = buildExecutionScriptStartTime,
-                    details = "function=$functionName, plugin=$timingPluginId, scriptLength=${script.length}, paramsLength=${paramsJson.length}, argsLength=${executionArgsJson.length}, directInvoke=true"
+                    details = "function=$functionName, plugin=$timingPluginId, scriptLength=${script.length}, paramsKeys=${paramsObject.length()}, argsLength=${executionArgsJson.length}, directInvoke=true"
                 )
             }
 
@@ -882,6 +933,11 @@ class JsEngine(private val context: Context) {
                         e
                     )
                     removeExecutionSession(callId)
+                    ToolPkgRuntimeMonitor.finishCall(
+                        handle = session.runtimeMonitorCall,
+                        success = false,
+                        message = e.message ?: "dispatch failed"
+                    )
                     session.executionListener?.onFailed(callId, e.message ?: "dispatch failed")
                     if (!session.future.isDone) {
                         session.future.complete(buildJsExecutionErrorPayload(e.message ?: "dispatch failed"))
@@ -911,16 +967,23 @@ class JsEngine(private val context: Context) {
                     session.future.get(safeTimeoutSec, TimeUnit.SECONDS)
                 }
             removeExecutionSession(callId)
+            val runtimeFailureMessage = session.runtimeFailureMessage.get()
+            ToolPkgRuntimeMonitor.finishCall(
+                handle = session.runtimeMonitorCall,
+                success = runtimeFailureMessage == null,
+                message = runtimeFailureMessage,
+                endMemory = quickJsMemorySample(resetPeak = false)
+            )
             if (shouldLogTiming) {
                 logMessageTiming(
                     stage = "toolpkg.jsEngine.waitResult",
                     startTimeMs = waitResultStartTime,
-                    details = "function=$functionName, plugin=$timingPluginId, callId=$callId, success=true, resultType=${result?.javaClass?.simpleName ?: "null"}"
+                    details = "function=$functionName, plugin=$timingPluginId, callId=$callId, success=${runtimeFailureMessage == null}, resultType=${result?.javaClass?.simpleName ?: "null"}"
                 )
                 logMessageTiming(
                     stage = "toolpkg.jsEngine.total",
                     startTimeMs = totalStartTime,
-                    details = "function=$functionName, plugin=$timingPluginId, callId=$callId, success=true"
+                        details = "function=$functionName, plugin=$timingPluginId, callId=$callId, success=${runtimeFailureMessage == null}"
                 )
             }
             result
@@ -952,6 +1015,12 @@ class JsEngine(private val context: Context) {
                 e
             )
             removeExecutionSession(callId)
+            ToolPkgRuntimeMonitor.finishCall(
+                handle = session.runtimeMonitorCall,
+                success = false,
+                message = failureReason,
+                endMemory = quickJsMemorySample(resetPeak = false)
+            )
             cancelExecutionSessionInJs(callId, failureReason)
             session.executionListener?.onFailed(callId, failureReason)
             if (shouldLogTiming) {
@@ -1076,7 +1145,43 @@ class JsEngine(private val context: Context) {
                 functionName = "__operit_render_compose_dsl",
                 params = runtimeOptions,
                 envOverrides = envOverrides,
-                timeoutSec = null
+                timeoutSec = JsTimeoutConfig.COMPOSE_DSL_LOAD_TIMEOUT_SECONDS
+        )
+    }
+
+    private fun retainPendingComposeAction(actionId: String) {
+        synchronized(pendingComposeActionIds) {
+            pendingComposeActionIds[actionId] = (pendingComposeActionIds[actionId] ?: 0) + 1
+        }
+    }
+
+    private fun releasePendingComposeAction(actionId: String) {
+        synchronized(pendingComposeActionIds) {
+            val count = pendingComposeActionIds[actionId] ?: return
+            if (count <= 1) pendingComposeActionIds.remove(actionId)
+            else pendingComposeActionIds[actionId] = count - 1
+        }
+    }
+
+    fun retainComposeDslActions(result: ToolPkgComposeDslRenderResult) {
+        val snapshot = result.actionSnapshot ?: return
+        val snapshotJson = JSONObject()
+            .put("contextId", snapshot.contextId)
+            .put("generation", snapshot.generation)
+            .put("counter", snapshot.counter)
+        val actionIdsJson = JSONArray(collectComposeDslActionIds(result))
+        // 回收与执行共用 QuickJS 队列，并在实际回收时读取待执行回调，避免界面切换抢先删除它们。
+        launchQuickJsEvaluation(
+            script = """
+                (function() {
+                    var bundle = globalThis.__operit_compose_bundle;
+                    if (!bundle) return;
+                    var ids = $actionIdsJson;
+                    var pending = JSON.parse(NativeInterface.getPendingComposeActionIds());
+                    bundle.retainActions($snapshotJson, ids.concat(pending));
+                })();
+            """.trimIndent(),
+            fileName = "quickjs/runtime/compose-action-retention.js"
         )
     }
 
@@ -1085,7 +1190,8 @@ class JsEngine(private val context: Context) {
             payload: Any? = null,
             runtimeOptions: Map<String, Any?> = emptyMap(),
             envOverrides: Map<String, String> = emptyMap(),
-            onIntermediateResult: ((Any?) -> Unit)? = null
+            onIntermediateResult: ((Any?) -> Unit)? = null,
+            timeoutSec: Long? = null
     ): Any? {
         val normalizedActionId = actionId.trim()
         if (normalizedActionId.isBlank()) {
@@ -1096,14 +1202,19 @@ class JsEngine(private val context: Context) {
         if (payload != null) {
             params["__action_payload"] = payload
         }
-        return executeScriptFunction(
+        retainPendingComposeAction(normalizedActionId)
+        return try {
+            executeScriptFunction(
                 script = "",
                 functionName = "__operit_dispatch_compose_dsl_action",
                 params = params,
                 envOverrides = envOverrides,
                 onIntermediateResult = onIntermediateResult,
-                timeoutSec = null
-        )
+                timeoutSec = timeoutSec
+            )
+        } finally {
+            releasePendingComposeAction(normalizedActionId)
+        }
     }
 
     fun rerenderComposeDslTree(
@@ -1115,7 +1226,7 @@ class JsEngine(private val context: Context) {
                 functionName = "__operit_rerender_compose_dsl",
                 params = runtimeOptions,
                 envOverrides = envOverrides,
-                timeoutSec = null
+                timeoutSec = JsTimeoutConfig.COMPOSE_DSL_LOAD_TIMEOUT_SECONDS
         )
     }
 
@@ -1127,7 +1238,8 @@ class JsEngine(private val context: Context) {
             onIntermediateResult: ((Any?) -> Unit)? = null,
             onFinalResult: ((Any?) -> Unit)? = null,
             onComplete: (() -> Unit)? = null,
-            onError: ((String) -> Unit)? = null
+            onError: ((String) -> Unit)? = null,
+            timeoutSec: Long? = null
     ): Boolean {
         val normalizedActionId = actionId.trim()
         if (normalizedActionId.isBlank()) {
@@ -1136,38 +1248,45 @@ class JsEngine(private val context: Context) {
             return false
         }
 
+        // 在启动线程前登记，已排队但尚未进入 JS 的界面事件也必须保留回调。
+        retainPendingComposeAction(normalizedActionId)
         Thread {
-            val result =
-                try {
-                    executeComposeDslAction(
-                        actionId = normalizedActionId,
-                        payload = payload,
-                        runtimeOptions = runtimeOptions,
-                        envOverrides = envOverrides,
-                        onIntermediateResult = onIntermediateResult
-                    )
-                } catch (e: Exception) {
-                    val errorText = e.message?.trim().orEmpty().ifBlank { "compose action dispatch failed" }
-                    AppLogger.e(TAG, "dispatch compose action failed: actionId=$normalizedActionId, error=$errorText", e)
-                    ContextCompat.getMainExecutor(context).execute {
-                        onError?.invoke(errorText)
-                        onComplete?.invoke()
+            try {
+                val result =
+                    try {
+                        executeComposeDslAction(
+                            actionId = normalizedActionId,
+                            payload = payload,
+                            runtimeOptions = runtimeOptions,
+                            envOverrides = envOverrides,
+                            onIntermediateResult = onIntermediateResult,
+                            timeoutSec = timeoutSec
+                        )
+                    } catch (e: Exception) {
+                        val errorText = e.message?.trim().orEmpty().ifBlank { "compose action dispatch failed" }
+                        AppLogger.e(TAG, "dispatch compose action failed: actionId=$normalizedActionId, error=$errorText", e)
+                        ContextCompat.getMainExecutor(context).execute {
+                            onError?.invoke(errorText)
+                            onComplete?.invoke()
+                        }
+                        return@Thread
                     }
-                    return@Thread
-                }
 
-            val errorText = extractJsExecutionErrorMessage(result)
-            ContextCompat.getMainExecutor(context).execute {
-                if (errorText != null) {
-                    AppLogger.e(
-                        TAG,
-                        "dispatch compose action failed: actionId=$normalizedActionId, error=$errorText"
-                    )
-                    onError?.invoke(errorText)
-                } else if (result != null) {
-                    onFinalResult?.invoke(result)
+                val errorText = extractJsExecutionErrorMessage(result)
+                ContextCompat.getMainExecutor(context).execute {
+                    if (errorText != null) {
+                        AppLogger.e(
+                            TAG,
+                            "dispatch compose action failed: actionId=$normalizedActionId, error=$errorText"
+                        )
+                        onError?.invoke(errorText)
+                    } else if (result != null) {
+                        onFinalResult?.invoke(result)
+                    }
+                    onComplete?.invoke()
                 }
-                onComplete?.invoke()
+            } finally {
+                releasePendingComposeAction(normalizedActionId)
             }
         }.start()
 
@@ -1247,7 +1366,8 @@ class JsEngine(private val context: Context) {
         targetContextKey: String,
         targetRuntime: String,
         channel: String,
-        payloadJson: String
+        payloadJson: String,
+        timeoutSec: Long = JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
     ): String {
         val normalizedTarget = packageTarget.trim()
         if (normalizedTarget.isEmpty()) {
@@ -1392,6 +1512,7 @@ class JsEngine(private val context: Context) {
                 }
             """.trimIndent()
         return try {
+            packageManager.recordPluginUse(normalizedTarget)
             val result =
                 engine.executeScriptFunction(
                     script = script,
@@ -1410,7 +1531,11 @@ class JsEngine(private val context: Context) {
                             "__operit_toolpkg_ipc_payload_json" to payloadJson.trim().ifEmpty { "null" },
                             "__operit_toolpkg_ipc_caller_context_key" to callerContextKey.trim()
                         ),
-                    timeoutSec = 15L
+                    timeoutSec = if (timeoutSec <= 0L) {
+                        JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
+                    } else {
+                        timeoutSec
+                    }
                 )
             val errorMessage = extractJsExecutionErrorMessage(result)
             if (errorMessage != null) {
@@ -1688,6 +1813,29 @@ class JsEngine(private val context: Context) {
             channel: String,
             payloadJson: String
         ) {
+            invokeToolPkgIpcAsync(
+                callbackId = callbackId,
+                packageTarget = packageTarget,
+                callerContextKey = callerContextKey,
+                targetContextKey = targetContextKey,
+                targetRuntime = targetRuntime,
+                channel = channel,
+                payloadJson = payloadJson,
+                timeoutSec = JsTimeoutConfig.TOOLPKG_IPC_TIMEOUT_SECONDS
+            )
+        }
+
+        @JavascriptInterface
+        fun invokeToolPkgIpcAsync(
+            callbackId: String,
+            packageTarget: String,
+            callerContextKey: String,
+            targetContextKey: String,
+            targetRuntime: String,
+            channel: String,
+            payloadJson: String,
+            timeoutSec: Long
+        ) {
             val normalizedCallback = callbackId.trim()
             if (normalizedCallback.isEmpty()) {
                 return
@@ -1701,7 +1849,8 @@ class JsEngine(private val context: Context) {
                             targetContextKey = targetContextKey,
                             targetRuntime = targetRuntime,
                             channel = channel,
-                            payloadJson = payloadJson
+                            payloadJson = payloadJson,
+                            timeoutSec = timeoutSec
                         )
                     sendToolPkgIpcResult(normalizedCallback, resultJson, false)
                 } catch (error: Throwable) {
@@ -1831,8 +1980,14 @@ class JsEngine(private val context: Context) {
         }
 
         @JavascriptInterface
+        fun registerToolPkgUiModule(specJson: String) {
+            toolPkgRegistrationSession.appendUiModule(specJson)
+        }
+
+        // 已安装旧插件仍可在详情打开配置，与新接口使用同一模块收集器。
+        @JavascriptInterface
         fun registerToolPkgToolboxUiModule(specJson: String) {
-            toolPkgRegistrationSession.appendToolboxUiModule(specJson)
+            toolPkgRegistrationSession.appendUiModule(specJson)
         }
 
         @JavascriptInterface
@@ -2109,6 +2264,11 @@ class JsEngine(private val context: Context) {
                 target = activity,
                 failureLabel = "Failed to expose current activity"
             )
+        }
+
+        @JavascriptInterface
+        fun getPendingComposeActionIds(): String = synchronized(pendingComposeActionIds) {
+            JSONArray(pendingComposeActionIds.keys.toList()).toString()
         }
 
         @JavascriptInterface
@@ -2416,14 +2576,12 @@ class JsEngine(private val context: Context) {
             }
             try {
                 ensureQuickJs()
-                val jsCode =
-                    JsNativeInterfaceDelegates.buildToolResultCallbackScript(
-                        callbackId = callbackId,
-                        result = result,
-                        isError = isError
-                    )
-                launchQuickJsEvaluation(
-                    script = jsCode,
+                val argsJson = buildToolResultCallbackArgs(callbackId, result, isError)
+                // 大结果只作为函数参数传递，不再生成包含结果正文的脚本源码。
+                launchQuickJsFunctionCall(
+                    functionName = TOOL_RESULT_CALLBACK_FUNCTION,
+                    argsJson = argsJson,
+                    callSite = "quickjs/runtime/tool-result.call",
                     onError = { e ->
                         AppLogger.e(TAG, "Error sending tool result to JavaScript: ${e.message}", e)
                     }
@@ -2433,21 +2591,18 @@ class JsEngine(private val context: Context) {
             }
         }
 
-        /** ToolPkg.ipc uses a JSON string envelope, so its callback must receive a string. */
+        /** ToolPkg.ipc 的 JSON 信封必须继续以字符串交给回调。 */
         private fun sendToolPkgIpcResult(callbackId: String, result: String, isError: Boolean) {
             if (!canScheduleQuickJsWork()) {
                 return
             }
             try {
                 ensureQuickJs()
-                val jsCode =
-                    JsNativeInterfaceDelegates.buildStringResultCallbackScript(
-                        callbackId = callbackId,
-                        result = result,
-                        isError = isError
-                    )
-                launchQuickJsEvaluation(
-                    script = jsCode,
+                val argsJson = buildStringResultCallbackArgs(callbackId, result, isError)
+                launchQuickJsFunctionCall(
+                    functionName = STRING_RESULT_CALLBACK_FUNCTION,
+                    argsJson = argsJson,
+                    callSite = "quickjs/runtime/string-result.call",
                     onError = { e ->
                         AppLogger.e(TAG, "Error sending ToolPkg.ipc result to JavaScript: ${e.message}", e)
                     }
@@ -2501,6 +2656,12 @@ class JsEngine(private val context: Context) {
                 val logMessage = extractErrorLogMessage(error)
                 val enrichedLogMessage = withToolPkgCodeContext(session, logMessage)
                 AppLogger.e(TOOLPKG_TAG, withToolPkgPluginTag(session, "JS ERROR: $enrichedLogMessage"))
+                ToolPkgRuntimeMonitor.recordLog(
+                    handle = session.runtimeMonitorCall,
+                    level = "error",
+                    message = logMessage
+                )
+                session.runtimeFailureMessage.compareAndSet(null, logMessage)
                 session.executionListener?.onFailed(callId, logMessage)
 
                 completeCallFuture(
@@ -2560,7 +2721,16 @@ class JsEngine(private val context: Context) {
         fun logInfoForCall(callId: String, message: String) {
             val session = resolveExecutionSession(callId)
             session?.executionListener?.onCallLog(callId, "info", message)
+            ToolPkgRuntimeMonitor.recordLog(session?.runtimeMonitorCall, "info", message)
             AppLogger.i(TOOLPKG_TAG, withToolPkgPluginTag(session, message))
+        }
+
+        @JavascriptInterface
+        fun logWarnForCall(callId: String, message: String) {
+            val session = resolveExecutionSession(callId)
+            session?.executionListener?.onCallLog(callId, "warn", message)
+            ToolPkgRuntimeMonitor.recordLog(session?.runtimeMonitorCall, "warn", message)
+            AppLogger.w(TOOLPKG_TAG, withToolPkgPluginTag(session, message))
         }
 
         @JavascriptInterface
@@ -2572,6 +2742,7 @@ class JsEngine(private val context: Context) {
         fun logErrorForCall(callId: String, message: String) {
             val session = resolveExecutionSession(callId)
             session?.executionListener?.onCallLog(callId, "error", message)
+            ToolPkgRuntimeMonitor.recordLog(session?.runtimeMonitorCall, "error", message)
             AppLogger.e(TOOLPKG_TAG, withToolPkgPluginTag(session, message))
         }
 
@@ -2603,6 +2774,11 @@ class JsEngine(private val context: Context) {
                 errorStack: String
         ) {
             val session = resolveExecutionSession(callId)
+            ToolPkgRuntimeMonitor.recordLog(
+                handle = session?.runtimeMonitorCall,
+                level = "error",
+                message = "$errorType: $errorMessage\nLine: $errorLine\nStack: $errorStack"
+            )
             AppLogger.e(
                     TOOLPKG_TAG,
                     withToolPkgPluginTag(

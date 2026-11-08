@@ -1,6 +1,6 @@
 package com.ai.assistance.operit.data.collects
 
-import com.ai.assistance.operit.data.model.BillingMode
+import com.ai.assistance.operit.data.stats.BillingMode
 
 enum class PricingCurrency(
     val code: String,
@@ -157,6 +157,7 @@ object DefaultModelPricingCollect {
         "OPENAI" to zeroPricing(PricingCurrency.USD),
         "OPENAI_RESPONSES" to zeroPricing(PricingCurrency.USD),
         "OPENAI_CODEX" to zeroPricing(PricingCurrency.USD),
+        "ANTIGRAVITY" to zeroPricing(PricingCurrency.USD),
         "OPENAI_RESPONSES_GENERIC" to zeroPricing(PricingCurrency.USD),
         "OPENAI_GENERIC" to zeroPricing(PricingCurrency.USD),
         "ANTHROPIC" to zeroPricing(PricingCurrency.USD),

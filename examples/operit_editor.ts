@@ -26,6 +26,7 @@
 - 用户提到功能模型绑定、模型配置新增/删除/修改、模型连接测试
 - 用户提到角色卡的新增、编辑、删除、激活、酒馆 JSON 导入或导出
 - 用户提到 TTS/STT 语音服务不会配置、参数太多不会填、语音播报/语音识别不可用
+- 用户要求查看 Operit 软件整体或某个 ToolPkg 插件的 CPU、内存、网络性能指标
 - 问题核心是“配置和部署链路”，而不是普通问答
 
 【MCP：安装与排查】
@@ -34,12 +35,11 @@
 - 运行状态缓存：server_status.json（非实时快照，仅用于状态记录与工具缓存，不作为排查判定依据）
 2) 两侧路径要严格区分：
 - Android 侧是源目录（用户导入/存放目录），不是最终运行目录
-- Linux 侧是最终运行目录：~/mcp_plugins/<pluginId最后一段>
-- MCP 真正启动时，执行目录与命令都以 Linux 侧为准
+- 默认 Linux 运行目录：~/mcp_plugins/<pluginId最后一段>
+- 在 mcpServers.<id> 中写了 cwd 时，以该 cwd 为运行目录；MCP 真正启动时执行目录与命令都按它解析
 3) 本地部署实际行为（代码逻辑）：
-- 创建目标目录
-- 将 Android 侧插件目录复制到 Linux 侧目录
-- 执行自动分析出的安装/构建命令（会跳过启动命令）
+- 仅当配置依赖应用托管目录（相对 command、相对入口、且没有 cwd）时：创建目标目录、把 Android 侧插件目录复制到 Linux 侧目录、执行自动分析出的安装/构建命令（会跳过启动命令）
+- 自包含配置不复制、不部署：command 是绝对路径、第一个非选项 args 是绝对路径，或显式写了 cwd，都视为文件已在 Linux 侧就绪
 3.1) 本地插件识别规则：
 - 这样识别是为兼容存储位置外层套目录的情况（如 `<pluginId>/<repo>-main/...`）；Android 侧目录内至少要命中一个标志文件：`README.md`、`package.json`、`mcp.config.json`、`main.js`、`main.py`、`index.js`、`index.py`，否则可能被判定为未安装，进不了启动列表。
 4) 命令型插件判定：
@@ -49,18 +49,16 @@
 - 因此这类 MCP 的实际运行依赖是 `pnpm`；Linux 终端里必须装有 `pnpm`，不能只装 `npm`。
 - 不要把 command 改成 `npm`；当前已知这样可能触发 `double free` 报错。现阶段约定是：配置时按 `npx` 填，运行时由软件内部转成 `pnpm dlx`。
 5) 系统启动行为（必须理解）：
-- 本地插件：系统会读取 mcp_config.json 中该插件的 command/args/env，使用 cwd=~/mcp_plugins/<shortName> 启动进程；可用性以“工具可调用/服务可响应”为准
+- 本地插件：系统会读取 mcp_config.json 中该插件的 command/args/env/cwd；cwd 有值就用 cwd，否则用 ~/mcp_plugins/<shortName>；可用性以“工具可调用/服务可响应”为准
 - 远程插件：系统按 endpoint + connectionType（可选 bearerToken/headers）发起连接并校验连通
 6) command 的实际执行位置（必须按此理解）：
-- 本地插件启动时，系统在 Linux 终端环境中启动进程；执行工作目录固定是 ~/mcp_plugins/<shortName>
+- 本地插件启动时，系统在 Linux 终端环境中启动进程；默认工作目录是 ~/mcp_plugins/<shortName>，配置了 cwd 时使用 cwd
 - mcp_config.json 里填写的 command 就是在这个 Linux 工作目录上下文中被执行，不会在 Android 源目录执行
-- args 里的相对路径，统一按该 cwd 解析
+- args 里的相对路径，统一按该 cwd 解析；绝对路径按 Linux 路径使用
 6.1) node 命令示例（按插件ID）：
-- 例：pluginId=owner/my-plugin，则 shortName=my-plugin，cwd=~/mcp_plugins/my-plugin
-- 如果入口文件在 ~/mcp_plugins/my-plugin/dist/index.js，则写：
-  "command": "node"
-  "args": ["dist/index.js"]
-- 这里 args 必须按 cwd 写相对路径，不要写 /sdcard/... 的 Android 路径
+- 方式一（应用托管）：pluginId=owner/my-plugin，省略 cwd → ~/mcp_plugins/my-plugin；入口在 ~/mcp_plugins/my-plugin/dist/index.js 时写 "command": "node"、"args": ["dist/index.js"]
+- 方式二（自己维护目录）：写 "cwd": "/root/moonlight-garden-handytools"（或 ~/...），args 可用相对入口如 "dist/index.js"；也可直接写绝对入口 "args": ["/root/.../dist/index.js"]
+- 两种方式都不要写 /sdcard/... 的 Android 路径
 7) mcp_config.json 字段规范：
 - 顶层必须有 mcpServers（对象）
 - mcpServers 的 key 是 serverId（通常与插件ID一致，避免随意改名）
@@ -69,24 +67,27 @@
   - command（必填，启动命令）
   - args（可选，字符串数组）
   - env（可选，键值对）
+  - cwd（可选，Linux 工作目录；标准 MCP stdio 字段）
   - autoApprove（可选，数组）
   - disabled（可选，true=禁用）
 - MCP 的环境变量必须写在 mcpServers.<id>.env；`read_environment_variable` / `write_environment_variable` 不会读写这里。
 8) mcp_config.json 路径写法规则：
 - 不要把 Android 绝对路径写进本地插件启动参数（例如 /sdcard/...）
-- 本地插件命令应按 Linux 运行目录编写，优先相对路径（因为 cwd 已固定到 ~/mcp_plugins/<shortName>）
+- 使用应用托管目录时，command/args 按 Linux 运行目录写相对路径（因为 cwd 是 ~/mcp_plugins/<shortName>）
+- 自维护目录时显式写 cwd（Linux 路径），或让 command/入口 args 使用 Linux 绝对路径
 - 如果必须写绝对路径，也应是 Linux 侧路径，不应写 Android 侧路径
 9) 启用开关：
 - 本地插件使用 mcpServers.<id>.disabled
 - 远程插件使用 pluginMetadata.<id>.disabled
 10) MCP 排查顺序（按顺序执行）：
 - 检查开关是否启用
-- 检查本地部署目录是否存在且非空
-- 检查 mcp_config.json 的 command/args/env 字段是否完整
+- 检查 mcp_config.json 的 command/args/env/cwd 字段是否完整
+- 使用应用托管目录时检查 ~/mcp_plugins/<id> 是否存在且非空；使用自维护目录时检查 cwd 是否存在
+- 检查 command 是否能在终端中直接执行（绝对路径命令需真实存在）
 - 检查 args 是否误写 Android 路径
-- 检查 env 中所需 key/token
+- 检查 env 中所需 key/token（失败原因会显示在管理页插件行；日志只记录键名，不记录值）
 - 不要把 server_status.json 的 active 当作唯一依据；优先看工具是否可拉取、可调用
-- 检查终端依赖（node/pnpm/python/uv）与 MCP 服务状态；其中 Node 类 `npx` MCP 实际依赖 `pnpm`，若缺少 `pnpm` 将无法启动
+- 检查终端依赖（node/pnpm/python/uv）与 MCP 服务状态；其中 Node 类 `npx` MCP 实际依赖 `pnpm`，若缺少 `pnpm` 将无法启动；纯 node/sh 插件不依赖 `pnpm`
 
 【Skill：安装与排查】
 1) 目录：/sdcard/Download/Operit/skills/
@@ -504,6 +505,12 @@
 - `set_speech_services_config`: update TTS/STT config fields (partial update supported).
 - `test_tts_playback`: play one test utterance with the current TTS config (supports temporary rate/pitch overrides).
 
+[Performance metrics]
+1) Use `get_performance_metrics` when the user asks for current Operit performance.
+2) Omit `plugin_id` to inspect the whole software, including device context, the main process, all ToolPkg plugins, and terminal sessions.
+3) Pass the plugin's `containerPackageName` as `plugin_id` to inspect one ToolPkg plugin. Do not use its display name as the identifier.
+4) Treat `sampleValid` and `sampleAgeMs` as part of the measurement quality. Do not present an invalid or stale sample as a precise current value.
+
 [Multimodal input rules]
 1) Meaning of capability switches:
 - Switches like Tool Call / image / audio / video in model config are software-side capability markers, not proof of real model capability.
@@ -529,6 +536,24 @@
       }
       parameters: []
       advice: true
+    },
+    {
+      name: "get_performance_metrics"
+      description: {
+        zh: '''读取 Operit 当前性能分析指标。不传 plugin_id 时返回软件整体的设备、主进程、插件和终端指标；传入 ToolPkg 的 containerPackageName 时返回指定插件及其上下文。'''
+        en: '''Read current Operit performance metrics. Without plugin_id, return device, main-process, plugin, and terminal metrics for the whole software; with a ToolPkg containerPackageName, return the selected plugin and its context.'''
+      }
+      parameters: [
+        {
+          name: "plugin_id"
+          description: {
+            zh: "可选，ToolPkg 的 containerPackageName；不传时查询整个软件"
+            en: "Optional ToolPkg containerPackageName; omit it to query the whole software"
+          }
+          type: string
+          required: false
+        }
+      ]
     },
     {
       name: "how_make_skill"
@@ -2381,10 +2406,34 @@ async function operit_editor(params: { query?: string }) {
     const { query } = params ?? {};
     complete({
       success: true,
-      message: "配置排查手册已加载（MCP/Skill/Sandbox Package/沙盒包调试烧录/功能模型与模型配置/TTS-STT语音服务），将按配置链路执行排查。",
+      message: "配置排查手册已加载（MCP/Skill/Sandbox Package/沙盒包调试烧录/功能模型与模型配置/TTS-STT语音服务/性能分析），将按配置链路执行排查。",
       data: {
         query: query ?? ""
       }
+    });
+  } catch (error: unknown) {
+    complete({
+      success: false,
+      message: get_error_message(error)
+    });
+  }
+}
+
+async function get_performance_metrics(params?: { plugin_id?: string }) {
+  try {
+    const pluginId = params?.plugin_id?.trim();
+    const result = await Tools.System.getPerformanceMetrics(
+      pluginId ? { pluginId } : {}
+    );
+    const target = pluginId ? `plugin ${pluginId}` : "the whole software";
+    const message =
+      pluginId && result.pluginFound === false
+        ? `Performance metrics collected, but plugin was not found: ${pluginId}.`
+        : `Performance metrics collected for ${target}.`;
+    complete({
+      success: true,
+      message,
+      data: result
     });
   } catch (error: unknown) {
     complete({
@@ -4390,6 +4439,7 @@ async function ping_mcp(params?: { package_name?: string }) {
 
   return {
     operit_editor,
+    get_performance_metrics,
     how_make_skill,
     list_sandbox_packages,
     set_sandbox_package_enabled,
@@ -4426,6 +4476,7 @@ async function ping_mcp(params?: { package_name?: string }) {
 })();
 
 exports.operit_editor = operitEditorPackage.operit_editor;
+exports.get_performance_metrics = operitEditorPackage.get_performance_metrics;
 exports.how_make_skill = operitEditorPackage.how_make_skill;
 exports.list_sandbox_packages = operitEditorPackage.list_sandbox_packages;
 exports.set_sandbox_package_enabled = operitEditorPackage.set_sandbox_package_enabled;

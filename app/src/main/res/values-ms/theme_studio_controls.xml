@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_color">Warna teks</string>
+    <string name="studio_message_background_color">Warna latar mesej</string>
+    <string name="studio_message_text_color">Warna teks mesej</string>
+    <string name="studio_border">Garis tepi</string>
+    <string name="studio_border_edit_hint">Memilih warna garis tepi menetapkan lebar kepada 1dp jika nilainya sifar. Tetapkan lebar kepada 0 untuk menyembunyikannya. Ketelusan latar tidak menjejaskan garis tepi.</string>
+    <string name="studio_line_color">Warna garisan</string>
+    <string name="studio_padding_hint">Menambah ruang pada jarak komponen sedia ada. Nilai 0 tidak menambah ruang tambahan.</string>
+    <string name="studio_text_color_priority_hint">Warna teks mesej dan komponen diutamakan. Warna teks global mengatasi warna teks badan dalam palet global.</string>
+    <string name="studio_message_color_hint">Warna latar mesej mengikut ketelusan latar dalam tetapan rupa mesej. Warna teks berasingan.</string>
+    <string name="studio_avatar_fill_hint">Isian avatar dilukis di belakang imej. Imej legap menutup isian.</string>
+    <string name="studio_min_height_hint">Menetapkan had bawah ketinggian. Komponen tidak boleh dikecilkan di bawah ketinggian minimum aslinya.</string>
+</resources>

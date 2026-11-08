@@ -4,14 +4,14 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import com.ai.assistance.operit.R
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.compose.material3.ColorScheme
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.ai.assistance.operit.data.model.AITool
+import com.ai.assistance.operit.core.tools.protocol.AITool
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -103,6 +103,37 @@ class ToolPermissionSystem private constructor(private val context: Context) {
         PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH)
     }
     
+    /** 同一次 DataStore 快照中的默认方式与全部单项规则，避免页面短暂显示相互矛盾的状态。 */
+    val settingsFlow: Flow<ToolPermissionSettings> = context.toolPermissionsDataStore.data.map { preferences ->
+        ToolPermissionSettings(
+            master = PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH),
+            overrides = preferences.asMap().entries.filter { it.key.name.startsWith("tool_permission_") }
+                .associate { it.key.name.removePrefix("tool_permission_") to PermissionLevel.fromString(it.value as String) }
+        )
+    }
+
+    /** 批量应用与跟随默认一次写入，只记录本次实际变更的旧值供撤销。 */
+    suspend fun updateSettings(master: PermissionLevel? = null, overrides: Map<String, PermissionLevel?> = emptyMap()): ToolPermissionChange {
+        var previousMaster: PermissionLevel? = null
+        val previousOverrides = mutableMapOf<String, PermissionLevel?>()
+        context.toolPermissionsDataStore.edit { preferences ->
+            val currentMaster = PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH)
+            if (master != null && master != currentMaster) {
+                previousMaster = currentMaster
+                preferences[MASTER_SWITCH] = master.name
+            }
+            overrides.forEach { (name, level) ->
+                val key = toolPermissionKey(name)
+                val previous = preferences[key]?.let { PermissionLevel.fromString(it) }
+                if (previous != level) {
+                    previousOverrides[name] = previous
+                    if (level == null) preferences.remove(key) else preferences[key] = level.name
+                }
+            }
+        }
+        return ToolPermissionChange(previousMaster, previousOverrides)
+    }
+
     /**
      * Get permission level flow for a specific tool
      * If no permission is set for the tool, returns ASK as default

@@ -2,11 +2,13 @@ package com.ai.assistance.showerclient
 
 import android.content.Context
 import android.os.DeadObjectException
+import android.os.Binder
 import android.os.IBinder
 import android.os.RemoteException
 import com.ai.assistance.shower.IShowerService
 import com.ai.assistance.shower.IShowerVideoSink
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
@@ -157,6 +159,27 @@ class ShowerController {
                 null
             }
         }
+
+    /** A live client token, not a periodic input event, owns the service during model planning. */
+    suspend fun acquireInputClient(): AutoCloseable {
+        var lease: AutoCloseable? = null
+        try {
+            return withContext(Dispatchers.IO) {
+                val service = getBinder() ?: throw IllegalStateException("Shower input service is unavailable")
+                val token = Binder()
+                val acquired = AutoCloseable { service.unregisterInputClient(token) }
+                lease = acquired
+                service.registerInputClient(token)
+                acquired
+            }
+        } catch (e: Exception) {
+            // withContext can discard a successful registration when cancellation wins its return.
+            withContext(NonCancellable + Dispatchers.IO) {
+                try { lease?.close() } catch (cleanup: Exception) { e.addSuppressed(cleanup) }
+            }
+            throw e
+        }
+    }
 
     /**
      * Prepares this controller to inject input on the physical main display (displayId=0)

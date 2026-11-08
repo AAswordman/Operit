@@ -5,7 +5,8 @@
   "description": "Windows side local agent for Operit remote control.",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "@xterm/headless": "^5.5.0",

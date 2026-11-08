@@ -1,0 +1,6 @@
+
+root=Grid(minItemWidth=150,children=[light,blue,green,dark])
+light=Panel(background="light",radius="lg",child=Column(gap="md",children=[Icon(name="lucide:layers",size=32),Heading(text="浅色背景"),RichText(runs=[{text:"柔和的次级表面",tone:"muted"}])]))
+blue=Panel(background="blue",radius="lg",child=Column(gap="md",children=[Icon(name="lucide:droplets",tone="info",size=32),Heading(text="蓝色背景"),RichText(runs=[{text:"淡蓝色卡片",tone:"muted"}])]))
+green=Panel(background="green",radius="lg",child=Column(gap="md",children=[Icon(name="lucide:leaf",tone="success",size=32),Heading(text="绿色背景"),RichText(runs=[{text:"柔和的绿色",tone:"muted"}])]))
+dark=Panel(background="dark",radius="lg",child=Column(gap="md",children=[Icon(name="lucide:moon",tone="info",size=32),Heading(text="深色背景"),RichText(runs=[{text:"深蓝灰色卡片",tone:"muted"}])]))

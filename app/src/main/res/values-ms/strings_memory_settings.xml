@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="role_user_profile">Profil pengguna</string>
+    <string name="role_user_profile_title">Profil pengguna untuk %1$s</string>
+    <string name="role_user_profile_hint">Profil disimpan dalam ruang memori yang terikat pada watak ini. Kunci hanya menghalang kemas kini automatik; suntingan manual masih dibenarkan.</string>
+    <string name="memory_settings_title">Tetapan memori</string>
+    <string name="memory_settings_space">Ruang memori: %1$s</string>
+    <string name="memory_settings_space_missing">Ruang memori ini telah dipadam. Pilih ruang lain.</string>
+    <string name="memory_settings_auto_extract_tab">Ekstrak</string>
+    <string name="memory_settings_retrieval_tab">Carian</string>
+    <string name="memory_settings_history_tab">Bina sejarah</string>
+    <string name="memory_settings_queue">Baris gilir ekstrak</string>
+    <string name="memory_settings_queue_status">Menunggu %1$d / %2$d sembang · Diproses %3$d · Gagal %4$d</string>
+    <string name="memory_settings_next_run_unset">Semakan seterusnya belum dijadualkan</string>
+    <string name="memory_settings_next_run">Semakan seterusnya: kira-kira %1$d minit lagi</string>
+    <string name="memory_settings_auto_extract_hint">Ekstraksi bermula selepas sekurang-kurangnya %1$d calon terkumpul, termasuk cubaan semula calon gagal. Hasil disimpan dalam ruang memori ini.</string>
+    <string name="memory_settings_interval_value">%1$d minit</string>
+    <string name="memory_settings_profile_lock_hint">Halang model daripada menulis ganti user.md secara automatik. Suntingan manual masih dibenarkan.</string>
+    <string name="memory_settings_cloud_embedding">Vektor awan</string>
+    <string name="memory_settings_cloud_embedding_hint">Apabila diaktifkan, teks memori dan carian dihantar kepada perkhidmatan vektor yang terikat.</string>
+    <string name="memory_settings_rebuild_saved_hint">Pembinaan semula menggunakan suis tersimpan dan ikatan model fungsi. Simpan perubahan dahulu.</string>
+    <string name="memory_settings_threshold">Ambang kerelevanan</string>
+    <string name="memory_settings_simulation_hint">Jalankan carian sebenar dengan pemberat, ambang dan suis vektor semasa tanpa menyimpan draf tetapan.</string>
+    <string name="memory_settings_select_chats">Pilih sembang</string>
+    <string name="memory_settings_no_chats">Tiada sembang terikat pada ruang memori ini.</string>
+    <string name="memory_settings_history_hint">Ekstrak memori daripada sejarah mengikut tetingkap mesej, menambah atau mengemas kini kandungan sambil mengekalkan memori sedia ada. Peraturan ekstrak dan dasar profil tersimpan digunakan.</string>
+    <string name="memory_settings_rebuild_busy">Pembinaan sejarah sedang berjalan. Tunggu sehingga selesai sebelum memulakan lagi.</string>
+    <string name="memory_settings_unsaved_title">Buang tetapan belum disimpan?</string>
+    <string name="memory_settings_unsaved_message">Menutup akan membuang perubahan tetapan memori.</string>
+    <string name="memory_settings_clear_selection">Kosongkan pilihan</string>
+</resources>

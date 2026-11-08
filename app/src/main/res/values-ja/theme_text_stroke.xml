@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="studio_text_stroke">文字の縁取り</string>
+    <string name="studio_text_stroke_color">文字の縁取り色</string>
+    <string name="studio_text_stroke_off">オフ</string>
+    <string name="studio_text_stroke_custom">カスタム</string>
+</resources>

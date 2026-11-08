@@ -4,19 +4,18 @@
 
 ## 1. 启用方式
 
-在应用内进入：
+在 Operit 自带终端执行：
 
-- 设置
-- 数据和权限
-- 外部 HTTP 调用
+```bash
+web-chat start-server --port 8094
+web-chat start-server --port 8094 --login
+```
 
-然后：
+普通启动输出当前端口、网页地址和 Bearer Token；`--login` 进一步请求默认浏览器打开自动登录链接。设置中的旧“外部 HTTP 调用”页面已移除，原端口、Token 与启用状态继续保留。
 
-- 打开启用开关
-- 记录页面展示的监听地址和 Bearer Token
-- 如有需要，修改端口并保存
+`web-chat status` 查看状态，`web-chat stop-server` 停止服务，`web-chat examples` 显示四类接入示例。完整命令、登录和升级说明见 [web-chat 命令](web_chat_cli.md)。
 
-默认端口为 `8094`。
+默认端口为 `8094`。HTTP Chat、Web Chat 与 A2A 共用该服务。
 
 ## 2. 鉴权
 
@@ -26,7 +25,7 @@
 Authorization: Bearer YOUR_TOKEN
 ```
 
-Bearer Token 在首次启用时自动生成，也可以在设置页里重置。
+Bearer Token 在首次启用时自动生成。使用 `web-chat token show` 查看，`web-chat token reset` 重置；普通启动沿用已有 Token。
 
 ## 3. 接口
 

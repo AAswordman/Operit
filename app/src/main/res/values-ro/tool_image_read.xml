@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tool_image_recognition_not_configured">Configurați mai întâi un model de recunoaștere cu intrare de imagini în Modele funcționale.</string>
+</resources>

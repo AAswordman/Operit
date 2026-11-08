@@ -8,7 +8,8 @@ import {
   type QQBotDashboardStatusResult,
   type QQBotServiceStartParams,
   type QQBotServiceStopParams,
-  ENV_KEYS
+  ENV_KEYS,
+  LISTENER_TOGGLE_IPC_TIMEOUT_MS
 } from "../../shared/qqbot_common.js";
 import {
   qqbot_auto_reply_configure,
@@ -722,9 +723,12 @@ export default function Screen(ctx: ComposeDslContext): ComposeNode {
     await runAction(
       checked ? "start_service" : "stop_service",
       async () => {
-        return await withContext("main", { checked }, async () => {
-          return checked ? await qqbot_service_start({}) : await qqbot_service_stop({});
-        });
+        return await withContext(
+          "main",
+          { checked },
+          async () => checked ? await qqbot_service_start({}) : await qqbot_service_stop({}),
+          LISTENER_TOGGLE_IPC_TIMEOUT_MS
+        );
       },
       text.actionDone
     );

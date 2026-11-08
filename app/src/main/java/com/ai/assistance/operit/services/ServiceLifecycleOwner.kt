@@ -2,7 +2,7 @@ package com.ai.assistance.operit.services
 
 import android.os.Handler
 import android.os.Looper
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry

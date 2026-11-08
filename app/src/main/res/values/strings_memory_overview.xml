@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">记忆管理</string>
+    <string name="memory_management_subtitle">管理记忆空间和角色绑定</string>
+    <string name="memory_overview_global">全局使用</string>
+    <string name="memory_overview_current_global">当前记忆空间</string>
+    <string name="memory_overview_change">更换</string>
+    <string name="memory_overview_spaces">记忆空间</string>
+    <string name="memory_overview_roles">角色使用</string>
+    <string name="memory_overview_active_count">当前全局 · %1$d 个角色使用</string>
+    <string name="memory_overview_bound_count">%1$d 个角色固定绑定</string>
+    <string name="memory_overview_fixed">固定绑定 · %1$s</string>
+    <string name="memory_overview_missing_space">固定绑定的记忆空间不存在，请重新选择</string>
+
+    <string name="memory_overview_follow">跟随全局 · %1$s</string>
+    <string name="memory_overview_choose_global">更换全局记忆空间</string>
+    <string name="memory_overview_create">创建记忆空间</string>
+    <string name="memory_overview_rename">重命名记忆空间</string>
+    <string name="memory_overview_name">空间名称</string>
+    <string name="memory_overview_delete_title">删除记忆空间</string>
+    <string name="memory_overview_delete_warning">确定删除“%1$s”及其中的记忆和用户资料吗？绑定该空间的角色将改为跟随全局。此操作无法撤销。</string>
+    <string name="memory_overview_binding_title">%1$s 的记忆空间</string>
+    <string name="memory_overview_space_actions">记忆空间操作</string>
+    <string name="memory_action_select">框选节点</string>
+    <string name="memory_action_delete_selected">删除选中节点</string>
+    <string name="memory_action_link">连接节点</string>
+    <string name="memory_action_add">添加记忆</string>
+    <string name="memory_action_create">新建记忆</string>
+    <string name="memory_action_import">导入文档</string>
+</resources>

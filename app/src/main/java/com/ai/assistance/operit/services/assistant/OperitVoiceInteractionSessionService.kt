@@ -6,7 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.service.voice.VoiceInteractionSession
 import android.service.voice.VoiceInteractionSessionService
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.view.View
 import android.widget.FrameLayout
 import com.ai.assistance.operit.services.FloatingChatService

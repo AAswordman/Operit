@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="memory_management_title">기억 관리</string>
+    <string name="memory_management_subtitle">기억 공간과 캐릭터 연결 관리</string>
+    <string name="memory_overview_global">전역 사용</string>
+    <string name="memory_overview_current_global">현재 기억 공간</string>
+    <string name="memory_overview_change">변경</string>
+    <string name="memory_overview_spaces">기억 공간</string>
+    <string name="memory_overview_roles">캐릭터 사용</string>
+    <string name="memory_overview_active_count">전역 공간 · %1$d개 캐릭터 사용</string>
+    <string name="memory_overview_bound_count">%1$d개 캐릭터 고정 연결</string>
+    <string name="memory_overview_fixed">고정 · %1$s</string>
+    <string name="memory_overview_missing_space">연결된 공간이 없습니다. 다시 선택하세요</string>
+    <string name="memory_overview_follow">전역 설정 사용 · %1$s</string>
+    <string name="memory_overview_choose_global">전역 기억 공간 변경</string>
+    <string name="memory_overview_create">기억 공간 만들기</string>
+    <string name="memory_overview_rename">기억 공간 이름 변경</string>
+    <string name="memory_overview_name">공간 이름</string>
+    <string name="memory_overview_delete_title">기억 공간 삭제</string>
+    <string name="memory_overview_delete_warning">“%1$s”와 해당 기억 및 사용자 프로필을 삭제할까요? 연결된 캐릭터는 전역 공간을 따릅니다. 되돌릴 수 없습니다.</string>
+    <string name="memory_overview_binding_title">%1$s의 기억 공간</string>
+    <string name="memory_overview_space_actions">기억 공간 작업</string>
+    <string name="memory_action_select">노드 선택</string>
+    <string name="memory_action_delete_selected">선택한 노드 삭제</string>
+    <string name="memory_action_link">노드 연결</string>
+    <string name="memory_action_add">기억 추가</string>
+    <string name="memory_action_create">기억 만들기</string>
+    <string name="memory_action_import">문서 가져오기</string>
+</resources>

@@ -1,0 +1,10 @@
+
+$/form = {people:2}
+$/ingredients = [{id:"rice",name:"大米",perPerson:150,unit:"克"},{id:"egg",name:"鸡蛋",perPerson:1,unit:"个"},{id:"greens",name:"青菜",perPerson:200,unit:"克"}]
+root = Card(child=Column(children=[intro,people,portions,ingredients,note]))
+intro = Header(text="备餐购物清单",label="演示份量 · 按人数调整")
+people = Slider(label="用餐人数",min=1,max=8,steps=6,number=$/form/people)
+portions = Text(text=concat(values=["当前准备 ",formatNumber(value=$/form/people,decimals=0)," 人份；勾选已备齐的食材。"]))
+ingredients = Repeat(items=$/ingredients,key="id",child=ingredient)
+ingredient = CheckBox(label=concat(values=[item(field="name")," · ",formatNumber(value=multiply(a=item(field="perPerson"),b=$/form/people),decimals=0)," ",item(field="unit")]),value=item_state(field="done",default=false))
+note = Text(text="人数变化只调整数量，已勾选状态保留；增加人数后请重新核对是否备齐。",variant="caption")

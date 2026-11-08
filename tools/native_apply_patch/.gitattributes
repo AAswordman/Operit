@@ -1,0 +1,3 @@
+# 原版场景专门验证标记行末尾空白，保留该输入字节。
+tests/fixtures/scenarios/018_whitespace_padded_patch_markers/patch.txt whitespace=-blank-at-eol
+tests/fixtures/scenarios/020_whitespace_padded_patch_marker_lines/patch.txt whitespace=-blank-at-eol

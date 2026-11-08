@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "artifacts": [
+    {
+      "artifact": "text-recognition",
+      "version": "16.0.0",
+      "bytes": 1277826,
+      "sha256": "d037f5855fa853641e9db4d3523574b296749164b025b9e4b57540a16f249376",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mlkit/text-recognition/16.0.0/text-recognition-16.0.0.aar"
+    },
+    {
+      "artifact": "text-recognition-chinese",
+      "version": "16.0.0",
+      "bytes": 1930860,
+      "sha256": "e9677426963fd564dc86d3193e197b25c17a9f963db6fa23791eca69490b0f78",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mlkit/text-recognition-chinese/16.0.0/text-recognition-chinese-16.0.0.aar"
+    },
+    {
+      "artifact": "text-recognition-japanese",
+      "version": "16.0.0",
+      "bytes": 2520897,
+      "sha256": "764e6f36b1322a86f33210f6eacedc1193685346ac70c071d168902237e019ed",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mlkit/text-recognition-japanese/16.0.0/text-recognition-japanese-16.0.0.aar"
+    },
+    {
+      "artifact": "text-recognition-korean",
+      "version": "16.0.0",
+      "bytes": 1794307,
+      "sha256": "9feb9ea059f5c362e616e1132486fd7a1fce8e8e67cc3ffc531366433bdab787",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mlkit/text-recognition-korean/16.0.0/text-recognition-korean-16.0.0.aar"
+    },
+    {
+      "artifact": "text-recognition-devanagari",
+      "version": "16.0.0",
+      "bytes": 1910509,
+      "sha256": "74062311b0de0b91c819862054b5b34598fb0f5c572afd50d0d31108e52eb30c",
+      "url": "https://dl.google.com/dl/android/maven2/com/google/mlkit/text-recognition-devanagari/16.0.0/text-recognition-devanagari-16.0.0.aar"
+    }
+  ]
+}

@@ -2,12 +2,14 @@ package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
-import com.ai.assistance.operit.data.model.ApiProviderType
-import com.ai.assistance.operit.data.model.ModelParameter
-import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.data.config.model.ApiProviderType
+import com.ai.assistance.operit.data.config.model.ModelParameter
+import com.ai.assistance.operit.core.tools.prompt.ToolPrompt
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
 import org.json.JSONObject
+import com.ai.assistance.operit.api.chat.keypool.ApiKeyProvider
+import com.ai.assistance.operit.api.chat.model.ThinkingConfigurationApplier
 
 /** xAI's OpenAI-compatible Chat Completions provider for Grok models. */
 class XaiProvider(
@@ -44,19 +46,18 @@ class XaiProvider(
         chatHistory: List<PromptTurn>,
         modelParameters: List<ModelParameter<*>>,
         enableThinking: Boolean,
+        thinkingOptionId: String?,
         stream: Boolean,
         availableTools: List<ToolPrompt>?,
         preserveThinkInHistory: Boolean
     ): RequestBody {
-        val requestJson = JSONObject(
-            super.createRequestBodyInternal(
-                context,
-                chatHistory,
-                modelParameters,
-                stream,
-                availableTools,
-                preserveThinkInHistory
-            )
+        val requestJson = super.createRequestBodyObject(
+            context,
+            chatHistory,
+            modelParameters,
+            stream,
+            availableTools,
+            preserveThinkInHistory
         )
 
         ThinkingConfigurationApplier.apply(
@@ -67,7 +68,7 @@ class XaiProvider(
             apiEndpoint = configuredApiEndpoint,
             thinkingConfigurations = thinkingConfigurations,
             enableThinking = enableThinking,
-            optionId = thinkingOptionId,
+            optionId = thinkingOptionId ?: this.thinkingOptionId,
         )
 
         return createJsonRequestBody(requestJson.toString())

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:label="@string/kong_app_name"
+        tools:replace="android:label">
+        <activity
+            android:name="com.ai.assistance.operit.ui.main.MainActivity"
+            android:label="@string/kong_app_name"
+            tools:replace="android:label" />
+    </application>
+</manifest>

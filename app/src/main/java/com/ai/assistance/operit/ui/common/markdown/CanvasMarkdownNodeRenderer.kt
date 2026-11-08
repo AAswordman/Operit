@@ -1,5 +1,12 @@
 package com.ai.assistance.operit.ui.common.markdown
 
+import com.ai.assistance.operit.ui.theme.script.text.LocalThemeTextStroke
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeTextLayout
+import com.ai.assistance.operit.ui.theme.script.text.drawThemeNativeText
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ai.assistance.operit.ui.common.a2ui.A2uiCard
+import com.ai.assistance.operit.ui.common.a2ui.LocalA2uiOwner
+import com.ai.assistance.operit.ui.common.markdown.lazy.LocalMarkdownCardNodeIndex
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.StaticLayout
@@ -9,7 +16,7 @@ import android.text.style.ImageSpan
 import android.text.style.StyleSpan
 import android.text.style.URLSpan
 import android.text.style.UnderlineSpan
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import android.util.LruCache
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -27,7 +34,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.ai.assistance.operit.ui.theme.script.text.ThemeText as Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -585,24 +593,28 @@ private fun renderNodeContent(
         
         // ========== 代码块：保留原组件 ==========
         MarkdownProcessorType.CODE_BLOCK -> {
-            val codeLines = content.trimAll().lines()
-            val firstLine = codeLines.firstOrNull() ?: ""
-            val language = if (firstLine.startsWith("```")) {
-                firstLine.removePrefix("```").trim()
-            } else ""
-            
-            val codeContent = codeLines
-                .dropWhile { it.startsWith("```") }
-                .dropLastWhile { it.endsWith("```") }
-                .joinToString("\n")
-            
-            // 不使用 key()，让 Compose 根据位置自然识别组件
-            // 这样可以保留内部状态（如"已复制"提示、Mermaid 渲染状态）
-            EnhancedCodeBlock(
-                code = codeContent,
-                language = language,
-                modifier = Modifier.fillMaxWidth()
-            )
+            val codeBlock = extractFencedCodeBlockContent(content)
+
+            // 只在 AI 正文中解释卡片，使用整条消息的节点索引区分长消息分片。
+            when {
+                LocalA2uiOwner.current != null && codeBlock.language == "a2ui" -> A2uiCard(
+                    source = codeBlock.code,
+                    closed = codeBlock.closed,
+                    streaming = LocalMarkdownRenderMode.current == MarkdownRenderMode.STREAMING,
+                    blockIndex = index,
+                    ink = textColor,
+                )
+                LocalA2uiOwner.current != null && codeBlock.language == "a2ui-ref" -> Text(
+                    text = stringResource(com.ai.assistance.operit.R.string.a2ui_reference_unavailable),
+                    color = textColor.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                else -> EnhancedCodeBlock(
+                    code = codeBlock.code,
+                    language = codeBlock.language,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         
         // ========== 表格：保留原组件 ==========
@@ -660,6 +672,10 @@ private fun renderNodeContent(
         
         // ========== XML块：保留原组件 ==========
         MarkdownProcessorType.XML_BLOCK -> {
+            CompositionLocalProvider(
+                LocalMarkdownCardNodeIndex provides index,
+                LocalA2uiOwner provides null,
+            ) {
             xmlRenderer.RenderXmlContent(
                 xmlContent = content,
                 modifier = Modifier.fillMaxWidth(),
@@ -667,6 +683,7 @@ private fun renderNodeContent(
                 xmlStream = xmlStream,
                 renderInstanceKey = nodeKey
             )
+            }
         }
         
         // ========== 图片：保留原组件 ==========
@@ -811,6 +828,7 @@ private fun UnifiedCanvasRenderer(
     fillMaxWidth: Boolean = true,
     isLastNode: Boolean = false
 ) {
+    val textStroke = LocalThemeTextStroke.current
     val primaryColor = MaterialTheme.colorScheme.primary
     val textLayoutSettings = LocalAiMarkdownTextLayoutSettings.current
 
@@ -1044,11 +1062,14 @@ private fun UnifiedCanvasRenderer(
                                 val textBottom = instruction.y + instruction.paint.descent()
 
                                 if (textBottom >= clipBounds.top && textTop <= clipBounds.bottom) {
-                                    canvas.nativeCanvas.drawText(
+                                    drawThemeNativeText(
+                                        canvas.nativeCanvas,
                                         instruction.text,
                                         instruction.x,
                                         instruction.y,
-                                        instruction.paint
+                                        instruction.paint,
+                                        textStroke = textStroke,
+                                        density = this.density,
                                     )
                                 }
                             }
@@ -1145,14 +1166,14 @@ private fun UnifiedCanvasRenderer(
                                         canvas.nativeCanvas.save()
                                         canvas.nativeCanvas.clipRect(0f, 0f, layout.width.toFloat(), lineTopPx)
                                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                        layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                         canvas.nativeCanvas.restore()
 
                                         // 2. 绘制当前行，直到当前正在显示的字符之前
                                         canvas.nativeCanvas.save()
                                         canvas.nativeCanvas.clipRect(0f, lineTopPx, charMinX, lineBottomPx)
                                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                        layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                         canvas.nativeCanvas.restore()
 
                                         // 3. 绘制当前正在显示的字符（带淡入效果）
@@ -1166,13 +1187,13 @@ private fun UnifiedCanvasRenderer(
                                             // 注意：saveLayerAlpha 在某些情况下可能会对其包含的内容做混合，如果不需要可以简化
                                             canvas.nativeCanvas.saveLayerAlpha(charMinX, lineTopPx, visibleRight, lineBottomPx, alphaInt)
                                             drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                                            layout.draw(canvas.nativeCanvas)
+                                            drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                                             canvas.nativeCanvas.restore()
                                             canvas.nativeCanvas.restore()
                                         }
                                     } else if (shouldDrawFully) {
                                         drawInlineCodeBackgrounds(instruction.layout, canvas.nativeCanvas)
-                                        instruction.layout.draw(canvas.nativeCanvas)
+                                        drawThemeTextLayout(instruction.layout, canvas.nativeCanvas, textStroke)
                                     }
                                     canvas.nativeCanvas.restore()
                                 }
@@ -1619,6 +1640,7 @@ private fun SingleTextCanvas(
     density: Density,
     modifier: Modifier = Modifier
 ) {
+    val textStroke = LocalThemeTextStroke.current
     if (text.isEmpty()) return
 
     val textLayoutSettings = LocalAiMarkdownTextLayoutSettings.current
@@ -1694,7 +1716,7 @@ private fun SingleTextCanvas(
                     // 判断是否在可见区域内
                     if (totalHeight >= clipBounds.top && 0f <= clipBounds.bottom) {
                         drawInlineCodeBackgrounds(layout, canvas.nativeCanvas)
-                        layout.draw(canvas.nativeCanvas)
+                        drawThemeTextLayout(layout, canvas.nativeCanvas, textStroke)
                     }
                 }
             }

@@ -8,7 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
-import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.logging.AppLogger
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import android.content.ComponentName
 import android.content.ServiceConnection
 import androidx.lifecycle.ViewModelProvider
-import com.ai.assistance.operit.ui.features.toolbox.screens.uidebugger.UIDebuggerViewModel
+import com.ai.assistance.operit.ui.features.support.diagnostics.uidebugger.UIDebuggerViewModel
 
 /**
  * A service for managing the UI Debugger floating window.
@@ -43,16 +43,11 @@ class UIDebuggerService : Service(), ViewModelStoreOwner {
             val chatService = binder.getService()
             floatingChatService = chatService
             isBound = true
-            viewModel.setWindowInteractionController { visible ->
-                // 控制悬浮窗的可见性，从而控制其可交互性
-                chatService.setFloatingWindowVisible(visible)
-            }
         }
 
         override fun onServiceDisconnected(arg0: ComponentName) {
             isBound = false
             floatingChatService = null
-            viewModel.setWindowInteractionController(null)
         }
     }
 
@@ -71,6 +66,10 @@ class UIDebuggerService : Service(), ViewModelStoreOwner {
 
         windowManager = UIDebuggerWindowManager(this, this, lifecycleOwner)
         createNotificationChannel()
+        viewModel.setWindowInteractionController { visible ->
+            windowManager.setWindowVisible(visible)
+            floatingChatService?.setFloatingWindowVisible(visible)
+        }
 
         // Bind to FloatingChatService
         Intent(this, FloatingChatService::class.java).also { intent ->
@@ -95,6 +94,7 @@ class UIDebuggerService : Service(), ViewModelStoreOwner {
         isServiceRunning.value = false
         windowManager.remove()
         viewModelStore.clear()
+        viewModel.setWindowInteractionController(null)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             @Suppress("DEPRECATION")
             stopForeground(Service.STOP_FOREGROUND_REMOVE)
