@@ -97,7 +97,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment: "android" | "linux" | "repo:<name>" - all supported (values defined at read_file).
-                    |On success: "[$env] Directory listing for <path>:" followed by one line per entry with type, size, date and name.
+                    |On success: "[android] Directory listing for <path>:" followed by one line per entry with type, size, date and name.
                     |On failure: error states the cause (directory does not exist / invalid repository path) - fix the path and retry.
                 """.trimMargin()
             ),
@@ -177,7 +177,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment: "android" | "linux". "repo:<name>" is not supported.
                     |Parent directories are created automatically.
-                    |On success: "[$env] Successfully created new file: <path>".
+                    |On success: "[android] Successfully created new file: <path>".
                     |On failure: "file already exists" - to replace an existing file entirely, call delete_file first, then write_file (create_file never overwrites).
                 """.trimMargin()
             ),
@@ -194,7 +194,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment: "android" | "linux". "repo:<name>" is not supported.
                     |Matching: 1) exact whitespace-tolerant match; 2) fuzzy similarity > 0.9. If the snippet matches MULTIPLE locations, the edit is REJECTED with the candidate line numbers - add more context to old, or retry with the occurrence parameter to target the Nth match.
-                    |On success: "[$env] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range.
+                    |On success: "[android] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range.
                     |On failure: "Could not find a match" (re-read the target lines with read_file_part, then retry) or "multiple perfect matches" (make old unique). NEVER fall back to shell commands to edit files - keep using this tool.
                 """.trimMargin()
             ),
@@ -209,7 +209,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment: "android" | "linux" | "repo:<name>" - all supported (repo: ignores recursive and deletes via the provider).
                     |Hard rule: recursive deletion of system roots (/ , /storage/emulated/0 , /sdcard , /data ...) is always rejected.
-                    |On success: "[$env] Successfully deleted: <path>".
+                    |On success: "[android] Successfully deleted: <path>".
                     |On failure: "Directory is not empty and recursive flag is not set" - pass recursive=true, or delete children first.
                 """.trimMargin()
             ),
@@ -223,7 +223,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment: "android" | "linux" | "repo:<name>" - all supported.
-                    |On success: "[$env] Directory created: <path>"; creating an existing directory succeeds with "Directory already exists".
+                    |On success: "[android] Directory created: <path>"; creating an existing directory succeeds with "Directory already exists".
                     |On failure: "parent directory does not exist" - pass create_parents=true, or create parents first.
                 """.trimMargin()
             ),
@@ -294,7 +294,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment: "android" | "linux". "repo:<name>" is not supported.
-                    |On success: "[$env] File downloaded successfully to: <destination>" with file size.
+                    |On success: "[android] File downloaded successfully to: <destination>" with file size.
                     |On failure: HTTP status errors (403/404 - check URL or add headers), write permission errors, timeout. Malformed headers JSON is rejected up front.
                 """.trimMargin()
             )
@@ -313,7 +313,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment："android" | "linux" | "repo:<名称>"——全部支持（取值见 read_file）。
-                    |成功时返回："[$env] Directory listing for <路径>:" 后每行一条，含类型、大小、日期、文件名。
+                    |成功时返回："[android] Directory listing for <路径>:" 后每行一条，含类型、大小、日期、文件名。
                     |失败时返回：错误注明原因（目录不存在 / 无效的仓库路径），修正路径后重试。
                 """.trimMargin()
             ),
@@ -388,7 +388,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment："android" | "linux"。不支持 "repo:<名称>"。
                     |父目录会自动创建。
-                    |成功时返回："[$env] Successfully created new file: <路径>"。
+                    |成功时返回："[android] Successfully created new file: <路径>"。
                     |失败时返回："file already exists"——要整体替换已有文件，先 delete_file 再 write_file（create_file 绝不覆盖）。
                 """.trimMargin()
             ),
@@ -405,7 +405,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment："android" | "linux"。不支持 "repo:<名称>"。
                     |匹配规则：1) 空白容忍的精确匹配；2) 相似度 > 0.9 的模糊匹配。片段命中多处时编辑会被拒绝并列出候选行号——给 old 补充上下文，或用 occurrence 参数定位第 N 处。
-                    |成功时返回："[$env] Successfully applied AI code to file: <路径>"，附统一 diff 与被替换的行号范围。
+                    |成功时返回："[android] Successfully applied AI code to file: <路径>"，附统一 diff 与被替换的行号范围。
                     |失败时返回："Could not find a match"（用 read_file_part 精读目标行后重试）或 "multiple perfect matches"（让 old 更唯一）。严禁改用 shell 命令编辑文件——继续使用本工具。
                 """.trimMargin()
             ),
@@ -420,7 +420,7 @@ object SystemToolPrompts {
                 details = """
                     |Environment："android" | "linux" | "repo:<名称>"——全部支持（repo: 忽略 recursive，由提供端整树删除）。
                     |硬性规则：对系统根目录（/ 、/storage/emulated/0 、/sdcard 、/data 等）的递归删除一律拒绝。
-                    |成功时返回："[$env] Successfully deleted: <路径>"。
+                    |成功时返回："[android] Successfully deleted: <路径>"。
                     |失败时返回："Directory is not empty and recursive flag is not set"——传 recursive=true，或先删子项。
                 """.trimMargin()
             ),
@@ -434,7 +434,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment："android" | "linux" | "repo:<名称>"——全部支持。
-                    |成功时返回："[$env] Directory created: <路径>"；目录已存在时返回成功 "Directory already exists"。
+                    |成功时返回："[android] Directory created: <路径>"；目录已存在时返回成功 "Directory already exists"。
                     |失败时返回："parent directory does not exist"——传 create_parents=true，或先创建父目录。
                 """.trimMargin()
             ),
@@ -505,7 +505,7 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment："android" | "linux"。不支持 "repo:<名称>"。
-                    |成功时返回："[$env] File downloaded successfully to: <destination>"，附文件大小。
+                    |成功时返回："[android] File downloaded successfully to: <destination>"，附文件大小。
                     |失败时返回：HTTP 状态错误（403/404——检查 URL 或补 headers）、写权限错误、超时。headers JSON 格式非法会在执行前被拒绝。
                 """.trimMargin()
             )

@@ -206,6 +206,12 @@ fun AgentChatInputSection(
     inputMenuRuntime: String = "main",
     permissionLevel: PermissionLevel = PermissionLevel.ASK,
     onSetPermissionLevel: (PermissionLevel) -> Unit = {},
+    // 修改意图：文件工具大模型自动审查开关（区内/区外）。仅在工具模式为允许时展示，
+    // 经 AgentExtraSettingsPopup 透传至 AgentToolsPermissionGroupItem
+    toolReviewInsideWorkspace: Boolean = false,
+    toolReviewOutsideWorkspace: Boolean = false,
+    onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
+    onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     enableMemoryAutoUpdate: Boolean = false,
     onToggleMemoryAutoUpdate: () -> Unit = {},
     isAutoReadEnabled: Boolean = false,
@@ -1434,6 +1440,10 @@ fun AgentChatInputSection(
                 onToggleAutoRead = onToggleAutoRead,
                 permissionLevel = permissionLevel,
                 onSetPermissionLevel = onSetPermissionLevel,
+                toolReviewInsideWorkspace = toolReviewInsideWorkspace,
+                toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
+                onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
+                onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
                 enableTools = enableTools,
                 onToggleTools = onToggleTools,
                 disableStreamOutput = disableStreamOutput,

@@ -52,7 +52,7 @@ object SystemToolPromptsInternal {
     - `new`: required for `replace` / `create`
 
   - **Result format**:
-    - On success: "[$env] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range ("Replaced at lines X-Y").
+    - On success: "[android] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range ("Replaced at lines X-Y").
     - On failure: "Could not find a match for an OLD block" (re-read the target lines with read_file_part, refine `old`, retry) / "Found multiple perfect matches" / "Found N similar matches" (make `old` unique or pass `occurrence`).
 
   - **CRITICAL RULES**:
@@ -758,7 +758,7 @@ object SystemToolPromptsInternal {
                                 ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment (android | linux | repo:<name>)", required = false)
                             ),
                             details = """
-                                |On success: "[$env] File exists at path: <path>" or "[$env] No file or directory exists at path: <path>". A "does not exist" answer is a SUCCESSFUL query, not an error.
+                                |On success: "[android] File exists at path: <path>" or "[android] No file or directory exists at path: <path>". A "does not exist" answer is a SUCCESSFUL query, not an error.
                             """.trimMargin()
                         ),
                         ToolPrompt(
@@ -771,7 +771,7 @@ object SystemToolPromptsInternal {
                             ),
                             details = """
                                 |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
-                                |On success: "[$env] Successfully moved <source> to <destination>".
+                                |On success: "[android] Successfully moved <source> to <destination>".
                                 |On failure: permission or destination-exists errors; fix per the message.
                             """.trimMargin()
                         ),
@@ -788,7 +788,7 @@ object SystemToolPromptsInternal {
                             details = """
                                 |Environment: "android" | "linux" (also per-side via source_environment/dest_environment). "repo:<name>" is not supported for copy.
                                 |Directories need recursive=true, otherwise the call fails with a clear error.
-                                |On success: "[$env] Successfully copied <source> to <destination>".
+                                |On success: "[android] Successfully copied <source> to <destination>".
                                 |On failure: "Failed to read source file" / destination errors - verify both paths exist in their stated environments.
                             """.trimMargin()
                         ),
@@ -815,7 +815,7 @@ object SystemToolPromptsInternal {
                             ),
                             details = """
                                 |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
-                                |On success: "[$env] Successfully created zip archive: <destination>".
+                                |On success: "[android] Successfully created zip archive: <destination>".
                                 |On failure: source missing / destination unwritable - verify both paths in the stated environment.
                             """.trimMargin()
                         ),
@@ -830,7 +830,7 @@ object SystemToolPromptsInternal {
                             details = """
                                 |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
                                 |Zip-slip entries are rejected automatically.
-                                |On success: "[$env] Successfully extracted zip archive to: <destination>".
+                                |On success: "[android] Successfully extracted zip archive to: <destination>".
                                 |On failure: source zip missing / destination unwritable.
                             """.trimMargin()
                         ),
@@ -1533,7 +1533,7 @@ object SystemToolPromptsInternal {
                                 |Environment: "android" | "linux" | "repo:<name>" - all supported. Parent directories are created automatically.
                                 |This is the tool for whole-file rewrites (after delete_file) and for creating files when create_file refuses to overwrite.
                                 |For partial edits prefer edit_file/apply_file - they are cheaper than rewriting the whole file.
-                                |On success: "[$env] Successfully wrote to file: <path>" (append variant says so).
+                                |On success: "[android] Successfully wrote to file: <path>" (append variant says so).
                                 |On failure: permission errors with hints; an empty written file is reported explicitly.
                             """.trimMargin()
                         ),
@@ -1563,7 +1563,7 @@ object SystemToolPromptsInternal {
                                 ),
                             details = """
                                 |Environment: "android" | "linux" | "repo:<name>" - all supported.
-                                |On success: "[$env] Successfully wrote binary file: <path>" with decoded byte size.
+                                |On success: "[android] Successfully wrote binary file: <path>" with decoded byte size.
                                 |On failure: invalid base64 / permission errors.
                             """.trimMargin()
                         )
@@ -3823,7 +3823,7 @@ object SystemToolPromptsInternal {
                                 ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment（android | linux | repo:<名称>）", required = false)
                             ),
                             details = """
-                                |成功时返回："[$env] File exists at path: <路径>" 或 "[$env] No file or directory exists at path: <路径>"。"不存在"是正常的查询结果，不是错误。
+                                |成功时返回："[android] File exists at path: <路径>" 或 "[android] No file or directory exists at path: <路径>"。"不存在"是正常的查询结果，不是错误。
                             """.trimMargin()
                         ),
                         ToolPrompt(
@@ -3836,7 +3836,7 @@ object SystemToolPromptsInternal {
                             ),
                             details = """
                                 |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
-                                |成功时返回："[$env] Successfully moved <源> 到 <目标>"。
+                                |成功时返回："[android] Successfully moved <源> 到 <目标>"。
                                 |失败时返回：权限或目标已存在错误，按错误信息修正。
                             """.trimMargin()
                         ),
@@ -3853,7 +3853,7 @@ object SystemToolPromptsInternal {
                             details = """
                                 |Environment："android" | "linux"（也可用 source_environment/dest_environment 分别指定）。复制不支持 "repo:<名称>"。
                                 |复制目录需要 recursive=true，否则失败并给出明确错误。
-                                |成功时返回："[$env] Successfully copied <源> 到 <目标>"。
+                                |成功时返回："[android] Successfully copied <源> 到 <目标>"。
                                 |失败时返回："Failed to read source file" / 目标错误——确认两个路径在各自环境中存在。
                             """.trimMargin()
                         ),
@@ -3880,7 +3880,7 @@ object SystemToolPromptsInternal {
                             ),
                             details = """
                                 |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
-                                |成功时返回："[$env] Successfully created zip archive: <目标>"。
+                                |成功时返回："[android] Successfully created zip archive: <目标>"。
                                 |失败时返回：源不存在 / 目标不可写——确认两个路径在对应环境中有效。
                             """.trimMargin()
                         ),
@@ -3895,7 +3895,7 @@ object SystemToolPromptsInternal {
                             details = """
                                 |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
                                 |Zip-slip（路径穿越）条目会被自动拒绝。
-                                |成功时返回："[$env] Successfully extracted zip archive to: <目标>"。
+                                |成功时返回："[android] Successfully extracted zip archive to: <目标>"。
                                 |失败时返回：源 zip 不存在 / 目标不可写。
                             """.trimMargin()
                         ),
@@ -4598,7 +4598,7 @@ object SystemToolPromptsInternal {
                                 |Environment："android" | "linux" | "repo:<名称>"——全部支持。父目录自动创建。
                                 |整体重写文件（delete_file 之后）用它；create_file 拒绝覆盖时也用它。
                                 |局部修改优先用 edit_file/apply_file——比整文件重写更省。
-                                |成功时返回："[$env] Successfully wrote to file: <路径>"（追加会注明）。
+                                |成功时返回："[android] Successfully wrote to file: <路径>"（追加会注明）。
                                 |失败时返回：权限错误（含修法提示）；写出的文件为空会被明确报告。
                             """.trimMargin()
                         ),
@@ -4628,7 +4628,7 @@ object SystemToolPromptsInternal {
                                 ),
                             details = """
                                 |Environment："android" | "linux" | "repo:<名称>"——全部支持。
-                                |成功时返回："[$env] Successfully wrote binary file: <路径>"，附解码后字节数。
+                                |成功时返回："[android] Successfully wrote binary file: <路径>"，附解码后字节数。
                                 |失败时返回：base64 非法 / 权限错误。
                             """.trimMargin()
                         )
