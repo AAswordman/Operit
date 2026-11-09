@@ -15,6 +15,22 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 class ChatHistoryManagerPersistenceTest {
+    @Test fun processMetadataDistinguishesBlankFinalWithoutHidingProcessRows() = withDatabase { database ->
+        database.chatDao().insertChat(ChatEntity(id = "root", title = "Root"))
+        val bodies = listOf("", " \n\t", "\u3000", "answer")
+        bodies.forEachIndexed { index, body ->
+            database.messageDao().insertMessage(com.ai.assistance.operit.data.model.MessageEntity(
+                chatId = "root", sender = "ai", content = body, timestamp = index.toLong(),
+                orderIndex = index, sentAt = 10, completedAt = 20,
+            ))
+        }
+        database.messageDao().insertMessage(com.ai.assistance.operit.data.model.MessageEntity(
+            chatId = "root", sender = "ai", content = "", timestamp = 4,
+            orderIndex = 4, sentAt = 10, completedAt = 20, displayMode = "ASSISTANT_INTERMEDIATE",
+        ))
+        assertEquals(listOf(false, false, false, true, true),
+            database.messageDao().getProcessMetadata("root").map { it.hasContent })
+    }
     @Test fun restartingArchivedRunMakesItVisibleAgain() = withDatabase { database ->
         val parent = ChatEntity(id = "parent", title = "Parent", group = "Work")
         val child = ChatEntity(id = "child", title = "Child", parentChatId = parent.id,

@@ -11,6 +11,38 @@ import com.ai.assistance.operit.data.model.MessageEntity
 /** 消息DAO接口，定义对消息表的数据访问方法 */
 @Dao
 interface MessageDao {
+    @Query("""
+        SELECT COALESCE(v.provider, m.provider) AS provider,
+            COALESCE(v.modelName, m.modelName) AS modelName,
+            COALESCE(v.inputTokens, m.inputTokens) AS inputTokens,
+            COALESCE(v.cachedInputTokens, m.cachedInputTokens) AS cachedInputTokens,
+            COALESCE(v.outputTokens, m.outputTokens) AS outputTokens
+        FROM messages m LEFT JOIN message_variants v
+          ON m.selectedVariantIndex > 0 AND v.chatId = m.chatId
+          AND v.messageTimestamp = m.timestamp AND v.variantIndex = m.selectedVariantIndex
+        WHERE m.chatId = :chatId AND m.sender = 'ai'
+    """)
+    suspend fun getAssistantUsage(chatId: String): List<com.ai.assistance.operit.data.model.ChatMessageUsage>
+
+    @Query("""
+        SELECT m.timestamp, m.sender, m.displayMode,
+            COALESCE(v.sentAt, m.sentAt) AS sentAt,
+            COALESCE(v.completedAt, m.completedAt) AS completedAt,
+            COALESCE(v.waitDurationMs, m.waitDurationMs) AS waitDurationMs,
+            COALESCE(v.outputDurationMs, m.outputDurationMs) AS outputDurationMs,
+            CASE WHEN m.sender = 'ai' AND m.displayMode = 'NORMAL'
+                AND COALESCE(v.completedAt, m.completedAt) > 0
+            THEN LENGTH(TRIM(COALESCE(v.content, m.content),
+                char(9,10,11,12,13,28,29,30,31,32,160,5760,8192,8193,8194,8195,
+                     8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288))) > 0
+            ELSE 1 END AS hasContent
+        FROM messages m LEFT JOIN message_variants v
+          ON m.selectedVariantIndex > 0 AND v.chatId = m.chatId
+          AND v.messageTimestamp = m.timestamp AND v.variantIndex = m.selectedVariantIndex
+        WHERE m.chatId = :chatId ORDER BY m.timestamp ASC
+    """)
+    suspend fun getProcessMetadata(chatId: String): List<com.ai.assistance.operit.data.model.ChatMessageProcessMetadata>
+
     /** 获取消息总数 */
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun getTotalMessageCount(): Int

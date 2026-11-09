@@ -110,16 +110,48 @@ private fun String.decodeToolXmlText(): String =
         .replace("&gt;", ">")
         .replace("&amp;", "&")
 
+internal fun readSubagentCallMessage(displayToolName: String, message: String?): String? =
+    message
+        ?.trim()
+        ?.removeSurrounding("<![CDATA[", "]]>")
+        ?.decodeToolXmlText()
+        ?.trim()
+        ?.takeIf { subagentCallAddressesAnAgent(displayToolName) && it.isNotEmpty() }
+
+/** The calls whose row stands for one named agent, rather than for a tool and its own arguments. */
+internal fun subagentCallAddressesAnAgent(displayToolName: String): Boolean =
+    displayToolName == "spawn_agent" ||
+        displayToolName == "send_message" ||
+        displayToolName == "followup_task"
+
+/**
+ * The agent a collaboration call addressed: the name a spawn creates, or the target an existing one
+ * was written to. Both are what the row's card wears as its title.
+ */
+internal fun readSubagentCallTarget(
+    displayToolName: String,
+    params: Map<String, String>,
+): String? =
+    when (displayToolName) {
+        "task" -> params["subagent_type"]
+        "spawn_agent" -> params["task_name"]
+        "send_message", "followup_task" -> params["target"]
+        else -> null
+    }?.trim()?.takeIf { it.isNotEmpty() }
+
 class CustomXmlRenderer(
     private val showThinkingProcess: Boolean = true,
     private val showStatusTags: Boolean = true,
     private val initialThinkingExpanded: Boolean = false,
     private val allowExpandedThinkingFullHeight: Boolean = false,
-    private val enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
+    private val enableDialogs: Boolean = true,
+    private val enableToolDetailDialogs: Boolean? = null,  // 新增参数：是否启用弹窗功能，默认启用
     private val toolTimingScopeId: String? = null,
     private val persistedToolExecutions: Map<Int, PersistedToolExecution> = emptyMap(),
     private val fallback: XmlContentRenderer = DefaultXmlRenderer()
 ) : XmlContentRenderer {
+    private val toolDetailDialogsEnabled: Boolean get() = enableToolDetailDialogs ?: enableDialogs
+
     // 定义渲染器能够处理的内置标签集合
     private val builtInTags =
             setOf("think", "thinking", "search", "tool", "status", "tool_result", "html", "mood", "font", "details", "detail", "meta")
@@ -131,6 +163,7 @@ class CustomXmlRenderer(
         val summaryOverride: String? = null,
         val subagentName: String? = null,
         val subagentTaskId: String? = null,
+        val subagentTaskText: String? = null,
         val isClosed: Boolean,
     )
 
@@ -1146,7 +1179,6 @@ class CustomXmlRenderer(
         xmlStream: Stream<String>?,
         invocationIndex: Int?,
     ) {
-        val paramTokenEstimate = rememberToolParamTokenEstimate(content, xmlStream)
         val renderState =
             run {
                 val nameRegex = "name=\"([^\"]+)\"".toRegex()
@@ -1166,14 +1198,15 @@ class CustomXmlRenderer(
                     } else {
                         null
                     }
-                val subagentName =
-                    displayParams["subagent_type"]
-                        ?.trim()
-                        ?.takeIf { displayToolName == "task" && it.isNotEmpty() }
+                val subagentName = readSubagentCallTarget(displayToolName, displayParams)
                 val subagentTaskId =
                     displayParams["task_id"]
                         ?.trim()
                         ?.takeIf { displayToolName == "task" && it.isNotEmpty() }
+                // What the caller handed the agent. It is the row's own content in the chat, so it is
+                // read here where the call is parsed rather than dug out of the child conversation.
+                val subagentTaskText =
+                    readSubagentCallMessage(displayToolName, displayParams["message"])
 
                 ToolRequestRenderState(
                     rawToolName = rawToolName,
@@ -1182,6 +1215,7 @@ class CustomXmlRenderer(
                     summaryOverride = summaryOverride,
                     subagentName = subagentName,
                     subagentTaskId = subagentTaskId,
+                    subagentTaskText = subagentTaskText,
                     isClosed = isXmlFullyClosed(content),
                 )
             }
@@ -1194,7 +1228,7 @@ class CustomXmlRenderer(
                     summaryOverride = renderState.summaryOverride,
                     textColor = textColor,
                     modifier = modifier,
-                    enableDialog = enableDialogs,
+                    enableDialog = toolDetailDialogsEnabled,
                 )
             // 特殊处理文件编辑类工具
             } else if (renderState.displayToolName == "apply_file" ||
@@ -1207,7 +1241,7 @@ class CustomXmlRenderer(
                         params = renderState.paramText,
                         textColor = textColor,
                         modifier = modifier,
-                        enableDialog = enableDialogs
+                        enableDialog = toolDetailDialogsEnabled
                     )
                 } else {
                     DetailedToolDisplay(
@@ -1215,18 +1249,22 @@ class CustomXmlRenderer(
                         params = renderState.paramText,
                         textColor = textColor,
                         modifier = modifier,
-                        enableDialog = enableDialogs
+                        enableDialog = toolDetailDialogsEnabled
                     )
                 }
             } else {
                 // 对于其他工具，保持原有逻辑
-                if (!renderState.isClosed && paramTokenEstimate > TOOL_PARAM_TOKEN_THRESHOLD) {
+                // Completed history always uses the compact presentation; do not rescan its
+                // potentially large parameters for a streaming-only threshold.
+                if (!renderState.isClosed &&
+                    rememberToolParamTokenEstimate(content, xmlStream) > TOOL_PARAM_TOKEN_THRESHOLD
+                ) {
                     DetailedToolDisplay(
                         toolName = renderState.displayToolName,
                         params = renderState.paramText,
                         textColor = textColor,
                         modifier = modifier,
-                        enableDialog = enableDialogs  // 传递弹窗启用状态
+                        enableDialog = toolDetailDialogsEnabled  // 传递弹窗启用状态
                     )
                 } else {
                     CompactToolDisplay(
@@ -1234,7 +1272,7 @@ class CustomXmlRenderer(
                         params = renderState.paramText,
                         textColor = textColor,
                         modifier = modifier,
-                        enableDialog = enableDialogs  // 传递弹窗启用状态
+                        enableDialog = toolDetailDialogsEnabled  // 传递弹窗启用状态
                     )
                 }
             }
@@ -1245,10 +1283,11 @@ class CustomXmlRenderer(
                     invocationIndex = index,
                     persistedExecution = persistedToolExecutions[index],
                     allowUnmatchedLiveExecution = xmlStream != null,
-                    enableDialogs = enableDialogs,
+                    enableDialogs = toolDetailDialogsEnabled,
                     requestedToolName = renderState.displayToolName,
                     requestedSubagentName = renderState.subagentName,
                     requestedSubagentTaskId = renderState.subagentTaskId,
+                    requestedSubagentTask = renderState.subagentTaskText,
                     modifier = modifier,
                 )
             }
@@ -1386,7 +1425,7 @@ class CustomXmlRenderer(
             result = displayResult,
             isSuccess = renderState.isSuccess,
             modifier = modifier,
-            enableDialog = enableDialogs,
+            enableDialog = toolDetailDialogsEnabled,
         )
     }
 
@@ -1459,7 +1498,7 @@ class CustomXmlRenderer(
         detailText: String,
         modifier: Modifier
     ) {
-        val canOpenDetail = enableDialogs && detailText.isNotBlank()
+        val canOpenDetail = toolDetailDialogsEnabled && detailText.isNotBlank()
         var showDetailDialog by remember { mutableStateOf(false) }
 
         if (showDetailDialog && canOpenDetail) {

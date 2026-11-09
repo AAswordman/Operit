@@ -513,6 +513,9 @@ class ChatServiceCore(
     val currentChatId: StateFlow<String?>
         get() = chatHistoryDelegate.currentChatId
 
+    val currentChatProcessMetadata get() = chatHistoryDelegate.processMetadata
+    suspend fun loadTranscriptProcess(key: Long) = chatHistoryDelegate.loadTranscriptProcess(key)
+
     val currentChatHasOlderDisplayHistory: StateFlow<Boolean>
         get() = chatHistoryDelegate.hasOlderDisplayHistory
 

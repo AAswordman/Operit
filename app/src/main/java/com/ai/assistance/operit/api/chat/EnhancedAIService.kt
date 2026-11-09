@@ -1058,7 +1058,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
                 .getInstance(context).reasoningEffort(chatId)
         } else null
-        val enableThinking = options.enableThinking || reasoningEffort != null
+        val enableThinking = com.ai.assistance.operit.core.agent.collaboration.CollaborationModelParameters
+            .thinkingEnabled(options.enableThinking, reasoningEffort)
         val enableMemoryAutoUpdate = options.enableMemoryAutoUpdate
         val maxTokens = options.maxTokens
         val tokenUsageThreshold = options.tokenUsageThreshold
@@ -1339,6 +1340,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 execContext.samplingInterrupted = runSteerableSampling(
                     execContext.turnInputInbox, { execContext.samplingReplayMetadata = it },
                 ) {
+                    if (isSubTask && chatId != null) {
+                        com.ai.assistance.operit.data.repository.SubagentRunRepository.getInstance(this@EnhancedAIService.context).incrementModelRoundCountByChildChatId(chatId)
+                    }
                     val responseStream =
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
@@ -2764,6 +2768,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 context.samplingInterrupted = runSteerableSampling(
                     context.turnInputInbox, { context.samplingReplayMetadata = it },
                 ) {
+                if (isSubTask && chatId != null) {
+                    com.ai.assistance.operit.data.repository.SubagentRunRepository.getInstance(this@EnhancedAIService.context).incrementModelRoundCountByChildChatId(chatId)
+                }
                 val responseStream =
                         serviceForFunction.sendMessage(
                                 context = this@EnhancedAIService.context,

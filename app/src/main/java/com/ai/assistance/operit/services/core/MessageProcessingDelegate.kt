@@ -216,6 +216,8 @@ class MessageProcessingDelegate(
 
     private val _activeStreamingChatIds = MutableStateFlow<Set<String>>(emptySet())
     val activeStreamingChatIds: StateFlow<Set<String>> = _activeStreamingChatIds.asStateFlow()
+    private val _activeRunStartedAt = MutableStateFlow<Map<String, Long>>(emptyMap())
+    val activeRunStartedAt: StateFlow<Map<String, Long>> = _activeRunStartedAt.asStateFlow()
 
     private val _inputProcessingStateByChatId =
         MutableStateFlow<Map<String, EnhancedInputProcessingState>>(emptyMap())
@@ -284,6 +286,7 @@ class MessageProcessingDelegate(
         var currentTurnOptions: ChatTurnOptions = ChatTurnOptions(),
         var requestSentAt: Long = 0L,
         var requestStartElapsed: Long = 0L,
+        @Volatile var runStartedElapsed: Long = 0L,
         var firstResponseElapsed: Long? = null,
         val turnSequence: AtomicLong = AtomicLong(0L),
         @Volatile var activeTurnId: Long = 0L,
@@ -355,6 +358,7 @@ class MessageProcessingDelegate(
         return chatRuntimes[key] ?: ChatRuntime().also { chatRuntimes[key] = it }
     }
 
+    @Synchronized
     private fun updateGlobalLoadingState() {
         val anyLoading = chatRuntimes.values.any { it.isLoading.value }
         val activeChatIds = chatRuntimes
@@ -363,6 +367,9 @@ class MessageProcessingDelegate(
             .filter { it != "__DEFAULT_CHAT__" }
             .toSet()
 
+        _activeRunStartedAt.value = activeChatIds.associateWith {
+            chatRuntimes.getValue(it).runStartedElapsed
+        }
         _activeStreamingChatIds.value = activeChatIds
         _isLoading.value = anyLoading
     }
@@ -911,6 +918,7 @@ class MessageProcessingDelegate(
         resetCurrentTurnToolInvocationCount(chatId)
         chatRuntime.responseStream = null
         chatRuntime.activeStreamingTurn = null
+        if (!isAutoContinuation || chatRuntime.runStartedElapsed <= 0L) chatRuntime.runStartedElapsed = android.os.SystemClock.elapsedRealtime()
         chatRuntime.isLoading.value = true
         chatRuntime.currentTurnOptions = turnOptions
         val steering = TurnSteeringState(turnId)
@@ -2053,6 +2061,7 @@ class MessageProcessingDelegate(
         var shouldResetInputStateToIdle = false
         chatRuntime.sendJob = currentJob
         resetCurrentTurnToolInvocationCount(chatId)
+        chatRuntime.runStartedElapsed = android.os.SystemClock.elapsedRealtime()
         chatRuntime.isLoading.value = true
         updateGlobalLoadingState()
         setChatInputProcessingState(

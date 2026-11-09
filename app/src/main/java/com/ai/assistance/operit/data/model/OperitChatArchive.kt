@@ -115,6 +115,9 @@ data class OperitArchivedSubagentRun(
     val agentConfigSnapshot: String? = null,
     val modelConfigIdSnapshot: String? = null,
     val modelIndexSnapshot: Int? = null,
+    val modelRoundCount: Int = 0,
+    val externalOwnerId: String? = null,
+    val externalOwnerType: String? = null,
     val toolInvocationCount: Int = 0,
     val archivedAt: Long? = null,
 ) {
@@ -134,6 +137,9 @@ data class OperitArchivedSubagentRun(
             agentConfigSnapshot = agentConfigSnapshot,
             modelConfigIdSnapshot = modelConfigIdSnapshot,
             modelIndexSnapshot = modelIndexSnapshot,
+            externalOwnerId = externalOwnerId,
+            externalOwnerType = externalOwnerType,
+            modelRoundCount = modelRoundCount,
             toolInvocationCount = toolInvocationCount,
             archivedAt = archivedAt,
         )
@@ -155,6 +161,9 @@ data class OperitArchivedSubagentRun(
                 agentConfigSnapshot = entity.agentConfigSnapshot,
                 modelConfigIdSnapshot = entity.modelConfigIdSnapshot,
                 modelIndexSnapshot = entity.modelIndexSnapshot,
+                externalOwnerId = entity.externalOwnerId,
+                externalOwnerType = entity.externalOwnerType,
+                modelRoundCount = entity.modelRoundCount,
                 toolInvocationCount = entity.toolInvocationCount,
                 archivedAt = entity.archivedAt,
             )

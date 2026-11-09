@@ -53,13 +53,15 @@ internal class ChatBranchRepository(
                     upToTimestampInclusive = upToTimestampInclusive,
                 )
             }
+            val copiedIds = mutableMapOf(sourceChatId to branch.id)
             val copiedSubagentCount =
                 cloneReferencedSubagentTree(
                     sourceParentChatId = sourceChatId,
                     targetParentChatId = branch.id,
                     upToTimestampInclusive = upToTimestampInclusive,
-                    copiedSourceChatIds = mutableSetOf(sourceChatId),
+                    copiedSourceChatIds = mutableSetOf(sourceChatId), copiedIds = copiedIds,
                 )
+            if (copiedIds.size > 1) copiedIds.values.forEach { remapCopiedTaskIds(it, emptyMap(), copiedIds) }
 
             ChatBranchCopyResult(
                 branch = requireNotNull(chatDao.getChatById(branch.id)),
@@ -73,6 +75,7 @@ internal class ChatBranchRepository(
         targetParentChatId: String,
         upToTimestampInclusive: Long?,
         copiedSourceChatIds: MutableSet<String>,
+        copiedIds: MutableMap<String,String>,
     ): Int {
         val parentRuns = subagentRunDao.getByParentChatId(sourceParentChatId)
         if (parentRuns.isEmpty()) return 0
@@ -121,6 +124,7 @@ internal class ChatBranchRepository(
                         parentChatId = targetParentChatId,
                         chatKind = ChatKind.SUBAGENT.name,
                     )
+                copiedIds[sourceChild.id] = childCopy.id
                 chatDao.insertChat(childCopy)
                 copyMessagesAndVariants(
                     sourceChatId = sourceChild.id,
@@ -142,7 +146,7 @@ internal class ChatBranchRepository(
                         sourceParentChatId = sourceChild.id,
                         targetParentChatId = childCopy.id,
                         upToTimestampInclusive = null,
-                        copiedSourceChatIds = copiedSourceChatIds,
+                        copiedSourceChatIds = copiedSourceChatIds, copiedIds = copiedIds,
                     )
             }
         remapCopiedTaskIds(targetParentChatId, taskIdRemap)
@@ -152,16 +156,22 @@ internal class ChatBranchRepository(
     private suspend fun remapCopiedTaskIds(
         targetChatId: String,
         taskIdRemap: Map<String, String>,
+        chatIds: Map<String,String> = emptyMap(),
     ) {
-        if (taskIdRemap.isEmpty()) return
+        if (taskIdRemap.isEmpty() && chatIds.isEmpty()) return
+        val modes = mutableMapOf<Long, Pair<Boolean,Boolean>>()
         chatContentDao.getMessagesForChat(targetChatId).forEach { message ->
-            val content = remapPersistedTaskIds(message.content, taskIdRemap)
+            val envelope = message.displayMode == "COLLABORATION_TASK" || message.displayMode == "COLLABORATION_EVENT"
+            val assistant = message.sender == "ai"
+            if (chatIds.isNotEmpty()) modes[message.timestamp] = envelope to assistant
+            val content = remapCollaborationReferences(remapPersistedTaskIds(message.content, taskIdRemap), chatIds, envelope, assistant)
             if (content != message.content) {
                 messageDao.updateMessage(message.copy(content = content))
             }
         }
         chatContentDao.getVariantsForChat(targetChatId).forEach { variant ->
-            val content = remapPersistedTaskIds(variant.content, taskIdRemap)
+            val mode = modes[variant.messageTimestamp]
+            val content = remapCollaborationReferences(remapPersistedTaskIds(variant.content, taskIdRemap), chatIds, mode?.first == true, mode?.second == true)
             if (content != variant.content) {
                 messageVariantDao.updateVariant(variant.copy(content = content))
             }
@@ -193,9 +203,6 @@ private val ACTIVE_SUBAGENT_RUN_STATUS_NAMES =
         SubagentRunStatus.RUNNING.name,
     )
 
-private const val BRANCH_SNAPSHOT_INTERRUPTED_ERROR =
-    "This Subagent run was interrupted because its parent chat was branched."
-
 internal fun SubagentRunEntity.copyForBranch(
     branchTaskId: String,
     branchParentChatId: String,
@@ -209,7 +216,7 @@ internal fun SubagentRunEntity.copyForBranch(
         childChatId = branchChildChatId,
         status = if (activeSnapshot) SubagentRunStatus.INTERRUPTED.name else status,
         completedAt = if (activeSnapshot) snapshotAt else completedAt,
-        error = if (activeSnapshot) BRANCH_SNAPSHOT_INTERRUPTED_ERROR else error,
+        error = if (activeSnapshot) SubagentInterruption.CHAT_BRANCH else error,
     )
 }
 
@@ -249,3 +256,16 @@ internal fun remapPersistedTaskIds(
             match.groupValues[1] + newTaskId + match.groupValues[2]
         }
     }
+
+private val senderIdentity = Regex("""\A(Message ID: [0-9a-f-]{36}\nMessage Type: (?:MESSAGE|NEW_TASK|FINAL_ANSWER|STATUS)\nTask name: [^\n]+\nSender: [^\n]+\nSender ID: )([^\n]+)(?=\n)""")
+private val collaborationResult = Regex("""(?is)<(tool_result(?:_\w+)?)\b(?=[^>]*\bname\s*=\s*["'](?:spawn_agent|send_message|followup_task)["'])[^>]*>.*?</\1\s*>""")
+private val resultAgentId = Regex("""("agent_id"\s*:\s*")([^"]+)(")""")
+
+internal fun remapCollaborationReferences(content: String, ids: Map<String,String>, envelope: Boolean, assistant: Boolean): String {
+    if (ids.isEmpty()) return content
+    if (envelope) return senderIdentity.replace(content) { it.groupValues[1] + (ids[it.groupValues[2]] ?: it.groupValues[2]) }
+    if (!assistant) return content
+    return collaborationResult.replace(content) { block ->
+        resultAgentId.replace(block.value) { field -> field.groupValues[1] + (ids[field.groupValues[2]] ?: field.groupValues[2]) + field.groupValues[3] }
+    }
+}

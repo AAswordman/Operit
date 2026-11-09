@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SubagentRunDao {
+    @Query("UPDATE subagent_runs SET modelRoundCount = modelRoundCount + 1 WHERE childChatId = :childChatId")
+    suspend fun incrementModelRoundCountByChildChatId(childChatId: String): Int
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(run: SubagentRunEntity)
 

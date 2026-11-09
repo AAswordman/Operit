@@ -12,10 +12,11 @@ data class AgentMessage(
     val recipient: String,
     val kind: AgentMessageKind,
     val text: String,
+    val senderId: String? = null,
 ) {
     fun render(): String =
         "Message ID: $id\nMessage Type: $kind\nTask name: $recipient\n" +
-            "Sender: $sender\nPayload:\n$text"
+            "Sender: $sender\n" + (senderId?.let { "Sender ID: $it\n" } ?: "") + "Payload:\n$text"
 }
 
 @Serializable
@@ -51,6 +52,8 @@ data class CollaborationAgent(
     val historyCutoff: Long? = null,
     val roleCardId: String? = null,
     val finalAnswer: String? = null,
+    /** No longer addressable; its chat history remains available. */
+    val archived: Boolean = false,
 )
 
 /**
@@ -62,13 +65,42 @@ data class CollaborationState(
     val version: Int = 1,
     val agents: List<CollaborationAgent> = emptyList(),
 ) {
+    /** The live agent at [path]; archived ones no longer hold their names. */
     fun find(rootChatId: String, path: String): CollaborationAgent? =
-        agents.firstOrNull { it.rootChatId == rootChatId && it.path == path }
+        agents.firstOrNull { it.rootChatId == rootChatId && it.path == path && !it.archived }
 
-    fun update(agent: CollaborationAgent): CollaborationState =
-        copy(agents = agents.filterNot {
-            it.rootChatId == agent.rootChatId && it.path == agent.path
+    /** Replaces the live agent at the same path and moves it last, so the order runs from least to most recently active. */
+    fun update(agent: CollaborationAgent): CollaborationState {
+        require(!agent.archived) { "Archived agents cannot change" }
+        return copy(agents = agents.filterNot {
+            it.rootChatId == agent.rootChatId && it.path == agent.path && !it.archived
         } + agent)
+    }
+
+    /**
+     * Archives the live agents with these chats. An archived agent keeps only who it was (its tree,
+     * path and chat); its prompt, inherited history, mail and answer are dropped, since nothing can
+     * run or address it again and its own chat already holds what it did.
+     */
+    fun archive(chatIds: Set<String>): CollaborationState =
+        copy(agents = agents.map {
+            if (it.chatId in chatIds && !it.archived) it.copy(
+                archived = true, messages = emptyList(), systemPrompt = "", inheritedHistory = emptyList(),
+                finalAnswer = null, lastError = null,
+            ) else it
+        })
+
+    /** Archived paths can be reused, so they must not capture a later generation's jobs. */
+    fun chatsAffectedByDeletion(chatIds: Set<String>): Set<String> {
+        val roots = agents.filter { it.chatId in chatIds }
+        return agents.filter { agent ->
+            roots.any { root ->
+                root.rootChatId == agent.rootChatId &&
+                    (root.chatId == agent.chatId || root.path == AgentPath.ROOT ||
+                        (!root.archived && !agent.archived && AgentPath.isWithin(agent.path, root.path)))
+            }
+        }.mapTo(chatIds.toMutableSet()) { it.chatId }
+    }
 
     fun enqueue(rootChatId: String, message: AgentMessage): CollaborationState {
         val receiver = requireNotNull(find(rootChatId, message.recipient)) {

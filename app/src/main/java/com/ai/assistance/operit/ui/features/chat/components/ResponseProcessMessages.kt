@@ -7,13 +7,23 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.flow.map
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
+import com.ai.assistance.operit.data.model.ChatMessageProcessMetadata
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
+import com.ai.assistance.operit.services.core.isContinuedAcrossSummaries
+import com.ai.assistance.operit.services.core.TranscriptStructure
 import com.ai.assistance.operit.ui.common.markdown.LocalResponseProcessExpanded
 import com.ai.assistance.operit.ui.common.markdown.ResponseActivityHeader
 
@@ -92,9 +102,11 @@ internal fun responseProcessGroups(messages: List<ChatMessage>): Map<Int, Respon
         val previous = merged.lastOrNull()
         val between = previous?.let { (it.group.finalIndex + 1 until group.firstIndex).toList() }
         val continued =
-            between != null && between.isNotEmpty() && between.all {
-                messages[it].sender == "summary" || messages[it].displayMode.isCollaborationEvent
-            }
+            between != null &&
+                isContinuedAcrossSummaries(
+                    between.map { messages[it].sender },
+                    between.map { messages[it].displayMode.name },
+                )
         if (previous != null && continued) {
             merged[merged.lastIndex] =
                 ResponseProcessSegment(
@@ -118,32 +130,124 @@ internal class ResponseProcessState(
     val isExpanded: (Long) -> Boolean,
     val toggle: (Long) -> Unit,
     val expand: (Long) -> Unit,
-    val chatId: String? = null,
-    val messageIds: List<Long> = emptyList(),
+    val hasMore: (Long) -> Boolean = { false },
+    val loadMore: suspend (Long) -> Unit = {},
+    val showSummary: Boolean = true,
+    val ready: Boolean = true,
 )
+
+/** Map complete transcript structure to a bounded body window, including card-only pages. */
+internal fun windowResponseProcessGroups(
+    messages: List<ChatMessage>,
+    metadata: List<ChatMessageProcessMetadata>,
+): Map<Int, ResponseProcessGroup> =
+    if (metadata.isEmpty()) responseProcessGroups(messages)
+    else projectWindowProcessState(messages, buildWindowStructure(messages, metadata)).first
+
+private fun buildWindowStructure(
+    messages: List<ChatMessage>,
+    metadata: List<ChatMessageProcessMetadata>,
+): TranscriptStructure {
+    val structuralMessages = metadata.associateBy { it.timestamp }.toMutableMap()
+    // A live/finalized row in memory is newer than the persisted metadata snapshot.
+    messages.forEach { message ->
+        structuralMessages[message.timestamp] = ChatMessageProcessMetadata(
+            message.timestamp, message.sender, message.displayMode.name, message.sentAt,
+            if (message.contentStream == null) message.completedAt else 0L,
+            message.waitDurationMs, message.outputDurationMs,
+            hasContent = message.content.isNotBlank(),
+        )
+    }
+    return TranscriptStructure(
+        structuralMessages.values.sortedBy { it.timestamp })
+}
+
+private fun projectWindowProcessState(
+    messages: List<ChatMessage>,
+    structure: TranscriptStructure,
+): Pair<Map<Int, ResponseProcessGroup>, Set<Long>> {
+    val groupsByTimestamp = structure.turnByTimestamp
+    val windowMembers = messages.indices.filter { messages[it].timestamp in groupsByTimestamp }
+        .groupBy { groupsByTimestamp.getValue(messages[it].timestamp) }
+    val groups = buildMap {
+        windowMembers.forEach { (group, members) ->
+            val visible = ResponseProcessGroup(
+                key = group.key,
+                durationMs = group.durationMs,
+                firstIndex = members.first(),
+                finalIndex = messages.indexOfFirst { it.timestamp == group.finalTimestamp },
+                headerIndex = members.firstOrNull { messages[it].sender == "ai" } ?: -1,
+            )
+            members.forEach { put(it, visible) }
+        }
+    }
+    val present = messages.mapTo(hashSetOf()) { it.timestamp }
+    val missing = windowMembers.keys.filter { turn -> turn.memberTimestamps.any { it !in present } }
+        .mapTo(hashSetOf()) { it.key }
+    return groups to missing
+}
 
 @Composable
 internal fun rememberResponseProcessState(
     messages: List<ChatMessage>,
     chatId: String?,
     enabled: Boolean = true,
+    metadata: List<ChatMessageProcessMetadata> = emptyList(),
+    loadProcess: (suspend (Long) -> Unit)? = null,
 ): ResponseProcessState {
     val context = LocalContext.current
     val preferences = remember(context) { DisplayPreferencesManager.getInstance(context) }
-    val collapse by preferences.collapseCompletedProcess.collectAsState(initial = true)
+    val collapsePreference by remember(preferences) {
+        preferences.collapseCompletedProcess.map { it as Boolean? }
+    }.collectAsState(initial = null)
+    val collapse = collapsePreference ?: true
     val snapshot = messages.toList()
-    val groups = remember(snapshot, collapse, enabled) {
-        if (collapse && enabled) responseProcessGroups(snapshot) else emptyMap()
+    val computed by androidx.compose.runtime.key(chatId) {
+        produceState<TranscriptStructure?>(null, snapshot, metadata) {
+            value = withContext(Dispatchers.Default) {
+                buildWindowStructure(snapshot, metadata)
+            }
+        }
+    }
+    // Keep the last immutable structure while computing. Project by timestamp, never by old
+    // indices, so inserting process rows cannot unmount the list or misidentify a message.
+    val projected = remember(snapshot, computed) {
+        computed?.let { projectWindowProcessState(snapshot, it) }
+    }
+    val allGroups = projected?.first.orEmpty()
+    val groups = allGroups
+    val missingKeys = projected?.second.orEmpty()
+    val scope = rememberCoroutineScope()
+    val currentLoad by rememberUpdatedState(loadProcess)
+    val expandedKeys = allGroups.values.map { it.key }.distinct().filter {
+        !collapse || !enabled || TranscriptExpansionState.isExpanded(chatId, processSectionId(it))
+    }
+    LaunchedEffect(chatId, expandedKeys, metadata, messages.map { it.timestamp }) {
+        expandedKeys.filter { key ->
+            allGroups.entries.none { (index, group) ->
+                group.key == key && index != group.finalIndex
+            }
+        }.forEach { currentLoad?.invoke(it) }
+    }
+    val expand: (Long) -> Unit = { key ->
+        TranscriptExpansionState.expand(chatId, processSectionId(key))
+        scope.launch { currentLoad?.invoke(key) }
     }
     return ResponseProcessState(
         groups,
-        isExpanded = { TranscriptExpansionState.isExpanded(chatId, "process-$it") },
-        toggle = { TranscriptExpansionState.toggle(chatId, "process-$it") },
-        expand = { TranscriptExpansionState.expand(chatId, "process-$it") },
-        chatId = chatId,
-        messageIds = snapshot.map { it.timestamp },
+        // An expanded section belongs to its conversation, not to the composition that shows it:
+        // leaving the conversation must not fold the sections opened in it.
+        isExpanded = { key -> !collapse || !enabled || TranscriptExpansionState.isExpanded(chatId, processSectionId(key)) },
+        toggle = { key -> TranscriptExpansionState.toggle(chatId, processSectionId(key)) },
+        expand = expand,
+        hasMore = { key -> key in missingKeys },
+        loadMore = { key -> currentLoad?.invoke(key) },
+        showSummary = collapse && enabled,
+        ready = collapsePreference != null && computed != null,
     )
 }
+
+private fun processSectionId(key: Long): String = "process-section-$key"
 
 @Composable
 internal fun ResponseProcessMessage(
@@ -152,24 +256,18 @@ internal fun ResponseProcessMessage(
     textColor: Color,
     content: @Composable (Int) -> Unit,
 ) {
-    val render: @Composable (Int) -> Unit = { messageIndex ->
-        CompositionLocalProvider(
-            LocalTranscriptChatId provides state.chatId,
-            LocalTranscriptMessageId provides state.messageIds.getOrNull(messageIndex),
-        ) {
-            content(messageIndex)
-        }
-    }
     val group = state.groups[index]
     if (group == null) {
-        Column { render(index) }
+        Column { content(index) }
         return
     }
     val expanded = state.isExpanded(group.key)
     Column {
-        if (index == group.firstIndex) {
-            CompositionLocalProvider(LocalResponseMessageSection provides ResponseMessageSection.HEADER) {
-                render(group.headerIndex)
+        if (index == group.firstIndex && state.showSummary) {
+            if (group.headerIndex >= 0) {
+                CompositionLocalProvider(LocalResponseMessageSection provides ResponseMessageSection.HEADER) {
+                    content(group.headerIndex)
+                }
             }
             ResponseActivityHeader(
                 durationMs = group.durationMs,
@@ -179,11 +277,14 @@ internal fun ResponseProcessMessage(
             )
         }
         if (expanded || index == group.finalIndex) {
+            if (expanded && index == group.finalIndex && state.hasMore(group.key)) {
+                LaunchedEffect(group.key, index) { state.loadMore(group.key) }
+            }
             CompositionLocalProvider(
                 LocalResponseProcessExpanded provides expanded,
-                LocalResponseMessageSection provides ResponseMessageSection.BODY,
+                LocalResponseMessageSection provides if (state.showSummary) ResponseMessageSection.BODY else ResponseMessageSection.ALL,
             ) {
-                render(index)
+                content(index)
             }
         }
     }

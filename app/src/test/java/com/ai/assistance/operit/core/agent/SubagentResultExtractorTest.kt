@@ -6,6 +6,13 @@ import org.junit.Test
 
 class SubagentResultExtractorTest {
     @Test
+    fun transcriptCanShowTheLastVisibleNoteWithoutSendingItAsAnAgentAnswer() {
+        val content = """Checked the configuration. <tool name="verify"></tool><tool_result name="verify"><content>raw output</content></tool_result>"""
+        assertEquals("Checked the configuration.", SubagentResultExtractor.forTranscript(content))
+        assertEquals("No result", SubagentResultExtractor.extract(content, "No result"))
+    }
+
+    @Test
     fun returnsOnlyTextAfterTheLastToolResult() {
         val content =
             """

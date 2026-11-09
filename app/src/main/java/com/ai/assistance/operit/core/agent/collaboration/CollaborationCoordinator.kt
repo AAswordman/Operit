@@ -30,7 +30,13 @@ class CollaborationCoordinator private constructor(context: Context) {
     private val core get() = ChatRuntimeHolder.getInstance(appContext).getCore(ChatRuntimeSlot.MAIN)
     private val runner get() = SubagentCoordinator.getInstance(appContext)
     private var state = store.load().let { loaded ->
-        loaded.copy(agents = loaded.agents.map {
+        // Unread mail protects the sender from archival, so its current identity is still exact.
+        val liveChat = loaded.agents.filterNot { it.archived }.associate { (it.rootChatId to it.path) to it.chatId }
+        loaded.copy(agents = loaded.agents.map { agent ->
+            if (agent.messages.none { it.senderId == null }) agent else agent.copy(messages = agent.messages.map {
+                if (it.senderId != null) it else it.copy(senderId = liveChat[agent.rootChatId to it.sender])
+            })
+        }.map {
             if (it.status == CollaborationStatus.RUNNING) it.copy(
                 status = CollaborationStatus.INTERRUPTED,
                 lastError = "Application stopped during the agent turn",
@@ -73,7 +79,7 @@ class CollaborationCoordinator private constructor(context: Context) {
 
     fun checkpoint(chatId: String, history: List<PromptTurn>, cutoff: Long) {
         synchronized(lock) {
-            val agent = requireNotNull(state.agents.firstOrNull { it.chatId == chatId })
+            val agent = requireNotNull(state.agents.firstOrNull { it.chatId == chatId && !it.archived })
             write(state.update(agent.copy(
                 inheritedHistory = history.map {
                     CollaborationTurn(it.kind.name, it.content, it.toolName,
@@ -86,30 +92,105 @@ class CollaborationCoordinator private constructor(context: Context) {
 
     fun caller(chatId: String): CollaborationAgent = synchronized(lock) {
         require(chatId !in deleting) { "Chat is being deleted" }
-        state.agents.firstOrNull { it.chatId == chatId } ?: CollaborationAgent(
-            rootChatId = chatId, path = AgentPath.ROOT, chatId = chatId,
-        ).also { write(state.update(it)) }
+        state.agents.firstOrNull { it.chatId == chatId && !it.archived } ?: run {
+            // An archived subagent's chat must not start a new tree of its own.
+            require(state.agents.none { it.chatId == chatId }) { "This subagent was archived" }
+            CollaborationAgent(rootChatId = chatId, path = AgentPath.ROOT, chatId = chatId)
+                .also { write(state.update(it)) }
+        }
     }
 
     private fun target(caller: CollaborationAgent, value: String): CollaborationAgent {
         val byId = state.agents.firstOrNull {
-            it.rootChatId == caller.rootChatId && (it.chatId == value || it.runId == value)
+            it.rootChatId == caller.rootChatId && !it.archived && (it.chatId == value || it.runId == value)
+        }
+        if (byId == null) {
+            // An ID never passes to another agent: an archived one fails instead of reaching a namesake.
+            state.agents.firstOrNull {
+                it.rootChatId == caller.rootChatId && it.archived && (it.chatId == value || it.runId == value)
+            }?.let { error("Agent ${it.path} ($value) was archived and can no longer be reached; its name may now belong to a different agent") }
         }
         return byId ?: requireNotNull(state.find(caller.rootChatId, AgentPath.resolve(caller.path, value))) {
             "Unknown agent: $value"
         }
     }
 
-    fun list(chatId: String, prefix: String?): List<CollaborationAgent> = synchronized(lock) {
+    /** Live agents in the caller's tree: the root, then at most [limit] subagents, most recently active first. */
+    fun list(chatId: String, prefix: String?, limit: Int = LIST_LIMIT): AgentListing = synchronized(lock) {
         val caller = caller(chatId)
         val resolvedPrefix = prefix?.let { AgentPath.resolve(caller.path, it) }
-        state.agents.filter {
-            it.rootChatId == caller.rootChatId && (resolvedPrefix == null || AgentPath.isWithin(it.path, resolvedPrefix))
-        }.map {
+        val matched = state.agents.filter {
+            it.rootChatId == caller.rootChatId && !it.archived &&
+                (resolvedPrefix == null || AgentPath.isWithin(it.path, resolvedPrefix))
+        }
+        val (roots, subagents) = matched.partition { it.path == AgentPath.ROOT }
+        // The state keeps agents from least to most recently active.
+        val shown = (roots + subagents.asReversed().take(limit)).map {
             if (it.path == AgentPath.ROOT && it.chatId in core.activeStreamingChatIds.value) {
                 it.copy(status = CollaborationStatus.RUNNING)
             } else it
         }
+        AgentListing(shown, subagents.size)
+    }
+
+    /** What list_agents shows: [agents] (root first) and how many live subagents there are in all. */
+    class AgentListing(val agents: List<CollaborationAgent>, val totalSubagents: Int)
+
+    /**
+     * Keeps at most [keep] live subagents in [root]'s tree. The least recently active idle ones are
+     * archived: they leave listing, addressing and naming, so their names can be used again, while
+     * their chats stay known as subagent chats. An agent is archived only together with everything
+     * under it, and never while it or anything under it is among the [keep] most recent, runs, is
+     * creating a child, has mail waiting, or has sent mail another agent has not taken yet.
+     */
+    private fun archiveOverflow(root: String, keep: Int) {
+        val live = state.agents.filter { it.rootChatId == root && it.path != AgentPath.ROOT && !it.archived }
+        if (live.size <= keep) return
+        val recent = live.takeLast(keep).mapTo(mutableSetOf()) { it.path }
+        val pendingSenders = state.agents.filter { it.rootChatId == root && !it.archived }
+            .flatMap { it.messages }.mapTo(mutableSetOf()) { it.sender }
+        val creatingParents = pendingParents.values.toSet()
+        // Reserved names under an agent: a child of it is being created.
+        val reservedPrefix = "$root:"
+        val reservedPaths = reservations.filter { it.startsWith(reservedPrefix) }
+            .mapTo(mutableSetOf()) { it.removePrefix(reservedPrefix) }
+        fun idle(agent: CollaborationAgent): Boolean {
+            val agentKey = key(root, agent.path)
+            return agent.path !in recent && agentKey !in jobs && agentKey !in reservations &&
+                agent.messages.isEmpty() && agent.status != CollaborationStatus.RUNNING &&
+                agent.path !in pendingSenders && agent.chatId !in creatingParents && agent.chatId !in deleting
+        }
+        // One pass, deepest first: an agent is held when it or anything under it is not idle, or
+        // when a name under it is reserved.
+        val held = mutableSetOf<String>()
+        reservedPaths.forEach { path ->
+            var parent = path.substringBeforeLast('/', "")
+            while (parent.length > AgentPath.ROOT.length && held.add(parent)) parent = parent.substringBeforeLast('/', "")
+        }
+        live.sortedByDescending { agent -> agent.path.count { it == '/' } }.forEach { agent ->
+            if (agent.path in held || !idle(agent)) {
+                held += agent.path
+                held += agent.path.substringBeforeLast('/', "")
+            }
+        }
+        val children = live.groupBy { it.path.substringBeforeLast('/', "") }
+        val archived = mutableSetOf<String>()
+        val archivedPaths = mutableSetOf<String>()
+        var remaining = live.size
+        for (candidate in live) {
+            if (remaining <= keep) break
+            if (candidate.path in archivedPaths || candidate.path in held) continue
+            // Nothing under a free agent is held, so its whole subtree goes with it.
+            val pending = ArrayDeque(listOf(candidate))
+            while (pending.isNotEmpty()) {
+                val agent = pending.removeFirst()
+                if (!archivedPaths.add(agent.path)) continue
+                archived += agent.chatId
+                remaining--
+                children[agent.path]?.let(pending::addAll)
+            }
+        }
+        if (archived.isNotEmpty()) write(state.archive(archived))
     }
 
     suspend fun spawn(
@@ -134,6 +215,7 @@ class CollaborationCoordinator private constructor(context: Context) {
         synchronized(lock) {
             require(chatId !in deleting) { "Parent chat is being deleted" }
             stopGate.checkCurrent(parent.rootChatId, generation)
+            archiveOverflow(parent.rootChatId, LIVE_LIMIT - 1)
             require(state.find(parent.rootChatId, path) == null && reservation !in reservations) {
                 "Agent task name already exists: $path"
             }
@@ -161,7 +243,7 @@ class CollaborationCoordinator private constructor(context: Context) {
             requested next step. A prose mention is not a delivered message; the tool creates
             the envelope. Do not send empty progress updates or duplicate your automatic
             final report. When replying to an incoming agent message, route the answer with
-            send_message to its stated Sender if that sender is not your parent or the answer
+            send_message to its stated Sender ID (use Sender only for old envelopes without an ID) if that sender is not your parent or the answer
             is needed before you finish. An ordinary final answer only goes to your parent;
             it does not reply to a peer who contacted you. Treat delivery as successful only
             after the tool accepts it; never claim to have sent a message based on prose alone.
@@ -185,7 +267,7 @@ class CollaborationCoordinator private constructor(context: Context) {
                 inherited.filter { it.kind != PromptTurnKind.SYSTEM.name }, path,
             )
             val assignment = AgentMessage(
-                UUID.randomUUID().toString(), parent.path, path, AgentMessageKind.NEW_TASK, message,
+                UUID.randomUUID().toString(), parent.path, path, AgentMessageKind.NEW_TASK, message, senderId = parent.chatId,
             )
             val job = scope.launch(start = CoroutineStart.LAZY) {
                 try {
@@ -194,6 +276,7 @@ class CollaborationCoordinator private constructor(context: Context) {
                         parentAgentName = parent.path, title = "v2 $path", prompt = assignment.render(),
                         subagentType = profileId, parentModelConfigId = modelConfigId,
                         parentModelIndex = modelIndex,
+                        externalOwnerType = OWNER_TYPE, externalOwnerId = path,
                         collaborationSystemPrompt = systemPrompt,
                         collaborationHistory = inheritedHistory.map { it.toPromptTurn() },
                         profileOverride = profile,
@@ -293,7 +376,7 @@ class CollaborationCoordinator private constructor(context: Context) {
             if (wake) checkCapacity(caller.rootChatId)
             val message = AgentMessage(
                 UUID.randomUUID().toString(), caller.path, receiver.path,
-                if (followup) AgentMessageKind.NEW_TASK else AgentMessageKind.MESSAGE, text,
+                if (followup) AgentMessageKind.NEW_TASK else AgentMessageKind.MESSAGE, text, senderId = caller.chatId,
             )
             write(state.enqueue(caller.rootChatId, message))
             if (wake) startExisting(requireNotNull(state.find(receiver.rootChatId, receiver.path)))
@@ -311,9 +394,9 @@ class CollaborationCoordinator private constructor(context: Context) {
         val job = scope.launch(start = CoroutineStart.LAZY) {
             try {
                 val result = runner.runTask(SubagentTaskRequest(
-                    parentChatId = requireNotNull(list(agent.chatId, null).firstOrNull {
-                        it.path == agent.parentPath
-                    }).chatId,
+                    parentChatId = synchronized(lock) {
+                        requireNotNull(agent.parentPath?.let { state.find(agent.rootChatId, it) }).chatId
+                    },
                     parentToolCallId = null,
                     parentAgentName = inputs.map { it.sender }.distinct().joinToString(", "),
                     title = "v2 ${agent.path}",
@@ -393,8 +476,9 @@ class CollaborationCoordinator private constructor(context: Context) {
             write(finished.enqueue(root, AgentMessage(
                 UUID.randomUUID().toString(), path, agent.parentPath,
                 if (status == CollaborationStatus.COMPLETED) AgentMessageKind.FINAL_ANSWER else AgentMessageKind.STATUS,
-                text.ifBlank { "$path completed with an empty response" },
+                text.ifBlank { "$path completed with an empty response" }, senderId = agent.chatId,
             )))
+            archiveOverflow(root, LIVE_LIMIT)
         }
         val parentChatId = synchronized(lock) {
             val agent = state.find(root, path)
@@ -415,7 +499,7 @@ class CollaborationCoordinator private constructor(context: Context) {
 
     private suspend fun deliverToAgent(chatId: String) =
         deliveryLocks[(chatId.hashCode() and Int.MAX_VALUE) % deliveryLocks.size].withLock {
-            val agent = synchronized(lock) { state.agents.firstOrNull { it.chatId == chatId } }
+            val agent = synchronized(lock) { state.agents.firstOrNull { it.chatId == chatId && !it.archived } }
             if (agent != null) {
                 reconcileMailbox(agent)
                 offerPending(chatId)
@@ -450,6 +534,7 @@ class CollaborationCoordinator private constructor(context: Context) {
         synchronized(lock) {
             val delegate = core.getMessageProcessingDelegate()
             state.agents.forEach { agent ->
+                if (agent.archived) return@forEach
                 if (stopGate.isStopping(agent.rootChatId)) return@forEach
                 if (chatId != null && agent.chatId != chatId) return@forEach
                 val turn = delegate.steeringTurnId(agent.chatId) ?: return@forEach
@@ -525,16 +610,13 @@ class CollaborationCoordinator private constructor(context: Context) {
     suspend fun <T> withChatDeletionsPrepared(chatIds: Collection<String>, delete: suspend () -> T): T {
         val deletionChatIds = chatIds.toMutableSet()
         val affected = synchronized(lock) {
-            val roots = state.agents.filter { it.chatId in deletionChatIds }
-            state.agents.filter { agent -> roots.any {
-                it.rootChatId == agent.rootChatId && AgentPath.isWithin(agent.path, it.path)
-            } }.mapTo(deletionChatIds) { it.chatId }
+            deletionChatIds.addAll(state.chatsAffectedByDeletion(deletionChatIds))
             require(deletionChatIds.none { it in deleting }) { "Chat deletion is already in progress" }
             deleting.addAll(deletionChatIds)
             jobs.filter { (jobKey, _) ->
                 pendingParents[jobKey] in deletionChatIds ||
                     state.agents.any {
-                        key(it.rootChatId, it.path) == jobKey &&
+                        !it.archived && key(it.rootChatId, it.path) == jobKey &&
                             (it.chatId in deletionChatIds || it.rootChatId in deletionChatIds)
                     }
             }.values.toList().also { jobs -> jobs.forEach { it.cancel() } }
@@ -609,7 +691,7 @@ class CollaborationCoordinator private constructor(context: Context) {
     private fun callerHasWaitableWork(caller: CollaborationAgent): Boolean = synchronized(lock) {
         val mailboxEmpty = state.find(caller.rootChatId, caller.path)?.messages.isNullOrEmpty()
         val peerChatIds = state.agents
-            .filter { it.rootChatId == caller.rootChatId && it.chatId != caller.chatId }
+            .filter { it.rootChatId == caller.rootChatId && it.chatId != caller.chatId && !it.archived }
             .mapTo(mutableSetOf()) { it.chatId }
         hasWaitableWork(
             rootChatId = caller.rootChatId,
@@ -624,6 +706,8 @@ class CollaborationCoordinator private constructor(context: Context) {
 
     companion object {
         const val OWNER_TYPE = "subagent_v2"
+        const val LIVE_LIMIT = 200
+        const val LIST_LIMIT = 200
         private val MESSAGE_ID = Regex("^Message ID: ([0-9a-f-]{36})$", RegexOption.MULTILINE)
         @Volatile private var instance: CollaborationCoordinator? = null
         fun getInstance(context: Context): CollaborationCoordinator =

@@ -94,10 +94,15 @@ class CollaborationToolExecutor(context: Context) : ToolExecutor {
                 }
                 "list_agents" -> buildJsonObject {
                     val limits = com.ai.assistance.operit.core.agent.AgentProfileRepository.instance.collaborationLimits.value
+                    val listing = coordinator.list(chatId, optional("path_prefix"))
+                    put("total_subagents", listing.totalSubagents)
+                    if (listing.totalSubagents > listing.agents.count { it.path != "/root" }) {
+                        put("note", "Only the most recently active subagents are shown. Old idle agents are archived automatically and their names can be reused.")
+                    }
                     put("max_active_subagents", limits.maxActive)
                     put("max_depth", limits.maxDepth)
                     put("agents", buildJsonArray {
-                        coordinator.list(chatId, optional("path_prefix")).forEach {
+                        listing.agents.forEach {
                             // A run the review stopped stores the English instruction written for
                             // the model, and polling status would otherwise replay it verbatim into
                             // the caller's context and the transcript. Report the outcome instead.

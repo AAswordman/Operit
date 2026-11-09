@@ -697,6 +697,7 @@ private fun ChatMessagesView(
         chatCore?.currentChatIsLoadingDisplayWindow?.collectAsState(initial = false)
             ?: remember { mutableStateOf(false) }
     val currentChatId = currentChatIdState.value
+    val processMetadata = chatCore?.currentChatProcessMetadata?.collectAsState()?.value.orEmpty()
     val hasOlderDisplayHistory = hasOlderDisplayHistoryState.value
     val hasNewerDisplayHistory = hasNewerDisplayHistoryState.value
     val isLoadingDisplayWindow = isLoadingDisplayWindowState.value
@@ -752,6 +753,8 @@ private fun ChatMessagesView(
     val responseProcessState =
         com.ai.assistance.operit.ui.features.chat.components.rememberResponseProcessState(
             floatContext.messages, currentChatId,
+            metadata = processMetadata,
+            loadProcess = { key -> chatCore?.loadTranscriptProcess(key) },
         )
     val renderItems = buildList<Any> {
         if (hasNewerDisplayHistory) {
@@ -835,6 +838,9 @@ private fun ChatMessagesView(
                         val messageOffset = (if (hasNewerDisplayHistory) 1 else 0) + (if (showLoadingIndicator) 1 else 0)
                         val actualIndex = displayIndices[renderIndex - messageOffset]
 
+                        androidx.compose.runtime.CompositionLocalProvider(
+                            com.ai.assistance.operit.ui.features.chat.components.LocalSubagentDetailsEnabled provides false,
+                        ) {
                         com.ai.assistance.operit.ui.features.chat.components.ResponseProcessMessage(
                             responseProcessState, actualIndex, aiTextColor,
                         ) { processIndex ->
@@ -857,6 +863,7 @@ private fun ChatMessagesView(
                             onSelectMessageToEdit = null,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        }
                         }
                     }
 

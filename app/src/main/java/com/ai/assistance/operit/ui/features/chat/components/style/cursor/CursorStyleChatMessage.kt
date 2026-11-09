@@ -1,5 +1,6 @@
 package com.ai.assistance.operit.ui.features.chat.components.style.cursor
 
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -32,15 +33,13 @@ fun CursorStyleChatMessage(
         heightMemory: ChatMessageHeightMemory? = null,
         onDeleteMessage: ((Int) -> Unit)? = null,
         index: Int = -1,
-        enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
+        enableDialogs: Boolean = true,
+
+        enableToolDetailDialogs: Boolean? = null,
         onEditSummary: ((ChatMessage) -> Unit)? = null,
         showAssistantHeader: Boolean = true,
 ) {
-    if (message.displayMode.isCollaborationEvent) {
-        com.ai.assistance.operit.ui.features.chat.components.CollaborationMessageCard(message)
-        return
-    }
-    when (message.sender) {
+    when (if (message.displayMode.isCollaborationEvent) "ai" else message.sender) {
         "user" -> {
             UserMessageComposable(
                     message = message,
@@ -54,7 +53,8 @@ fun CursorStyleChatMessage(
         "ai" -> {
             AiMessageComposable(
                     message = message,
-                    showHeader = showAssistantHeader,
+                    showHeader = showAssistantHeader && !message.displayMode.isCollaborationEvent,
+                inlineContent = if (message.displayMode.isCollaborationEvent) { { com.ai.assistance.operit.ui.features.chat.components.CollaborationMessageCard(message, horizontalPadding = 0.dp) } } else null,
                     backgroundColor = aiMessageColor,
                     textColor = aiTextColor,
                     initialThinkingExpanded = initialThinkingExpanded,
@@ -64,6 +64,7 @@ fun CursorStyleChatMessage(
                     overrideStream = overrideStream,
                     heightMemory = heightMemory,
                     enableDialogs = enableDialogs,  // 传递弹窗启用状态
+                    enableToolDetailDialogs = enableToolDetailDialogs,
             )
         }
         "summary" -> {

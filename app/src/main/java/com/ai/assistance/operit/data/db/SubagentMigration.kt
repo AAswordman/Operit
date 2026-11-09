@@ -57,3 +57,20 @@ internal object SubagentMigration : Migration(21, 23) {
         exec("CREATE INDEX index_subagent_runs_status ON subagent_runs(status)")
     }
 }
+
+/** Backfill by persisted run ID, never by the user-editable task title. */
+internal class SubagentPresentationMigration(private val context: android.content.Context) : Migration(23, 24) {
+    private fun migrateSchema(exec: (String) -> Unit, bind: (String, String) -> Unit) {
+        exec("ALTER TABLE subagent_runs ADD COLUMN externalOwnerType TEXT")
+        exec("ALTER TABLE subagent_runs ADD COLUMN externalOwnerId TEXT")
+        exec("ALTER TABLE subagent_runs ADD COLUMN modelRoundCount INTEGER NOT NULL DEFAULT 0")
+        com.ai.assistance.operit.core.agent.collaboration.CollaborationStore(context).load().agents.forEach { agent ->
+            agent.runId?.let { bind(agent.path, it) }
+        }
+    }
+    private val update = "UPDATE subagent_runs SET externalOwnerType = 'subagent_v2', externalOwnerId = ? WHERE id = ?"
+    override fun migrate(db: SupportSQLiteDatabase) = migrateSchema({ db.execSQL(it) }) { path, id -> db.execSQL(update, arrayOf(path, id)) }
+    override fun migrate(connection: SQLiteConnection) = migrateSchema({ sql -> connection.prepare(sql).use { it.step() } }) { path, id ->
+        connection.prepare(update).use { it.bindText(1, path); it.bindText(2, id); it.step() }
+    }
+}

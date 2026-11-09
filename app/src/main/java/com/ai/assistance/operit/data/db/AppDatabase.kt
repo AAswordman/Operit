@@ -25,7 +25,7 @@ import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 23
+private const val APP_DATABASE_VERSION = 24
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
@@ -544,7 +544,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_18_19,
                     MIGRATION_19_20,
                     MIGRATION_20_21,
-                    SubagentMigration
+                    SubagentMigration, SubagentPresentationMigration(context.applicationContext)
                 )
                 .build()
 

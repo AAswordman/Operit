@@ -665,7 +665,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
      * Captures the current screen content and attaches it to the message Uses the get_page_info
      * AITool to retrieve UI structure 确保在IO线程中执行
      */
-    suspend fun captureScreenContent() =
+    suspend fun captureScreenContent(onCaptured: suspend (AttachmentInfo) -> Unit = { appendAttachment(it) }) =
             withAttachmentDraft {
                 try {
                     val screenshotTool = AITool(name = "capture_screenshot", parameters = emptyList())
@@ -722,7 +722,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
                             content = content
                         )
 
-                    appendAttachment(attachmentInfo)
+                    onCaptured(attachmentInfo)
 
                     _toastEvent.emit(context.getString(R.string.attachment_screen_content_added))
 
@@ -738,7 +738,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
             }
 
     /** 获取设备当前通知并作为附件添加到消息 使用get_notifications AITool获取通知数据 确保在IO线程中执行 */
-    suspend fun captureNotifications(limit: Int = 10) =
+    suspend fun captureNotifications(limit: Int = 10, onCaptured: suspend (AttachmentInfo) -> Unit = { appendAttachment(it) }) =
             withAttachmentDraft {
                 try {
                     // 创建工具参数
@@ -770,7 +770,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
                                         content = notificationsContent
                                 )
 
-                        appendAttachment(attachmentInfo)
+                        onCaptured(attachmentInfo)
 
                         _toastEvent.emit(context.getString(R.string.attachment_notifications_added))
                     } else {
@@ -784,7 +784,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
             }
 
     /** 获取设备当前位置并作为附件添加到消息 使用get_device_location AITool获取位置数据 确保在IO线程中执行 */
-    suspend fun captureLocation(highAccuracy: Boolean = true) =
+    suspend fun captureLocation(highAccuracy: Boolean = true, onCaptured: suspend (AttachmentInfo) -> Unit = { appendAttachment(it) }) =
             withAttachmentDraft {
                 try {
                     // 创建工具参数
@@ -816,7 +816,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
                                         content = locationContent
                                 )
 
-                        appendAttachment(attachmentInfo)
+                        onCaptured(attachmentInfo)
 
                         _toastEvent.emit(context.getString(R.string.attachment_location_added))
                     } else {
@@ -830,7 +830,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
             }
 
     /** 获取当前时间并作为附件添加到消息 */
-    suspend fun captureCurrentTime() =
+    suspend fun captureCurrentTime(onCaptured: suspend (AttachmentInfo) -> Unit = { appendAttachment(it) }) =
             withAttachmentDraft {
                 try {
                     val captureId = "time_${System.currentTimeMillis()}"
@@ -847,7 +847,7 @@ class AttachmentDelegate(private val context: Context, private val toolHandler: 
                             content = content
                         )
 
-                    appendAttachment(attachmentInfo)
+                    onCaptured(attachmentInfo)
 
                     _toastEvent.emit(context.getString(R.string.attachment_time_added))
                 } catch (e: Exception) {

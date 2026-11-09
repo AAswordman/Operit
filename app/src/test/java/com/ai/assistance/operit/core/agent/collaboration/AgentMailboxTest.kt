@@ -4,6 +4,34 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AgentMailboxTest {
+    @Test fun archivedIdentityIsRetainedButItsNameCanBeReused() {
+        val root = CollaborationAgent("main", "/root", "main")
+        val old = CollaborationAgent("main", "/root/work", "old",
+            systemPrompt = "large prompt", finalAnswer = "old result")
+        val archived = CollaborationState(agents = listOf(root, old)).archive(setOf("old"))
+        assertNull(archived.find("main", "/root/work"))
+        assertEquals("", archived.agents.last().systemPrompt)
+        assertNull(archived.agents.last().finalAnswer)
+        val fresh = old.copy(chatId = "new", systemPrompt = "fresh", finalAnswer = null)
+        val reused = archived.update(fresh)
+        assertEquals("new", reused.find("main", "/root/work")!!.chatId)
+        assertTrue(reused.agents.any { it.chatId == "old" && it.archived })
+        assertThrows(IllegalArgumentException::class.java) {
+            reused.update(reused.agents.first { it.chatId == "old" })
+        }
+    }
+
+    @Test fun deletingArchivedNamesakeDoesNotInterruptTheNewGeneration() {
+        val root = CollaborationAgent("main", "/root", "main")
+        val old = CollaborationAgent("main", "/root/work", "old", archived = true)
+        val fresh = old.copy(chatId = "new", archived = false, status = CollaborationStatus.RUNNING)
+        val child = CollaborationAgent("main", "/root/work/child", "child", status = CollaborationStatus.RUNNING)
+        val state = CollaborationState(agents = listOf(root, old, fresh, child))
+        assertEquals(setOf("old"), state.chatsAffectedByDeletion(setOf("old")))
+        assertEquals(setOf("new", "child"), state.chatsAffectedByDeletion(setOf("new")))
+        assertEquals(setOf("main", "old", "new", "child"), state.chatsAffectedByDeletion(setOf("main")))
+    }
+
     @Test fun multilinePayloadDoesNotIndentProtocolHeaders() {
         val message = AgentMessage("message-id", "/root", "/root/worker", AgentMessageKind.MESSAGE, "one\ntwo")
         assertTrue(message.render().startsWith("Message ID: message-id\nMessage Type: MESSAGE\n"))

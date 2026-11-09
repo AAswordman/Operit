@@ -2,10 +2,62 @@ package com.ai.assistance.operit.ui.features.chat.components
 
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageDisplayMode
+import com.ai.assistance.operit.data.model.ChatMessageProcessMetadata
 import org.junit.Assert.*
 import org.junit.Test
 
 class ResponseProcessMessagesTest {
+    @Test fun completedProcessFoldsAcrossPagesIncludingCardOnlyWindow() {
+        val full = listOf(
+            intermediate(10).copy(timestamp = 1),
+            ChatMessage(timestamp = 2, sender = "user", content = "mail",
+                displayMode = ChatMessageDisplayMode.COLLABORATION_EVENT),
+            intermediate(10).copy(timestamp = 3),
+            final(10).copy(timestamp = 4),
+        )
+        val metadata = full.map(::metadata)
+        val earlier = windowResponseProcessGroups(full.take(3), metadata)
+        assertEquals(setOf(0, 1, 2), earlier.keys)
+        assertEquals(-1, earlier.getValue(0).finalIndex)
+        val cardOnly = windowResponseProcessGroups(listOf(full[1]), metadata).getValue(0)
+        assertEquals(-1, cardOnly.headerIndex)
+        assertEquals(-1, cardOnly.finalIndex)
+        assertEquals(earlier.getValue(0).key, cardOnly.key)
+        assertTrue(windowResponseProcessGroups(full.take(3), metadata.dropLast(1)).isEmpty())
+    }
+
+    @Test fun inMemoryCompletionOverridesPersistedUnfinishedMetadata() {
+        val full = listOf(intermediate(10).copy(timestamp = 1), final(10).copy(timestamp = 2))
+        val old = full.map(::metadata).map { it.copy(completedAt = 0) }
+        assertEquals(setOf(0, 1), windowResponseProcessGroups(full, old).keys)
+    }
+
+    private fun metadata(message: ChatMessage) = ChatMessageProcessMetadata(
+        message.timestamp, message.sender, message.displayMode.name, message.sentAt,
+        message.completedAt, message.waitDurationMs, message.outputDurationMs,
+    )
+
+    @Test fun initialTaskAndMessagesFoldEvenWithoutIntermediateAssistantRows() {
+        val messages = listOf(
+            ChatMessage(sender = "user", content = "task", displayMode = ChatMessageDisplayMode.COLLABORATION_TASK),
+            ChatMessage(sender = "user", content = "mail", displayMode = ChatMessageDisplayMode.COLLABORATION_EVENT),
+            final(10),
+        )
+        val groups = responseProcessGroups(messages)
+        assertEquals(setOf(0, 1, 2), groups.keys)
+        assertEquals(0, groups.getValue(0).firstIndex)
+        assertEquals(2, groups.getValue(0).headerIndex)
+    }
+
+    @Test fun humanMessageSeparatesLeadingAgentCardsFromNextReply() {
+        val messages = listOf(
+            ChatMessage(sender = "user", content = "mail", displayMode = ChatMessageDisplayMode.COLLABORATION_EVENT),
+            ChatMessage(sender = "user", content = "new request"),
+            final(10),
+        )
+        assertTrue(responseProcessGroups(messages).isEmpty())
+    }
+
     @Test fun foldsAiSegmentsAndAgentInputsButKeepsHumanSteering() {
         val messages = listOf(
             intermediate(10),

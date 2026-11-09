@@ -54,5 +54,8 @@ data class SubagentRunEntity(
     val modelConfigIdSnapshot: String? = null,
     val modelIndexSnapshot: Int? = null,
     val toolInvocationCount: Int = 0,
+    val externalOwnerType: String? = null,
+    val externalOwnerId: String? = null,
+    @androidx.room.ColumnInfo(defaultValue = "0") val modelRoundCount: Int = 0,
     val archivedAt: Long? = null,
 )

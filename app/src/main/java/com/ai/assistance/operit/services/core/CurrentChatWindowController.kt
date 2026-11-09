@@ -12,6 +12,13 @@ internal data class CurrentChatWindowLoadResult(
 )
 
 internal class CurrentChatWindowController {
+    private var generation = 0L
+    fun generation(): Long = generation
+    fun invalidateLoads() {
+        generation++
+        _isLoadingDisplayWindow.value = false
+    }
+    fun isCurrent(token: Long): Boolean = generation == token
     private var displayStartTimestamp: Long? = null
     private var displayEndTimestamp: Long? = null
 
@@ -28,6 +35,7 @@ internal class CurrentChatWindowController {
     val isLoadingDisplayWindow: StateFlow<Boolean> = _isLoadingDisplayWindow.asStateFlow()
 
     fun reset() {
+        invalidateLoads()
         displayStartTimestamp = null
         displayEndTimestamp = null
         hasOlderPersistedHistory = false
@@ -48,6 +56,18 @@ internal class CurrentChatWindowController {
             hasNewerPersistedHistory = result.hasNewerPersistedHistory,
         )
         _isLoadingDisplayWindow.value = false
+    }
+
+    fun tryApplyLoadResult(
+        result: CurrentChatWindowLoadResult,
+        chatHistoryFlow: MutableStateFlow<List<ChatMessage>>,
+        token: Long,
+        expectedMessages: List<ChatMessage>? = null,
+    ): Boolean {
+        if (!isCurrent(token) ||
+            (expectedMessages != null && chatHistoryFlow.value !== expectedMessages)) return false
+        applyLoadResult(result, chatHistoryFlow)
+        return true
     }
 
     fun applyMessages(
@@ -95,7 +115,7 @@ internal class CurrentChatWindowController {
         return true
     }
 
-    fun finishLoadingDisplayWindowFailure() {
-        _isLoadingDisplayWindow.value = false
+    fun finishLoadingDisplayWindowFailure(token: Long = generation) {
+        if (isCurrent(token)) _isLoadingDisplayWindow.value = false
     }
 }

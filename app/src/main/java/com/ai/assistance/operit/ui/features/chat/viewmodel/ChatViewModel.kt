@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextFieldValue.Companion
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
+import com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
@@ -247,6 +248,11 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     // 聊天历史相关
     val chatHistory: StateFlow<List<ChatMessage>> by lazy { chatHistoryDelegate.chatHistory }
     val displayedChatId: StateFlow<String?> by lazy { chatHistoryDelegate.displayedChatId }
+    val processMetadata by lazy { chatHistoryDelegate.processMetadata }
+    suspend fun estimateConversationCost(chatId: String): com.ai.assistance.operit.data.stats.ChatCostEstimate =
+        com.ai.assistance.operit.data.stats.estimateChatCost(context, chatId)
+
+    suspend fun loadTranscriptProcess(key: Long) = chatHistoryDelegate.loadTranscriptProcess(key)
     val showChatHistorySelector: StateFlow<Boolean> by lazy {
         chatHistoryDelegate.showChatHistorySelector
     }
@@ -265,6 +271,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 消息处理相关
     val userMessage: StateFlow<TextFieldValue> by lazy { messageProcessingDelegate.userMessage }
+    val activeRunStartedAt: StateFlow<Map<String, Long>> by lazy { messageProcessingDelegate.activeRunStartedAt }
     val isLoading: StateFlow<Boolean> by lazy { messageProcessingDelegate.isLoading }
 
     // 会话隔离：仅当“当前聊天ID == 正在流式的聊天ID”时，才显示处理中/停止按钮
@@ -768,6 +775,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+
+
     fun clearCurrentChat() {
         chatHistoryDelegate.clearCurrentChat { deleted, deletedChatId ->
             if (deleted) {
@@ -1010,6 +1019,14 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     /** 批量删除消息 */
+    fun deleteMessagesByTimestamp(timestamps: Set<Long>) {
+        if (isCurrentTranscriptReadOnly()) return
+        val chatId = chatHistoryDelegate.currentChatId.value ?: return
+        viewModelScope.launch {
+            chatHistoryDelegate.deleteMessagesByTimestamps(chatId, timestamps.toList())
+        }
+    }
+
     fun deleteMessages(indices: Set<Int>) {
         if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
@@ -1163,6 +1180,75 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             } catch (e: Exception) {
                 AppLogger.e(TAG, "更新消息失败", e)
                 uiStateDelegate.showErrorMessage(context.getString(R.string.chat_update_message_failed, e.message ?: ""))
+            }
+        }
+    }
+
+    /**
+     * 修改记忆：一次保存回复正文和它这一轮的协作消息。
+     *
+     * 协作消息各自写回自己那条，绝不并进 AI 正文——模型下一轮仍然把子代理的话读成子代理说的，
+     * 而不是当成自己说过的；删除同理，删掉的就是那条消息本身。
+     */
+    fun saveMemoryEdit(
+        expectedChatId: String?,
+        editedMessage: ChatMessage,
+        fragmentContents: Map<Long, String>,
+        deletedFragments: Set<Long>,
+    ) {
+        if (isCurrentTranscriptReadOnly()) return
+        viewModelScope.launch {
+            try {
+                val currentHistory = chatHistoryDelegate.chatHistory.value
+                if (chatHistoryDelegate.currentChatId.value != expectedChatId ||
+                    currentHistory.none { it.timestamp == editedMessage.timestamp }) {
+                    uiStateDelegate.showErrorMessage(
+                        context.getString(R.string.chat_invalid_message_index),
+                    )
+                    return@launch
+                }
+
+                // 写入一律绑在保存这一刻的会话上：这段编辑跨多次挂起，中途切会话不该落到别处。
+                val chatId = chatHistoryDelegate.currentChatId.value
+                if (chatId == null) {
+                    uiStateDelegate.showToast(
+                        context.getString(R.string.chat_no_active_conversation),
+                    )
+                    return@launch
+                }
+
+                val fragmentUpdates = fragmentContents.map { (timestamp, content) ->
+                    val fragment = currentHistory.firstOrNull { it.timestamp == timestamp }
+                        ?: error("Memory fragment is no longer available: $timestamp")
+                    fragment.copy(content = content, contentStream = null)
+                }
+                if (deletedFragments.isNotEmpty()) {
+                    chatHistoryDelegate.deleteMessagesByTimestamps(
+                        chatId,
+                        deletedFragments.toList(),
+                    )
+                }
+
+                fragmentUpdates.forEach { fragment ->
+                    chatHistoryDelegate.addMessageToChat(
+                        fragment,
+                        chatIdOverride = chatId,
+                    )
+                }
+
+                chatHistoryDelegate.addMessageToChat(
+                    editedMessage,
+                    chatIdOverride = chatId,
+                )
+
+                messageCoordinationDelegate.refreshStableContextWindow(chatId = chatId)
+
+                uiStateDelegate.showToast(context.getString(R.string.chat_message_updated))
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "保存修改记忆失败", e)
+                uiStateDelegate.showErrorMessage(
+                    context.getString(R.string.chat_update_message_failed, e.message ?: ""),
+                )
             }
         }
     }

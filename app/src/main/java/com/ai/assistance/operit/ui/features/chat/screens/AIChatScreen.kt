@@ -426,63 +426,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val canDrawOverlays = remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
     // UI state
-    var chatScrollOffsets by rememberSaveable {
-        mutableStateOf<Map<String, Int>>(emptyMap())
+    var chatAutoScrollStates by rememberSaveable {
+        mutableStateOf<Map<String, Boolean>>(emptyMap())
     }
-    val deferredRestoreOffset = remember(currentChatId) {
-        chatScrollOffsets[currentChatId.orEmpty()]
-    }
-    val scrollState = rememberSaveable(currentChatId, saver = ScrollState.Saver) {
-        ScrollState(initial = chatScrollOffsets[currentChatId.orEmpty()] ?: 0)
-    }
-    var deferredRestoreComplete by remember(currentChatId) {
-        mutableStateOf(deferredRestoreOffset == null)
-    }
-    LaunchedEffect(currentChatId, displayedChatId, scrollState) {
-        val targetOffset = deferredRestoreOffset ?: return@LaunchedEffect
-        if (displayedChatId != currentChatId) {
-            return@LaunchedEffect
-        }
-        // The selected id is published before its transcript finishes loading. Restore only
-        // after the target transcript has replaced the previous chat's layout.
-        withFrameNanos { }
-        withFrameNanos { }
-        scrollState.scrollTo(targetOffset.coerceAtMost(scrollState.maxValue))
-        deferredRestoreComplete = true
-    }
-    val latestDisplayedChatIdForScrollSave by rememberUpdatedState(displayedChatId)
-    val latestDeferredRestoreComplete by rememberUpdatedState(deferredRestoreComplete)
-    DisposableEffect(currentChatId, scrollState) {
-        val chatId = currentChatId
-        onDispose {
-            if (
-                !chatId.isNullOrBlank() &&
-                    latestDisplayedChatIdForScrollSave == chatId &&
-                    latestDeferredRestoreComplete
-            ) {
-                chatScrollOffsets = chatScrollOffsets + (chatId to scrollState.value)
-            }
-        }
-    }
-    LaunchedEffect(currentChatId, displayedChatId, scrollState, deferredRestoreComplete) {
-        val chatId = currentChatId
-        if (
-            chatId.isNullOrBlank() ||
-                displayedChatId != chatId ||
-                !deferredRestoreComplete
-        ) {
-            return@LaunchedEffect
-        }
-        snapshotFlow { scrollState.value }.collect { offset ->
-            chatScrollOffsets = chatScrollOffsets + (chatId to offset)
-        }
-    }
-    LaunchedEffect(chatHistories, chatHistoriesLoaded) {
-        if (!chatHistoriesLoaded) {
-            return@LaunchedEffect
-        }
-        val validChatIds = chatHistories.mapTo(mutableSetOf()) { it.id }
-        chatScrollOffsets = chatScrollOffsets.filterKeys(validChatIds::contains)
+    var autoScrollToBottom by remember(currentChatId) {
+        mutableStateOf(chatAutoScrollStates[currentChatId.orEmpty()] ?: true)
     }
     val historyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -778,12 +726,6 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         }
 
     // 滚动状态
-    var chatAutoScrollStates by rememberSaveable {
-        mutableStateOf<Map<String, Boolean>>(emptyMap())
-    }
-    var autoScrollToBottom by remember(currentChatId) {
-        mutableStateOf(chatAutoScrollStates[currentChatId.orEmpty()] ?: true)
-    }
     val onAutoScrollToBottomChange =
         remember(currentChatId) {
             { enabled: Boolean ->
@@ -804,39 +746,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                 Unit
             }
         }
-    LaunchedEffect(chatHistories, chatHistoriesLoaded) {
-        if (!chatHistoriesLoaded) {
-            return@LaunchedEffect
-        }
-        val validChatIds = chatHistories.mapTo(mutableSetOf()) { it.id }
-        chatAutoScrollStates = chatAutoScrollStates.filterKeys(validChatIds::contains)
-    }
     val imeBottomPx = WindowInsets.ime.getBottom(density)
-    val latestChatHistory by rememberUpdatedState(chatHistory)
-    val latestAutoScrollToBottom by rememberUpdatedState(autoScrollToBottom)
-    val latestHasNewerDisplayHistory by rememberUpdatedState(hasNewerDisplayHistory)
-    val latestIsLoadingDisplayWindow by rememberUpdatedState(isLoadingDisplayWindow)
-    val latestScrollState by rememberUpdatedState(scrollState)
-
-    // 处理来自ViewModel的滚动事件（流式输出时）
-    LaunchedEffect(Unit) {
-        scrollToBottomEvent.collect {
-            if (
-                latestAutoScrollToBottom &&
-                    !latestHasNewerDisplayHistory &&
-                    !latestIsLoadingDisplayWindow
-            ) {
-                try {
-                    if (latestChatHistory.isNotEmpty()) {
-                        latestScrollState.animateScrollTo(latestScrollState.maxValue)
-                    }
-                } catch (e: Exception) {
-                    // AppLogger.e("AIChatScreen", "自动滚动失败", e)
-                }
-            }
-        }
-    }
-
     // 移除原有的 snackbar 错误处理
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -1111,8 +1021,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 verticalDrag = verticalDrag,
                                 onVerticalDragChange = onVerticalDragChange,
                                 dragThreshold = dragThreshold,
-                                scrollState = scrollState,
-                                autoScrollToBottom = autoScrollToBottom,
+                                autoScrollToBottom = autoScrollToBottom && displayedChatId == currentChatId,
                                 onAutoScrollToBottomChange = onAutoScrollToBottomChange,
                                 coroutineScope = coroutineScope,
                                 chatHistories = chatHistories,

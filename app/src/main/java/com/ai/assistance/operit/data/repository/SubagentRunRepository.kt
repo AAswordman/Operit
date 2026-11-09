@@ -18,6 +18,8 @@ data class CreateSubagentRunRequest(
     val agentConfigSnapshot: String?,
     val modelConfigIdSnapshot: String?,
     val modelIndexSnapshot: Int?,
+    val externalOwnerType: String? = null,
+    val externalOwnerId: String? = null,
 )
 
 data class SubagentRunWithChat(
@@ -74,12 +76,16 @@ class SubagentRunRepository private constructor(
                     createdAt = now,
                     agentConfigSnapshot = request.agentConfigSnapshot,
                     modelConfigIdSnapshot = request.modelConfigIdSnapshot,
+                    externalOwnerType = request.externalOwnerType,
+                    externalOwnerId = request.externalOwnerId,
                     modelIndexSnapshot = request.modelIndexSnapshot,
                 )
             chatDao.insertChat(child)
             runDao.insert(run)
             SubagentRunWithChat(run = run, childChat = child)
         }
+
+    suspend fun incrementModelRoundCountByChildChatId(childChatId: String) = runDao.incrementModelRoundCountByChildChatId(childChatId)
 
     suspend fun getById(taskId: String): SubagentRunEntity? = runDao.getById(taskId)
 
@@ -138,7 +144,7 @@ class SubagentRunRepository private constructor(
             createdBeforeOrAt = createdBeforeOrAt,
             interruptedStatus = SubagentRunStatus.INTERRUPTED.name,
             completedAt = System.currentTimeMillis(),
-            error = "The app stopped before this Subagent task reached a terminal state.",
+            error = SubagentInterruption.APP_RESTART,
         )
 
     suspend fun countChildren(parentChatId: String): Int =

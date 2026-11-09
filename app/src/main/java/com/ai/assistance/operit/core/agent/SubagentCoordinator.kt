@@ -60,6 +60,8 @@ data class SubagentTaskRequest(
     val profileOverride: AgentProfile? = null,
     val collaborationHistoryCutoff: Long? = null,
     val collaborationRoleCardId: String? = null,
+    val externalOwnerType: String? = null,
+    val externalOwnerId: String? = null,
 )
 
 internal fun SubagentTaskRequest.toChatTurnOptions(
@@ -367,6 +369,8 @@ class SubagentCoordinator private constructor(context: Context) {
                     title = request.title,
                     agentConfigSnapshot = profileJson.encodeToString(profile),
                     modelConfigIdSnapshot = effectiveModelConfigId,
+                    externalOwnerType = request.externalOwnerType,
+                    externalOwnerId = request.externalOwnerId,
                     modelIndexSnapshot = effectiveModelIndex,
                 )
             )

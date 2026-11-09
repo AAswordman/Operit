@@ -113,6 +113,7 @@ internal val OPERIT_ARCHIVE_SUBAGENT_RUN_SNAPSHOT_COLUMNS =
         "agentConfigSnapshot",
         "modelConfigIdSnapshot",
         "modelIndexSnapshot",
+        "modelRoundCount", "externalOwnerId", "externalOwnerType",
         "toolInvocationCount",
         "archivedAt",
     )
@@ -121,8 +122,9 @@ internal fun remapArchivedParentToolCallIds(
     chat: OperitArchivedChat,
     callIdRemap: Map<String, String>,
     taskIdRemap: Map<String, String> = emptyMap(),
+    chatIdRemap: Map<String, String> = emptyMap(),
 ): OperitArchivedChat {
-    if (callIdRemap.isEmpty() && taskIdRemap.isEmpty()) return chat
+    if (callIdRemap.isEmpty() && taskIdRemap.isEmpty() && chatIdRemap.isEmpty()) return chat
 
     fun remapContent(content: String): String =
         remapPersistedTaskIds(
@@ -143,11 +145,11 @@ internal fun remapArchivedParentToolCallIds(
                 archivedMessage.copy(
                     baseMessage =
                         archivedMessage.baseMessage.copy(
-                            content = remapContent(archivedMessage.baseMessage.content)
+                            content = remapCollaborationReferences(remapContent(archivedMessage.baseMessage.content), chatIdRemap, archivedMessage.baseMessage.displayMode.isCollaborationEvent, archivedMessage.baseMessage.sender == "ai")
                         ),
                     variants =
                         archivedMessage.variants.map { variant ->
-                            variant.copy(content = remapContent(variant.content))
+                            variant.copy(content = remapCollaborationReferences(remapContent(variant.content), chatIdRemap, archivedMessage.baseMessage.displayMode.isCollaborationEvent, archivedMessage.baseMessage.sender == "ai"))
                         },
                 )
             }
@@ -359,6 +361,9 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 getColumnIndexOrThrow("modelIndexSnapshot").let { index ->
                     if (isNull(index)) null else getInt(index)
                 },
+            modelRoundCount = getInt(getColumnIndexOrThrow("modelRoundCount")),
+            externalOwnerId = stringOrNull("externalOwnerId"),
+            externalOwnerType = stringOrNull("externalOwnerType"),
             toolInvocationCount = getInt(getColumnIndexOrThrow("toolInvocationCount")),
             archivedAt = longOrNull("archivedAt"),
         )
@@ -877,6 +882,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
                 messages =
                     remapArchivedParentToolCallIds(
                         chat = chat,
+                        chatIdRemap = chatIdRemap,
                         callIdRemap =
                             parentToolCallIdRemap
                                 .filterKeys { (parentChatId, _) -> parentChatId == chat.id }
@@ -916,7 +922,7 @@ class ChatHistoryManager private constructor(private val context: Context) {
                     completedAt = if (wasActive) now else run.completedAt,
                     error =
                         if (wasActive) {
-                            "Imported while the Subagent task was incomplete."
+                            SubagentInterruption.ARCHIVE_IMPORT
                         } else {
                             run.error
                         },
@@ -2494,6 +2500,12 @@ class ChatHistoryManager private constructor(private val context: Context) {
     }
 
     // 直接加载聊天消息
+    suspend fun latestSubagentAnswer(chatId: String): String? = withContext(Dispatchers.IO) {
+        chatContentDao.latestAnswerContent(chatId)
+            ?.let(com.ai.assistance.operit.core.agent.SubagentResultExtractor::forTranscript)
+            ?.takeIf { it.isNotBlank() }
+    }
+
     suspend fun loadChatMessages(chatId: String): List<ChatMessage> {
         return kotlinx.coroutines.withContext(Dispatchers.IO) {
             try {
@@ -3316,6 +3328,18 @@ class ChatHistoryManager private constructor(private val context: Context) {
             hydrateMessages(chatId, messageEntities)
         }
     }
+
+    suspend fun loadChatMessageProcessMetadata(
+        chatId: String,
+    ): List<com.ai.assistance.operit.data.model.ChatMessageProcessMetadata> =
+        withContext(Dispatchers.IO) { messageDao.getProcessMetadata(chatId) }
+
+    suspend fun loadChatMessagesByTimestamps(chatId: String, timestamps: List<Long>): List<ChatMessage> =
+        withContext(Dispatchers.IO) {
+            timestamps.distinct().chunked(400).flatMap { chunk ->
+                hydrateMessages(chatId, chatContentDao.getMessagesByTimestamps(chatId, chunk))
+            }.sortedBy { it.timestamp }
+        }
 
     suspend fun loadChatMessageLocatorPreviews(
         chatId: String,
