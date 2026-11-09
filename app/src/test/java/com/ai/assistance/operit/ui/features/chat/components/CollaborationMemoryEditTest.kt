@@ -8,6 +8,50 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class CollaborationMemoryEditTest {
+    @Test fun multilineIndentedCodeRemainsOneEditableBlock() {
+        val source = (1..1000).joinToString("\n", postfix = "\n") { "    <tool>example $it</tool>" }
+        val parts = parseMessageContentForEditor(source)
+        assertEquals(1, parts.size)
+        assertEquals(PartType.TEXT, parts.single().type)
+        assertTrue(memoryEditorProcessIndices(parts, emptyList()).isEmpty())
+        assertEquals(source, recomposeMessageFromParts(parts))
+    }
+    @Test fun processGroupingKeepsSourceOrderAndFinalTextOutsideTheFold() {
+        val fragments = collaborationMemoryFragments(aTurnWithTwoBatches(), 4, includeAssistant = true)
+        val parts = memoryEditorParts(fragments)
+        val process = memoryEditorProcessIndices(parts, fragments)
+        assertEquals(setOf(0, 1, 2), process)
+        assertEquals(listOf(2L, 3L, 4L, 5L), parts.map { it.sourceTimestamp })
+        assertEquals(fragments, updatedMemoryEditorFragments(fragments, parts, parts))
+        assertEquals("reply", parts.last().content)
+    }
+
+    @Test fun standaloneThoughtAndToolPartsAreFoldedWithoutMovingTheAnswer() {
+        val parts = parseMessageContentForEditor("<think>plan</think><tool name=\"search\">query</tool>answer")
+        assertEquals(setOf(0, 1), memoryEditorProcessIndices(parts, emptyList()))
+        assertEquals("<think>plan</think><tool name=\"search\">query</tool>answer", recomposeMessageFromParts(parts))
+    }
+
+    @Test fun xmlExamplesInsideClosedOrUnclosedFencesStayVisibleAndIntact() {
+        listOf(
+            "示例：\n```xml\n<tool name=\"search\">query</tool>\n```\n结尾",
+            "~~~~xml\n<think>example</think>\n~~~\n~~~~",
+            "~~~xml\n<tool>unfinished example</tool>",
+            "```text\na\n```\n\n```text\nb\n```\n\n",
+            "> ```xml\n> <tool>query</tool>\n> ```\n结尾",
+            "- ```xml\n  <tool>query</tool>\n  ```\n结尾",
+            "    <tool>indented example</tool>\n",
+            "\t<think>tab-indented example</think>\n",
+            "<think>plan</think>\n\n<tool>query</tool>\n\n",
+        ).forEach { source ->
+            val parts = parseMessageContentForEditor(source)
+            if (!source.startsWith("<think>")) {
+                assertTrue(memoryEditorProcessIndices(parts, emptyList()).isEmpty())
+            }
+            assertEquals(source, recomposeMessageFromParts(parts))
+        }
+    }
+
     @Test fun editorInterleavesAssistantPartsAndEventsFromEitherAnchor() {
         val transcript = aTurnWithTwoBatches()
         val finalFragments = collaborationMemoryFragments(transcript, 4, includeAssistant = true)

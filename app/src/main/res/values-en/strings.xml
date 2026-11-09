@@ -1,4 +1,7 @@
  <resources>
+    <string name="memory_editor_process_records">Process · Reasoning and tools</string>
+    <string name="memory_editor_expand_process">Expand process records</string>
+    <string name="memory_editor_collapse_process">Collapse process records</string>
     <string name="app_name">Operit AI</string>
     <string name="accessibility_service_description">Used to obtain the UI hierarchy, providing faster interface analysis capabilities for AI assistants, and does not collect or store any personal information.</string>
     

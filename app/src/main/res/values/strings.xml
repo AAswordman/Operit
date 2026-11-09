@@ -1,4 +1,7 @@
 <resources>
+    <string name="memory_editor_process_records">过程记录 · 思考与工具</string>
+    <string name="memory_editor_expand_process">展开过程记录</string>
+    <string name="memory_editor_collapse_process">收起过程记录</string>
     <string name="app_name">Operit AI</string>
     <string name="accessibility_service_description">用于获取UI层次结构，为AI助手提供更快速的界面分析能力，不会收集或存储任何个人信息。</string>
     

@@ -22,6 +22,7 @@ internal data class MemoryEditFragment(
     val body: String,
     val deleted: Boolean = false,
     val isAssistant: Boolean = false,
+    val isProcess: Boolean = false,
 ) {
     /** Nothing to write back while the fragment still says what it said. */
     val changed: Boolean
@@ -103,6 +104,7 @@ internal fun collaborationMemoryFragments(
             return@map MemoryEditFragment(
                 rowIndex, row.timestamp, row.roleName, "", row.content, row.content,
                 isAssistant = true,
+                isProcess = row.displayMode == ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE,
             )
         }
         val event = collaborationDisplayMessages(row.content, row.roleName).first()
