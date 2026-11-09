@@ -83,10 +83,9 @@ fun SiriBall(
     // 初始化与清理语音服务
     DisposableEffect(Unit) {
         scope.launch {
+            // 麦克风采集资格由 FloatingChatService 的 microphone 前台服务类型提供，
+            // 语音球不需要再对 ComposeView 根节点做焦点模拟。
             speechManager.initialize()
-            // 尝试获取焦点以便能从麦克风录音
-            val view = floatContext.chatService?.getComposeView()
-            speechManager.requestFocus(view)
         }
         onDispose {
             speechManager.cleanup()

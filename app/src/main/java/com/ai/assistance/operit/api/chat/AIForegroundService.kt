@@ -418,9 +418,12 @@ class AIForegroundService : Service() {
             }
         }
 
-        fun ensureMicrophoneForeground(context: Context, forceStart: Boolean = false) {
+        fun ensureMicrophoneForeground(context: Context) {
             val appContext = context.applicationContext
-            if (!forceStart && !isRunning.get() && !hasPersistentForegroundResponsibilityConfigured(appContext)) {
+            // 仅在服务已运行、或配置了持久前台职责时才需要补 microphone 类型。
+            // 浮窗语音会话的采集资格已由 FloatingChatService 自带 microphone 前台
+            // 服务类型承担，不再走这条依赖 resumed Activity 的 promote 路径。
+            if (!isRunning.get() && !hasPersistentForegroundResponsibilityConfigured(appContext)) {
                 return
             }
 

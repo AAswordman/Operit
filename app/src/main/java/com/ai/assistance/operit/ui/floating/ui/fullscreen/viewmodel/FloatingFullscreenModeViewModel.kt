@@ -20,7 +20,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -28,6 +32,39 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 private const val TAG = "FloatingFullscreenViewModel"
 private const val FULLSCREEN_TTS_CAPTURE_SUPPRESS_MS = 1200L
+
+/**
+ * 挂起直到观测到「AI 回合进行中」信号的下降沿，即回合真正结束。
+ *
+ * 返回 `true` 表示确实观测到「先忙碌、后空闲」的完整回合，返回 `false` 表示信号流
+ * 在回合结束前就结束了（调用方据此知道没有可恢复的回合）。
+ *
+ * 语义要求：必须先看到 active=true 才承认结束。发送消息到回合变忙之间存在调度间隙，
+ * 若在间隙里把 active=false 当成「回合结束」，就会在 AI 还没开始工作时恢复收音，
+ * 把随后播报的 TTS 录进麦克风。
+ *
+ * 之所以用流而不是 delay 采样：采样版本要求「轮询到 busy=true 才接受 busy=false」，
+ * 一旦回合的开始与结束落在同一个采样间隔内（发送被拒、快速失败、错误态立即收尾），
+ * busy=true 永远观测不到，恢复标志会永久闩死——波浪模式退不出去，底部输入胶囊
+ * 不参与组合，软键盘也就没有入口。流式观察的窗口远小于 120ms 采样间隔；即使极端
+ * 情况下相邻状态被合并，影响也只是这一轮不自动恢复，界面不会闩死。
+ */
+internal suspend fun awaitAiTurnFinished(turnActive: Flow<Boolean>): Boolean {
+    var observedActive = false
+    var finished = false
+    turnActive
+        .onEach { active ->
+            if (active) {
+                observedActive = true
+            } else if (observedActive) {
+                finished = true
+            }
+        }
+        // 回合开始前（尚未 busy）继续等；观测到 busy 之后等到它落回 false 即停。
+        .takeWhile { active -> active || !observedActive }
+        .collect { }
+    return finished
+}
 
 data class VoiceAvatarMotionRequest(
     val emotion: AvatarEmotion = AvatarEmotion.IDLE,
@@ -76,6 +113,7 @@ class FloatingFullscreenModeViewModel(
 
     private var wakeEnterJob: Job? = null
     private var resumeVoiceCaptureJob: Job? = null
+    private var voiceForegroundJob: Job? = null
     private var shouldResumeVoiceCaptureAfterAiTurn: Boolean = false
     private var suppressRecognitionUntilMs: Long = 0L
     private var waveModeAutoTimeoutEnabled: Boolean = false
@@ -112,7 +150,6 @@ class FloatingFullscreenModeViewModel(
     val isRecording: Boolean get() = speechManager.isRecording
     val isProcessingSpeech: Boolean get() = speechManager.isProcessingSpeech
     val userMessage: String get() = speechManager.userMessage
-    val hasFocus: Boolean get() = speechManager.hasFocus
     // UI 用到 volumeFlow 和 recognitionResultFlow
     val speechService get() = speechManager.speechService
     val volumeLevelFlow get() = speechManager.volumeLevelFlow
@@ -138,7 +175,12 @@ class FloatingFullscreenModeViewModel(
     }
 
     private fun shouldInterceptCenterAvatarClick(): Boolean {
-        return isVoiceCapturePausedForAi || isAiBusyOrSpeaking()
+        // 只在 AI 真的在处理或朗读时把点击解释为「打断并继续说话」。
+        // 这里刻意不看 isVoiceCapturePausedForAi：那是一个等待中的意图标志，
+        // 一旦它与真实状态脱节（例如发送被拒、回合没能启动），把它纳入判据就会
+        // 让头像点击永远被拦下，用户既退不出波浪模式、也拿不到底部输入胶囊和
+        // 软键盘入口。用户的手势永远优先于内部标志。
+        return isAiBusyOrSpeaking()
     }
 
     private fun prepareVoiceCaptureForAiTurn() {
@@ -155,24 +197,24 @@ class FloatingFullscreenModeViewModel(
         if (!isWaveActive || !shouldResumeVoiceCaptureAfterAiTurn) return
         resumeVoiceCaptureJob?.cancel()
         resumeVoiceCaptureJob = coroutineScope.launch {
-            delay(120)
-            var observedAiBusy = false
-            while (isActive && isWaveActive && shouldResumeVoiceCaptureAfterAiTurn) {
-                val busy = isAiBusyOrSpeaking()
-                if (busy) {
-                    observedAiBusy = true
-                }
-                if (observedAiBusy && !busy) {
-                    shouldResumeVoiceCaptureAfterAiTurn = false
-                    isVoiceCapturePausedForAi = false
-                    // AI 这一轮结束后，总是从此刻重新开始计算空闲超时。
-                    lastVoiceActivityAtMs = System.currentTimeMillis()
-                    if (!speechManager.isRecording && !speechManager.isProcessingSpeech) {
-                        startVoiceCapture()
-                    }
-                    return@launch
-                }
-                delay(120)
+            // AI 回合进行中 = 输入处理忙碌，或 TTS 还在播报。两者都是响应式来源：
+            // snapshotFlow 追踪 Compose 快照状态，speakingStateFlow 追踪播报状态。
+            val turnActiveFlow =
+                combine(
+                    snapshotFlow { isAiBusy() },
+                    speechManager.voiceService.speakingStateFlow
+                ) { aiBusy, speaking -> aiBusy || speaking }
+
+            awaitAiTurnFinished(turnActiveFlow)
+
+            // 可能已被 exitWaveMode / cancelPendingVoiceCaptureResume 取消或重置。
+            if (!isWaveActive || !shouldResumeVoiceCaptureAfterAiTurn) return@launch
+            shouldResumeVoiceCaptureAfterAiTurn = false
+            isVoiceCapturePausedForAi = false
+            // AI 这一轮结束后，总是从此刻重新开始计算空闲超时。
+            lastVoiceActivityAtMs = System.currentTimeMillis()
+            if (!speechManager.isRecording && !speechManager.isProcessingSpeech) {
+                startVoiceCapture()
             }
         }
     }
@@ -317,7 +359,11 @@ class FloatingFullscreenModeViewModel(
         if (isAiWorking) {
             floatContext.onCancelMessage?.invoke()
         }
-        
+
+        // 收音前先让浮窗服务持有 microphone 前台类型：浮窗不是 Activity，没有该类型
+        // 时 Android 会静默返回无声数据。必须早于 startListening，采集开始时类型
+        // 已经就位。
+        floatContext.chatService?.setVoiceSessionForeground(true)
         speechManager.startListening { errorMsg ->
             aiMessage = errorMsg
         }
@@ -325,6 +371,29 @@ class FloatingFullscreenModeViewModel(
 
     fun stopVoiceCapture(isCancel: Boolean) {
         speechManager.stopListening(isCancel)
+    }
+
+    /**
+     * 语音管线真正空闲时收回 microphone 前台类型。
+     *
+     * 不能在 [stopVoiceCapture] 里同步收回：`stopListening()` 只是把停止动作投递给
+     * 协程，立刻降级会在识别器仍持有 AudioRecord 时抽走采集资格，最后一次收音的尾音
+     * 可能被系统拦掉。这里以「波浪模式 / 采集中 / 识别结果处理中」三者都结束为准：
+     * 波浪模式下整段会话继续持有类型，底部按住说话则在最终结果处理完后收回。
+     */
+    private fun observeVoiceForegroundIdle() {
+        voiceForegroundJob?.cancel()
+        voiceForegroundJob = coroutineScope.launch {
+            snapshotFlow {
+                isWaveActive || speechManager.isRecording || speechManager.isProcessingSpeech
+            }
+                .distinctUntilChanged()
+                .collect { active ->
+                    if (!active) {
+                        floatContext.chatService?.setVoiceSessionForeground(false)
+                    }
+                }
+        }
     }
 
     fun enterWaveMode(
@@ -364,6 +433,8 @@ class FloatingFullscreenModeViewModel(
         coroutineScope.launch { speechManager.voiceService.stop() }
         isWaveActive = false
         showBottomControls = true
+        // 整段语音会话结束，收回 microphone 前台类型。
+        floatContext.chatService?.setVoiceSessionForeground(false)
         inactivityJob?.cancel()
         inactivityJob = null
         resetVoiceAvatarToIdle()
@@ -426,6 +497,7 @@ class FloatingFullscreenModeViewModel(
 
      suspend fun initialize(autoEnterVoiceChat: Boolean = false, wakeLaunched: Boolean = false) {
          speechManager.initialize()
+         observeVoiceForegroundIdle()
          cancelPendingVoiceCaptureResume()
          prefsJob?.cancel()
          prefsJob = coroutineScope.launch {
@@ -441,13 +513,11 @@ class FloatingFullscreenModeViewModel(
          resetVoiceAvatarToIdle()
          exitEditMode()
 
-        // 获取焦点
-        val view = floatContext.chatService?.getComposeView()
-         if (!speechManager.requestFocus(view)) {
-             aiMessage = context.getString(R.string.floating_cannot_get_input_service)
-         } else {
-             aiMessage = context.getString(R.string.floating_hold_microphone_to_speak)
-         }
+        // 键盘入口由 Compose 焦点系统负责：BottomControlBar 的文本胶囊在获得
+        // Compose 焦点时通过 LocalSoftwareKeyboardController 唤起软键盘。全屏窗口
+        // 不带 FLAG_NOT_FOCUSABLE，本身可接受输入焦点，无需在 ViewModel 层对
+        // ComposeView 根节点做 requestFocus/showSoftInput 的模拟。
+        aiMessage = context.getString(R.string.floating_hold_microphone_to_speak)
 
          if (autoEnterVoiceChat) {
              enterWaveMode(wakeLaunched = wakeLaunched, enableAutoTimeout = true)
@@ -455,12 +525,14 @@ class FloatingFullscreenModeViewModel(
      }
 
      fun cleanup() {
-        val view = floatContext.chatService?.getComposeView()
-        speechManager.releaseFocus(view)
         speechManager.cleanup()
         ttsSpeakJob?.cancel()
         ttsSpeakJob = null
         cancelPendingVoiceCaptureResume()
+        // 语音组件被销毁后不再有采集需求，收回 microphone 前台类型。
+        voiceForegroundJob?.cancel()
+        voiceForegroundJob = null
+        floatContext.chatService?.setVoiceSessionForeground(false)
 
         prefsJob?.cancel()
         prefsJob = null
