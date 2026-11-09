@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="toolpkg_oauth_title">%1$s 账号授权</string>
+    <string name="toolpkg_oauth_signed_in">已登录</string>
+    <string name="toolpkg_oauth_signed_out">需要登录</string>
+    <string name="toolpkg_oauth_trust_notice">仅授权可信插件。调用模型时，该插件会获得访问令牌；刷新令牌保留在宿主的凭据存储中。</string>
+    <string name="toolpkg_oauth_configure_endpoint">请先填写有效的 HTTPS API 地址，再进行登录。</string>
+    <string name="toolpkg_oauth_failed">未能完成授权。请检查供应商配置后重新登录。</string>
+    <string name="toolpkg_oauth_login">使用浏览器登录</string>
+    <string name="toolpkg_oauth_logout">退出登录</string>
+    <string name="toolpkg_oauth_cancel">取消</string>
+    <string name="toolpkg_oauth_refresh">刷新授权</string>
+    <string name="toolpkg_oauth_authorization_endpoint">授权端点：%1$s</string>
+    <string name="toolpkg_oauth_token_endpoint">令牌端点：%1$s</string>
+</resources>
