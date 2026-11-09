@@ -3605,6 +3605,13 @@
     <string name="chat_memory_rebuild_empty_range">所选时间段内没有可用于构建记忆的用户消息</string>
     <string name="long_press_to_manage">长按管理</string>
     <string name="edit_title_desc">编辑标题</string>
+    <string name="ai_summary_title">AI 总结标题</string>
+    <string name="ai_summary_title_generating">AI 正在读取对话并生成标题…</string>
+    <string name="ai_summary_title_retry">重试</string>
+    <string name="ai_title_applied">已更新标题：%1$s</string>
+    <string name="ai_title_no_messages">这个会话还没有可总结的对话内容</string>
+    <string name="ai_title_empty_result">AI 没有返回可用的标题</string>
+    <string name="ai_title_failed">生成标题失败</string>
     <string name="reorder">Reorder</string>
     <string name="choose_delete_method">请选择删除方式：</string>
     <string name="swipe_hint">左右滑动可编辑或删除(点击不再显示)</string>
