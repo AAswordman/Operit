@@ -19,6 +19,7 @@ import com.ai.assistance.operit.core.chat.messageTimingNow
 import com.ai.assistance.operit.core.chat.runSteerableSampling
 import com.ai.assistance.operit.core.chat.retainBeforeUnexecutedTool
 import com.ai.assistance.operit.core.chat.TurnInputInbox
+import com.ai.assistance.operit.core.chat.AssistantToolSequence
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
@@ -82,6 +83,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import com.ai.assistance.operit.data.repository.CustomEmojiRepository
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.data.repository.SubagentRunRepository
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -356,6 +359,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         var onNonFatalError: suspend (error: String) -> Unit = {},
         var onTokenLimitExceeded: (suspend () -> Unit)? = null,
         var customSystemPromptTemplate: String? = null,
+        var additionalSystemPrompt: String? = null,
         var isSubTask: Boolean = false,
         var characterName: String? = null,
         var avatarUri: String? = null,
@@ -372,9 +376,11 @@ class EnhancedAIService private constructor(private val context: Context) {
         var chatModelConfigIdOverride: String? = null,
         var chatModelIndexOverride: Int? = null,
         var memorySpaceIdOverride: String? = null,
+        var toolTimingScopeId: String? = null,
         var stream: Boolean = true,
         var disableWarning: Boolean = false,
         var subtaskMaxToolCalls: Int? = null,
+        var collaborationInput: Boolean = false,
     )
 
     // MultiServiceManager 管理不同功能的 AIService 实例
@@ -448,15 +454,24 @@ class EnhancedAIService private constructor(private val context: Context) {
 
     private data class MessageExecutionContext(
         val executionId: Int,
+        val reasoningEffort: String? = null,
         val streamBuffer: StringBuilder = StringBuilder(),
         val roundManager: ConversationRoundManager = ConversationRoundManager(),
         val isConversationActive: AtomicBoolean = AtomicBoolean(true),
         val conversationHistory: MutableList<PromptTurn>,
+        val collaborationInputs: MutableList<PromptTurn> = mutableListOf(),
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         val subtaskExecution: SubtaskExecutionState? = null,
+        val isCollaborationAgent: Boolean = false,
         val onToolExecutionBoundary: (suspend (ToolExecutionBoundarySnapshot) -> Unit)? = null,
         val turnInputInbox: TurnInputInbox? = null,
         val onTurnInput: (suspend (List<TurnInputInbox.Input>, ToolExecutionBoundarySnapshot) -> String)? = null,
+        val toolTimingScopeId: String? = null,
+        val workspacePath: String? = null,
+        val workspaceEnv: String? = null,
+        val toolSequence: AssistantToolSequence = AssistantToolSequence(toolTimingScopeId),
+        val subagentToolLoopGuard: ToolExecutionManager.SubagentToolLoopGuard =
+            ToolExecutionManager.SubagentToolLoopGuard(),
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         /**
          * Characters of this execution's response already emitted to the consumer.
@@ -474,6 +489,15 @@ class EnhancedAIService private constructor(private val context: Context) {
     )
 
     private val activeExecutionContexts = ConcurrentHashMap<Int, MessageExecutionContext>()
+    internal fun collaborationHistorySnapshot(): List<PromptTurn> {
+        val active = activeExecutionContexts.values.maxByOrNull { it.executionId } ?: return emptyList()
+        val history = active.conversationHistory.toList()
+        // The caller is inside the latest tool batch: its assistant call has no results yet.
+        // The fork selector subsequently keeps only user inputs and final answers.
+        return if (history.lastOrNull()?.kind in setOf(PromptTurnKind.ASSISTANT, PromptTurnKind.TOOL_CALL)) {
+            history.dropLast(1)
+        } else history
+    }
     private val nextExecutionContextId = AtomicInteger(0)
 
     private fun registerExecutionContext(context: MessageExecutionContext) {
@@ -516,10 +540,11 @@ class EnhancedAIService private constructor(private val context: Context) {
             if (functionType == FunctionType.CHAT && overrideConfigId != null) {
                 multiServiceManager.acquireServiceForConfig(
                     configId = overrideConfigId,
-                    modelIndex = (chatModelIndexOverride ?: 0).coerceAtLeast(0)
+                    modelIndex = (chatModelIndexOverride ?: 0).coerceAtLeast(0),
+                    reasoningEffort = context.reasoningEffort,
                 )
             } else {
-                multiServiceManager.acquireServiceForFunction(functionType)
+                multiServiceManager.acquireServiceForFunction(functionType, context.reasoningEffort)
             }
         val snapshot = ModelExecutionSnapshot(lease)
         context.modelExecutionSnapshot = snapshot
@@ -780,6 +805,54 @@ class EnhancedAIService private constructor(private val context: Context) {
         return windowSize
     }
 
+    /**
+     * Compact inside the same v2 session: no generic auto-continuation may take ownership of
+     * the child. Split the persisted assistant at this boundary before saving the checkpoint,
+     * so later turns can append only transcript rows after its cutoff.
+     */
+    private suspend fun compactCollaborationHistory(
+        execution: MessageExecutionContext,
+        chatId: String,
+        history: List<PromptTurn>,
+        service: AIService,
+        tools: List<ToolPrompt>?,
+        maxTokens: Int,
+    ): List<PromptTurn> {
+        val summary = generateSummaryFromPromptTurns(
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationCheckpoint.summaryInput(history),
+            previousSummary = null,
+            summaryConfig = ConversationSummaryConfig(globalRules = "Preserve the assigned task, constraints, all agent paths and pending work, " +
+                "key findings and unresolved messages from the quoted JSON. This is a checkpoint " +
+                "for the same continuing agent. Your own summarization instructions are not part " +
+                "of its task. Never mark unfinished work complete just because you summarized it."),
+        )
+        check(summary.isNotBlank()) { "Agent context compaction returned an empty checkpoint" }
+        val durable = com.ai.assistance.operit.core.agent.collaboration.CollaborationCheckpoint
+            .durableHistory(summary, execution.collaborationInputs.toList())
+        val compacted = com.ai.assistance.operit.core.agent.collaboration.CollaborationCheckpoint
+            .resumeHistory(history.filter { it.kind == PromptTurnKind.SYSTEM }, durable)
+        val compactedTokens = estimatePreparedRequestWindow(service, compacted, tools, true)
+        check(compactedTokens < maxTokens) {
+            "Agent context remains larger than the configured capacity after compaction"
+        }
+
+        withContext(NonCancellable) {
+            val scopeId = requireNotNull(execution.onTurnInput).invoke(
+                emptyList(), ToolExecutionBoundarySnapshot(
+                    execution.roundManager.getDisplayContent(), execution.emittedLength,
+                    execution.eventChannel.replayCache.size,
+                ),
+            )
+            execution.toolSequence.startMessage(scopeId)
+            // The split allocates this next segment ID under transcriptMutex. A concurrent
+            // stream persistence may already insert it, so a later database MAX is unsafe.
+            val cutoff = scopeId.toLong() - 1
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+                .getInstance(context).checkpoint(chatId, durable, cutoff)
+        }
+        return compacted
+    }
+
     private fun applyPromptFinalizeHooks(
         initialContext: PromptHookContext,
         dispatchHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchPromptFinalizeHooks
@@ -804,7 +877,13 @@ class EnhancedAIService private constructor(private val context: Context) {
             "enableThinking" to enableThinking,
             "stream" to stream,
             "isSubTask" to isSubTask
-        ) + buildActivePromptHookMetadata(context, chatId, roleCardId)
+        ) +
+            buildActivePromptHookMetadata(
+                context,
+                chatId,
+                roleCardId,
+                includeActivePrompt = !isSubTask,
+            )
     }
 
     private fun applyFinalizedCurrentUserTurn(
@@ -894,7 +973,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                     chatId = chatId,
                     promptFunctionType = promptFunctionType,
                     roleCardId = roleCardId,
-                    modelConfig = modelConfig
+                    modelConfig = modelConfig,
+                    isSubTask = isSubTask,
+                    isGroupOrchestration = enableGroupOrchestrationHint
                 )
 
             var finalProcessedInput = message
@@ -947,9 +1028,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     originalCurrentMessage = message,
                     finalizedCurrentMessage = finalProcessedInput
                 ).mergeAdjacentTurns { previous, current ->
-                    previous.kind == PromptTurnKind.USER &&
-                        current.kind == PromptTurnKind.USER &&
-                        previous.toolName == current.toolName
+                    com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.canMergeUserTurns(previous, current)
                 }
 
             estimatePreparedRequestWindow(
@@ -972,11 +1051,19 @@ class EnhancedAIService private constructor(private val context: Context) {
         val workspaceEnv = options.workspaceEnv
         val functionType = options.functionType
         val promptFunctionType = options.promptFunctionType
-        val enableThinking = options.enableThinking
+        val isCollaborationAgent = options.subtaskMaxToolCalls == null &&
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+                .getInstance(context).isAgent(chatId)
+        val reasoningEffort = if (isCollaborationAgent) {
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+                .getInstance(context).reasoningEffort(chatId)
+        } else null
+        val enableThinking = options.enableThinking || reasoningEffort != null
         val enableMemoryAutoUpdate = options.enableMemoryAutoUpdate
         val maxTokens = options.maxTokens
         val tokenUsageThreshold = options.tokenUsageThreshold
         val customSystemPromptTemplate = options.customSystemPromptTemplate
+        val additionalSystemPrompt = options.additionalSystemPrompt
         val isSubTask = options.isSubTask
         val subtaskMaxToolCalls = options.subtaskMaxToolCalls
         if (subtaskMaxToolCalls != null) {
@@ -994,6 +1081,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val chatModelConfigIdOverride = options.chatModelConfigIdOverride
         val chatModelIndexOverride = options.chatModelIndexOverride
         val memorySpaceIdOverride = options.memorySpaceIdOverride
+        val toolTimingScopeId = options.toolTimingScopeId
         val stream = options.stream
         val disableWarning = options.disableWarning
         val onNonFatalError: suspend (error: String) -> Unit = { error ->
@@ -1033,6 +1121,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             val execContext =
                 MessageExecutionContext(
                     executionId = nextExecutionContextId.incrementAndGet(),
+                    reasoningEffort = reasoningEffort,
+                    isCollaborationAgent = isCollaborationAgent,
                     conversationHistory = chatHistory.toMutableList(),
                     eventChannel = eventChannel,
                     subtaskExecution = subtaskMaxToolCalls?.let { maximum ->
@@ -1043,6 +1133,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     onToolExecutionBoundary = options.onToolExecutionBoundary,
                     turnInputInbox = options.turnInputInbox,
                     onTurnInput = options.onTurnInput,
+                    toolTimingScopeId = toolTimingScopeId,
                 )
             registerExecutionContext(execContext)
             // One execution publishes every tool round into a single response stream, while each
@@ -1100,7 +1191,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     isSubTask,
                                     functionType,
                                     modelSnapshot.config,
-                                    memorySpaceIdOverride
+                                    memorySpaceIdOverride,
+                                    additionalSystemPrompt,
+                                    isPluginSubtask = subtaskMaxToolCalls != null,
                             )
                     val tAfterPrepareHistory = messageTimingNow()
                     AppLogger.d(TAG, "sendMessage本地耗时: prepareConversationHistory=${tAfterPrepareHistory - startTime}ms")
@@ -1138,7 +1231,10 @@ class EnhancedAIService private constructor(private val context: Context) {
                         chatId = chatId,
                         promptFunctionType = promptFunctionType,
                         roleCardId = roleCardId,
-                        modelConfig = modelSnapshot.config
+                        modelConfig = modelSnapshot.config,
+                        isGroupOrchestration = enableGroupOrchestrationHint,
+                        isSubTask = isSubTask,
+                        isPluginSubtask = subtaskMaxToolCalls != null,
                     )
                     val tAfterGetTools = messageTimingNow()
                     AppLogger.d(TAG, "sendMessage本地耗时: getAvailableToolsForFunction=${tAfterGetTools - tAfterGetService}ms")
@@ -1184,28 +1280,49 @@ class EnhancedAIService private constructor(private val context: Context) {
                         finalProcessedInput = ChatUtils.stripGeminiThoughtSignatureMeta(finalProcessedInput)
                         finalPreparedHistory = ChatUtils.stripGeminiThoughtSignatureMetaTurns(finalPreparedHistory)
                     }
-                    val requestHistory =
+                    var requestHistory =
                         applyFinalizedCurrentUserTurn(
                             preparedHistory = finalPreparedHistory,
                             originalCurrentMessage = message,
                             finalizedCurrentMessage = finalProcessedInput
                         ).mergeAdjacentTurns { previous, current ->
-                            previous.kind == PromptTurnKind.USER &&
-                                current.kind == PromptTurnKind.USER &&
-                                previous.toolName == current.toolName
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.canMergeUserTurns(previous, current)
                         }
+                    if (options.collaborationInput && requestHistory.lastOrNull()?.kind == PromptTurnKind.USER) {
+                        val last = requestHistory.last()
+                        requestHistory = requestHistory.dropLast(1) + last.copy(metadata = last.metadata + mapOf(
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.EVENT_METADATA to true,
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.TASK_METADATA to true,
+                        ))
+                    }
+                    if (isCollaborationAgent) {
+                        // A user may also resume an agent directly from its conversation UI.
+                        // Preserve that real user input without relabeling it as an agent event.
+                        execContext.collaborationInputs.add(requireNotNull(requestHistory.lastOrNull {
+                            it.kind == PromptTurnKind.USER
+                        }) { "Agent request has no current input" })
+                    }
                     execContext.conversationHistory.clear()
                     execContext.conversationHistory.addAll(requestHistory)
                     AppLogger.d(
                         TAG,
                         "sendMessage requestHistory turns=${requestHistory.size} original=${ChatTrace.describe(message)} finalized=${ChatTrace.describe(finalProcessedInput)} lastUser=${ChatTrace.describe(requestHistory.lastOrNull { it.kind == PromptTurnKind.USER }?.content.orEmpty())}"
                     )
-                    estimatePreparedRequestWindow(
+                    val initialWindow = estimatePreparedRequestWindow(
                         serviceForFunction = serviceForFunction,
                         preparedHistory = requestHistory,
                         availableTools = availableTools,
                         publishEstimate = true
                     )
+                    if (maxTokens > 0 && initialWindow.toDouble() / maxTokens >= tokenUsageThreshold &&
+                        isCollaborationAgent
+                    ) {
+                        requestHistory = compactCollaborationHistory(
+                            execContext, requireNotNull(chatId), requestHistory, serviceForFunction, availableTools, maxTokens,
+                        )
+                        execContext.conversationHistory.clear()
+                        execContext.conversationHistory.addAll(requestHistory)
+                    }
                     
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
@@ -1535,10 +1652,11 @@ class EnhancedAIService private constructor(private val context: Context) {
     private data class TruncatedToolRoundRecovery(
         val repairedContent: String,
         val appendedSuffix: String,
-        val invalidatedToolNames: List<String>
+        val invalidatedToolNames: List<String>,
+        val invalidatedInvocationCount: Int,
     )
 
-    private fun detectAndRepairTruncatedToolRound(content: String): TruncatedToolRoundRecovery? {
+    private suspend fun detectAndRepairTruncatedToolRound(content: String): TruncatedToolRoundRecovery? {
         if (!content.contains("<tool", ignoreCase = true)) {
             return null
         }
@@ -1593,7 +1711,9 @@ class EnhancedAIService private constructor(private val context: Context) {
         return TruncatedToolRoundRecovery(
             repairedContent = repairedContent,
             appendedSuffix = appendedSuffix,
-            invalidatedToolNames = invalidatedToolNames
+            invalidatedToolNames = invalidatedToolNames,
+            invalidatedInvocationCount =
+                ToolExecutionManager.countDisplayedToolInvocations(repairedContent),
         )
     }
 
@@ -1887,6 +2007,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                 if (retained.isNotBlank()) context.conversationHistory.add(
                     PromptTurn(
                         kind = PromptTurnKind.ASSISTANT, content = retained,
+                        metadata = mapOf(
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.INTERMEDIATE_METADATA to true,
+                        ),
                     )
                 )
                 finishTurn()
@@ -2012,8 +2135,17 @@ class EnhancedAIService private constructor(private val context: Context) {
             // 预先提取工具调用信息，避免重复解析
             val extractedToolInvocations =
                     if (truncatedToolRecovery == null) {
-                        ToolExecutionManager.extractToolInvocations(finalContent)
+                        ToolExecutionManager.extractToolInvocations(finalContent).map { invocation ->
+                            invocation.copy(
+                                callId = java.util.UUID.randomUUID().toString(),
+                                invocationIndex = context.toolSequence.nextIndex.getAndIncrement(),
+                            )
+                        }
                     } else {
+                        ToolExecutionManager.reserveToolInvocationIndices(
+                            context.toolSequence.nextIndex,
+                            truncatedToolRecovery.invalidatedInvocationCount,
+                        )
                         emptyList()
                     }
 
@@ -2027,7 +2159,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                 context.conversationHistory.add(
                     PromptTurn(
                         kind = PromptTurnKind.ASSISTANT,
-                        content = context.roundManager.getCurrentRoundContent()
+                        content = context.roundManager.getCurrentRoundContent(),
+                        metadata = mapOf(
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.INTERMEDIATE_METADATA to
+                                (extractedToolInvocations.isNotEmpty() || truncatedToolRecovery != null),
+                        )
                     )
                 )
             } catch (e: Exception) {
@@ -2280,6 +2416,36 @@ class EnhancedAIService private constructor(private val context: Context) {
             }
         }
         val processTools: suspend () -> Unit = processTools@{
+            val chatHistoryManager =
+                ChatHistoryManager.getInstance(this@EnhancedAIService.context)
+            val childChatTitle =
+                chatId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { chatHistoryManager.getChatTitle(it) }
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+            val conversationLabel =
+                if (isSubTask && !chatId.isNullOrBlank()) {
+                    SubagentRunRepository.getInstance(this@EnhancedAIService.context)
+                        .getByChildChatId(chatId)
+                        ?.let { run ->
+                            val parentTitle =
+                                chatHistoryManager.getChatTitle(run.parentChatId)
+                                    ?.trim()
+                                    ?.takeIf { it.isNotEmpty() }
+                                    ?: run.parentChatId
+                            this@EnhancedAIService.context.getString(
+                                R.string.subagent_permission_source,
+                                run.agentProfileId,
+                                run.title,
+                                parentTitle,
+                                childChatTitle ?: chatId,
+                            )
+                        }
+                        ?: childChatTitle
+                } else {
+                    childChatTitle ?: characterName?.trim()?.takeIf { it.isNotEmpty() }
+                }
             val modelSnapshot = getModelExecutionSnapshot(
                 context,
                 functionType,
@@ -2293,11 +2459,22 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolHandler = toolHandler,
                 packageManager = packageManager,
                 collector = toolOutputCountingCollector,
+                timingScopeId = context.toolSequence.scopeId,
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
                 callerCardId = roleCardId,
                 subtaskExecution = context.subtaskExecution,
+                conversationLabel = conversationLabel,
+                parentModelConfigId = modelSnapshot.config.id,
+                parentModelIndex = modelSnapshot.lease.modelIndex,
+                isSubagent = isSubTask,
+                isGroupOrchestration = enableGroupOrchestrationHint,
+                subagentToolLoopGuard =
+                    context.subagentToolLoopGuard.takeIf {
+                        isSubTask && context.subtaskExecution == null && !com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+                            .getInstance(this@EnhancedAIService.context).isAgent(chatId)
+                    },
             )
 
             if (context.subtaskExecution?.isStopped() == true) {
@@ -2354,11 +2531,11 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
 
         suspend fun awaitToolJob(scope: CoroutineScope) {
-            val processToolJob = scope.launch { processTools() }
+            val processToolJob = scope.async { processTools() }
             val invocationId = java.util.UUID.randomUUID().toString()
             toolExecutionJobs[invocationId] = processToolJob
             try {
-                processToolJob.join()
+                processToolJob.await()
             } finally {
                 toolExecutionJobs.remove(invocationId)
             }
@@ -2449,18 +2626,30 @@ class EnhancedAIService private constructor(private val context: Context) {
             // Once durable user rows are written, cancellation must not return those same
             // messages to the queue. Complete the history handoff and acknowledgement together.
             withContext(NonCancellable) {
-                context.onTurnInput?.invoke(
+                val nextAssistantScope = context.onTurnInput?.invoke(
                     turnInputs,
                     ToolExecutionBoundarySnapshot(
                         context.roundManager.getDisplayContent(), context.emittedLength,
                         context.eventChannel.replayCache.size,
                     ),
                 )
+                if (nextAssistantScope != null) {
+                    // Tool rows are indexed within a displayed assistant message. Steering
+                    // starts a new message, so both live timings and result indices move with it.
+                    context.toolSequence.startMessage(nextAssistantScope)
+                }
                 turnInputs.forEach { input ->
                     val inputTurn = PromptTurn(
                         kind = PromptTurnKind.USER, content = input.text,
+                        metadata = if (input.agentPath != null) mapOf(
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.EVENT_METADATA to true,
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.TASK_METADATA to input.startsAgentTurn,
+                        ) else emptyMap(),
                     )
                     context.conversationHistory.add(inputTurn)
+                    if (context.collaborationInputs.isNotEmpty()) {
+                        context.collaborationInputs.add(inputTurn)
+                    }
                 }
                 context.turnInputInbox?.acknowledge()
             }
@@ -2468,11 +2657,14 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         val normalizedChatHistory =
             conversationService.normalizeConversationHistoryForModel(context.conversationHistory)
+                .mergeAdjacentTurns { previous, current ->
+                    com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.canMergeUserTurns(previous, current)
+                }
         context.conversationHistory.clear()
         context.conversationHistory.addAll(normalizedChatHistory)
 
         // Get current conversation history is now just the normalized context history
-        val currentChatHistory = context.conversationHistory
+        var currentChatHistory: List<PromptTurn> = context.conversationHistory.toList()
 
         // executeInvocations 已按调用顺序输出最终 XML；这里复用同一份文本，不能再次输出。
         // 单独格式化或输出分段结果会让保存的历史与当前模型请求产生不同的工具结果。
@@ -2509,7 +2701,10 @@ class EnhancedAIService private constructor(private val context: Context) {
             chatId = chatId,
             promptFunctionType = promptFunctionType,
             roleCardId = roleCardId,
-            modelConfig = modelSnapshot.config
+            modelConfig = modelSnapshot.config,
+            isGroupOrchestration = enableGroupOrchestrationHint,
+            isSubTask = isSubTask,
+            isPluginSubtask = context.subtaskExecution != null,
         )
  
         val currentTokens = estimatePreparedRequestWindow(
@@ -2524,6 +2719,13 @@ class EnhancedAIService private constructor(private val context: Context) {
             val usageRatio = currentTokens.toDouble() / maxTokens.toDouble()
 
             if (usageRatio >= tokenUsageThreshold) {
+                if (context.isCollaborationAgent) {
+                    currentChatHistory = compactCollaborationHistory(
+                        context, requireNotNull(chatId), currentChatHistory, serviceForFunction, availableTools, maxTokens,
+                    )
+                    context.conversationHistory.clear()
+                    context.conversationHistory.addAll(currentChatHistory)
+                } else {
                 AppLogger.w(TAG, "Token usage ($usageRatio) exceeds threshold ($tokenUsageThreshold) after tool call. Triggering summary.")
                 context.subtaskExecution?.stop(
                     SubtaskExecutionState.Reason.TOKEN_LIMIT,
@@ -2537,6 +2739,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 }
                 // 关键修复：在触发总结后，直接返回，因为后续流程将由回调处理
                 return
+                }
             }
         }
 
@@ -2879,12 +3082,14 @@ class EnhancedAIService private constructor(private val context: Context) {
             functionType: FunctionType = FunctionType.CHAT,
             modelConfig: ModelConfigData,
             memorySpaceIdOverride: String? = null,
+            additionalSystemPrompt: String? = null,
             dispatchHistoryHooks: (PromptHookContext) -> PromptHookContext =
                 PromptHookRegistry::dispatchPromptHistoryHooks,
             dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext =
                 PromptHookRegistry::dispatchSystemPromptComposeHooks,
             dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext =
-                PromptHookRegistry::dispatchToolPromptComposeHooks
+                PromptHookRegistry::dispatchToolPromptComposeHooks,
+            isPluginSubtask: Boolean = false,
     ): List<PromptTurn> {
         // Check if backend image recognition service is configured (for intent-based vision)
         // For subtasks, always disable backend image recognition (only support OCR)
@@ -2921,10 +3126,13 @@ class EnhancedAIService private constructor(private val context: Context) {
                 useToolCallApi,
                 chatModelHasDirectImage,
                 toolExposureMode,
-                memorySpaceIdOverride,
-                dispatchHistoryHooks,
-                dispatchSystemPromptComposeHooks,
-                dispatchToolPromptComposeHooks
+                memorySpaceIdOverride = memorySpaceIdOverride,
+                additionalSystemPrompt = additionalSystemPrompt,
+                isSubTask = isSubTask,
+                dispatchHistoryHooks = dispatchHistoryHooks,
+                dispatchSystemPromptComposeHooks = dispatchSystemPromptComposeHooks,
+                dispatchToolPromptComposeHooks = dispatchToolPromptComposeHooks,
+                isPluginSubtask = isPluginSubtask,
         )
     }
 
@@ -3092,7 +3300,10 @@ class EnhancedAIService private constructor(private val context: Context) {
         chatId: String? = null,
         promptFunctionType: PromptFunctionType? = null,
         roleCardId: String? = null,
-        modelConfig: ModelConfigData
+        modelConfig: ModelConfigData,
+        isSubTask: Boolean = false,
+        isGroupOrchestration: Boolean = false,
+        isPluginSubtask: Boolean = false,
     ): List<ToolPrompt>? {
         return try {
             AppLogger.d(
@@ -3155,7 +3366,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         hasBackendVideoRecognition = hasBackendVideoRecognition,
                         chatModelHasDirectAudio = chatModelHasDirectAudio,
                         chatModelHasDirectVideo = chatModelHasDirectVideo,
-                        safBookmarkNames = safBookmarkNames
+                        safBookmarkNames = safBookmarkNames,
+                        includeSubagentTools = !isPluginSubtask && (!isSubTask || com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator.getInstance(context).isAgent(chatId))
                     )
                 } else {
                     SystemToolPrompts.getAIAllCategoriesCn(
@@ -3165,13 +3377,16 @@ class EnhancedAIService private constructor(private val context: Context) {
                         hasBackendVideoRecognition = hasBackendVideoRecognition,
                         chatModelHasDirectAudio = chatModelHasDirectAudio,
                         chatModelHasDirectVideo = chatModelHasDirectVideo,
-                        safBookmarkNames = safBookmarkNames
+                        safBookmarkNames = safBookmarkNames,
+                        includeSubagentTools = !isPluginSubtask && (!isSubTask || com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator.getInstance(context).isAgent(chatId))
                     )
                 }
 
                 categories.flatMap { it.tools }.toMutableList().apply {
+                    val collaborationVisibility =
+                        com.ai.assistance.operit.core.agent.collaboration.CollaborationToolPolicy.visibility(context, chatId, isSubTask, isGroupOrchestration, isPluginSubtask)
                     retainAll { tool ->
-                        roleCardToolAccess.isBuiltinToolAllowed(tool.name)
+                        roleCardToolAccess.isBuiltinToolAllowed(tool.name) && collaborationVisibility[tool.name] != false
                     }
                 }
             }

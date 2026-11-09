@@ -30,6 +30,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
@@ -45,6 +46,7 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.ui.common.animations.SimpleAnimatedVisibility
 import com.ai.assistance.operit.ui.common.markdown.DefaultXmlRenderer
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRenderer
+import com.ai.assistance.operit.ui.common.markdown.ToolXmlRenderInstanceKey
 import com.ai.assistance.operit.ui.common.markdown.XmlContentRenderer
 import com.ai.assistance.operit.ui.common.markdown.XmlRenderPluginRegistry
 import com.ai.assistance.operit.ui.common.rememberLocal
@@ -56,9 +58,57 @@ import com.ai.assistance.operit.util.stream.stream
 import java.io.StringReader
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 
 /** 支持多种 XML 标签的自定义渲染器 包含高效的前缀检测，直接解析标签类型 */
 private const val TOOL_PARAM_TOKEN_THRESHOLD = 50
+
+internal data class ResolvedToolRequestPresentation(
+    val toolName: String,
+    val forwardedParams: Map<String, String>,
+)
+
+internal fun resolveToolRequestPresentation(
+    rawToolName: String,
+    params: Map<String, String>,
+): ResolvedToolRequestPresentation {
+    if (rawToolName != "proxy" && rawToolName != "package_proxy") {
+        return ResolvedToolRequestPresentation(rawToolName, params)
+    }
+
+    val targetToolName = params["tool_name"]?.decodeToolXmlText()?.trim().orEmpty()
+    val paramsJson =
+        params["params"]
+            ?.trim()
+            ?.removeSurrounding("<![CDATA[", "]]>")
+            ?.decodeToolXmlText()
+            .orEmpty()
+    val forwardedParams =
+        runCatching {
+                Json.parseToJsonElement(paramsJson).jsonObject.mapValues { (_, value) ->
+                    when (value) {
+                        JsonNull -> ""
+                        is JsonPrimitive -> value.content
+                        else -> value.toString()
+                    }
+                }
+            }
+            .getOrDefault(emptyMap())
+    return ResolvedToolRequestPresentation(
+        toolName = targetToolName.ifBlank { rawToolName },
+        forwardedParams = forwardedParams,
+    )
+}
+
+private fun String.decodeToolXmlText(): String =
+    replace("&quot;", "\"")
+        .replace("&apos;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&amp;", "&")
 
 class CustomXmlRenderer(
     private val showThinkingProcess: Boolean = true,
@@ -66,6 +116,8 @@ class CustomXmlRenderer(
     private val initialThinkingExpanded: Boolean = false,
     private val allowExpandedThinkingFullHeight: Boolean = false,
     private val enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
+    private val toolTimingScopeId: String? = null,
+    private val persistedToolExecutions: Map<Int, PersistedToolExecution> = emptyMap(),
     private val fallback: XmlContentRenderer = DefaultXmlRenderer()
 ) : XmlContentRenderer {
     // 定义渲染器能够处理的内置标签集合
@@ -76,6 +128,9 @@ class CustomXmlRenderer(
         val rawToolName: String,
         val paramText: String,
         val displayToolName: String,
+        val summaryOverride: String? = null,
+        val subagentName: String? = null,
+        val subagentTaskId: String? = null,
         val isClosed: Boolean,
     )
 
@@ -212,8 +267,19 @@ class CustomXmlRenderer(
             "think" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
             "thinking" -> renderThinkContent(trimmedContent, Modifier, textColor, xmlStream)
             "search" -> renderSearchContent(trimmedContent, Modifier, textColor)
-            "tool" -> renderToolRequest(trimmedContent, Modifier, textColor, xmlStream)
-            "tool_result" -> renderToolResult(trimmedContent, Modifier, textColor)
+            "tool" ->
+                renderToolRequest(
+                    trimmedContent,
+                    Modifier,
+                    textColor,
+                    xmlStream,
+                    (renderInstanceKey as? ToolXmlRenderInstanceKey)?.invocationIndex,
+                )
+            "tool_result" -> {
+                if (shouldRenderStandaloneToolResult(trimmedContent)) {
+                    renderToolResult(trimmedContent, Modifier, textColor)
+                }
+            }
             "status" -> renderStatus(trimmedContent, Modifier, textColor)
             "html" -> renderHtmlContent(trimmedContent, Modifier, textColor)
             "mood" -> renderMoodTag(trimmedContent, Modifier, textColor)
@@ -306,6 +372,11 @@ class CustomXmlRenderer(
     }
 
     private fun resolveToolDisplayNameForRender(toolName: String, params: Map<String, String>): String {
+        if (toolName == "task") {
+            val subagentName = params["subagent_type"].orEmpty().ifBlank { "subagent" }
+            val taskTitle = params["title"].orEmpty().ifBlank { "task" }
+            return "task $subagentName - $taskTitle"
+        }
         if (toolName != "package_proxy" && toolName != "proxy") {
             return toolName
         }
@@ -1072,7 +1143,8 @@ class CustomXmlRenderer(
         content: String,
         modifier: Modifier,
         textColor: Color,
-        xmlStream: Stream<String>?
+        xmlStream: Stream<String>?,
+        invocationIndex: Int?,
     ) {
         val paramTokenEstimate = rememberToolParamTokenEstimate(content, xmlStream)
         val renderState =
@@ -1082,55 +1154,102 @@ class CustomXmlRenderer(
                 val rawToolName = nameMatch?.groupValues?.get(1) ?: "Unknown tool"
                 val params = extractParamsFromTool(content)
                 val paramText = extractContentFromXml(content, "tool").trim()
-                val displayToolName = resolveToolDisplayNameForRender(rawToolName, params)
+                val resolvedPresentation = resolveToolRequestPresentation(rawToolName, params)
+                val displayToolName = resolvedPresentation.toolName
+                val displayParams = resolvedPresentation.forwardedParams
+                val summaryOverride =
+                    if (displayToolName == "task") {
+                        val subagentName =
+                            displayParams["subagent_type"].orEmpty().ifBlank { "subagent" }
+                        val taskTitle = displayParams["title"].orEmpty().ifBlank { "task" }
+                        "$subagentName - $taskTitle"
+                    } else {
+                        null
+                    }
+                val subagentName =
+                    displayParams["subagent_type"]
+                        ?.trim()
+                        ?.takeIf { displayToolName == "task" && it.isNotEmpty() }
+                val subagentTaskId =
+                    displayParams["task_id"]
+                        ?.trim()
+                        ?.takeIf { displayToolName == "task" && it.isNotEmpty() }
 
                 ToolRequestRenderState(
                     rawToolName = rawToolName,
                     paramText = paramText,
                     displayToolName = displayToolName,
+                    summaryOverride = summaryOverride,
+                    subagentName = subagentName,
+                    subagentTaskId = subagentTaskId,
                     isClosed = isXmlFullyClosed(content),
                 )
             }
 
-        // 特殊处理文件编辑类工具
-        if (renderState.displayToolName == "apply_file" ||
-            renderState.displayToolName == "create_file" ||
-            renderState.displayToolName == "edit_file"
-        ) {
-            if (renderState.isClosed) {
+        Column {
+            if (renderState.displayToolName == "task") {
                 CompactToolDisplay(
-                    toolName = renderState.rawToolName,
+                    toolName = renderState.displayToolName,
                     params = renderState.paramText,
+                    summaryOverride = renderState.summaryOverride,
                     textColor = textColor,
                     modifier = modifier,
-                    enableDialog = enableDialogs
+                    enableDialog = enableDialogs,
                 )
+            // 特殊处理文件编辑类工具
+            } else if (renderState.displayToolName == "apply_file" ||
+                renderState.displayToolName == "create_file" ||
+                renderState.displayToolName == "edit_file"
+            ) {
+                if (renderState.isClosed) {
+                    CompactToolDisplay(
+                        toolName = renderState.displayToolName,
+                        params = renderState.paramText,
+                        textColor = textColor,
+                        modifier = modifier,
+                        enableDialog = enableDialogs
+                    )
+                } else {
+                    DetailedToolDisplay(
+                        toolName = renderState.displayToolName,
+                        params = renderState.paramText,
+                        textColor = textColor,
+                        modifier = modifier,
+                        enableDialog = enableDialogs
+                    )
+                }
             } else {
-                DetailedToolDisplay(
-                    toolName = renderState.rawToolName,
-                    params = renderState.paramText,
-                    textColor = textColor,
-                    modifier = modifier,
-                    enableDialog = enableDialogs
-                )
+                // 对于其他工具，保持原有逻辑
+                if (!renderState.isClosed && paramTokenEstimate > TOOL_PARAM_TOKEN_THRESHOLD) {
+                    DetailedToolDisplay(
+                        toolName = renderState.displayToolName,
+                        params = renderState.paramText,
+                        textColor = textColor,
+                        modifier = modifier,
+                        enableDialog = enableDialogs  // 传递弹窗启用状态
+                    )
+                } else {
+                    CompactToolDisplay(
+                        toolName = renderState.displayToolName,
+                        params = renderState.paramText,
+                        textColor = textColor,
+                        modifier = modifier,
+                        enableDialog = enableDialogs  // 传递弹窗启用状态
+                    )
+                }
             }
-        } else {
-            // 对于其他工具，保持原有逻辑
-            if (!renderState.isClosed && paramTokenEstimate > TOOL_PARAM_TOKEN_THRESHOLD) {
-                DetailedToolDisplay(
-                        toolName = renderState.rawToolName,
-                        params = renderState.paramText,
-                        textColor = textColor,
-                        modifier = modifier,
-                        enableDialog = enableDialogs  // 传递弹窗启用状态
-                )
-            } else {
-                CompactToolDisplay(
-                        toolName = renderState.rawToolName,
-                        params = renderState.paramText,
-                        textColor = textColor,
-                        modifier = modifier,
-                        enableDialog = enableDialogs  // 传递弹窗启用状态
+
+            invocationIndex?.let { index ->
+                ToolExecutionStatusDisplay(
+                    timingScopeId = toolTimingScopeId,
+                    invocationIndex = index,
+                    persistedExecution = persistedToolExecutions[index],
+                    allowUnmatchedLiveExecution = xmlStream != null,
+                    enableDialogs = enableDialogs,
+                    requestedToolName = renderState.displayToolName,
+                    requestedSubagentName = renderState.subagentName,
+                    requestedSubagentTaskId = renderState.subagentTaskId,
+                    modifier = modifier,
                 )
             }
         }
@@ -1230,8 +1349,6 @@ class CustomXmlRenderer(
     /** 渲染工具结果标签 <tool_result name="..." status="..."><content>...</content></tool_result> */
     @Composable
     private fun renderToolResult(content: String, modifier: Modifier, _textColor: Color) {
-        val clipboardManager = LocalClipboardManager.current
-
         val renderState =
             run {
                 val nameMatch = ChatMarkupRegex.nameAttr.find(content)
@@ -1248,59 +1365,29 @@ class CustomXmlRenderer(
                 )
             }
         val toolName = renderState.toolName.ifBlank { stringResource(R.string.unknown_tool) }
-
-        // 检查结果是否为 file-diff
-        if ((toolName == "apply_file" || toolName == "create_file" || toolName == "edit_file") &&
-            renderState.isSuccess &&
-            renderState.resultContent.contains("<file-diff")
-        ) {
-            val (path, details, unescapedDiffContent) =
-                run {
-                    val pathRegex = "<file-diff path=\"([^\"]+)\"".toRegex()
-                    val detailsRegex = "details=\"([^\"]+)\"".toRegex()
-                    val cdataRegex = "<!\\[CDATA\\[(.*?)\\]\\]>".toRegex(RegexOption.DOT_MATCHES_ALL)
-
-                    val path = pathRegex.find(renderState.resultContent)?.groupValues?.get(1) ?: ""
-                    val details = detailsRegex.find(renderState.resultContent)?.groupValues?.get(1) ?: ""
-                    val diffContent = cdataRegex.find(renderState.resultContent)?.groupValues?.get(1)?.trim() ?: ""
-
-                    Triple(
-                        path,
-                        details,
-                        diffContent
-                            .replace("<", "<")
-                            .replace(">", ">")
-                            .replace("&", "&"),
-                    )
+        val displayResult =
+            if (!renderState.isSuccess) {
+                ChatMarkupRegex.errorTag.find(renderState.resultContent)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.trim()
+                    ?: renderState.resultContent
+            } else {
+                val fileDiffRegex =
+                    """<file-diff.*</file-diff>""".toRegex(RegexOption.DOT_MATCHES_ALL)
+                if (toolName in setOf("apply_file", "create_file", "edit_file")) {
+                    renderState.resultContent
+                } else {
+                    renderState.resultContent.replace(fileDiffRegex, "").trim()
                 }
-
-            FileDiffDisplay(diff = FileDiff(path, unescapedDiffContent, details))
-        } else {
-            // 如果是错误状态，尝试提取错误信息
-            val errorContent =
-                    if (!renderState.isSuccess) {
-                        val errorMatch = ChatMarkupRegex.errorTag.find(renderState.resultContent)
-                        errorMatch?.groupValues?.get(1)?.trim() ?: renderState.resultContent
-                    } else {
-                        // 从结果中移除 file-diff 块（如果存在）
-                        val fileDiffRegex = """<file-diff.*</file-diff>""".toRegex(RegexOption.DOT_MATCHES_ALL)
-                        renderState.resultContent.replace(fileDiffRegex, "").trim()
-                    }
-
-            // 使用ToolResultDisplay组件显示结果
-            ToolResultDisplay(
-                    toolName = toolName,
-                    result = errorContent,
-                    isSuccess = renderState.isSuccess,
-                    onCopyResult = {
-                        if (errorContent.isNotBlank()) {
-                            clipboardManager.setText(AnnotatedString(errorContent))
-                        }
-                    },
-                    modifier = modifier,
-                    enableDialog = enableDialogs  // 传递弹窗启用状态
-            )
-        }
+            }
+        ToolExecutionResultDisplay(
+            toolName = toolName,
+            result = displayResult,
+            isSuccess = renderState.isSuccess,
+            modifier = modifier,
+            enableDialog = enableDialogs,
+        )
     }
 
     /** 渲染状态信息标签 <status type="..." tool="..." uuid="..." title="..." subtitle="...">...</status> */

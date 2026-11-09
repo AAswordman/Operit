@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.core.config
 
+import com.ai.assistance.operit.core.agent.AgentProfile
+import com.ai.assistance.operit.core.agent.AgentProfileRepository
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.data.model.SystemToolPromptCategory
@@ -83,7 +85,89 @@ object SystemToolPrompts {
             )
         )
     )
-    
+
+    // ==================== Subagent 工具 ====================
+    val subagentTools: SystemToolPromptCategory
+        get() = buildSubagentTools(useChinese = false)
+
+    val subagentToolsCn: SystemToolPromptCategory
+        get() = buildSubagentTools(useChinese = true)
+
+    internal fun buildSubagentTools(
+        useChinese: Boolean,
+        profiles: List<AgentProfile> = AgentProfileRepository.instance.listAvailableSubagents(),
+    ): SystemToolPromptCategory {
+        val profileIds = profiles.joinToString(if (useChinese) "、" else ", ") { it.id }
+        val profileDetails =
+            profiles.joinToString(separator = "\n") { profile ->
+                "- ${profile.id} (${profile.name}): ${profile.description}"
+            }
+        val description =
+            if (useChinese) {
+                "把前台任务委派给独立 Subagent，并等待其最终结果。可用的 subagent_type：$profileIds；传入 task_id 可继续已有 child 对话。\n$profileDetails"
+            } else {
+                "Delegate a foreground task to an independent Subagent and wait for its final result. Available subagent_type values: $profileIds. Use task_id to continue an existing child conversation.\n$profileDetails"
+            }
+        val typeDescription =
+            if (useChinese) {
+                "Subagent 配置 ID：$profileIds"
+            } else {
+                "Subagent profile ID: $profileIds"
+            }
+        return SystemToolPromptCategory(
+            categoryName = if (useChinese) "Subagent 工具" else "Subagent Tools",
+            tools =
+                listOf(
+                    ToolPrompt(
+                        name = "task",
+                        description = description,
+                        parametersStructured =
+                            listOf(
+                                ToolParameterSchema(
+                                    name = "title",
+                                    type = "string",
+                                    description =
+                                        if (useChinese) {
+                                            "显示在工具调用 UI 中的任务名称"
+                                        } else {
+                                            "task name shown in the tool call UI"
+                                        },
+                                    required = true,
+                                ),
+                                ToolParameterSchema(
+                                    name = "prompt",
+                                    type = "string",
+                                    description =
+                                        if (useChinese) {
+                                            "交给 Subagent 的完整任务说明"
+                                        } else {
+                                            "complete task instructions for the Subagent"
+                                        },
+                                    required = true,
+                                ),
+                                ToolParameterSchema(
+                                    name = "subagent_type",
+                                    type = "string",
+                                    description = typeDescription,
+                                    required = true,
+                                ),
+                                ToolParameterSchema(
+                                    name = "task_id",
+                                    type = "string",
+                                    description =
+                                        if (useChinese) {
+                                            "可选，用于继续既有任务的稳定 task ID"
+                                        } else {
+                                            "optional stable task id to continue"
+                                        },
+                                    required = false,
+                                ),
+                            ),
+                    )
+                ),
+        )
+    }
+
     // ==================== 文件系统工具 ====================
     val fileSystemTools = SystemToolPromptCategory(
         categoryName = "File System Tools",
@@ -501,7 +585,8 @@ object SystemToolPrompts {
         hasBackendVideoRecognition: Boolean = false,
         chatModelHasDirectAudio: Boolean = false,
         chatModelHasDirectVideo: Boolean = false,
-        safBookmarkNames: List<String> = emptyList()
+        safBookmarkNames: List<String> = emptyList(),
+        includeSubagentTools: Boolean = true
     ): List<SystemToolPromptCategory> {
         val shouldExposeIntent =
             (hasBackendImageRecognition && !chatModelHasDirectImage) ||
@@ -536,12 +621,16 @@ object SystemToolPrompts {
             }
         )
 
-        return listOf(
-            basicTools,
-            adjustedFileSystemTools,
-            httpTools,
-            memoryTools
-        )
+        return buildList {
+            add(basicTools)
+            if (includeSubagentTools) {
+                add(subagentTools)
+                add(com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.category(false, AgentProfileRepository.instance.listAvailableSubagents()))
+            }
+            add(adjustedFileSystemTools)
+            add(httpTools)
+            add(memoryTools)
+        }
     }
 
     fun getAllCategoriesEn(
@@ -551,7 +640,8 @@ object SystemToolPrompts {
         hasBackendVideoRecognition: Boolean = false,
         chatModelHasDirectAudio: Boolean = false,
         chatModelHasDirectVideo: Boolean = false,
-        safBookmarkNames: List<String> = emptyList()
+        safBookmarkNames: List<String> = emptyList(),
+        includeSubagentTools: Boolean = true
     ): List<SystemToolPromptCategory> {
         return getAIAllCategoriesEn(
             hasBackendImageRecognition = hasBackendImageRecognition,
@@ -560,7 +650,8 @@ object SystemToolPrompts {
             hasBackendVideoRecognition = hasBackendVideoRecognition,
             chatModelHasDirectAudio = chatModelHasDirectAudio,
             chatModelHasDirectVideo = chatModelHasDirectVideo,
-            safBookmarkNames = safBookmarkNames
+            safBookmarkNames = safBookmarkNames,
+            includeSubagentTools = includeSubagentTools
         ) + internalToolCategoriesEn
     }
     
@@ -576,7 +667,8 @@ object SystemToolPrompts {
         hasBackendVideoRecognition: Boolean = false,
         chatModelHasDirectAudio: Boolean = false,
         chatModelHasDirectVideo: Boolean = false,
-        safBookmarkNames: List<String> = emptyList()
+        safBookmarkNames: List<String> = emptyList(),
+        includeSubagentTools: Boolean = true
     ): List<SystemToolPromptCategory> {
         val shouldExposeIntent =
             (hasBackendImageRecognition && !chatModelHasDirectImage) ||
@@ -611,12 +703,16 @@ object SystemToolPrompts {
             }
         )
 
-        return listOf(
-            basicToolsCn,
-            adjustedFileSystemTools,
-            httpToolsCn,
-            memoryToolsCn
-        )
+        return buildList {
+            add(basicToolsCn)
+            if (includeSubagentTools) {
+                add(subagentToolsCn)
+                add(com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.category(true, AgentProfileRepository.instance.listAvailableSubagents()))
+            }
+            add(adjustedFileSystemTools)
+            add(httpToolsCn)
+            add(memoryToolsCn)
+        }
     }
 
     fun getAllCategoriesCn(
@@ -626,7 +722,8 @@ object SystemToolPrompts {
         hasBackendVideoRecognition: Boolean = false,
         chatModelHasDirectAudio: Boolean = false,
         chatModelHasDirectVideo: Boolean = false,
-        safBookmarkNames: List<String> = emptyList()
+        safBookmarkNames: List<String> = emptyList(),
+        includeSubagentTools: Boolean = true
     ): List<SystemToolPromptCategory> {
         return getAIAllCategoriesCn(
             hasBackendImageRecognition = hasBackendImageRecognition,
@@ -635,7 +732,8 @@ object SystemToolPrompts {
             hasBackendVideoRecognition = hasBackendVideoRecognition,
             chatModelHasDirectAudio = chatModelHasDirectAudio,
             chatModelHasDirectVideo = chatModelHasDirectVideo,
-            safBookmarkNames = safBookmarkNames
+            safBookmarkNames = safBookmarkNames,
+            includeSubagentTools = includeSubagentTools
         ) + internalToolCategoriesCn
     }
 
@@ -681,9 +779,9 @@ object SystemToolPrompts {
         toolOrder: List<String> = emptyList()
     ): List<ManageableToolPrompt> {
         val baseCategories = if (useEnglish) {
-            listOf(basicTools, fileSystemTools, httpTools, memoryTools)
+            listOf(basicTools, subagentTools, com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.category(false, AgentProfileRepository.instance.listAvailableSubagents()), fileSystemTools, httpTools, memoryTools)
         } else {
-            listOf(basicToolsCn, fileSystemToolsCn, httpToolsCn, memoryToolsCn)
+            listOf(basicToolsCn, subagentToolsCn, com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.category(true, AgentProfileRepository.instance.listAvailableSubagents()), fileSystemToolsCn, httpToolsCn, memoryToolsCn)
         }
 
         val result = baseCategories

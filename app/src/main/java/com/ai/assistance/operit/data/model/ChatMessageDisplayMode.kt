@@ -6,5 +6,10 @@ import kotlinx.serialization.Serializable
 enum class ChatMessageDisplayMode {
     NORMAL,
     HIDDEN_PLACEHOLDER,
-    ASSISTANT_INTERMEDIATE
+    COLLABORATION_EVENT,
+    COLLABORATION_TASK,
+    ASSISTANT_INTERMEDIATE;
+
+    val isCollaborationEvent: Boolean
+        get() = this == COLLABORATION_EVENT || this == COLLABORATION_TASK
 }

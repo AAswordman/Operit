@@ -36,6 +36,7 @@ import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMem
 import com.ai.assistance.operit.ui.features.chat.components.rememberRevisableTextStream
 import com.ai.assistance.operit.ui.features.chat.components.part.CustomXmlRenderer
 import com.ai.assistance.operit.ui.features.chat.components.part.ThinkToolsXmlNodeGrouper
+import com.ai.assistance.operit.ui.features.chat.components.part.parsePersistedToolExecutions
 import com.ai.assistance.operit.ui.features.chat.components.LinkPreviewDialog
 import com.ai.assistance.operit.util.markdown.toCharStream
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -166,20 +167,26 @@ fun BubbleAiMessageComposable(
     
     // 创建并保存StreamMarkdownRenderer的状态，使用message.timestamp作为key确保同一条消息共享状态
     val rendererState = remember(message.timestamp) { StreamMarkdownRendererState() }
+    val persistedToolExecutions =
+        remember(message.content) { parsePersistedToolExecutions(message.content) }
 
     val xmlRenderer = remember(
         effectiveShowThinkingProcess,
         showStatusTags,
         initialThinkingExpanded,
         allowExpandedThinkingFullHeight,
-        enableDialogs
+        enableDialogs,
+        message.timestamp,
+        persistedToolExecutions,
     ) {
         CustomXmlRenderer(
             showThinkingProcess = effectiveShowThinkingProcess,
             showStatusTags = showStatusTags,
             initialThinkingExpanded = initialThinkingExpanded,
             allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,
-            enableDialogs = enableDialogs
+            enableDialogs = enableDialogs,
+            toolTimingScopeId = message.timestamp.toString(),
+            persistedToolExecutions = persistedToolExecutions,
         )
     }
 

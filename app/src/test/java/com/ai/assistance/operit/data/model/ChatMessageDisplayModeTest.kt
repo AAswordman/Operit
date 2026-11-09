@@ -18,6 +18,11 @@ class ChatMessageDisplayModeTest {
         assertEquals(ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE, ChatMessageDisplayMode.valueOf("ASSISTANT_INTERMEDIATE"))
     }
 
+    @Test fun `only collaboration rows use the event presentation`() {
+        assertEquals(setOf(ChatMessageDisplayMode.COLLABORATION_EVENT, ChatMessageDisplayMode.COLLABORATION_TASK),
+            ChatMessageDisplayMode.values().filter { it.isCollaborationEvent }.toSet())
+    }
+
     @Test fun `valueOf is case sensitive`() {
         assertEquals(ChatMessageDisplayMode.NORMAL, ChatMessageDisplayMode.valueOf("NORMAL"))
         assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, ChatMessageDisplayMode.valueOf("HIDDEN_PLACEHOLDER"))

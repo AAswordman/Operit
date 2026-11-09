@@ -56,6 +56,20 @@ import com.ai.assistance.operit.api.chat.llmprovider.MediaLinkBuilder
 import com.ai.assistance.operit.data.repository.getCustomMoodDefinitions
 import com.ai.assistance.operit.data.repository.getMoodAnimationMapping
 
+private val toolExecutionMetadataAttributeRegex = Regex(
+    """\s+(?:call_id|invocation_index|duration_ms|execution_state|final)="[^"]*"""",
+    RegexOption.IGNORE_CASE,
+)
+
+internal fun stripToolExecutionMetadataFromToolResults(content: String): String {
+    return ChatMarkupRegex.toolResultTagWithAttrs.replace(content) { matchResult ->
+        val tagName = matchResult.groupValues[1]
+        val attrs = toolExecutionMetadataAttributeRegex.replace(matchResult.groupValues[2], "")
+        val body = matchResult.groupValues[3]
+        "<$tagName$attrs>$body</$tagName>"
+    }
+}
+
 /** 处理会话相关功能的服务类，包括会话总结、偏好处理和对话切割准备 */
 class ConversationService(
     private val context: Context,
@@ -476,11 +490,20 @@ class ConversationService(
             chatModelHasDirectImage: Boolean = false,
             toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
             memorySpaceIdOverride: String? = null,
+            additionalSystemPrompt: String? = null,
+            isSubTask: Boolean = false,
             dispatchHistoryHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchPromptHistoryHooks,
             dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
-            dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks
+            dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks,
+            isPluginSubtask: Boolean = false,
     ): List<PromptTurn> {
-        val activePromptMetadata = buildActivePromptHookMetadata(context, chatId, roleCardId)
+        val activePromptMetadata =
+            buildActivePromptHookMetadata(
+                context,
+                chatId,
+                roleCardId,
+                includeActivePrompt = !isSubTask,
+            )
         val beforeContext =
             dispatchHistoryHooks(
                 PromptHookContext(
@@ -504,7 +527,8 @@ class ConversationService(
                             "chatModelHasDirectVideo" to chatModelHasDirectVideo,
                             "useToolCallApi" to useToolCallApi,
                             "chatModelHasDirectImage" to chatModelHasDirectImage,
-                            "toolExposureMode" to toolExposureMode.name
+                            "toolExposureMode" to toolExposureMode.name,
+                            "isSubTask" to isSubTask,
                         ) + activePromptMetadata
                 )
             )
@@ -544,7 +568,19 @@ class ConversationService(
                 }.orEmpty()
 
                 // 获取自定义系统提示模板
-                val finalCustomSystemPromptTemplate = customSystemPromptTemplate ?: apiPreferences.customSystemPromptTemplateFlow.first()
+                val finalCustomSystemPromptTemplate =
+                    ConversationPromptIsolationPolicy.resolveSystemTemplate(
+                        isSubTask = isSubTask,
+                        requestTemplate = customSystemPromptTemplate,
+                        globalTemplate =
+                            if (isSubTask) {
+                                ""
+                            } else {
+                                apiPreferences.customSystemPromptTemplateFlow.first()
+                            },
+                    )
+                val allowPersonalContext =
+                    ConversationPromptIsolationPolicy.allowPersonalContext(isSubTask)
 
                 // 获取工具启用状态
                 val enableTools = apiPreferences.enableToolsFlow.first()
@@ -586,7 +622,11 @@ class ConversationService(
                     chatModelHasDirectVideo = chatModelHasDirectVideo,
                     useToolCallApi = useToolCallApi,
                     toolExposureMode = toolExposureMode,
-                    toolVisibility = roleCardToolAccess.effectiveBuiltinToolVisibility,
+                    toolVisibility =
+                        roleCardToolAccess.effectiveBuiltinToolVisibility +
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationToolPolicy.visibility(
+                                context, chatId, isSubTask, enableGroupOrchestrationHint, isPluginSubtask,
+                            ).filterValues { !it },
                     allowedPackageNames = roleCardToolAccess.allowedPackageNames,
                     allowedSkillNames = roleCardToolAccess.allowedSkillNames,
                     allowedMcpServerNames = roleCardToolAccess.allowedMcpServerNames,
@@ -600,10 +640,15 @@ class ConversationService(
                 )
 
                 // 构建waifu特殊规则
-                val waifuRulesText = if(waifuPreferences.enableWaifuModeFlow.first()) buildWaifuRulesText() else ""
+                val waifuRulesText =
+                    if (allowPersonalContext && waifuPreferences.enableWaifuModeFlow.first()) {
+                        buildWaifuRulesText()
+                    } else {
+                        ""
+                    }
                 // 语音头像模式：添加 <mood> 标签协议
                 val avatarMoodRulesText =
-                    if (shouldInjectMoodRules(promptFunctionType)) {
+                    if (allowPersonalContext && shouldInjectMoodRules(promptFunctionType)) {
                         buildAvatarMoodRulesText(useEnglish)
                     } else {
                         ""
@@ -614,13 +659,18 @@ class ConversationService(
                 val finalSystemPrompt = buildString {
                     append(avatarMoodRulesText)
                     append(systemPrompt)
-                    if (proxyRolePrompt.isNotEmpty()) {
+                    if (!additionalSystemPrompt.isNullOrBlank()) {
+                        append("\n\n<subagent_profile source=\"agent_profile\">\n")
+                        append(additionalSystemPrompt)
+                        append("\n</subagent_profile>")
+                    }
+                    if (allowPersonalContext && proxyRolePrompt.isNotEmpty()) {
                         append("\n\n<assistant_role source=\"proxy_character_card\">\n")
                         append(proxyRolePrompt)
                         append("\n</assistant_role>")
                     }
                     append(waifuRulesText)
-                    if (!disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
+                    if (allowPersonalContext && !disableUserPreferenceDescription && userProfileMarkdown.isNotEmpty()) {
                         append("\n\n<user_profile source=\"memory-space/$effectiveMemorySpaceId/user.md\">\n")
                         append(userProfileMarkdown)
                         append("\n</user_profile>")
@@ -652,7 +702,7 @@ class ConversationService(
                     val xmlTags = splitXmlTag(content)
                     if (xmlTags.isNotEmpty()) {
                         // Process the message with tool results
-                        processChatMessageWithTools(content, xmlTags, preparedHistory, index, effectiveChatHistory.size)
+                        processChatMessageWithTools(content, xmlTags, preparedHistory, index, effectiveChatHistory.size, message.metadata)
                     } else {
                         // Add the message as is
                         preparedHistory.add(message)
@@ -699,7 +749,9 @@ class ConversationService(
     }
 
     private fun normalizeToolResultMarkupForModel(content: String): String {
-        return ChatMarkupRegex.toolResultTagWithAttrs.replace(content) { matchResult ->
+        val contentWithoutExecutionMetadata =
+            stripToolExecutionMetadataFromToolResults(content)
+        return ChatMarkupRegex.toolResultTagWithAttrs.replace(contentWithoutExecutionMetadata) { matchResult ->
             val tagName = matchResult.groupValues[1]
             val attrs = matchResult.groupValues[2]
             val body = matchResult.groupValues[3]
@@ -711,7 +763,8 @@ class ConversationService(
             }
 
             val requestContent =
-                extractApplyFileRequestContent(body) ?: return@replace matchResult.value
+                extractApplyFileRequestContent(body)
+                    ?: return@replace matchResult.value
             "<$tagName$attrs><content>$requestContent</content></$tagName>"
         }
     }
@@ -730,14 +783,16 @@ class ConversationService(
             xmlTags: List<List<String>>,
             conversationHistory: MutableList<PromptTurn>,
             messageIndex: Int,
-            totalMessages: Int
+            totalMessages: Int,
+            sourceMetadata: Map<String, Any?> = emptyMap(),
     ) {
         if (xmlTags.isEmpty()) {
             // 如果没有XML标签，直接添加为AI消息
             conversationHistory.add(
                 PromptTurn(
                     kind = PromptTurnKind.ASSISTANT,
-                    content = content
+                    content = content,
+                    metadata = sourceMetadata,
                 )
             )
             return
@@ -792,6 +847,9 @@ class ConversationService(
             }
         }
 
+        val historySafeSegments =
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory
+                .restoreSplitAssistantMetadata(segments, sourceMetadata)
         // 合并连续的相同角色消息
         val mergedSegments = mutableListOf<PromptTurn>()
         var currentKind: PromptTurnKind? = null
@@ -799,9 +857,10 @@ class ConversationService(
         var currentToolName: String? = null
         var currentMetadata: Map<String, Any?> = emptyMap()
 
-        for (segment in segments) {
+        for (segment in historySafeSegments) {
             val shouldMergeCurrent =
                 segment.kind == currentKind &&
+                    segment.metadata == currentMetadata &&
                     segment.kind !in setOf(PromptTurnKind.TOOL_CALL, PromptTurnKind.TOOL_RESULT)
             if (shouldMergeCurrent) {
                 // 如果角色与当前角色相同，则合并内容

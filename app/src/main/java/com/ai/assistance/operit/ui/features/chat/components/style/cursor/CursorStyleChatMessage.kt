@@ -35,6 +35,10 @@ fun CursorStyleChatMessage(
         enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
         onEditSummary: ((ChatMessage) -> Unit)? = null,
 ) {
+    if (message.displayMode.isCollaborationEvent) {
+        com.ai.assistance.operit.ui.features.chat.components.CollaborationMessageCard(message)
+        return
+    }
     when (message.sender) {
         "user" -> {
             UserMessageComposable(

@@ -7,6 +7,7 @@ import androidx.annotation.RequiresApi
 import com.ai.assistance.operit.util.AppLogger
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
@@ -19,7 +20,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.CodeOff
@@ -49,12 +50,14 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.CharacterCardChatModelBindingMode
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
+import com.ai.assistance.operit.data.model.ChatKind
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
+import com.ai.assistance.operit.data.repository.SubagentRunRepository
 import com.ai.assistance.operit.ui.components.ErrorDialog
 import com.ai.assistance.operit.ui.features.chat.components.*
 import com.ai.assistance.operit.ui.features.chat.components.style.input.agent.AgentChatInputSection
@@ -258,6 +261,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val activeChatConfigId by actualViewModel.activeChatConfigId.collectAsState()
     val modelName by actualViewModel.modelName.collectAsState()
     val chatHistory by actualViewModel.chatHistory.collectAsState()
+    val displayedChatId by actualViewModel.displayedChatId.collectAsState()
     // 仅对当前会话显示处理中状态（影响“停止/发送”按钮）
     val isLoading by actualViewModel.currentChatIsLoading.collectAsState()
     val errorMessage by actualViewModel.errorMessage.collectAsState()
@@ -279,6 +283,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val isAutoReadEnabled by actualViewModel.isAutoReadEnabled.collectAsState()
     val showChatHistorySelector by actualViewModel.showChatHistorySelector.collectAsState()
     val chatHistories by actualViewModel.chatHistories.collectAsState()
+    val chatHistoriesLoaded by actualViewModel.chatHistoriesLoaded.collectAsState()
     val currentChatId by actualViewModel.currentChatId.collectAsState()
     val hasNewerDisplayHistory by actualViewModel.hasNewerDisplayHistory.collectAsState()
     val isLoadingDisplayWindow by actualViewModel.isLoadingDisplayWindow.collectAsState()
@@ -287,6 +292,21 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val chatViewId = rememberSaveable { UUID.randomUUID().toString() }
     val currentChatView = remember(chatHistories, currentChatId) {
         chatHistories.find { it.id == currentChatId }
+    }
+    val isSubagentChat = currentChatView?.chatKind == ChatKind.SUBAGENT.name
+    val subagentRunRepository = remember(context) { SubagentRunRepository.getInstance(context) }
+    val currentSubagentRunFlow =
+        remember(isSubagentChat, currentChatView?.id) {
+            currentChatView
+                ?.takeIf { isSubagentChat }
+                ?.let { subagentRunRepository.observeByChildChatId(it.id) }
+                ?: flowOf(null)
+        }
+    val currentSubagentRun by currentSubagentRunFlow.collectAsState(initial = null)
+    BackHandler(enabled = isSubagentChat && currentChatView?.parentChatId != null) {
+        currentChatView?.parentChatId?.let { parentChatId ->
+            actualViewModel.switchChat(parentChatId, scrollToBottom = false)
+        }
     }
     val latestChatViewParams by rememberUpdatedState(
         ChatViewHookParams(
@@ -406,7 +426,64 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     val canDrawOverlays = remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
     // UI state
-    val scrollState = rememberScrollState()
+    var chatScrollOffsets by rememberSaveable {
+        mutableStateOf<Map<String, Int>>(emptyMap())
+    }
+    val deferredRestoreOffset = remember(currentChatId) {
+        chatScrollOffsets[currentChatId.orEmpty()]
+    }
+    val scrollState = rememberSaveable(currentChatId, saver = ScrollState.Saver) {
+        ScrollState(initial = chatScrollOffsets[currentChatId.orEmpty()] ?: 0)
+    }
+    var deferredRestoreComplete by remember(currentChatId) {
+        mutableStateOf(deferredRestoreOffset == null)
+    }
+    LaunchedEffect(currentChatId, displayedChatId, scrollState) {
+        val targetOffset = deferredRestoreOffset ?: return@LaunchedEffect
+        if (displayedChatId != currentChatId) {
+            return@LaunchedEffect
+        }
+        // The selected id is published before its transcript finishes loading. Restore only
+        // after the target transcript has replaced the previous chat's layout.
+        withFrameNanos { }
+        withFrameNanos { }
+        scrollState.scrollTo(targetOffset.coerceAtMost(scrollState.maxValue))
+        deferredRestoreComplete = true
+    }
+    val latestDisplayedChatIdForScrollSave by rememberUpdatedState(displayedChatId)
+    val latestDeferredRestoreComplete by rememberUpdatedState(deferredRestoreComplete)
+    DisposableEffect(currentChatId, scrollState) {
+        val chatId = currentChatId
+        onDispose {
+            if (
+                !chatId.isNullOrBlank() &&
+                    latestDisplayedChatIdForScrollSave == chatId &&
+                    latestDeferredRestoreComplete
+            ) {
+                chatScrollOffsets = chatScrollOffsets + (chatId to scrollState.value)
+            }
+        }
+    }
+    LaunchedEffect(currentChatId, displayedChatId, scrollState, deferredRestoreComplete) {
+        val chatId = currentChatId
+        if (
+            chatId.isNullOrBlank() ||
+                displayedChatId != chatId ||
+                !deferredRestoreComplete
+        ) {
+            return@LaunchedEffect
+        }
+        snapshotFlow { scrollState.value }.collect { offset ->
+            chatScrollOffsets = chatScrollOffsets + (chatId to offset)
+        }
+    }
+    LaunchedEffect(chatHistories, chatHistoriesLoaded) {
+        if (!chatHistoriesLoaded) {
+            return@LaunchedEffect
+        }
+        val validChatIds = chatHistories.mapTo(mutableSetOf()) { it.id }
+        chatScrollOffsets = chatScrollOffsets.filterKeys(validChatIds::contains)
+    }
     val historyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val characterCardManager = remember { CharacterCardManager.getInstance(context) }
@@ -439,6 +516,48 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         "chat_history_auto_switch_chat_on_character_select",
         false
     )
+    val visibleAllChatHistories = remember(chatHistories) {
+        chatHistories.filter { it.chatKind != ChatKind.SUBAGENT.name }
+    }
+    val localizedUserRoleName = stringResource(R.string.message_role_user)
+    val displayedChatHistory =
+        remember(
+            chatHistory,
+            isSubagentChat,
+            currentSubagentRun,
+            currentChatView?.characterCardName,
+            currentChatView?.parentChatId,
+            chatHistories,
+            activeCharacterCard,
+            localizedUserRoleName,
+        ) {
+            if (!isSubagentChat) {
+                chatHistory
+            } else {
+                val parentCharacterName =
+                    currentChatView?.characterCardName
+                        ?: chatHistories
+                            .firstOrNull { it.id == currentChatView?.parentChatId }
+                            ?.characterCardName
+                        ?: activeCharacterCard?.name
+                        ?: ""
+                val subagentName = resolveSubagentAgentName(currentSubagentRun)
+                chatHistory.map { message ->
+                    val displayedRoleName =
+                        resolveSubagentTranscriptRoleName(
+                            message = message,
+                            parentAgentName = parentCharacterName,
+                            subagentName = subagentName,
+                            localizedUserRoleName = localizedUserRoleName,
+                        )
+                    if (displayedRoleName == message.roleName) {
+                        message
+                    } else {
+                        message.copy(roleName = displayedRoleName)
+                    }
+                }
+            }
+        }
     val displayedChatHistories = remember(
         chatHistories,
         activePrompt,
@@ -451,13 +570,13 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                 when (activePrompt) {
                     is ActivePrompt.CharacterGroup -> {
                         val group = activeCharacterGroup ?: return@remember emptyList()
-                        chatHistories.filter { history ->
+                        visibleAllChatHistories.filter { history ->
                             history.characterGroupId == group.id
                         }
                     }
                     is ActivePrompt.CharacterCard -> {
                         val activeCard = activeCharacterCard ?: return@remember emptyList()
-                        chatHistories.filter { history ->
+                        visibleAllChatHistories.filter { history ->
                             val historyCard = history.characterCardName
                             if (activeCard.isDefault) {
                                 historyCard == null || historyCard == activeCard.name
@@ -468,7 +587,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                     }
                 }
             }
-            else -> chatHistories
+            else -> visibleAllChatHistories
         }
     }
     LaunchedEffect(autoSwitchCharacterCard) {
@@ -659,14 +778,45 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
         }
 
     // 滚动状态
-    var autoScrollToBottom by remember { mutableStateOf(true) }
-    val onAutoScrollToBottomChange = remember { { it: Boolean -> autoScrollToBottom = it } }
-    val requestAutoScrollToBottom = remember { { autoScrollToBottom = true } }
+    var chatAutoScrollStates by rememberSaveable {
+        mutableStateOf<Map<String, Boolean>>(emptyMap())
+    }
+    var autoScrollToBottom by remember(currentChatId) {
+        mutableStateOf(chatAutoScrollStates[currentChatId.orEmpty()] ?: true)
+    }
+    val onAutoScrollToBottomChange =
+        remember(currentChatId) {
+            { enabled: Boolean ->
+                autoScrollToBottom = enabled
+                currentChatId?.let { chatId ->
+                    chatAutoScrollStates = chatAutoScrollStates + (chatId to enabled)
+                }
+                Unit
+            }
+        }
+    val requestAutoScrollToBottom =
+        remember(currentChatId) {
+            {
+                autoScrollToBottom = true
+                currentChatId?.let { chatId ->
+                    chatAutoScrollStates = chatAutoScrollStates + (chatId to true)
+                }
+                Unit
+            }
+        }
+    LaunchedEffect(chatHistories, chatHistoriesLoaded) {
+        if (!chatHistoriesLoaded) {
+            return@LaunchedEffect
+        }
+        val validChatIds = chatHistories.mapTo(mutableSetOf()) { it.id }
+        chatAutoScrollStates = chatAutoScrollStates.filterKeys(validChatIds::contains)
+    }
     val imeBottomPx = WindowInsets.ime.getBottom(density)
     val latestChatHistory by rememberUpdatedState(chatHistory)
     val latestAutoScrollToBottom by rememberUpdatedState(autoScrollToBottom)
     val latestHasNewerDisplayHistory by rememberUpdatedState(hasNewerDisplayHistory)
     val latestIsLoadingDisplayWindow by rememberUpdatedState(isLoadingDisplayWindow)
+    val latestScrollState by rememberUpdatedState(scrollState)
 
     // 处理来自ViewModel的滚动事件（流式输出时）
     LaunchedEffect(Unit) {
@@ -678,7 +828,7 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
             ) {
                 try {
                     if (latestChatHistory.isNotEmpty()) {
-                        scrollState.animateScrollTo(scrollState.maxValue)
+                        latestScrollState.animateScrollTo(latestScrollState.maxValue)
                     }
                 } catch (e: Exception) {
                     // AppLogger.e("AIChatScreen", "自动滚动失败", e)
@@ -860,6 +1010,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
     var showCharacterSelector by remember { mutableStateOf(false) }
 
     var bottomBarHeightPx by remember { mutableStateOf(0) }
+    LaunchedEffect(isSubagentChat) {
+        if (isSubagentChat) {
+            bottomBarHeightPx = 0
+        }
+    }
     val bottomBarHeightDp = with(density) { bottomBarHeightPx.toDp() }
     val classicSettingsBarBottomPadding =
         if (bottomBarHeightDp > 36.dp) {
@@ -932,10 +1087,11 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 paddingValues =
                                         PaddingValues(), // Padding is already handled by the parent Box
                                 bottomInset = bottomBarHeightDp,
-                                actualViewModel = actualViewModel,
-                                enableMessageDialogs = !isFloatingMode,
-                                showChatHistorySelector = showChatHistorySelector,
-                                chatHistory = chatHistory,
+                                 actualViewModel = actualViewModel,
+                                 enableMessageDialogs = !isFloatingMode,
+                                 readOnlyTranscript = isSubagentChat,
+                                 showChatHistorySelector = showChatHistorySelector,
+                                chatHistory = displayedChatHistory,
                                 isLoading = isLoading,
                                 userMessageColor = userMessageColor,
                                 aiMessageColor = aiMessageColor,
@@ -989,7 +1145,10 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                 showChatFloatingDotsAnimation = showChatFloatingDotsAnimation,
                         )
 
-                        if (inputStyle == UserPreferencesManager.INPUT_STYLE_CLASSIC) {
+                        if (
+                            !isSubagentChat &&
+                                inputStyle == UserPreferencesManager.INPUT_STYLE_CLASSIC
+                        ) {
                             ClassicChatSettingsBar(
                                     modifier =
                                             Modifier
@@ -1074,16 +1233,17 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                         }
                     }
 
-                    Box(
-                        modifier =
-                            Modifier
-                                .align(Alignment.BottomCenter)
-                                .onGloballyPositioned {
-                                    bottomBarHeightPx = it.size.height
-                                }
-                                .graphicsLayer { translationY = -inputBarTranslationYPx }
-                    ) {
-                        ChatInputBottomBar(
+                    if (!isSubagentChat) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .onGloballyPositioned {
+                                        bottomBarHeightPx = it.size.height
+                                    }
+                                    .graphicsLayer { translationY = -inputBarTranslationYPx }
+                        ) {
+                            ChatInputBottomBar(
                                 actualViewModel = actualViewModel,
                                 inputStyle = inputStyle,
                                 currentChatId = currentChatId,
@@ -1126,7 +1286,8 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                     showMemoryFolderDialog = true
                                 },
                                 onRequestAutoScrollToBottom = requestAutoScrollToBottom,
-                        )
+                            )
+                        }
                     }
 
                     CharacterSelectorPanel(
