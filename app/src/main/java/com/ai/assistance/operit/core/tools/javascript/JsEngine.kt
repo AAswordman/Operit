@@ -1159,6 +1159,7 @@ class JsEngine(private val context: Context) {
     fun executeComposeDslAction(
             actionId: String,
             payload: Any? = null,
+            payloadIsArgumentList: Boolean = false,
             runtimeOptions: Map<String, Any?> = emptyMap(),
             envOverrides: Map<String, String> = emptyMap(),
             onIntermediateResult: ((Any?) -> Unit)? = null
@@ -1171,6 +1172,10 @@ class JsEngine(private val context: Context) {
         params["__action_id"] = normalizedActionId
         if (payload != null) {
             params["__action_payload"] = payload
+            // Tell the runtime whether the payload is the WebView page's positional
+            // argument list or a single action payload, so the registered handler is
+            // invoked with the arity the plugin declared.
+            params["__action_payload_is_argument_list"] = payloadIsArgumentList
         }
         return executeScriptFunction(
                 script = "",
