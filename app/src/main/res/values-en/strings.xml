@@ -8576,4 +8576,10 @@
     <string name="thinking_config_placeholder_high_zh">e.g. high</string>
     <string name="thinking_config_write_path">Write path</string>
     <string name="thinking_config_placeholder_high">e.g. high</string>
+    <string name="chat_steer_turn">Steer turn</string>
+    <string name="chat_steer_pending">Waiting for this turn</string>
+    <string name="chat_steer_unavailable">This turn cannot accept input now. The message remains queued.</string>
+    <string name="chat_queue_send_deferred">Cannot send yet. Your message is still in the queue.</string>
+    <string name="chat_queue_edit_draft_in_use">Send or clear your current draft before editing a queued message.</string>
+    <string name="chat_auto_summary_busy">This turn paused because its context is full. Another conversation is being summarized. Send again after it finishes to continue.</string>
 </resources>

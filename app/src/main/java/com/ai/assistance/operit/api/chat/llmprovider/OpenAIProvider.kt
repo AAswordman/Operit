@@ -2045,6 +2045,9 @@ open class OpenAIProvider(
             state.isInReasoningMode = false
             emitter.emitTag("</think>")
             state.hasEmittedThinkStart = false
+            if (!useResponsesApi && !hasOpenToolCalls(state)) {
+                kotlin.coroutines.coroutineContext[com.ai.assistance.operit.core.chat.SamplingInterrupt]?.checkpoint()
+            }
         }
 
         for (i in 0 until toolCallsDeltas.length()) {
@@ -2754,6 +2757,9 @@ open class OpenAIProvider(
                         createResponsesReasoningMetadataTag(item)?.let { metadataTag ->
                             emitter.emitMetadataTag(metadataTag)
                         }
+                        if (!hasOpenToolCalls(state)) {
+                            kotlin.coroutines.coroutineContext[com.ai.assistance.operit.core.chat.SamplingInterrupt]?.checkpoint()
+                        }
                     }
                     return
                 }
@@ -2933,6 +2939,9 @@ open class OpenAIProvider(
                 state.isInReasoningMode = false
                 emitter.emitTag("</think>")
                 state.hasEmittedThinkStart = false
+                if (!useResponsesApi && !hasOpenToolCalls(state)) {
+                    kotlin.coroutines.coroutineContext[com.ai.assistance.operit.core.chat.SamplingInterrupt]?.checkpoint()
+                }
             }
 
             // 硬切策略：正文一旦开始输出，后续到达的推理内容全部忽略
@@ -3321,6 +3330,8 @@ open class OpenAIProvider(
                 // 创建Call对象并保存到activeCall中，以便可以取消
                 val call = client.newCall(request)
                 activeCall = call
+                kotlin.coroutines.coroutineContext[com.ai.assistance.operit.core.chat.SamplingInterrupt]
+                    ?.bindAbort { call.cancel() }
 
                 AppLogger.d("AIService", "[req=$requestTraceId] 【发送消息】正在建立连接到服务器...")
 
@@ -3499,6 +3510,7 @@ open class OpenAIProvider(
                 return@stream
             } catch (e: Exception) {
                 lastException = e
+                kotlin.coroutines.coroutineContext[com.ai.assistance.operit.core.chat.SamplingInterrupt]?.throwIfInterrupted()
                 retryCount = handleRetryableError(
                     context = context,
                     exception = e,

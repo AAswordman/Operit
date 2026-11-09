@@ -92,6 +92,7 @@ import com.ai.assistance.operit.ui.common.rememberLocal
 import com.ai.assistance.operit.ui.main.components.LocalIsCurrentScreen
 import com.ai.assistance.operit.ui.main.components.LocalSetScreenSoftInputMode
 import com.ai.assistance.operit.ui.main.components.LocalSetUseScreenImePadding
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.CancellationException
@@ -1572,6 +1573,7 @@ private fun ChatInputBottomBar(
         source: String = inputStyle,
         submitSource: String = "",
         chatId: String? = currentChatId,
+        attachmentCount: Int = attachments.size,
     ): ChatInputHookContext {
         val normalizedSelectionStart = selectionStart.coerceIn(0, text.length)
         val normalizedSelectionEnd = selectionEnd.coerceIn(0, text.length)
@@ -1582,8 +1584,8 @@ private fun ChatInputBottomBar(
             text = text,
             selectionStart = normalizedSelectionStart,
             selectionEnd = normalizedSelectionEnd,
-            hasAttachments = attachments.isNotEmpty(),
-            attachmentCount = attachments.size,
+            hasAttachments = attachmentCount > 0,
+            attachmentCount = attachmentCount,
             isProcessing = isMessageProcessing,
             inputStyle = inputStyle,
             source = source,
@@ -1710,91 +1712,172 @@ private fun ChatInputBottomBar(
         return actualViewModel.removePendingQueueMessage(chatId, id)
     }
 
-    val sendQueuedItemNow: (String, PendingQueueMessageItem, Boolean) -> Unit =
-        { queueChatId, item, cancelCurrentConversation ->
-            coroutineScope.launch {
-                val submitDecision =
-                    ChatInputHookRegistry.dispatchSubmitRequested(
+    val sendQueuedItemNow: (String, PendingQueueMessageItem) -> Unit =
+        { queueChatId, item ->
+            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                var queueItemResolved = false
+                try {
+                    val submitDecision =
+                        ChatInputHookRegistry.dispatchSubmitRequested(
+                            buildChatInputHookContext(
+                                eventName = ChatInputEvents.SUBMIT_REQUESTED,
+                                text = item.text,
+                                selectionStart = item.text.length,
+                                selectionEnd = item.text.length,
+                                source = "queue",
+                                submitSource = "queue",
+                                chatId = queueChatId,
+                                attachmentCount = item.attachments.size,
+                            )
+                        )
+                    if (!actualViewModel.isPendingQueueItemCurrent(queueChatId, item)) {
+                        queueItemResolved = true
+                        return@launch
+                    }
+                    when (submitDecision.action) {
+                        ChatInputSubmitActions.BLOCK -> {
+                            restorePendingQueueItem(queueChatId, item)
+                            queueItemResolved = true
+                            showChatInputHookMessage(submitDecision.message)
+                            return@launch
+                        }
+                        ChatInputSubmitActions.CONSUME -> {
+                            queueItemResolved = true
+                            showChatInputHookMessage(submitDecision.message)
+                            return@launch
+                        }
+                    }
+                    val finalText = submitDecision.text ?: item.text
+
+                    focusManager.clearFocus()
+                    if (
+                        !actualViewModel.trySendQueuedTextMessage(
+                            finalText,
+                            chatId = queueChatId,
+                            chatGeneration = item.chatGeneration,
+                            attachments = item.attachments,
+                            replyToMessage = item.replyToMessage,
+                            onDeferredRejected = {
+                                // Cancelling/failing the prerequisite summary must not restart it.
+                                actualViewModel.restorePendingQueueMessage(queueChatId, item, pauseAutoSend = true)
+                            },
+                        )
+                    ) {
+                        restorePendingQueueItem(queueChatId, item)
+                        queueItemResolved = true
+                        actualViewModel.showToast(context.getString(R.string.chat_queue_send_deferred))
+                        return@launch
+                    }
+                    queueItemResolved = true
+                    if (latestCurrentChatId.value == queueChatId) {
+                        onRequestAutoScrollToBottom()
+                    }
+                    ChatInputHookRegistry.dispatchNotification(
                         buildChatInputHookContext(
-                            eventName = ChatInputEvents.SUBMIT_REQUESTED,
-                            text = item.text,
-                            selectionStart = item.text.length,
-                            selectionEnd = item.text.length,
+                            eventName = ChatInputEvents.SUBMITTED,
+                            text = finalText,
+                            selectionStart = finalText.length,
+                            selectionEnd = finalText.length,
                             source = "queue",
                             submitSource = "queue",
                             chatId = queueChatId,
+                            attachmentCount = item.attachments.size,
                         )
                     )
-                when (submitDecision.action) {
+                } finally {
+                    if (!queueItemResolved) restorePendingQueueItem(queueChatId, item)
+                }
+            }
+        }
+
+    fun steerPendingQueueMessage(id: Long) {
+        val chatId = currentChatId ?: return
+        val expectedTurnId = actualViewModel.steeringTurnId(chatId)
+        if (expectedTurnId == null) {
+            actualViewModel.showToast(context.getString(R.string.chat_steer_unavailable))
+            return
+        }
+        val item = removePendingQueueMessageById(id) ?: return
+        coroutineScope.launch {
+            var resolved = false
+            try {
+                val decision = ChatInputHookRegistry.dispatchSubmitRequested(
+                    buildChatInputHookContext(
+                        eventName = ChatInputEvents.SUBMIT_REQUESTED,
+                        text = item.text, selectionStart = item.text.length,
+                        selectionEnd = item.text.length, source = "queue",
+                        submitSource = "steer", chatId = chatId,
+                        attachmentCount = item.attachments.size,
+                    )
+                )
+                when (decision.action) {
                     ChatInputSubmitActions.BLOCK -> {
-                        restorePendingQueueItem(queueChatId, item)
-                        showChatInputHookMessage(submitDecision.message)
+                        showChatInputHookMessage(decision.message)
                         return@launch
                     }
                     ChatInputSubmitActions.CONSUME -> {
-                        showChatInputHookMessage(submitDecision.message)
+                        resolved = true
+                        showChatInputHookMessage(decision.message)
                         return@launch
                     }
                 }
-                showChatInputHookMessage(submitDecision.noticeMessage)
-                val finalText = submitDecision.text ?: item.text
-                val shouldWaitForCancel = cancelCurrentConversation && latestQueueBlocked.value
-                if (shouldWaitForCancel) {
-                    actualViewModel.suppressNextPendingQueueAutoDequeue(queueChatId)
-                }
-                if (cancelCurrentConversation) {
-                    actualViewModel.cancelMessage(queueChatId)
-                }
-                if (shouldWaitForCancel) {
-                    snapshotFlow { latestQueueBlocked.value }.first { !it }
-                }
-
-                focusManager.clearFocus()
-                actualViewModel.sendTextMessage(finalText, chatId = queueChatId)
-                if (latestCurrentChatId.value == queueChatId) {
-                    onRequestAutoScrollToBottom()
-                }
-                ChatInputHookRegistry.dispatchNotification(
-                    buildChatInputHookContext(
-                        eventName = ChatInputEvents.SUBMITTED,
-                        text = finalText,
-                        selectionStart = finalText.length,
-                        selectionEnd = finalText.length,
-                        source = "queue",
-                        submitSource = "queue",
-                        chatId = queueChatId,
+                val finalItem = item.copy(text = decision.text ?: item.text)
+                resolved = actualViewModel.trySteerQueuedMessage(chatId, expectedTurnId, finalItem)
+                if (!resolved) {
+                    actualViewModel.showToast(context.getString(R.string.chat_steer_unavailable))
+                } else {
+                    ChatInputHookRegistry.dispatchNotification(
+                        buildChatInputHookContext(
+                            eventName = ChatInputEvents.SUBMITTED, text = finalItem.text,
+                            selectionStart = finalItem.text.length, selectionEnd = finalItem.text.length,
+                            source = "queue", submitSource = "steer", chatId = chatId,
+                            attachmentCount = finalItem.attachments.size,
+                        )
                     )
-                )
+                }
+            } finally {
+                if (!resolved) restorePendingQueueItem(chatId, item)
             }
         }
+    }
 
     LaunchedEffect(isQueueBlocked, pendingQueueMessages.size, currentChatId) {
         val queueChatId = currentChatId ?: return@LaunchedEffect
         if (actualViewModel.consumePendingQueueAutoDequeueSignal(queueChatId, isQueueBlocked)) {
             delay(250)
-            val nextMessage = pendingQueueMessages.firstOrNull()
-            if (!latestQueueBlocked.value && nextMessage != null) {
-                actualViewModel.removePendingQueueMessage(queueChatId, nextMessage.id)?.let { item ->
-                    sendQueuedItemNow(queueChatId, item, false)
+            if (!actualViewModel.isPendingQueueTargetBusy(queueChatId)) {
+                actualViewModel.takeNextPendingQueueAutoDequeue(queueChatId)?.let { item ->
+                    sendQueuedItemNow(queueChatId, item)
                 }
             }
         }
     }
 
+    fun editQueuedMessage(id: Long) {
+        if (userMessage.text.isNotEmpty() || attachments.isNotEmpty() || replyToMessage != null) {
+            actualViewModel.showToast(context.getString(R.string.chat_queue_edit_draft_in_use))
+            return
+        }
+        val item = removePendingQueueMessageById(id) ?: return
+        actualViewModel.restoreQueuedAttachments(item)
+        actualViewModel.updateUserMessage(TextFieldValue(item.text, TextRange(item.text.length)))
+    }
+
     fun enqueueDraftToPendingQueue() {
         val draftText = userMessage.text.trim()
-        if (draftText.isBlank()) return
+        if (draftText.isBlank() && attachments.isEmpty()) return
         val chatId = currentChatId ?: return
 
         actualViewModel.enqueuePendingQueueMessage(
             chatId = chatId,
             text = draftText,
             isQueueBlocked = isQueueBlocked,
-        )
+        ) ?: return
         actualViewModel.updateUserMessage(TextFieldValue(""))
         actualViewModel.showToast(context.getString(R.string.chat_queue_added))
     }
 
+    val pleaseCreateNewChatMessage = stringResource(R.string.chat_please_create_new_chat)
     val sendMessage: () -> Unit = {
         coroutineScope.launch {
             if (currentChatId.isNullOrBlank()) {
@@ -1877,7 +1960,7 @@ private fun ChatInputBottomBar(
                 onUserMessageChange = { value -> handleUserMessageChange(value) },
                 enableEnterToSend = enableEnterToSend,
                 onSendMessage = sendMessage,
-                onQueueMessage = { enqueueDraftToPendingQueue() },
+                onQueueMessage = ::enqueueDraftToPendingQueue,
                 onCancelMessage = actualViewModel::cancelCurrentMessage,
                 isLoading = isLoading,
                 inputState = inputState,
@@ -1947,33 +2030,18 @@ private fun ChatInputBottomBar(
                 onDeletePendingQueueMessage = { id ->
                     removePendingQueueMessageById(id)
                 },
-                onEditPendingQueueMessage = { id ->
-                    removePendingQueueMessageById(id)?.let { queueItem ->
-                        val text = queueItem.text
-                        actualViewModel.updateUserMessage(
-                            TextFieldValue(
-                                text = text,
-                                selection = TextRange(text.length),
-                            ),
-                        )
-                    }
-                },
-                onSendPendingQueueMessage = { id ->
-                    removePendingQueueMessageById(id)?.let { queueItem ->
-                        currentChatId?.let { chatId ->
-                            sendQueuedItemNow(chatId, queueItem, true)
-                        }
-                    }
-                },
-        )
-    } else {
-        ClassicChatInputSection(
+                onEditPendingQueueMessage = ::editQueuedMessage,
+                onSteerPendingQueueMessage = ::steerPendingQueueMessage,
+
+            )
+        } else {
+            ClassicChatInputSection(
                 actualViewModel = actualViewModel,
                 userMessage = userMessage,
                 onUserMessageChange = { value -> handleUserMessageChange(value) },
                 enableEnterToSend = enableEnterToSend,
                 onSendMessage = sendMessage,
-                onQueueMessage = { enqueueDraftToPendingQueue() },
+                onQueueMessage = ::enqueueDraftToPendingQueue,
                 onCancelMessage = actualViewModel::cancelCurrentMessage,
                 isLoading = isLoading,
                 inputState = inputState,
@@ -2010,26 +2078,11 @@ private fun ChatInputBottomBar(
                 onDeletePendingQueueMessage = { id ->
                     removePendingQueueMessageById(id)
                 },
-                onEditPendingQueueMessage = { id ->
-                    removePendingQueueMessageById(id)?.let { queueItem ->
-                        val text = queueItem.text
-                        actualViewModel.updateUserMessage(
-                            TextFieldValue(
-                                text = text,
-                                selection = TextRange(text.length),
-                            ),
-                        )
-                    }
-                },
-                onSendPendingQueueMessage = { id ->
-                    removePendingQueueMessageById(id)?.let { queueItem ->
-                        currentChatId?.let { chatId ->
-                            sendQueuedItemNow(chatId, queueItem, true)
-                        }
-                    }
-                },
-        )
-    }
+                onEditPendingQueueMessage = ::editQueuedMessage,
+                onSteerPendingQueueMessage = ::steerPendingQueueMessage,
+
+            )
+        }
 }
 
 @Composable
