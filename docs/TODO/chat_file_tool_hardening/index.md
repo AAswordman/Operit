@@ -1,5 +1,5 @@
 ---
-title: 文件工具强化（描述规范化/32MB 上限/编辑引擎重构/工作区防护/大模型审查）
+title: 文件工具强化（描述规范化/32MB 上限/编辑引擎重构/工作区防护/大模型审查/AI 读取提炼）
 repo: https://github.com/luojiaping/Operit
 upstream: https://github.com/AAswordman/Operit
 status: impl-complete-pending-compile
@@ -18,6 +18,7 @@ status: impl-complete-pending-compile
 - C 编辑引擎：精确匹配快路径 + 多候选拒绝 + 行号前缀剥离 + occurrence 参数 + 匹配行号回传
 - D 工作区防护：区内按既有权限模式；区外 ALLOW 强制弹窗、FORBID 直接拒绝；未绑定工作区一律按区外；delete_file 危险路径硬底线；JS 包嵌套调用 AIToolHook 兜底
 - E 大模型审查：FunctionType.TOOL_REVIEW + 功能模型配置 + 会话工具菜单自动审查三开关（区内/区外文件 + 高危工具，仅允许模式显示）+ 审查流（合规直接执行 / 不合规弹窗用户决定 / 审查失败弹窗提示错误）
+- H AI 读取提炼：read_file/read_file_part/read_file_full 默认经功能模型提炼返回带行号相关摘录（特殊类型抽取管线透传、≤2048 字节透传、raw=true 透传），ApiPreferences 开关默认开，FILE_DISTILL 功能模型未配置默认主模型
 - G 高危工具审查：审查范围从文件工具族泛化为 HighRiskToolCatalog 高危工具调用（核心破坏集 18 个），三开关之「自动审查高危工具」独立管辖
 - F 环境矩阵：repo: 环境 clean guard、linux 编辑实装、grep linux 路径映射、SAF 白名单报错、禁用包报错修正
 
@@ -55,6 +56,7 @@ status: impl-complete-pending-compile
 - [05-大模型审查.md](05-大模型审查.md)
 - [06-环境矩阵与扩展通道.md](06-环境矩阵与扩展通道.md)
 - [07-高危工具审查.md](07-高危工具审查.md)
+- [08-AI读取提炼.md](08-AI读取提炼.md)
 
 ## 验证
 

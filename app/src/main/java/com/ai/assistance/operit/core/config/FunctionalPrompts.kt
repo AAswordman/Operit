@@ -1390,4 +1390,82 @@ Judge against these rules:
 Output STRICT JSON only, no other text: {"compliant": true, "reason": "<one short sentence>"}
 """.trimIndent()
     }
+
+    /**
+     * 修改意图：AI 读取提炼（FileDistillService）单次协议 prompt——一次调用同时完成
+     * related/worth 判断与带行号摘录。行号前缀与 read_file 输出格式一致（" 12| "），
+     * 摘录行号可直接用于 edit_file
+     */
+    fun fileDistillSinglePrompt(
+        path: String,
+        focus: String,
+        content: String,
+        truncatedNote: String,
+    ): String {
+        return """
+You are a file-content extractor for an AI assistant. The assistant has read a file and wants only the parts relevant to its goal, so the reading cost stays small.
+
+File: $path
+What the assistant wants from this file (focus): $focus
+$truncatedNote
+File content with line numbers ("N| " prefix; line numbers refer to the original file):
+$content
+
+Judge and extract:
+1) related: whether the content contains anything relevant to the focus.
+2) worth: true only when LESS THAN HALF of the content is relevant to the focus (only then does distilling save tokens). If most of the content is relevant, set worth=false.
+3) excerpt: required when worth=true. Copy the relevant original lines VERBATIM, keeping their exact "N| " line-number prefixes. Include one or two neighbouring lines around each relevant region so nothing is cut off mid-way. Never paraphrase, never add commentary.
+4) file_summary: one short sentence describing what this file is. Used when related=false.
+
+Output STRICT JSON only, no other text: {"related": true, "worth": true, "excerpt": " 12| ...", "file_summary": "..."}
+""".trimIndent()
+    }
+
+    /**
+     * 修改意图：AI 读取提炼扫描协议单轮 prompt——逐块滚动，每轮输出该块相关摘录与
+     * continue_scan 决策；块边界处可能截断相关段落，规则中要求模型据此决定继续扫描
+     */
+    fun fileDistillScanChunkPrompt(
+        path: String,
+        focus: String,
+        round: Int,
+        startLine: Int,
+        endLine: Int,
+        isLastChunk: Boolean,
+        hasPriorExcerpt: Boolean,
+        chunk: String,
+    ): String {
+        val priorNote =
+            if (hasPriorExcerpt) {
+                "Relevant lines from earlier chunks were already collected; do not repeat them."
+            } else {
+                "No relevant lines were found in earlier chunks."
+            }
+        val eofNote =
+            if (isLastChunk) {
+                "This is the LAST chunk of the file, continue_scan must be false."
+            } else {
+                "More chunks may follow."
+            }
+        return """
+You are scanning a large text file chunk by chunk for an AI assistant, to collect only the lines relevant to its goal.
+
+File: $path
+What the assistant wants from this file (focus): $focus
+Current chunk: $round (lines $startLine-$endLine). $eofNote
+$priorNote
+Chunk content with line numbers ("N| " prefix; line numbers refer to the original file):
+$chunk
+
+Rules:
+1) related: whether THIS chunk contains anything relevant to the focus (not whether earlier chunks did).
+2) excerpt: copy the relevant original lines of THIS chunk VERBATIM, keeping their exact "N| " prefixes. Include one or two neighbouring lines around each relevant region. If a relevant section is cut off at the end of this chunk, still include what is visible and continue scanning in the next chunk. Empty string when nothing in this chunk is relevant. Never paraphrase, never add commentary.
+3) continue_scan: true when later chunks are likely to contain more relevant content, or when this chunk ends in the middle of a relevant section; false when everything relevant has been found and the rest is clearly unrelated${
+            if (isLastChunk) " (and always false for the last chunk)" else ""
+        }.
+4) file_summary: one short sentence describing the whole file; only meaningful in the first chunk, empty string afterwards.
+
+Output STRICT JSON only, no other text: {"related": true, "excerpt": " 210| ...", "continue_scan": true, "file_summary": "..."}
+""".trimIndent()
+    }
 }

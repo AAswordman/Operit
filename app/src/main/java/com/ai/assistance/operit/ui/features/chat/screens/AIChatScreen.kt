@@ -1023,9 +1023,14 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                             actualViewModel.toolReviewHighRiskTools
                                                     .collectAsState()
                                                     .value,
+                                    fileDistillEnabled =
+                                            actualViewModel.fileDistillEnabled
+                                                    .collectAsState()
+                                                    .value,
                                     onSaveToolReviewInsideWorkspace = actualViewModel::saveToolReviewInsideWorkspace,
                                     onSaveToolReviewOutsideWorkspace = actualViewModel::saveToolReviewOutsideWorkspace,
                                     onSaveToolReviewHighRiskTools = actualViewModel::saveToolReviewHighRiskTools,
+                                    onSaveFileDistillEnabled = actualViewModel::saveFileDistillEnabled,
                                     enableThinkingMode = enableThinkingMode,
                                     onToggleThinkingMode = { actualViewModel.toggleThinkingMode() },
                                     thinkingOptionId = thinkingOptionId,
@@ -1547,6 +1552,8 @@ private fun ChatInputBottomBar(
     val toolReviewInsideWorkspace by actualViewModel.toolReviewInsideWorkspace.collectAsState()
     val toolReviewOutsideWorkspace by actualViewModel.toolReviewOutsideWorkspace.collectAsState()
     val toolReviewHighRiskTools by actualViewModel.toolReviewHighRiskTools.collectAsState()
+    // 修改意图：文件读取 AI 提炼开关（工具菜单允许模式下展示）
+    val fileDistillEnabled by actualViewModel.fileDistillEnabled.collectAsState()
     val isSummarizing by actualViewModel.isSummarizing.collectAsState()
     val isSendTriggeredSummarizing by actualViewModel.isSendTriggeredSummarizing.collectAsState()
     val isWaifuModeEnabled by waifuPreferences.enableWaifuModeFlow.collectAsState(initial = false)
@@ -1938,9 +1945,11 @@ private fun ChatInputBottomBar(
                 toolReviewInsideWorkspace = toolReviewInsideWorkspace,
                 toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
                 toolReviewHighRiskTools = toolReviewHighRiskTools,
+                fileDistillEnabled = fileDistillEnabled,
                 onSaveToolReviewInsideWorkspace = actualViewModel::saveToolReviewInsideWorkspace,
                 onSaveToolReviewOutsideWorkspace = actualViewModel::saveToolReviewOutsideWorkspace,
                 onSaveToolReviewHighRiskTools = actualViewModel::saveToolReviewHighRiskTools,
+                onSaveFileDistillEnabled = actualViewModel::saveFileDistillEnabled,
                 enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                 onToggleMemoryAutoUpdate = actualViewModel::toggleMemoryAutoUpdate,
                 isAutoReadEnabled = isAutoReadEnabled,

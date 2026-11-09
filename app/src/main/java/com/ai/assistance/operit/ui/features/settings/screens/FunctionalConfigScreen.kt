@@ -750,6 +750,28 @@ fun FunctionConfigCard(
                                                         .collect { chunk -> buffer.append(chunk) }
                                                     buffer.toString()
                                                 }
+                                                // 修改意图：新增 FILE_DISTILL 枚举值的连接测试分支，
+                                                // 简单 JSON 问答验证连通性（when 表达式非穷尽会编译失败）
+                                                FunctionType.FILE_DISTILL -> {
+                                                    val parameters =
+                                                        modelConfigManager.getModelParametersForConfig(configWithSelectedModel.id)
+                                                    val buffer = StringBuilder()
+                                                    service.sendMessage(
+                                                        context,
+                                                        listOf(
+                                                            PromptTurn(
+                                                                kind = PromptTurnKind.USER,
+                                                                content = "Connection test: reply with {\"related\": true, \"worth\": false, \"excerpt\": \"\", \"file_summary\": \"ok\"} only."
+                                                            )
+                                                        ),
+                                                        parameters,
+                                                        stream = false,
+                                                        enableRetry = false,
+                                                        recordTokenUsage = false,
+                                                    )
+                                                        .collect { chunk -> buffer.append(chunk) }
+                                                    buffer.toString()
+                                                }
                                             }
                                             testResult =
                                                 FunctionTestDisplay.fromResponse(
@@ -1007,6 +1029,7 @@ fun getFunctionDisplayName(functionType: FunctionType): String {
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_type_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_type_video_recognition)
         FunctionType.TOOL_REVIEW -> stringResource(id = R.string.function_type_tool_review)
+        FunctionType.FILE_DISTILL -> stringResource(id = R.string.function_type_file_distill)
     }
 }
 
@@ -1026,6 +1049,7 @@ fun getFunctionDescription(functionType: FunctionType): String {
         FunctionType.AUDIO_RECOGNITION -> stringResource(id = R.string.function_desc_audio_recognition)
         FunctionType.VIDEO_RECOGNITION -> stringResource(id = R.string.function_desc_video_recognition)
         FunctionType.TOOL_REVIEW -> stringResource(id = R.string.function_desc_tool_review)
+        FunctionType.FILE_DISTILL -> stringResource(id = R.string.function_desc_file_distill)
     }
 }
 

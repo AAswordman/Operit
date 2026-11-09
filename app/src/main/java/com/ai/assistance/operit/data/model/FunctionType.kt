@@ -13,5 +13,6 @@ enum class FunctionType {
     IMAGE_RECOGNITION, // 图像识别
     AUDIO_RECOGNITION, // 音频识别
     VIDEO_RECOGNITION, // 视频识别
-    TOOL_REVIEW // 工具调用合规审查
+    TOOL_REVIEW, // 工具调用合规审查
+    FILE_DISTILL // 文件读取提炼（read 族工具的 AI 摘录提取）
 }

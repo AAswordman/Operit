@@ -1445,7 +1445,7 @@ object SystemToolPromptsInternal {
                     listOf(
                         ToolPrompt(
                             name = "read_file_full",
-                            description = "Read the full content of a text file without the 32000-character truncation of read_file. Files over 32 MB are rejected - use read_file_part for those.",
+                            description = "Read the full content of a text file without the 32000-character truncation of read_file. Files over 32 MB are rejected - use read_file_part for those. Text files over 2048 bytes are AI-distilled by default: pass focus and only the relevant lines (with original line numbers) come back.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1453,6 +1453,18 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "file path",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "focus",
+                                        type = "string",
+                                        description = "what you want from this file; required for the default AI-distilled read, ignored when raw=true",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "raw",
+                                        type = "boolean",
+                                        description = "optional, default false: AI-distilled read returning only focus-relevant lines; set true only when you are sure you need the raw full content",
+                                        required = false
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
@@ -1469,8 +1481,11 @@ object SystemToolPromptsInternal {
                                     )
                                 ),
                             details = """
-                                |Environment: "android" | "linux" | "repo:<name>" - all supported.
-                                |Output: raw text WITHOUT line-number prefixes (apply_file matching works directly on this).
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported (linux/repo: are not distilled).
+                                |AI distill (default, raw=false): text files over 2048 bytes return only the lines relevant to focus - verbatim, with original "N| " line numbers usable by edit_file, preceded by an "[AI distilled read ...]" header; "no content matching the focus" plus a file summary when nothing matches. Small files are distilled in one pass; larger ones are scanned chunk by chunk, and the result notes when the scan stopped before the end of the file. Unless you are sure you need the raw content, keep the default and state focus precisely.
+                                |raw=true: returns the full original content. Images/PDF/doc/audio/video always go through the extraction pipeline untouched.
+                                |On AI-distill failure: the error says so - retry with raw=true to read the original content.
+                                |raw=true Output: raw text WITHOUT line-number prefixes (apply_file matching works directly on this).
                                 |On failure: "File does not appear to be a text file" (use read_file_binary) / "exceeds the 32 MB read limit" (use read_file_part) / file not found.
                             """.trimMargin()
                         ),
@@ -4510,7 +4525,7 @@ object SystemToolPromptsInternal {
                     listOf(
                         ToolPrompt(
                             name = "read_file_full",
-                            description = "读取完整文本文件内容，没有 read_file 的 32000 字符截断。超过 32MB 的文件会被拒绝——请改用 read_file_part。",
+                            description = "读取完整文本文件内容，没有 read_file 的 32000 字符截断。超过 32MB 的文件会被拒绝——请改用 read_file_part。超过 2048 字节的文本文件默认走 AI 提炼：传入 focus，只返回相关行（带原文行号）。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4518,6 +4533,18 @@ object SystemToolPromptsInternal {
                                         type = "string",
                                         description = "文件路径",
                                         required = true
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "focus",
+                                        type = "string",
+                                        description = "你想从该文件读取什么；默认 AI 提炼读取必填，raw=true 时忽略",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "raw",
+                                        type = "boolean",
+                                        description = "可选，默认 false：AI 提炼读取只返回与 focus 相关的行；仅确认需要完整原文时设为 true",
+                                        required = false
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
@@ -4534,8 +4561,11 @@ object SystemToolPromptsInternal {
                                     )
                                 ),
                             details = """
-                                |Environment："android" | "linux" | "repo:<名称>"——全部支持。
-                                |输出：原始文本，不带 "N| " 行号前缀（可直接用于 apply_file 匹配）。
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持（linux/repo: 不做提炼）。
+                                |AI 提炼（默认，raw=false）：超过 2048 字节的文本文件只返回与 focus 相关的行——原文摘录、保留可直接用于 edit_file 的 "N| " 行号、头部带 "[AI distilled read ...]" 声明；无相关内容时返回"未找到"+文件概要。小文件单次提炼，更大的文件逐块扫描，扫描未到文件尾时结果中会明示。除非确认需要完整原文，保持默认并精确描述 focus。
+                                |raw=true：返回完整原文。图片/PDF/文档/音视频始终走原抽取管线，不受影响。
+                                |提炼失败时：报错中会说明——用 raw=true 重试即可读取原文。
+                                |raw=true 输出：原始文本，不带 "N| " 行号前缀（可直接用于 apply_file 匹配）。
                                 |失败时返回："File does not appear to be a text file"（改用 read_file_binary）/ "exceeds the 32 MB read limit"（改用 read_file_part）/ 文件不存在。
                             """.trimMargin()
                         ),

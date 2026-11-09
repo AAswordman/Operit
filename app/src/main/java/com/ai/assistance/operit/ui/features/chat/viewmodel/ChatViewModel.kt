@@ -228,6 +228,10 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val toolReviewHighRiskTools: StateFlow<Boolean> by lazy {
         apiConfigDelegate.toolReviewHighRiskTools
     }
+    // 修改意图：文件读取 AI 提炼开关，会话工具菜单在允许模式下展示
+    val fileDistillEnabled: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.fileDistillEnabled
+    }
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> by lazy { apiConfigDelegate.toolPromptVisibility }
     val disableStreamOutput: StateFlow<Boolean> by lazy { apiConfigDelegate.disableStreamOutput }
     val disableUserPreferenceDescription: StateFlow<Boolean> by lazy {
@@ -656,6 +660,11 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
         apiConfigDelegate.saveToolReviewHighRiskTools(isEnabled)
+    }
+
+    // 修改意图：保存文件读取 AI 提炼开关
+    fun saveFileDistillEnabled(isEnabled: Boolean) {
+        apiConfigDelegate.saveFileDistillEnabled(isEnabled)
     }
 
     fun saveToolPromptVisibility(toolName: String, isVisible: Boolean) {

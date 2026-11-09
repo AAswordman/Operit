@@ -3144,6 +3144,8 @@
     <string name="function_desc_grep">用于grep_context的检索规划与结果筛选（多轮grep_code）</string>
     <string name="function_type_tool_review">工具调用审查</string>
     <string name="function_desc_tool_review">允许模式下自动审查文件工具调用是否合规（工作区内/外可分别开关）</string>
+    <string name="function_type_file_distill">文件读取提炼</string>
+    <string name="function_desc_file_distill">读取文件时 AI 提炼相关内容以节省上下文；未配置时使用主模型</string>
     <string name="function_desc_role_response_planner">用于在群组中动态决定本轮发言顺序与跳过策略，支持多轮讨论</string>
     <string name="function_desc_image_recognition">用于图像内容识别和分析，调用read_file工具读取图片时支持intent参数进行深度理解。建议使用支持视觉的多模态模型。</string>
     <string name="function_desc_audio_recognition">用于音频内容识别和分析，调用read_file工具读取音频时可使用intent参数进行深度理解（如转写/总结/识别说话内容）。建议使用支持音频输入或高质量转写的模型。</string>
@@ -6314,11 +6316,11 @@
     <string name="toolreg_list_character_cards_desc">列出所有角色卡</string>
     <string name="toolreg_get_chat_messages_desc">获取对话消息: %1$s%2$s%3$s</string>
     <string name="toolreg_list_files_desc">列出目录内容: %1$s%2$s</string>
-    <string name="toolreg_read_file_desc">读取文件: %1$s%2$s</string>
+    <string name="toolreg_read_file_desc">读取文件（默认 AI 提炼相关内容，需原文时 raw=true）: %1$s%2$s</string>
     <string name="toolreg_read_file_part_range_lines">行 %1$s-%2$s</string>
     <string name="toolreg_read_file_part_range_from">从行 %1$s 开始</string>
-    <string name="toolreg_read_file_part_desc">读取文件 (%1$s): %2$s%3$s</string>
-    <string name="toolreg_read_file_full_desc">读取完整文件内容: %1$s%2$s</string>
+    <string name="toolreg_read_file_part_desc">读取文件（不确认行号时建议默认 AI 提炼读取，raw=true 按行段读）(%1$s): %2$s%3$s</string>
+    <string name="toolreg_read_file_full_desc">读取完整文件内容（文本默认 AI 提炼，raw=true 读原文）: %1$s%2$s</string>
     <string name="toolreg_read_file_binary_desc">读取二进制文件内容: %1$s%2$s</string>
     <string name="toolreg_write_file_append_operation">追加内容到文件</string>
     <string name="toolreg_write_file_overwrite_operation">写入内容到文件</string>
@@ -7959,6 +7961,7 @@
     <string name="agent_menu_tool_review_inside">自动审查文件工具（工作区内）</string>
     <string name="agent_menu_tool_review_outside">自动审查文件工具（工作区外）</string>
     <string name="agent_menu_tool_review_high_risk">自动审查高危工具</string>
+    <string name="agent_menu_file_distill">文件读取 AI 提炼</string>
 
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">图片捕获失败: %1$s</string>

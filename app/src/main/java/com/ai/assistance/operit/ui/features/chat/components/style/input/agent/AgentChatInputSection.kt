@@ -214,6 +214,9 @@ fun AgentChatInputSection(
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
+    // 修改意图：文件读取 AI 提炼开关，审查三开关之下展示
+    fileDistillEnabled: Boolean = true,
+    onSaveFileDistillEnabled: (Boolean) -> Unit = {},
     enableMemoryAutoUpdate: Boolean = false,
     onToggleMemoryAutoUpdate: () -> Unit = {},
     isAutoReadEnabled: Boolean = false,
@@ -1448,6 +1451,8 @@ fun AgentChatInputSection(
                 onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
                 onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
                 onSaveToolReviewHighRiskTools = onSaveToolReviewHighRiskTools,
+                fileDistillEnabled = fileDistillEnabled,
+                onSaveFileDistillEnabled = onSaveFileDistillEnabled,
                 enableTools = enableTools,
                 onToggleTools = onToggleTools,
                 disableStreamOutput = disableStreamOutput,
@@ -2255,6 +2260,9 @@ private fun AgentExtraSettingsPopup(
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
+    // 修改意图：文件读取 AI 提炼开关，审查三开关之下展示
+    fileDistillEnabled: Boolean = true,
+    onSaveFileDistillEnabled: (Boolean) -> Unit = {},
     enableTools: Boolean,
     onToggleTools: () -> Unit,
     disableStreamOutput: Boolean,
@@ -2422,6 +2430,8 @@ private fun AgentExtraSettingsPopup(
                         onSaveToolReviewInsideWorkspace = onSaveToolReviewInsideWorkspace,
                         onSaveToolReviewOutsideWorkspace = onSaveToolReviewOutsideWorkspace,
                         onSaveToolReviewHighRiskTools = onSaveToolReviewHighRiskTools,
+                        fileDistillEnabled = fileDistillEnabled,
+                        onSaveFileDistillEnabled = onSaveFileDistillEnabled,
                         toolSlotToggles = inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty(),
                         onToggleInfoClick = { title, description -> infoPopupContent = title to description },
                         onManageTools = { showToolPromptManagerDialog = true },
@@ -2712,6 +2722,8 @@ private fun AgentToolsPermissionGroupItem(
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit,
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit,
     onSaveToolReviewHighRiskTools: (Boolean) -> Unit,
+    fileDistillEnabled: Boolean,
+    onSaveFileDistillEnabled: (Boolean) -> Unit,
     toolSlotToggles: List<InputMenuToggleDefinition>,
     onToggleInfoClick: (String, String) -> Unit,
     onManageTools: () -> Unit,
@@ -2769,6 +2781,12 @@ private fun AgentToolsPermissionGroupItem(
                     label = stringResource(R.string.agent_menu_tool_review_high_risk),
                     checked = toolReviewHighRiskTools,
                     onCheckedChange = onSaveToolReviewHighRiskTools,
+                )
+                // 修改意图：文件读取 AI 提炼开关，位于审查三开关之下（需求确认项）
+                AgentReviewToggleRow(
+                    label = stringResource(R.string.agent_menu_file_distill),
+                    checked = fileDistillEnabled,
+                    onCheckedChange = onSaveFileDistillEnabled,
                 )
             }
             toolSlotToggles.forEach { toggle ->

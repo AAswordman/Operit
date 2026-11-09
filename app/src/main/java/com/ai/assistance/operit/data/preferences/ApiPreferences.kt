@@ -129,6 +129,10 @@ class ApiPreferences private constructor(private val context: Context) {
         val TOOL_REVIEW_OUTSIDE_WORKSPACE = booleanPreferencesKey("tool_review_outside_workspace")
         val TOOL_REVIEW_HIGH_RISK_TOOLS = booleanPreferencesKey("tool_review_high_risk_tools")
 
+        // 修改意图：文件读取 AI 提炼开关（read_file/read_file_part/read_file_full 默认走功能模型提炼）。
+        // 默认开启；关闭时三工具回到原始内容返回行为
+        val FILE_DISTILL_ENABLED = booleanPreferencesKey("file_distill_enabled")
+
         // Key for per-tool prompt visibility
         val TOOL_PROMPT_VISIBILITY_JSON = stringPreferencesKey("tool_prompt_visibility_json")
 
@@ -169,6 +173,9 @@ class ApiPreferences private constructor(private val context: Context) {
         const val DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE = false
         const val DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE = false
         const val DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS = false
+
+        // 文件读取 AI 提炼默认开启
+        const val DEFAULT_FILE_DISTILL_ENABLED = true
 
         // Default value for Disable Stream Output (default false, meaning stream is enabled by default)
         const val DEFAULT_DISABLE_STREAM_OUTPUT = false
@@ -302,6 +309,12 @@ class ApiPreferences private constructor(private val context: Context) {
             preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] ?: DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS
         }
 
+    // 修改意图：文件读取 AI 提炼开关 Flow
+    val fileDistillEnabledFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[FILE_DISTILL_ENABLED] ?: DEFAULT_FILE_DISTILL_ENABLED
+        }
+
     // Flow for per-tool prompt visibility
     val toolPromptVisibilityFlow: Flow<Map<String, Boolean>> =
         context.apiDataStore.data.map { preferences ->
@@ -431,6 +444,13 @@ class ApiPreferences private constructor(private val context: Context) {
     suspend fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
         context.apiDataStore.edit { preferences ->
             preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] = isEnabled
+        }
+    }
+
+    // 修改意图：保存文件读取 AI 提炼开关
+    suspend fun saveFileDistillEnabled(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[FILE_DISTILL_ENABLED] = isEnabled
         }
     }
 

@@ -104,13 +104,25 @@ object SystemToolPrompts {
             ),
             ToolPrompt(
                 name = "read_file",
-                description = "Read the content of a file. For image files (jpg, jpeg, png, gif, bmp), it automatically extracts text using OCR.",
+                description = "Read the content of a file. For image files (jpg, jpeg, png, gif, bmp), it automatically extracts text using OCR. Files over 2048 bytes are AI-distilled by default: pass focus describing what you want and only the relevant lines (with original line numbers) come back.",
                 parametersStructured = listOf(
                     ToolParameterSchema(
                         name = "path",
                         type = "string",
                         description = "file path",
                         required = true
+                    ),
+                    ToolParameterSchema(
+                        name = "focus",
+                        type = "string",
+                        description = "what you want from this file, e.g. \"the function that parses config\"; required for the default AI-distilled read, ignored when raw=true",
+                        required = false
+                    ),
+                    ToolParameterSchema(
+                        name = "raw",
+                        type = "boolean",
+                        description = "optional, default false: AI-distilled read returning only focus-relevant lines; set true only when you are sure you need the raw content",
+                        required = false
                     ),
                     ToolParameterSchema(
                         name = "environment",
@@ -145,25 +157,33 @@ object SystemToolPrompts {
                 ),
                 details = """
                     |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                    |AI distill (default, raw=false): files over 2048 bytes return only the lines relevant to focus (verbatim, with original "N| " line numbers usable by edit_file) preceded by an "[AI distilled read ...]" header; "no content matching the focus" plus a file summary when nothing matches. Unless you are sure you need the raw content, keep the default and state focus precisely - it saves context. raw=true returns the full original content.
+                    |Images/PDF/doc/audio/video and files ≤ 2048 bytes always return the full extracted content; linux/repo: environments are not distilled.
+                    |On AI-distill failure: the error says so - retry with raw=true to read the original content.
                     |Output: content with line-number prefixes "N| " for display only - NEVER copy the prefixes into edit_file/apply_file old.
-                    |Limits: output truncated at 32000 characters with a "... (file content truncated) ..." marker; files over 32 MB are rejected. Use read_file_part (start_line/end_line) to read large files in segments.
+                    |Limits: raw output truncated at 32000 characters with a "... (file content truncated) ..." marker; files over 32 MB are rejected. Use read_file_part (start_line/end_line) to read large files in segments.
                     |Special types (pdf/docx/images via OCR/audio/video) are extracted to text automatically; extraction failures return success=false.
                     |On failure: error names the cause with the fix - absolute path required / file not found / not a text file (use read_file_binary for binary files) / exceeds 32 MB read limit (use read_file_part).
                 """.trimMargin()
             ),
             ToolPrompt(
                 name = "read_file_part",
-                description = "Read file content by line range. Use this to read large files in segments.",
+                description = "Read file content. When you are NOT sure which line numbers you need, use the default AI-distilled read: pass focus and it scans the whole file, returning only the relevant lines with real line numbers. With raw=true it reads an exact line range (start_line/end_line) for segmented reading of large files.",
                 parametersStructured = listOf(
                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
+                    ToolParameterSchema(name = "focus", type = "string", description = "what you want from this file; required for the default AI-distilled read (when raw is not true), ignored when raw=true", required = false),
+                    ToolParameterSchema(name = "raw", type = "boolean", description = "optional, default false: AI-distilled scan returning only focus-relevant lines; set true to read the exact line range given by start_line/end_line", required = false),
                     ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
-                    ToolParameterSchema(name = "start_line", type = "integer", description = "starting line number, 1-indexed", required = false, default = "1"),
-                    ToolParameterSchema(name = "end_line", type = "integer", description = "ending line number, 1-indexed, inclusive, optional; omitted = read to end of file", required = false, default = "start_line + 199 (200 lines)")
+                    ToolParameterSchema(name = "start_line", type = "integer", description = "AI-distilled read: optional, first line to scan from (default 1). raw=true: starting line number, 1-indexed", required = false, default = "1"),
+                    ToolParameterSchema(name = "end_line", type = "integer", description = "AI-distilled read: optional, last line to scan to. raw=true: ending line number, 1-indexed, inclusive, optional; omitted = read to end of file", required = false, default = "raw=true: start_line + 199 (200 lines)")
                 ),
                 details = """
-                    |Environment: "android" | "linux" | "repo:<name>" - all supported.
-                    |Output: requested lines with line-number prefixes "N| " (the N is the real file line number, display only - do NOT copy prefixes into edit_file/apply_file old). Output capped at 32000 characters.
-                    |On success: shows the start line it returned from, so you can chain the next segment (start_line = last returned line + 1).
+                    |Environment: "android" | "linux" | "repo:<name>" - all supported (linux/repo: are not distilled).
+                    |AI distill (default, raw=false): scans the file (optionally bounded by start_line/end_line) and returns only the lines relevant to focus - verbatim, with real "N| " line numbers usable by edit_file, preceded by an "[AI distilled read ...]" header. It keeps reading past a match until the relevant section ends, so excerpts are complete. If most of the scanned content matches the focus, the original scanned region is returned as-is. Unless you already know the exact lines, prefer the default and state focus precisely.
+                    |raw=true: reads the exact start_line/end_line range (start_line defaults to 1, end_line omitted reads to end of file) - use for segmented reading of very large files.
+                    |On AI-distill failure: the error says so - retry with raw=true to read the original content.
+                    |Output: line-number prefixes "N| " (the N is the real file line number, display only - do NOT copy prefixes into edit_file/apply_file old). Output capped at 32000 characters.
+                    |On success (raw=true): shows the start line it returned from, so you can chain the next segment (start_line = last returned line + 1).
                     |On failure: error names the cause (path invalid / start_line beyond end of file / not a text file).
                 """.trimMargin()
             ),

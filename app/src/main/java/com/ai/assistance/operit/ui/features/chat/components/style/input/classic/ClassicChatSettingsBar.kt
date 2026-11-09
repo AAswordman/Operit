@@ -103,6 +103,9 @@ fun ClassicChatSettingsBar(
     onSaveToolReviewInsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewOutsideWorkspace: (Boolean) -> Unit = {},
     onSaveToolReviewHighRiskTools: (Boolean) -> Unit = {},
+    // 修改意图：文件读取 AI 提炼开关，审查三开关之下展示
+    fileDistillEnabled: Boolean = true,
+    onSaveFileDistillEnabled: (Boolean) -> Unit = {},
     enableThinkingMode: Boolean,
     onToggleThinkingMode: () -> Unit,
     thinkingOptionId: String,
@@ -690,6 +693,12 @@ fun ClassicChatSettingsBar(
                                     label = stringResource(R.string.agent_menu_tool_review_high_risk),
                                     checked = toolReviewHighRiskTools,
                                     onCheckedChange = onSaveToolReviewHighRiskTools,
+                                )
+                                // 修改意图：文件读取 AI 提炼开关，位于审查三开关之下（需求确认项）
+                                ClassicReviewToggleRow(
+                                    label = stringResource(R.string.agent_menu_file_distill),
+                                    checked = fileDistillEnabled,
+                                    onCheckedChange = onSaveFileDistillEnabled,
                                 )
                             }
                             inputMenuTogglesBySlot[InputMenuToggleSlots.TOOLS].orEmpty().forEach { toggle ->

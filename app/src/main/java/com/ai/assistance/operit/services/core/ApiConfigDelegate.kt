@@ -139,6 +139,10 @@ class ApiConfigDelegate(
         MutableStateFlow(ApiPreferences.DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS)
     val toolReviewHighRiskTools: StateFlow<Boolean> = _toolReviewHighRiskTools.asStateFlow()
 
+    // 修改意图：文件读取 AI 提炼开关，默认开启；关闭时 read 族工具回到原始内容返回行为
+    private val _fileDistillEnabled = MutableStateFlow(ApiPreferences.DEFAULT_FILE_DISTILL_ENABLED)
+    val fileDistillEnabled: StateFlow<Boolean> = _fileDistillEnabled.asStateFlow()
+
     private val _toolPromptVisibility = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> = _toolPromptVisibility.asStateFlow()
 
@@ -490,6 +494,12 @@ class ApiConfigDelegate(
                 _toolReviewHighRiskTools.value = enabled
             }
         }
+        // 修改意图：收集文件读取 AI 提炼开关
+        configScope.launch {
+            apiPreferences.fileDistillEnabledFlow.collect { enabled ->
+                _fileDistillEnabled.value = enabled
+            }
+        }
 
         // Collect tool prompt visibility setting
         configScope.launch {
@@ -833,6 +843,14 @@ class ApiConfigDelegate(
         configScope.launch {
             apiPreferences.saveToolReviewHighRiskTools(isEnabled)
             _toolReviewHighRiskTools.value = isEnabled
+        }
+    }
+
+    // 修改意图：保存文件读取 AI 提炼开关
+    fun saveFileDistillEnabled(isEnabled: Boolean) {
+        configScope.launch {
+            apiPreferences.saveFileDistillEnabled(isEnabled)
+            _fileDistillEnabled.value = isEnabled
         }
     }
 

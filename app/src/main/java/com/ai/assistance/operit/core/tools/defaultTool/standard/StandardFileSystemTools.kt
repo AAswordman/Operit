@@ -80,7 +80,9 @@ open class StandardFileSystemTools(protected val context: Context) {
     companion object {
         protected const val TAG = "FileSystemTools"
         // 特殊文件类型扩展名列表（需要特殊处理提取文本的文件类型）
-        protected val SPECIAL_FILE_EXTENSIONS = listOf(
+        // 修改意图：可见性从 protected 放宽为 public——AI 读取提炼拦截层（FileDistillService）
+        // 需要用同一份清单判断"特殊类型抽取管线一律透传"，复用而非复制清单避免两处漂移
+        val SPECIAL_FILE_EXTENSIONS = listOf(
             "doc", "docx",      // Word documents
             "pdf",              // PDF documents
             "jpg", "jpeg",      // Image files
@@ -88,6 +90,10 @@ open class StandardFileSystemTools(protected val context: Context) {
             "mp3", "wav", "m4a", "aac", "flac", "ogg", "opus",
             "mp4", "mkv", "mov", "webm", "avi", "m4v"
         )
+
+        /** 特殊类型（图片/PDF/文档/音视频）扩展名判定；命中者走抽取管线，不进 AI 提炼 */
+        fun isSpecialFileExtension(extension: String): Boolean =
+            extension.lowercase() in SPECIAL_FILE_EXTENSIONS
     }
 
     // ApiPreferences 实例，用于动态获取配置
