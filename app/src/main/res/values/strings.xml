@@ -5858,6 +5858,8 @@
     <string name="experimental_virtual_display_description">使用基于虚拟屏幕的 ADB+Shizuku 自动化，功能仍在实验阶段，可能不稳定。</string>
     <string name="hide_runtime_task_view">运行时任务视图隐藏</string>
     <string name="hide_runtime_task_view_description">AI 处理消息或执行工具时，从系统最近任务中隐藏应用任务卡片，避免在最近任务里被误滑关闭。</string>
+    <string name="floating_follows_targeted_send">悬浮窗跟随定向发送</string>
+    <string name="floating_follows_targeted_send_description">默认关闭：工具定向发送到指定对话时，悬浮窗保持在当前对话上，不切换 UI。开启后，悬浮窗会切到目标对话显示（仅悬浮窗本地状态，不影响主界面）。</string>
     
     <!-- Chat History Management -->
     <string name="default_profile_name">默认配置</string>

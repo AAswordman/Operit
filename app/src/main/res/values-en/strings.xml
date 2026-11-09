@@ -5928,6 +5928,8 @@
     <string name="experimental_virtual_display_description">Use ADB+Shizuku automation based on virtual display. This feature is still experimental and may be unstable.</string>
     <string name="hide_runtime_task_view">Hide runtime task view</string>
     <string name="hide_runtime_task_view_description">Hide the app card from system recents while AI is processing or executing tools to reduce accidental dismissal.</string>
+    <string name="floating_follows_targeted_send">Floating window follows targeted send</string>
+    <string name="floating_follows_targeted_send_description">Off by default: when a tool sends to a specific chat, the floating window stays on the current chat and does not switch UI. When enabled, the floating window switches to the target chat (local floating-window state only, the main UI is unaffected).</string>
     <string name="get_skill">Get Skill</string>
     <string name="import_or_install_skill">Import Skill</string>
     <string name="login_github_for_skill_market">Login to GitHub for better Skill market experience</string>

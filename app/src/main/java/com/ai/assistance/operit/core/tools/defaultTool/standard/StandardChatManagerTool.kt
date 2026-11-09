@@ -35,6 +35,7 @@ import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.DisplayPreferencesManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.services.ChatServiceCore
@@ -88,6 +89,30 @@ sealed class MessageSendStreamStartResult {
     data class Started(val session: MessageSendStreamSession) : MessageSendStreamStartResult()
 
     data class Failed(val result: ToolResult) : MessageSendStreamStartResult()
+}
+
+/**
+ * 定向发送时，决定悬浮窗应跟随哪个对话显示。
+ *
+ * 文档约定：提供 chatId 时宿主在该会话后台发送且不切换 UI。悬浮窗跟随目标对话只是可选行为，
+ * 默认关闭，需用户在设置里显式开启（DisplayPreferencesManager.floatingFollowsTargetedSend）。
+ * 开启后，FLOATING runtime 的 currentChatId 由 ChatRuntimeHolder 从主界面同步而来，只用
+ * chatIdOverride 发送会让消息进到目标对话、窗口却停在前台对话上，此时才切到目标对话。
+ * MAIN runtime 不做切换，否则后台发送会把用户正在看的对话顶掉。
+ */
+internal object FloatingDisplayChatSelector {
+    fun select(
+        runtimeSlot: ChatRuntimeSlot,
+        targetChatId: String?,
+        displayedChatId: String?,
+        followsTargetedSend: Boolean
+    ): String? {
+        if (!followsTargetedSend) return null
+        if (runtimeSlot != ChatRuntimeSlot.FLOATING) return null
+        if (targetChatId.isNullOrBlank()) return null
+        if (targetChatId == displayedChatId) return null
+        return targetChatId
+    }
 }
 
 /**
@@ -1735,7 +1760,8 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
-            val core = chatRuntimeHolder.getCore(runtimeSlot ?: ChatRuntimeSlot.FLOATING)
+            val effectiveSlot = runtimeSlot ?: ChatRuntimeSlot.FLOATING
+            val core = chatRuntimeHolder.getCore(effectiveSlot)
 
             val message = tool.parameters.find { it.name == "message" }?.value
             if (message.isNullOrBlank()) {
@@ -1898,7 +1924,21 @@ class StandardChatManagerTool(private val context: Context) {
                 }
 
                 if (hasTargetChat) {
-                    // 后台发送到指定对话，不切换 UI
+                    // 悬浮窗跟随目标对话是可选行为（默认关闭）。开启后：chatIdOverride 只路由消息，
+                    // FLOATING runtime 的 currentChatId 仍停在前台对话上，窗口会显示错误的会话（#555），
+                    // 此时用 switchChatLocal 切到目标对话。它只改悬浮窗本地状态，不写回全局，主界面不受影响。
+                    // 默认关闭时保持文档约定：提供 chatId 时在该会话后台发送且不切换 UI。
+                    FloatingDisplayChatSelector.select(
+                        runtimeSlot = effectiveSlot,
+                        targetChatId = targetChatId,
+                        displayedChatId = core.currentChatId.value,
+                        followsTargetedSend = DisplayPreferencesManager.getInstance(appContext)
+                            .floatingFollowsTargetedSend.first()
+                    )?.let { chatToFollow ->
+                        core.switchChatLocal(chatToFollow)
+                    }
+
+                    // 后台发送到指定对话，不切换主界面
                     core.sendUserMessage(
                         promptFunctionType = PromptFunctionType.CHAT,
                         roleCardIdOverride = roleCardId,
