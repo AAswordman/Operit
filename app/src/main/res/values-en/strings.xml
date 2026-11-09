@@ -8686,4 +8686,12 @@
     <string name="subagent_model_fallback_transcript_note">[System note] This Subagent\'s configured model remained unavailable after retries because of billing, quota, account, or model availability. The task is now continuing with the model used by the parent Agent for this turn. Continue from the existing transcript and do not repeat completed tool actions that may have side effects.</string>
     <string name="subagent_search_parent_label">Subagent · From “%1$s”</string>
     <string name="tool_permission_explicit_ask_description">Always ask for these tools, overriding the main setting. Remove a tool to restore its default.</string>
+    <string name="collapse_completed_process_title">Collapse response activity</string>
+    <string name="collapse_completed_process_description">After a reply finishes, hide earlier reasoning, tool calls and progress messages. Keep the final answer visible; tap to expand.</string>
+    <string name="collapse_process_title">Response activity</string>
+    <string name="collapse_process_show">Show response activity</string>
+    <string name="collapse_process_hide">Hide response activity</string>
+    <string name="collapse_process_duration_seconds">Worked for %1$ds</string>
+    <string name="collapse_process_duration_minutes">Worked for %1$dm %2$ds</string>
+    <string name="collapse_process_duration_hours">Worked for %1$dh %2$dm %3$ds</string>
 </resources>

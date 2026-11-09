@@ -56,6 +56,7 @@ fun GlobalDisplaySettingsScreen(
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
 
+    val collapseCompletedProcess by displayPreferencesManager.collapseCompletedProcess.collectAsState(initial = true)
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
     val showFpsCounter by displayPreferencesManager.showFpsCounter.collectAsState(initial = false)
     val enableReplyNotification by displayPreferencesManager.enableReplyNotification.collectAsState(initial = true)
@@ -200,6 +201,16 @@ fun GlobalDisplaySettingsScreen(
             SectionTitle(
                 text = stringResource(R.string.message_display_settings),
                 icon = Icons.Default.Message
+            )
+
+            DisplayToggleItem(
+                title = stringResource(R.string.collapse_completed_process_title),
+                subtitle = stringResource(R.string.collapse_completed_process_description),
+                checked = collapseCompletedProcess,
+                onCheckedChange = { enabled ->
+                    scope.launch { displayPreferencesManager.saveDisplaySettings(collapseCompletedProcess = enabled) }
+                },
+                backgroundColor = componentBackgroundColor,
             )
 
             Column(

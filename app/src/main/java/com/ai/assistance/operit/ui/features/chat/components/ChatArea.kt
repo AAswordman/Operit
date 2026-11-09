@@ -289,6 +289,20 @@ fun ChatArea(
             pendingJumpIsAutoFollow = false
         }
     }
+    val responseProcessState =
+        rememberResponseProcessState(chatHistory, currentChatId, !isMultiSelectMode)
+    val pendingProcessIndex =
+        chatHistory.indexOfFirst { it.timestamp == pendingJumpToMessageTimestamp }
+    val pendingProcessGroup = responseProcessState.groups[pendingProcessIndex]
+    val pendingProcessCollapsed =
+        pendingProcessGroup != null && pendingProcessIndex != pendingProcessGroup.finalIndex &&
+            !responseProcessState.isExpanded(pendingProcessGroup.key)
+    LaunchedEffect(pendingJumpToMessageTimestamp, pendingProcessGroup?.key, pendingProcessCollapsed) {
+        if (pendingProcessCollapsed && pendingProcessGroup != null) {
+            pendingJumpToMessageTimestamp?.let(messageAnchors::remove)
+            responseProcessState.expand(pendingProcessGroup.key)
+        }
+    }
     val lastMessage = chatHistory.lastOrNull()
     val pendingTargetAnchor =
         pendingJumpToMessageTimestamp?.let { targetTimestamp -> messageAnchors[targetTimestamp] }
@@ -327,12 +341,14 @@ fun ChatArea(
 
     LaunchedEffect(
         pendingJumpToMessageTimestamp,
+        pendingProcessCollapsed,
         messagesCount,
         chatHistory.firstOrNull()?.timestamp,
         chatHistory.lastOrNull()?.timestamp,
         pendingTargetAnchor,
         scrollState.maxValue,
     ) {
+        if (pendingProcessCollapsed) return@LaunchedEffect
         val targetTimestamp = pendingJumpToMessageTimestamp ?: return@LaunchedEffect
         val targetIndex = chatHistory.indexOfFirst { it.timestamp == targetTimestamp }
         if (targetIndex < 0) {
@@ -468,68 +484,67 @@ fun ChatArea(
                                     )
                             },
                     ) {
-                        androidx.compose.runtime.CompositionLocalProvider(
-                            com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptChatId provides currentChatId,
-                        ) {
-                            MessageItem(
-                                index = actualIndex,
-                                currentChatId = currentChatId,
-                                message = message,
-                                enableDialogs = enableDialogs,
-                                allowTranscriptMutation = allowTranscriptMutation,
-                                userMessageColor = userMessageColor,
-                                aiMessageColor = aiMessageColor,
-                                userTextColor = userTextColor,
-                                aiTextColor = aiTextColor,
-                                systemMessageColor = systemMessageColor,
-                                systemTextColor = systemTextColor,
-                                thinkingBackgroundColor = thinkingBackgroundColor,
-                                thinkingTextColor = thinkingTextColor,
-                                onSelectMessageToEdit = onSelectMessageToEdit,
-                                onCopyMessage = onCopyMessage,
-                                onDeleteMessage = onDeleteMessage,
-                                onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
-                                onDeleteMessagesFrom = onDeleteMessagesFrom,
-                                onRollbackToMessage = onRollbackToMessage,
-                                onRegenerateMessage = onRegenerateMessage,
-                                onSwitchMessageVariant = onSwitchMessageVariant,
-                                onSpeakMessage = onSpeakMessage,
-                                onReplyToMessage = onReplyToMessage,
-                                onToggleFavoriteMessage = onToggleFavoriteMessage,
-                                onCreateBranch = onCreateBranch,
-                                onInsertSummary = onInsertSummary,
-                                onMentionRoleFromAvatar = onMentionRoleFromAvatar,
-                                chatStyle = chatStyle,
-                                showMessageTokenStats = showMessageTokenStats,
-                                showMessageTimingStats = showMessageTimingStats,
-                                showMessageTokenSpeed = showMessageTokenSpeed,
-                                showMessageTimestamp = showMessageTimestamp,
-                                cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                                cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                                bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                                bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                                bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                                bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                                isHidden = shouldHide,
-                                isMultiSelectMode = isMultiSelectMode,
-                                isSelected = selectedMessageIndices.contains(actualIndex),
-                                onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
-                                onToggleMultiSelectMode = onToggleMultiSelectMode,
-                                messageIndex = actualIndex,
-                                bubbleUserImageStyle = bubbleUserImageStyle,
-                                bubbleAiImageStyle = bubbleAiImageStyle,
-                                bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                                bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                                bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                                bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                                bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                                bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
-                            )
-                        }
+                    ResponseProcessMessage(responseProcessState, actualIndex, aiTextColor) { processIndex ->
+                        val processMessage = chatHistory[processIndex]
+                        MessageItem(
+                            index = processIndex,
+                            currentChatId = currentChatId,
+                            message = processMessage,
+                            showAssistantHeader = !isAssistantContinuation(chatHistory, processIndex),
+                            enableDialogs = enableDialogs,
+                            allowTranscriptMutation = allowTranscriptMutation,
+                            userMessageColor = userMessageColor,
+                            aiMessageColor = aiMessageColor,
+                            userTextColor = userTextColor,
+                            aiTextColor = aiTextColor,
+                            systemMessageColor = systemMessageColor,
+                            systemTextColor = systemTextColor,
+                            thinkingBackgroundColor = thinkingBackgroundColor,
+                            thinkingTextColor = thinkingTextColor,
+                            onSelectMessageToEdit = onSelectMessageToEdit,
+                            onCopyMessage = onCopyMessage,
+                            onDeleteMessage = onDeleteMessage,
+                            onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
+                            onDeleteMessagesFrom = onDeleteMessagesFrom,
+                            onRollbackToMessage = onRollbackToMessage,
+                            onRegenerateMessage = onRegenerateMessage,
+                            onSwitchMessageVariant = onSwitchMessageVariant,
+                            onSpeakMessage = onSpeakMessage,
+                            onReplyToMessage = onReplyToMessage,
+                            onToggleFavoriteMessage = onToggleFavoriteMessage,
+                            onCreateBranch = onCreateBranch,
+                            onInsertSummary = onInsertSummary,
+                            onMentionRoleFromAvatar = onMentionRoleFromAvatar,
+                            chatStyle = chatStyle,
+                            showMessageTokenStats = showMessageTokenStats,
+                            showMessageTimingStats = showMessageTimingStats,
+                            showMessageTokenSpeed = showMessageTokenSpeed,
+                            showMessageTimestamp = showMessageTimestamp,
+                            cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
+                            cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
+                            bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
+                            bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
+                            bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
+                            bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
+                            isHidden = shouldHide,
+                            isMultiSelectMode = isMultiSelectMode,
+                            isSelected = selectedMessageIndices.contains(processIndex),
+                            onToggleSelection = { onToggleMessageSelection?.invoke(processIndex) },
+                            onToggleMultiSelectMode = onToggleMultiSelectMode,
+                            messageIndex = processIndex,
+                            bubbleUserImageStyle = bubbleUserImageStyle,
+                            bubbleAiImageStyle = bubbleAiImageStyle,
+                            bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
+                            bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
+                            bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
+                            bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
+                            bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
+                            bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
+                        )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (hasNewerDisplayHistory) {
@@ -650,6 +665,7 @@ private fun MessageItem(
     index: Int,
     currentChatId: String,
     message: ChatMessage,
+    showAssistantHeader: Boolean,
     enableDialogs: Boolean,
     allowTranscriptMutation: Boolean,
     userMessageColor: Color,
@@ -770,6 +786,7 @@ private fun MessageItem(
                 ChatStyle.CURSOR -> {
                     CursorStyleChatMessage(
                         message = message,
+                        showAssistantHeader = showAssistantHeader,
                         userMessageColor = userMessageColor,
                         userMessageLiquidGlassEnabled = cursorUserBubbleLiquidGlass,
                         userMessageWaterGlassEnabled = cursorUserBubbleWaterGlass,
@@ -794,6 +811,7 @@ private fun MessageItem(
                 ChatStyle.BUBBLE -> {
                     BubbleStyleChatMessage(
                         message = message,
+                        showAssistantHeader = showAssistantHeader,
                         userMessageColor = userMessageColor,
                         aiMessageColor = aiMessageColor,
                         userTextColor = userTextColor,
@@ -1434,7 +1452,8 @@ private fun MessageCopyPreviewBottomSheet(
 }
 
 private fun hasDisplayableTokenStats(message: ChatMessage): Boolean {
-    return message.inputTokens > 0 || message.cachedInputTokens > 0 || message.outputTokens > 0
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        (message.inputTokens > 0 || message.cachedInputTokens > 0 || message.outputTokens > 0)
 }
 
 internal fun calculateMessageTokenSpeed(outputTokens: Long, outputDurationMs: Long): Double? {
@@ -1447,11 +1466,13 @@ private fun hasDisplayableTokenSpeedStats(message: ChatMessage): Boolean {
 }
 
 private fun hasDisplayableTimingStats(message: ChatMessage): Boolean {
-    return message.waitDurationMs > 0L || message.outputDurationMs > 0L
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        (message.waitDurationMs > 0L || message.outputDurationMs > 0L)
 }
 
 private fun hasDisplayableMessageTimestamp(message: ChatMessage): Boolean {
-    return message.completedAt > 0L
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        message.completedAt > 0L
 }
 
 private fun formatCompactDuration(durationMs: Long): String {
@@ -1486,6 +1507,7 @@ private fun MessageFooterBar(
     allowVariantSelection: Boolean,
     onSelectVariant: (Int) -> Unit,
 ) {
+    if (LocalResponseMessageSection.current == ResponseMessageSection.HEADER) return
     val hasPrevious = message.selectedVariantIndex > 0
     val hasNext = message.selectedVariantIndex < message.variantCount - 1
     val context = LocalContext.current

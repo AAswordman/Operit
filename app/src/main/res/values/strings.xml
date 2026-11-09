@@ -8674,4 +8674,12 @@
     <string name="subagent_model_fallback_transcript_note">[系统提示] 此 Subagent 配置的模型在重试后仍因欠费、额度、账号或模型不可用而失败。现已切换到主 Agent 本回合使用的模型。请根据已有对话继续完成原任务，不要重复已经完成并可能产生副作用的工具操作。</string>
     <string name="subagent_search_parent_label">Subagent · 来自“%1$s”</string>
     <string name="tool_permission_explicit_ask_description">这些工具每次都会询问，优先于总开关。移出后恢复默认权限。</string>
+    <string name="collapse_completed_process_title">折叠回复过程</string>
+    <string name="collapse_completed_process_description">回复结束后收起前面的思考、工具调用和过程说明，只显示最后的答复；可点击展开。</string>
+    <string name="collapse_process_title">回复过程</string>
+    <string name="collapse_process_show">展开回复过程</string>
+    <string name="collapse_process_hide">收起回复过程</string>
+    <string name="collapse_process_duration_seconds">用时 %1$d秒</string>
+    <string name="collapse_process_duration_minutes">用时 %1$d分钟 %2$d秒</string>
+    <string name="collapse_process_duration_hours">用时 %1$d时%2$d分%3$d秒</string>
 </resources>
