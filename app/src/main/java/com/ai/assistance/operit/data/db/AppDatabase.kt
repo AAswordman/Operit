@@ -13,16 +13,19 @@ import com.ai.assistance.operit.data.dao.ChatDao
 import com.ai.assistance.operit.data.dao.MessageDao
 import com.ai.assistance.operit.data.dao.MessageVariantDao
 import com.ai.assistance.operit.data.dao.TokenUsageDao
+import com.ai.assistance.operit.data.dao.SubagentRunDao
 import com.ai.assistance.operit.data.model.ChatEntity
 import com.ai.assistance.operit.data.model.MessageEntity
 import com.ai.assistance.operit.data.model.MessageVariantEntity
+import com.ai.assistance.operit.data.model.SubagentRunEntity
+import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.data.model.TokenStatsModelEntity
 import com.ai.assistance.operit.data.model.TokenUsageRecordEntity
 import com.ai.assistance.operit.util.AppLogger
 import java.io.File
 import java.util.UUID
 
-private const val APP_DATABASE_VERSION = 21
+private const val APP_DATABASE_VERSION = 23
 
 /** 应用数据库，包含聊天表和消息表 */
 @Database(
@@ -30,6 +33,7 @@ private const val APP_DATABASE_VERSION = 21
         ChatEntity::class,
         MessageEntity::class,
         MessageVariantEntity::class,
+        SubagentRunEntity::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
     ],
@@ -48,6 +52,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     /** 年度报告的只读聚合查询，只新增 DAO，不改表结构。 */
     abstract fun annualReportDao(): AnnualReportDao
+
+    abstract fun subagentRunDao(): SubagentRunDao
 
     companion object {
         const val DATABASE_VERSION = APP_DATABASE_VERSION
@@ -537,7 +543,8 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_17_18,
                     MIGRATION_18_19,
                     MIGRATION_19_20,
-                    MIGRATION_20_21
+                    MIGRATION_20_21,
+                    SubagentMigration
                 )
                 .build()
 

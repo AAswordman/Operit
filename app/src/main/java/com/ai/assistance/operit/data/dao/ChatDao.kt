@@ -17,8 +17,14 @@ interface ChatDao {
     @Query("SELECT * FROM chats ORDER BY pinned DESC, displayOrder ASC")
     fun getAllChats(): Flow<List<ChatEntity>>
 
+    @Query(
+        "SELECT * FROM chats WHERE chatKind != 'SUBAGENT' " +
+            "ORDER BY pinned DESC, displayOrder ASC"
+    )
+    fun getVisibleChats(): Flow<List<ChatEntity>>
+
     /** 获取聊天总数 */
-    @Query("SELECT COUNT(*) FROM chats")
+    @Query("SELECT COUNT(*) FROM chats WHERE chatKind != 'SUBAGENT'")
     suspend fun getTotalChatCount(): Int
 
     /** 获取所有聊天（挂起函数版本） */
@@ -29,8 +35,23 @@ interface ChatDao {
     @Query("SELECT * FROM chats WHERE id = :chatId")
     suspend fun getChatById(chatId: String): ChatEntity?
 
-    /** 插入或更新聊天 */
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertChat(chat: ChatEntity)
+    @Query("""
+        WITH RECURSIVE tree(id) AS (
+            SELECT id FROM chats WHERE id = :chatId
+            UNION
+            SELECT r.childChatId FROM subagent_runs r JOIN tree t ON r.parentChatId = t.id
+        )
+        SELECT * FROM chats WHERE id IN (SELECT id FROM tree)
+    """)
+    suspend fun getChatAndSubagentDescendants(chatId: String): List<ChatEntity>
+
+    /** 只插入新聊天；禁止 REPLACE 触发消息外键级联。 */
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertChat(chat: ChatEntity)
+
+    /** 更新已有聊天。调用方必须保留只读 legacy group 诊断值。 */
+    @Update
+    suspend fun updateChat(chat: ChatEntity)
 
     /** 删除聊天 */
     @Query("DELETE FROM chats WHERE id = :chatId") suspend fun deleteChat(chatId: String)
@@ -140,31 +161,43 @@ interface ChatDao {
     suspend fun removeGroupFromLockedChatsForCharacter(groupName: String, characterCardName: String, timestamp: Long = System.currentTimeMillis())
 
     /** 根据parentChatId获取所有分支对话 */
-    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
+    @Query(
+        "SELECT * FROM chats WHERE parentChatId = :parentChatId AND chatKind = 'BRANCH' " +
+            "ORDER BY pinned DESC, displayOrder ASC"
+    )
     suspend fun getBranchesByParentId(parentChatId: String): List<ChatEntity>
 
     /** 根据parentChatId获取所有分支对话（Flow版本） */
-    @Query("SELECT * FROM chats WHERE parentChatId = :parentChatId ORDER BY pinned DESC, displayOrder ASC")
+    @Query(
+        "SELECT * FROM chats WHERE parentChatId = :parentChatId AND chatKind = 'BRANCH' " +
+            "ORDER BY pinned DESC, displayOrder ASC"
+    )
     fun getBranchesByParentIdFlow(parentChatId: String): Flow<List<ChatEntity>>
 
     /** 获取所有没有父对话的对话（即主对话） */
-    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query(
+        "SELECT * FROM chats WHERE parentChatId IS NULL AND chatKind != 'SUBAGENT' " +
+            "ORDER BY pinned DESC, displayOrder ASC"
+    )
     suspend fun getMainChats(): List<ChatEntity>
 
     /** 获取所有没有父对话的对话（Flow版本） */
-    @Query("SELECT * FROM chats WHERE parentChatId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query(
+        "SELECT * FROM chats WHERE parentChatId IS NULL AND chatKind != 'SUBAGENT' " +
+            "ORDER BY pinned DESC, displayOrder ASC"
+    )
     fun getMainChatsFlow(): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（非默认角色卡：只显示该角色卡名称的对话） */
-    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName AND characterGroupId IS NULL ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE chatKind != 'SUBAGENT' AND characterCardName = :characterCardName AND characterGroupId IS NULL ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterCard(characterCardName: String): Flow<List<ChatEntity>>
 
     /** 根据群组ID过滤聊天 */
-    @Query("SELECT * FROM chats WHERE characterGroupId = :characterGroupId ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE chatKind != 'SUBAGENT' AND characterGroupId = :characterGroupId ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterGroupId(characterGroupId: String): Flow<List<ChatEntity>>
 
     /** 根据角色卡名称过滤聊天（默认角色卡：显示该角色卡名称的对话 + 所有characterCardName为null的对话） */
-    @Query("SELECT * FROM chats WHERE characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL) ORDER BY pinned DESC, displayOrder ASC")
+    @Query("SELECT * FROM chats WHERE chatKind != 'SUBAGENT' AND (characterCardName = :characterCardName OR (characterCardName IS NULL AND characterGroupId IS NULL)) ORDER BY pinned DESC, displayOrder ASC")
     fun getChatsByCharacterCardOrNull(characterCardName: String): Flow<List<ChatEntity>>
 
     /** 批量清理绑定特定角色卡名称的对话（将characterCardName设为null） */
@@ -260,7 +293,7 @@ interface ChatDao {
             FROM messages
             GROUP BY chatId
         ) mc ON c.id = mc.chatId
-        WHERE c.characterGroupId IS NULL
+        WHERE c.characterGroupId IS NULL AND c.chatKind != 'SUBAGENT'
         GROUP BY c.characterCardName
         """
     )
@@ -279,7 +312,7 @@ interface ChatDao {
             FROM messages
             GROUP BY chatId
         ) mc ON c.id = mc.chatId
-        WHERE c.characterCardName IS NULL
+        WHERE c.characterCardName IS NULL AND c.chatKind != 'SUBAGENT'
         GROUP BY c.characterGroupId
         """
     )

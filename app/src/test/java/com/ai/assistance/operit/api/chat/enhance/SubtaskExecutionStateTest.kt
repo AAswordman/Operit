@@ -21,6 +21,17 @@ import org.junit.Test
 
 class SubtaskExecutionStateTest {
     @Test
+    fun `plugin subtasks cannot invoke V2 collaboration through nested proxies`() {
+        for (name in com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.names) {
+            val tool = AITool(name, emptyList())
+            assertTrue(ToolExecutionManager.isSubtaskDelegationTarget(tool, null))
+            assertTrue(ToolExecutionManager.isSubtaskDelegationTarget(
+                proxy("proxy", proxy("package_proxy", tool)), null,
+            ))
+        }
+    }
+
+    @Test
     fun `subtask policy rejects budgets outside the supported range`() {
         for (maximum in listOf(0, -1, 65, 999_999)) {
             try {

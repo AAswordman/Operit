@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.core.tools.climode
 
 import android.content.Context
+import com.ai.assistance.operit.core.agent.SubagentToolPolicy
 import com.ai.assistance.operit.core.config.SystemToolPrompts
 import com.ai.assistance.operit.core.tools.PackageTool
 import com.ai.assistance.operit.core.tools.PackageToolParameter
@@ -198,15 +199,21 @@ object CliToolModeSupport {
         context: Context,
         packageManager: PackageManager,
         roleCardToolAccess: ResolvedCharacterCardToolAccess,
-        useEnglish: Boolean
+        useEnglish: Boolean,
+        includeSubagentTools: Boolean = true,
+        collaborationVisibility: Map<String, Boolean> = emptyMap(),
     ): List<HiddenToolCatalogEntry> {
-        val categories = buildBuiltinAndInternalCategories(useEnglish)
-        val builtinToolNames = buildBuiltinToolNameSet(useEnglish)
+        val categories = buildBuiltinAndInternalCategories(useEnglish, includeSubagentTools)
+        val builtinToolNames = buildBuiltinToolNameSet(useEnglish, includeSubagentTools)
         val entries = LinkedHashMap<String, HiddenToolCatalogEntry>()
 
         categories.forEach { category ->
             category.tools.forEach { tool ->
+                if (collaborationVisibility[tool.name] == false) return@forEach
                 if (tool.name == "use_package") {
+                    return@forEach
+                }
+                if (!includeSubagentTools && SubagentToolPolicy.isForbidden(tool.name)) {
                     return@forEach
                 }
                 if (isReservedProxyTarget(tool.name) || isCliPublicTool(tool.name)) {
@@ -469,20 +476,30 @@ object CliToolModeSupport {
         }
     }
 
-    private fun buildBuiltinAndInternalCategories(useEnglish: Boolean): List<SystemToolPromptCategory> {
+    private fun buildBuiltinAndInternalCategories(
+        useEnglish: Boolean,
+        includeSubagentTools: Boolean
+    ): List<SystemToolPromptCategory> {
         return if (useEnglish) {
-            SystemToolPrompts.getAllCategoriesEn()
+            SystemToolPrompts.getAllCategoriesEn(includeSubagentTools = includeSubagentTools)
         } else {
-            SystemToolPrompts.getAllCategoriesCn()
+            SystemToolPrompts.getAllCategoriesCn(includeSubagentTools = includeSubagentTools)
         }
     }
 
-    private fun buildBuiltinToolNameSet(useEnglish: Boolean): Set<String> {
+    private fun buildBuiltinToolNameSet(
+        useEnglish: Boolean,
+        includeSubagentTools: Boolean
+    ): Set<String> {
         val builtinCategories =
             if (useEnglish) {
-                SystemToolPrompts.getAIAllCategoriesEn()
+                SystemToolPrompts.getAIAllCategoriesEn(
+                    includeSubagentTools = includeSubagentTools
+                )
             } else {
-                SystemToolPrompts.getAIAllCategoriesCn()
+                SystemToolPrompts.getAIAllCategoriesCn(
+                    includeSubagentTools = includeSubagentTools
+                )
             }
         return builtinCategories.flatMap { it.tools }.mapTo(linkedSetOf()) { it.name }
     }

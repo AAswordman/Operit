@@ -17,8 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,12 +31,16 @@ data class FileDiff(
 )
 
 @Composable
-fun FileDiffDisplay(diff: FileDiff) {
+fun FileDiffDisplay(
+    diff: FileDiff,
+    modifier: Modifier = Modifier,
+    summaryPrefix: String? = null,
+    enableDialog: Boolean = true,
+) {
     val diffLines = diff.diffContent.trimEnd().lines()
     var showDetailDialog by remember { mutableStateOf(false) }
-    val clipboardManager = LocalClipboardManager.current
 
-    if (showDetailDialog) {
+    if (showDetailDialog && enableDialog) {
         ContentDetailDialog(
             title = "File Changes: ${diff.path.substringAfterLast('/')}",
             content = diff.diffContent,
@@ -48,7 +50,7 @@ fun FileDiffDisplay(diff: FileDiff) {
         )
     }
 
-    val summary = remember(diffLines) {
+    val changeSummary = remember(diffLines) {
         val additions = diffLines.count { it.startsWith("+") }
         val deletions = diffLines.count { it.startsWith("-") }
         when {
@@ -58,12 +60,21 @@ fun FileDiffDisplay(diff: FileDiff) {
             else -> "No changes detected"
         }
     }
+    val summary =
+        listOfNotNull(summaryPrefix?.takeIf { it.isNotBlank() }, changeSummary)
+            .joinToString(" · ")
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(4.dp))
-            .clickable { showDetailDialog = true }
+            .then(
+                if (enableDialog) {
+                    Modifier.clickable { showDetailDialog = true }
+                } else {
+                    Modifier
+                }
+            )
             .padding(start = 24.dp,bottom = 8.dp) // 左侧的缩进
     ) {
         Row(

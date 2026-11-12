@@ -56,7 +56,7 @@ class ConversationMarkupManager {
                 val (toolPayload, imageLinkPayload) = splitImageLinksForModel(result.result.toString())
                 val toolResultXml =
                     createBoundedToolResultXml(
-                        toolName = result.toolName,
+                        result = result,
                         status = "success",
                         rawPayload = toolPayload
                     ) { payload ->
@@ -77,7 +77,7 @@ class ConversationMarkupManager {
                     }
                 }
                 createBoundedToolResultXml(
-                    toolName = result.toolName,
+                    result = result,
                     status = "error",
                     rawPayload = errorPayload
                 ) { payload ->
@@ -143,30 +143,59 @@ class ConversationMarkupManager {
         }
 
         private fun createToolResultXml(toolName: String, status: String, content: String): String {
+            return createToolResultXml(
+                toolName = toolName,
+                status = status,
+                content = content,
+                result = null,
+            )
+        }
+
+        private fun createToolResultXml(
+            toolName: String,
+            status: String,
+            content: String,
+            result: ToolResult?,
+        ): String {
             val tagName = ChatMarkupRegex.generateRandomToolResultTagName()
-            return """<$tagName name="$toolName" status="$status">$content</$tagName>""".trimIndent()
+            val executionAttributes =
+                buildString {
+                    result?.callId?.let { append(""" call_id="$it"""") }
+                    result?.invocationIndex?.let { append(""" invocation_index="$it"""") }
+                    result?.executionDurationMs?.let { append(""" duration_ms="$it"""") }
+                    result?.executionState?.let {
+                        append(""" execution_state="${it.name.lowercase()}"""")
+                    }
+                    if (result?.isFinal == true) {
+                        append(""" final="true"""")
+                    }
+                }
+            return """<$tagName name="$toolName" status="$status"$executionAttributes>$content</$tagName>"""
+                .trimIndent()
         }
 
         private fun createBoundedToolResultXml(
-            toolName: String,
+            result: ToolResult,
             status: String,
             rawPayload: String,
             bodyBuilder: (String) -> String
         ): String {
             val emptyXml =
                 createToolResultXml(
-                    toolName = toolName,
+                    toolName = result.toolName,
                     status = status,
-                    content = bodyBuilder("")
+                    content = bodyBuilder(""),
+                    result = result,
                 )
             val maxPayloadChars =
                 (ToolExecutionLimits.MAX_SINGLE_TOOL_RESULT_MESSAGE_CHARS - emptyXml.length)
                     .coerceAtLeast(0)
             val boundedPayload = truncatePayload(rawPayload, maxPayloadChars)
             return createToolResultXml(
-                toolName = toolName,
+                toolName = result.toolName,
                 status = status,
-                content = bodyBuilder(boundedPayload)
+                content = bodyBuilder(boundedPayload),
+                result = result,
             )
         }
 

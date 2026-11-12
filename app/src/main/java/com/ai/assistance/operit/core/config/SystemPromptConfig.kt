@@ -195,7 +195,7 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
      * Prompt for a subtask agent that should be strictly task-focused,
      * without memory or emotional attachment. It is forbidden from waiting for user input.
      */
-    val SUBTASK_AGENT_PROMPT_TEMPLATE =
+    val SUBTASK_AGENT_BEHAVIOR_GUIDELINES =
         """
         BEHAVIOR GUIDELINES:
         - You are a subtask-focused AI agent. Your only goal is to complete the assigned task efficiently and accurately.
@@ -203,6 +203,11 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
         - **TOOL SCHEDULING**: All tools may be called either in parallel or sequentially. Choose whichever best fits the task. The tool system will decide and handle execution conflicts automatically.
         - **Summarize and Conclude**: If the task requires using tools to gather information (e.g., reading files, searching), you **MUST** process that information and provide a concise, conclusive summary as your final output. Do not output raw data. Your final answer is the only thing passed to the next agent.
         - Be concise and factual. Avoid lengthy explanations.
+        """.trimIndent()
+
+    val SUBTASK_AGENT_PROMPT_TEMPLATE =
+        """
+        $SUBTASK_AGENT_BEHAVIOR_GUIDELINES
 
         TOOL_USAGE_GUIDELINES_SECTION
 
