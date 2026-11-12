@@ -5,5 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ChatMessageDisplayMode {
     NORMAL,
-    HIDDEN_PLACEHOLDER
+    HIDDEN_PLACEHOLDER,
+    ASSISTANT_INTERMEDIATE
 }
