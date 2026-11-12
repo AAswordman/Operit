@@ -206,6 +206,7 @@ fun ChatArea(
     aiReferences: List<AiReference> = emptyList(),
     isLoading: Boolean,
     enableDialogs: Boolean = true,
+    allowTranscriptMutation: Boolean = true,
     userMessageColor: Color,
     aiMessageColor: Color,
     userTextColor: Color,
@@ -467,59 +468,64 @@ fun ChatArea(
                                     )
                             },
                     ) {
-                        MessageItem(
-                            index = actualIndex,
-                            currentChatId = currentChatId,
-                            message = message,
-                            enableDialogs = enableDialogs,
-                            userMessageColor = userMessageColor,
-                            aiMessageColor = aiMessageColor,
-                            userTextColor = userTextColor,
-                            aiTextColor = aiTextColor,
-                            systemMessageColor = systemMessageColor,
-                            systemTextColor = systemTextColor,
-                            thinkingBackgroundColor = thinkingBackgroundColor,
-                            thinkingTextColor = thinkingTextColor,
-                            onSelectMessageToEdit = onSelectMessageToEdit,
-                            onCopyMessage = onCopyMessage,
-                            onDeleteMessage = onDeleteMessage,
-                            onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
-                            onDeleteMessagesFrom = onDeleteMessagesFrom,
-                            onRollbackToMessage = onRollbackToMessage,
-                            onRegenerateMessage = onRegenerateMessage,
-                            onSwitchMessageVariant = onSwitchMessageVariant,
-                            onSpeakMessage = onSpeakMessage,
-                            onReplyToMessage = onReplyToMessage,
-                            onToggleFavoriteMessage = onToggleFavoriteMessage,
-                            onCreateBranch = onCreateBranch,
-                            onInsertSummary = onInsertSummary,
-                            onMentionRoleFromAvatar = onMentionRoleFromAvatar,
-                            chatStyle = chatStyle,
-                            showMessageTokenStats = showMessageTokenStats,
-                            showMessageTimingStats = showMessageTimingStats,
-                            showMessageTokenSpeed = showMessageTokenSpeed,
-                            showMessageTimestamp = showMessageTimestamp,
-                            cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
-                            cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
-                            bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
-                            bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
-                            bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
-                            bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
-                            isHidden = shouldHide,
-                            isMultiSelectMode = isMultiSelectMode,
-                            isSelected = selectedMessageIndices.contains(actualIndex),
-                            onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
-                            onToggleMultiSelectMode = onToggleMultiSelectMode,
-                            messageIndex = actualIndex,
-                            bubbleUserImageStyle = bubbleUserImageStyle,
-                            bubbleAiImageStyle = bubbleAiImageStyle,
-                            bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
-                            bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
-                            bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
-                            bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
-                            bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
-                            bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
-                        )
+                        androidx.compose.runtime.CompositionLocalProvider(
+                            com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptChatId provides currentChatId,
+                        ) {
+                            MessageItem(
+                                index = actualIndex,
+                                currentChatId = currentChatId,
+                                message = message,
+                                enableDialogs = enableDialogs,
+                                allowTranscriptMutation = allowTranscriptMutation,
+                                userMessageColor = userMessageColor,
+                                aiMessageColor = aiMessageColor,
+                                userTextColor = userTextColor,
+                                aiTextColor = aiTextColor,
+                                systemMessageColor = systemMessageColor,
+                                systemTextColor = systemTextColor,
+                                thinkingBackgroundColor = thinkingBackgroundColor,
+                                thinkingTextColor = thinkingTextColor,
+                                onSelectMessageToEdit = onSelectMessageToEdit,
+                                onCopyMessage = onCopyMessage,
+                                onDeleteMessage = onDeleteMessage,
+                                onDeleteCurrentMessageVariant = onDeleteCurrentMessageVariant,
+                                onDeleteMessagesFrom = onDeleteMessagesFrom,
+                                onRollbackToMessage = onRollbackToMessage,
+                                onRegenerateMessage = onRegenerateMessage,
+                                onSwitchMessageVariant = onSwitchMessageVariant,
+                                onSpeakMessage = onSpeakMessage,
+                                onReplyToMessage = onReplyToMessage,
+                                onToggleFavoriteMessage = onToggleFavoriteMessage,
+                                onCreateBranch = onCreateBranch,
+                                onInsertSummary = onInsertSummary,
+                                onMentionRoleFromAvatar = onMentionRoleFromAvatar,
+                                chatStyle = chatStyle,
+                                showMessageTokenStats = showMessageTokenStats,
+                                showMessageTimingStats = showMessageTimingStats,
+                                showMessageTokenSpeed = showMessageTokenSpeed,
+                                showMessageTimestamp = showMessageTimestamp,
+                                cursorUserBubbleLiquidGlass = cursorUserBubbleLiquidGlass,
+                                cursorUserBubbleWaterGlass = cursorUserBubbleWaterGlass,
+                                bubbleUserBubbleLiquidGlass = bubbleUserBubbleLiquidGlass,
+                                bubbleUserBubbleWaterGlass = bubbleUserBubbleWaterGlass,
+                                bubbleAiBubbleLiquidGlass = bubbleAiBubbleLiquidGlass,
+                                bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
+                                isHidden = shouldHide,
+                                isMultiSelectMode = isMultiSelectMode,
+                                isSelected = selectedMessageIndices.contains(actualIndex),
+                                onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
+                                onToggleMultiSelectMode = onToggleMultiSelectMode,
+                                messageIndex = actualIndex,
+                                bubbleUserImageStyle = bubbleUserImageStyle,
+                                bubbleAiImageStyle = bubbleAiImageStyle,
+                                bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
+                                bubbleAiRoundedCornersEnabled = bubbleAiRoundedCornersEnabled,
+                                bubbleUserContentPaddingLeft = bubbleUserContentPaddingLeft,
+                                bubbleUserContentPaddingRight = bubbleUserContentPaddingRight,
+                                bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
+                                bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
+                            )
+                        }
                     }
                 }
 
@@ -645,6 +651,7 @@ private fun MessageItem(
     currentChatId: String,
     message: ChatMessage,
     enableDialogs: Boolean,
+    allowTranscriptMutation: Boolean,
     userMessageColor: Color,
     aiMessageColor: Color,
     userTextColor: Color,
@@ -705,8 +712,9 @@ private fun MessageItem(
     val coroutineScope = rememberCoroutineScope()
     val messageInteractionSource = remember { MutableInteractionSource() }
 
-    // 只有用户和AI的消息才能被操作
-    val isActionable = message.sender == "user" || message.sender == "ai"
+    // Collaboration events are transport input to the model, not editable user messages.
+    val isActionable = !message.displayMode.isCollaborationEvent &&
+        (message.sender == "user" || message.sender == "ai")
     val isHiddenUserMessage = isHiddenUserPlaceholder(message)
     var pluginMenuItems by remember(currentChatId, message.timestamp) {
         mutableStateOf<List<ChatMessageMenuItemDefinition>>(emptyList())
@@ -831,6 +839,7 @@ private fun MessageItem(
                     showMessageTimingStats = showMessageTimingStats,
                     showMessageTokenSpeed = showMessageTokenSpeed,
                     showMessageTimestamp = showMessageTimestamp,
+                    allowVariantSelection = allowTranscriptMutation,
                     onSelectVariant = { targetVariantIndex ->
                         onSwitchMessageVariant?.invoke(index, targetVariantIndex)
                     },
@@ -954,6 +963,7 @@ private fun MessageItem(
                 }
             }
 
+            if (allowTranscriptMutation) {
             // 根据消息发送者显示不同的操作
             if (message.sender == "user") {
                 if (!isHiddenUserMessage) {
@@ -1004,7 +1014,7 @@ private fun MessageItem(
                     },
                     modifier = Modifier.height(36.dp)
                 )
-            } else if (message.sender == "ai") {
+                } else if (message.sender == "ai") {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1052,7 +1062,7 @@ private fun MessageItem(
                 )
             }
 
-            if (message.sender == "ai" && message.variantCount > 1) {
+                if (message.sender == "ai" && message.variantCount > 1) {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1077,8 +1087,8 @@ private fun MessageItem(
                 )
             }
 
-            // 删除
-            DropdownMenuItem(
+                // 删除
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.delete),
@@ -1101,8 +1111,8 @@ private fun MessageItem(
                 modifier = Modifier.height(36.dp)
             )
 
-            // 回复选项
-            if (message.sender == "ai") {
+                // 回复选项
+                if (message.sender == "ai") {
                 DropdownMenuItem(
                 text = {
                         Text(
@@ -1127,7 +1137,7 @@ private fun MessageItem(
                 )
             }
 
-            if (message.sender == "user" || message.sender == "ai") {
+                if (message.sender == "user" || message.sender == "ai") {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1152,8 +1162,8 @@ private fun MessageItem(
                 )
             }
 
-            // 创建分支
-            DropdownMenuItem(
+                // 创建分支
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.create_branch),
@@ -1174,7 +1184,8 @@ private fun MessageItem(
                     )
                 },
                 modifier = Modifier.height(36.dp)
-            )
+                )
+            }
 
             // 信息
             DropdownMenuItem(
@@ -1200,7 +1211,8 @@ private fun MessageItem(
                 modifier = Modifier.height(36.dp)
             )
 
-            DropdownMenuItem(
+            if (allowTranscriptMutation) {
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.multi_select),
@@ -1221,7 +1233,8 @@ private fun MessageItem(
                     )
                 },
                 modifier = Modifier.height(36.dp)
-            )
+                )
+            }
         }
 
         if (enableDialogs && isHiddenUserMessage && showHiddenUserMessageDialog) {
@@ -1470,6 +1483,7 @@ private fun MessageFooterBar(
     showMessageTimingStats: Boolean,
     showMessageTokenSpeed: Boolean,
     showMessageTimestamp: Boolean,
+    allowVariantSelection: Boolean,
     onSelectVariant: (Int) -> Unit,
 ) {
     val hasPrevious = message.selectedVariantIndex > 0
@@ -1531,7 +1545,7 @@ private fun MessageFooterBar(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.chat_previous_variant),
                     tint =
-                        if (hasPrevious) {
+                        if (hasPrevious && allowVariantSelection) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
@@ -1539,7 +1553,7 @@ private fun MessageFooterBar(
                     modifier =
                         Modifier
                             .size(16.dp)
-                            .clickable(enabled = hasPrevious) {
+                            .clickable(enabled = hasPrevious && allowVariantSelection) {
                                 onSelectVariant(message.selectedVariantIndex - 1)
                             },
                 )
@@ -1557,7 +1571,7 @@ private fun MessageFooterBar(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.chat_next_variant),
                     tint =
-                        if (hasNext) {
+                        if (hasNext && allowVariantSelection) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
@@ -1565,7 +1579,7 @@ private fun MessageFooterBar(
                     modifier =
                         Modifier
                             .size(16.dp)
-                            .clickable(enabled = hasNext) {
+                            .clickable(enabled = hasNext && allowVariantSelection) {
                                 onSelectVariant(message.selectedVariantIndex + 1)
                             },
                 )

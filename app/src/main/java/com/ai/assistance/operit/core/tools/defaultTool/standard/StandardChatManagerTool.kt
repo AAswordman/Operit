@@ -39,6 +39,9 @@ import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.services.ChatServiceCore
 import com.ai.assistance.operit.services.FloatingChatService
+import com.ai.assistance.operit.services.core.ChatTurnDispatchRequest
+import com.ai.assistance.operit.services.core.ChatTurnDispatchResult
+import com.ai.assistance.operit.services.core.ChatTurnDispatcher
 import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatMarkupRegex
@@ -417,6 +420,8 @@ class StandardChatManagerTool(private val context: Context) {
             metadata = metadata
         )
     }
+
+    private val chatTurnDispatcher = ChatTurnDispatcher()
 
     private fun simplifyXmlBlocksForHistory(text: String): String {
         if (text.isEmpty()) return text
@@ -1839,13 +1844,6 @@ class StandardChatManagerTool(private val context: Context) {
                 )
             }
 
-            val timeoutDeadlineMs = timeoutMs?.let { System.currentTimeMillis() + it }
-
-            fun remainingTimeoutMs(defaultTimeoutMs: Long): Long {
-                val deadline = timeoutDeadlineMs ?: return defaultTimeoutMs
-                return (deadline - System.currentTimeMillis()).coerceAtLeast(1L)
-            }
-
             val turnOptions =
                 ChatTurnOptions(
                     persistTurn = persistTurn ?: true,
@@ -1854,136 +1852,50 @@ class StandardChatManagerTool(private val context: Context) {
                     disableWarning = disableWarning ?: false
                 )
 
-            try {
-                // 可选的 chat_id 参数
-                val targetChatId = tool.parameters.find { it.name == "chat_id" }?.value?.trim()
-                val hasTargetChat = !targetChatId.isNullOrBlank()
-
-                if (hasTargetChat) {
-                    val chatExists = core.chatHistories.value.any { it.id == targetChatId }
-                    if (!chatExists) {
-                        return MessageSendStreamStartResult.Failed(
-                            ToolResult(
-                                toolName = tool.name,
-                                success = false,
-                                result = MessageSendResultData(chatId = targetChatId!!, message = message),
-                                error = "Specified chat does not exist: $targetChatId"
-                            )
-                        )
-                    }
-                }
-
-                val preflightChatId = targetChatId ?: core.currentChatId.value
-                val preflightResponseStream = preflightChatId?.let { chatId ->
-                    core.getResponseStream(chatId)
-                }
-
-                try {
-                    preflightChatId?.let { chatId ->
-                        withTimeout(remainingTimeoutMs(AI_RESPONSE_TIMEOUT)) {
-                            core.activeStreamingChatIds.first { activeChatIds ->
-                                !activeChatIds.contains(chatId)
-                            }
-                        }
-                    }
-                } catch (e: TimeoutCancellationException) {
-                    return MessageSendStreamStartResult.Failed(
+            val targetChatId = tool.parameters.find { it.name == "chat_id" }?.value?.trim()
+            when (
+                val dispatchResult =
+                    chatTurnDispatcher.dispatch(
+                        core = core,
+                        request =
+                            ChatTurnDispatchRequest(
+                                chatId = targetChatId,
+                                message = message,
+                                roleCardId = roleCardId,
+                                proxySenderName = proxySenderName,
+                                turnOptions = turnOptions,
+                                responseStreamAcquireTimeoutMs = RESPONSE_STREAM_ACQUIRE_TIMEOUT,
+                                responseTimeoutMs = timeoutMs ?: AI_RESPONSE_TIMEOUT,
+                            ),
+                    )
+            ) {
+                is ChatTurnDispatchResult.Failed ->
+                    MessageSendStreamStartResult.Failed(
                         ToolResult(
                             toolName = tool.name,
                             success = false,
-                            result = MessageSendResultData(chatId = preflightChatId ?: "", message = message),
-                            error = "Previous message is still being processed"
+                            result =
+                                MessageSendResultData(
+                                    chatId = dispatchResult.chatId,
+                                    message = dispatchResult.message,
+                                ),
+                            error = dispatchResult.error,
+                        )
+                    )
+                is ChatTurnDispatchResult.Started -> {
+                    val session = dispatchResult.session
+                    MessageSendStreamStartResult.Started(
+                        MessageSendStreamSession(
+                            chatId = session.chatId,
+                            message = session.message,
+                            responseStream = session.responseStream,
+                            responseTimeoutMs = session.responseTimeoutMs,
+                            currentStateProvider = session::currentState,
+                            cancelAction = session::cancel,
                         )
                     )
                 }
-
-                if (hasTargetChat) {
-                    // 后台发送到指定对话，不切换 UI
-                    core.sendUserMessage(
-                        promptFunctionType = PromptFunctionType.CHAT,
-                        roleCardIdOverride = roleCardId,
-                        chatIdOverride = preflightChatId,
-                        messageTextOverride = message,
-                        proxySenderNameOverride = proxySenderName,
-                        turnOptions = turnOptions
-                    )
-                } else {
-                    // 发送消息（包含总结逻辑），由 Coordination 处理 chatId 默认
-                    core.sendUserMessage(
-                        promptFunctionType = PromptFunctionType.CHAT,
-                        roleCardIdOverride = roleCardId,
-                        messageTextOverride = message,
-                        proxySenderNameOverride = proxySenderName,
-                        turnOptions = turnOptions
-                    )
-                }
-
-                val resolvedChatId = if (hasTargetChat) {
-                    preflightChatId
-                } else {
-                    withTimeout(remainingTimeoutMs(RESPONSE_STREAM_ACQUIRE_TIMEOUT)) {
-                        var id = core.currentChatId.value
-                        while (id == null) {
-                            delay(50)
-                            id = core.currentChatId.value
-                        }
-                        id
-                    }
-                }
-
-                if (resolvedChatId == null) {
-                    return MessageSendStreamStartResult.Failed(
-                        ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result = MessageSendResultData(chatId = preflightChatId ?: "", message = message),
-                            error = "Unable to get current chat ID"
-                        )
-                    )
-                }
-
-                val responseStream: SharedStream<String> = try {
-                    var stream: SharedStream<String>? = core.getResponseStream(resolvedChatId)
-                    withTimeout(remainingTimeoutMs(RESPONSE_STREAM_ACQUIRE_TIMEOUT)) {
-                        while (stream == null || stream === preflightResponseStream) {
-                            val state = core.inputProcessingStateByChatId.value[resolvedChatId]
-                                ?: InputProcessingState.Idle
-                            if (state is InputProcessingState.Error) {
-                                throw IllegalStateException(state.message)
-                            }
-                            delay(50)
-                            stream = core.getResponseStream(resolvedChatId)
-                        }
-                    }
-                    requireNotNull(stream)
-                } catch (e: TimeoutCancellationException) {
-                    runCatching { core.cancelMessage(resolvedChatId) }
-                    return MessageSendStreamStartResult.Failed(
-                        ToolResult(
-                            toolName = tool.name,
-                            success = false,
-                            result = MessageSendResultData(chatId = resolvedChatId, message = message),
-                            error = "Timeout waiting for AI response"
-                        )
-                    )
-                }
-
-                MessageSendStreamStartResult.Started(
-                    MessageSendStreamSession(
-                        chatId = resolvedChatId,
-                        message = message,
-                        responseStream = responseStream,
-                        responseTimeoutMs = remainingTimeoutMs(AI_RESPONSE_TIMEOUT),
-                        currentStateProvider = {
-                            core.inputProcessingStateByChatId.value[resolvedChatId]
-                                ?: InputProcessingState.Idle
-                        },
-                        cancelAction = {
-                            runCatching { core.cancelMessage(resolvedChatId) }
-                        }
-                    )
-                )
-            } finally {}
+            }
         } catch (e: Exception) {
             AppLogger.e(TAG, "Failed to send message", e)
             MessageSendStreamStartResult.Failed(

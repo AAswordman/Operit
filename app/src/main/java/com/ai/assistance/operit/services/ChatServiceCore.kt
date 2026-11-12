@@ -15,6 +15,8 @@ import com.ai.assistance.operit.services.core.ChatSelectionMode
 import com.ai.assistance.operit.services.core.ChatHistoryDelegate
 import com.ai.assistance.operit.services.core.MessageCoordinationDelegate
 import com.ai.assistance.operit.services.core.MessageProcessingDelegate
+import com.ai.assistance.operit.services.core.RegisteredChatTurn
+import com.ai.assistance.operit.services.core.ChatTurnTerminalSignal
 import com.ai.assistance.operit.services.core.TokenStatisticsDelegate
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.ui.features.chat.viewmodel.UiStateDelegate
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 聊天服务核心类
@@ -61,6 +64,10 @@ class ChatServiceCore(
     
     // 额外的 onTurnComplete 回调（用于悬浮窗通知应用等场景）
     private var additionalOnTurnComplete: ((String?, Long, Long, Long) -> Unit)? = null
+    private val pendingChatTurns =
+        ConcurrentHashMap<String, RegisteredChatTurn>()
+    private val cancellationRequestedChatTurns = ConcurrentHashMap.newKeySet<String>()
+
     private var uiBridge: ChatServiceUiBridge = EmptyChatServiceUiBridge
     private val workspaceChangeTracker = WorkspaceChangeTracker.getInstance(context)
     private val workspaceTrackerOwnerId = "${selectionMode.name}@${System.identityHashCode(this)}"
@@ -123,12 +130,26 @@ class ChatServiceCore(
             },
             onScrollToBottom = {
                 messageProcessingDelegate.scrollToBottom()
+            },
+            onStableHistoryLoaded = { chatId ->
+                if (::messageCoordinationDelegate.isInitialized &&
+                    !messageProcessingDelegate.isChatLoading(chatId) &&
+                    withContext(Dispatchers.IO) {
+                        chatHistoryDelegate.isSubagentChat(chatId) &&
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+                                .getInstance(context).isAgent(chatId)
+                    }
+                ) {
+                    messageCoordinationDelegate.refreshStableContextWindow(chatId = chatId)
+                }
             }
         )
 
         coroutineScope.launch {
             chatHistoryDelegate.currentChatId.collect { chatId ->
                 tokenStatisticsDelegate.setActiveChatId(chatId)
+                attachmentDelegate.setActiveDraftChat(chatId)
+                uiBridge.setActiveDraftChat(chatId)
                 if (::messageProcessingDelegate.isInitialized) {
                     messageProcessingDelegate.setActiveDraftChat(chatId)
                 }
@@ -205,6 +226,16 @@ class ChatServiceCore(
                     outputTokens,
                     windowSize
                 )
+            },
+            onTurnStarted = { turnId, chatId, stream ->
+                pendingChatTurns[turnId]?.started?.complete(chatId to stream)
+            },
+            onTurnTerminated = { signal ->
+                cancellationRequestedChatTurns.remove(signal.turnId)
+                pendingChatTurns.remove(signal.turnId)?.complete(signal)
+            },
+            isTurnCancellationRequested = { turnId ->
+                turnId in cancellationRequestedChatTurns || !pendingChatTurns.containsKey(turnId)
             },
             getIsAutoReadEnabled = {
                 apiConfigDelegate.enableAutoRead.value
@@ -297,6 +328,11 @@ class ChatServiceCore(
         messageProcessingDelegate.cancelMessageForDestructiveMutation(chatId)
     }
 
+    suspend fun cancelMessageAndAwait(chatId: String) {
+        messageCoordinationDelegate.cancelSummaryForChat(chatId)
+        messageProcessingDelegate.cancelMessageAndAwait(chatId)
+    }
+
     /** 更新用户消息 */
     fun updateUserMessage(message: String) {
         messageProcessingDelegate.updateUserMessage(message)
@@ -304,6 +340,45 @@ class ChatServiceCore(
 
     fun getResponseStream(chatId: String): SharedStream<String>? {
         return messageProcessingDelegate.getResponseStream(chatId)
+    }
+
+    suspend fun chatExists(chatId: String): Boolean =
+        chatHistoryDelegate.chatExists(chatId)
+
+    fun registerChatTurn(turnId: String): RegisteredChatTurn {
+        val deferred = RegisteredChatTurn()
+        check(pendingChatTurns.putIfAbsent(turnId, deferred) == null) {
+            "Turn is already registered: $turnId"
+        }
+        return deferred
+    }
+
+    fun failRegisteredChatTurn(turnId: String, chatId: String, error: String) {
+        cancellationRequestedChatTurns.remove(turnId)
+        pendingChatTurns.remove(turnId)?.complete(
+            ChatTurnTerminalSignal.Failed(
+                turnId = turnId,
+                chatId = chatId,
+                error = error,
+            )
+        )
+    }
+
+    fun cancelRegisteredChatTurn(turnId: String, chatId: String) {
+        if (pendingChatTurns[turnId] == null) return
+        cancellationRequestedChatTurns.add(turnId)
+        coroutineScope.launch { cancelRegisteredChatTurnAndAwait(turnId, chatId) }
+    }
+
+    suspend fun cancelRegisteredChatTurnAndAwait(turnId: String, chatId: String) {
+        val registration = pendingChatTurns[turnId] ?: return
+        cancellationRequestedChatTurns.add(turnId)
+        val hadRuntime = messageProcessingDelegate.cancelRegisteredTurnAndAwait(turnId)
+        if (!hadRuntime && pendingChatTurns.remove(turnId, registration)) {
+            cancellationRequestedChatTurns.remove(turnId)
+            registration.complete(ChatTurnTerminalSignal.Cancelled(turnId, chatId))
+        }
+        registration.terminal.await()
     }
 
     // ========== 聊天历史相关 ==========
@@ -326,8 +401,8 @@ class ChatServiceCore(
     }
 
     /** 切换聊天 */
-    fun switchChat(chatId: String) {
-        chatHistoryDelegate.switchChat(chatId)
+    fun switchChat(chatId: String, scrollToBottom: Boolean = true) {
+        chatHistoryDelegate.switchChat(chatId, scrollToBottom = scrollToBottom)
     }
 
     /**
@@ -415,6 +490,12 @@ class ChatServiceCore(
 
     val currentTurnToolInvocationCountByChatId: StateFlow<Map<String, Int>>
         get() = messageProcessingDelegate.currentTurnToolInvocationCountByChatId
+
+    val lastToolNameByChatId: StateFlow<Map<String, String>>
+        get() = messageProcessingDelegate.lastToolNameByChatId
+
+    val lastTurnToolInvocationCountByChatId: StateFlow<Map<String, Int>>
+        get() = messageProcessingDelegate.lastTurnToolInvocationCountByChatId
 
     val scrollToBottomEvent: SharedFlow<Unit>
         get() = messageProcessingDelegate.scrollToBottomEvent
@@ -524,6 +605,7 @@ class ChatServiceCore(
 
     fun setUiBridge(uiBridge: ChatServiceUiBridge) {
         this.uiBridge = uiBridge
+        uiBridge.setActiveDraftChat(chatHistoryDelegate.currentChatId.value)
         if (::messageCoordinationDelegate.isInitialized) {
             messageCoordinationDelegate.setUiBridge(uiBridge)
         }
