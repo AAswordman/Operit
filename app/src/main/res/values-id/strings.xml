@@ -3315,6 +3315,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="provider_ppinfra">Paiouyun</string>
     <string name="provider_novita">Novita AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_openai_generic">OpenAI Umum</string>
     <string name="provider_other">Penyedia Lainnya</string>
     <string name="select_api_provider_title">Pilih Penyedia API</string>

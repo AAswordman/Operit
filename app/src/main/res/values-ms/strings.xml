@@ -3564,6 +3564,7 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="provider_ppinfra">Pai Ou Yun</string>
     <string name="provider_novita">Novita AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_openai_generic">OpenAI Generik</string>
     <string name="provider_other">Pembekal Lain</string>
     <string name="select_api_provider_title">Pilih Pembekal API</string>

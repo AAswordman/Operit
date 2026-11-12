@@ -1250,6 +1250,7 @@
     <string name="provider_openai_local">OpenAI compatible (modelo local)</string>
     <string name="provider_novita">Novita AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_other">Otros proveedores</string>
     <string name="select_api_provider_title">Seleccionar Proveedor API</string>
     <string name="search_providers">Buscar proveedores</string>

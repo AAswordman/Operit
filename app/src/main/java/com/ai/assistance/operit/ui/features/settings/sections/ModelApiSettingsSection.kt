@@ -1458,6 +1458,7 @@ private fun getBuiltInProviderDisplayName(provider: ApiProviderType, context: an
         ApiProviderType.PPINFRA -> context.getString(R.string.provider_ppinfra)
         ApiProviderType.NOVITA -> context.getString(R.string.provider_novita)
         ApiProviderType.MINIMAX -> context.getString(R.string.provider_minimax)
+        ApiProviderType.TOKENRHYTHM -> context.getString(R.string.provider_tokenrhythm)
         ApiProviderType.OTHER -> context.getString(R.string.provider_other)
     }
 }
@@ -2192,6 +2193,7 @@ private fun getProviderColor(providerTypeId: String): androidx.compose.ui.graphi
         ApiProviderType.PPINFRA -> MaterialTheme.colorScheme.primaryContainer
         ApiProviderType.NOVITA -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.75f)
         ApiProviderType.MINIMAX -> MaterialTheme.colorScheme.primary.copy(alpha = 0.78f)
+        ApiProviderType.TOKENRHYTHM -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.78f)
         ApiProviderType.OTHER -> MaterialTheme.colorScheme.surfaceVariant
     }
 }
