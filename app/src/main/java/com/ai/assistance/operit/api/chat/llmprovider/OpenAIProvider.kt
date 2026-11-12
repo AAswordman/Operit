@@ -146,7 +146,20 @@ open class OpenAIProvider(
         onUsageReported: (suspend (com.ai.assistance.operit.data.stats.ProviderUsageSnapshot, attempt: Int) -> Unit)? = null,
         attemptNumber: Int = 1
     ) {
-        val parsed = OpenAIResponsesPayloadAdapter.parseUsageCounts(usage) ?: return
+        val parsed = OpenAIResponsesPayloadAdapter.parseUsageCounts(usage)
+        if (parsed == null) {
+            // usage 非 null 但解析失败说明端点返回了应用不识别的 usage 结构，若不留痕
+            // 会表现为"请求成功但从不落库"且无线索；usage 为 null 的分块不记录——
+            // 流式每个内容分块都会走到这里，逐条输出会刷屏，该场景由
+            // TokenTrackingAIService.finish() 的"成功attempt无usage上报"日志兜住观测面。
+            if (usage != null) {
+                AppLogger.d(
+                    "AIService",
+                    "usage解析失败（端点usage结构不识别），字段=${usage.keys().asSequence().toList()}",
+                )
+            }
+            return
+        }
         tokenCacheManager.updateActualTokens(parsed.actualInputTokens, parsed.cachedInputTokens)
         tokenCacheManager.setOutputTokens(parsed.outputTokens)
         onTokensUpdated(
