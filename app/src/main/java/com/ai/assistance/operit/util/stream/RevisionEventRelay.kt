@@ -27,12 +27,12 @@ import kotlinx.coroutines.withContext
 internal suspend fun Stream<String>.collectWithRevisionRelay(
     eventChannel: MutableSharedStream<TextStreamEvent>,
     roundStartLength: Int,
-    onRollback: (String) -> Unit,
-    onCompletion: (String) -> Unit,
+    onRollback: ((String) -> Unit)? = null,
+    onCompletion: ((String) -> Unit)? = null,
     onChunk: suspend (String) -> Unit,
 ) = coroutineScope {
     val providerEvents = (this@collectWithRevisionRelay as? TextStreamEventCarrier)?.eventChannel
-    val tracker = TextStreamRevisionTracker()
+    val tracker = if (onRollback != null || onCompletion != null) TextStreamRevisionTracker() else null
     val trackerMutex = Mutex()
     val collectionJob = coroutineContext.job
     val stoppingRelay = AtomicBoolean(false)
@@ -44,6 +44,7 @@ internal suspend fun Stream<String>.collectWithRevisionRelay(
         // Count delivery before the cancellable tracker lock. Cancelling a local update must not
         // cause an already-published event to be emitted a second time during completion.
         forwardedEventCount++
+        if (tracker == null) return
         val rollbackContent =
             trackerMutex.withLock {
                 when (event.eventType) {
@@ -60,7 +61,7 @@ internal suspend fun Stream<String>.collectWithRevisionRelay(
                 }
             }
         if (rollbackContent != null) {
-            onRollback(rollbackContent)
+            onRollback?.invoke(rollbackContent)
         }
     }
 
@@ -88,7 +89,7 @@ internal suspend fun Stream<String>.collectWithRevisionRelay(
     try {
         collectionJob.ensureActive()
         this@collectWithRevisionRelay.collect { content ->
-            trackerMutex.withLock { tracker.append(content) }
+            if (tracker != null) trackerMutex.withLock { tracker.append(content) }
             onChunk(content)
         }
     } finally {
@@ -104,7 +105,7 @@ internal suspend fun Stream<String>.collectWithRevisionRelay(
                     forwardEvent(history[index])
                 }
             } finally {
-                onCompletion(tracker.applyEventHistory(history).toString())
+                if (tracker != null) onCompletion?.invoke(tracker.applyEventHistory(history).toString())
             }
         }
     }

@@ -154,7 +154,8 @@ object RawSnapshotBackupManager {
                 zos.write(json.encodeToString(manifest).toByteArray(Charsets.UTF_8))
                 zos.closeEntry()
 
-                val alwaysExcluded = OperitPaths.rawSnapshotExcludedFilesTopLevelDirNames()
+                val alwaysExcluded = OperitPaths.rawSnapshotExcludedFilesTopLevelDirNames() +
+                    setOf("subagent-v2-store", "subagent-v2.json", "subagent-v2.json.bak", "subagent-v2.json.new")
                 val excludedNames = if (options.includeTerminalData) {
                     alwaysExcluded
                 } else {
@@ -184,6 +185,17 @@ object RawSnapshotBackupManager {
                 }
                 withContext(Dispatchers.Main) { onProgress?.invoke(ExportProgressInfo(ExportProgress.ZIPPING_FILES, 0)) }
                 val filesMs = measureTimeMillis {
+                    // Copy referenced generations under the store lock, then release it before ZIP I/O.
+                    val collaborationSnapshot = java.nio.file.Files.createTempDirectory(
+                        context.cacheDir.toPath(), "collaboration-backup-"
+                    ).toFile()
+                    try {
+                        com.ai.assistance.operit.core.agent.collaboration.CollaborationStore(context)
+                            .copyForBackup(collaborationSnapshot)
+                        addDirToZip(zos, collaborationSnapshot, ENTRY_FILES)
+                    } finally {
+                        collaborationSnapshot.deleteRecursively()
+                    }
                     addDirToZip(
                         zos = zos,
                         dir = context.filesDir,
@@ -312,6 +324,9 @@ object RawSnapshotBackupManager {
                 AppLogger.i(TAG, "restore replace dirs (preserveTerminalTopLevel=${preservedNames.isNotEmpty()})")
 
                 withContext(Dispatchers.Main) { onProgress?.invoke(RestoreProgress.REPLACING_FILES) }
+                com.ai.assistance.operit.core.agent.collaboration.CollaborationStore.prepareRestore(
+                    File(payloadDir, "files"), context.filesDir
+                )
                 replaceDirContents(File(payloadDir, "files"), context.filesDir, preservedTopLevelDirNames = preservedNames)
                 if (externalFilesPayloadDir.exists()) {
                     val externalFilesDir = requireNotNull(context.getExternalFilesDir(null)) {

@@ -17,11 +17,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.ui.features.chat.components.LocalResponseMessageSection
+import com.ai.assistance.operit.ui.features.chat.components.ResponseMessageSection
 import com.ai.assistance.operit.ui.common.markdown.StreamMarkdownRenderer
 import com.ai.assistance.operit.ui.features.chat.components.ChatMessageHeightMemory
 import com.ai.assistance.operit.ui.features.chat.components.rememberRevisableTextStream
 import com.ai.assistance.operit.ui.features.chat.components.part.CustomXmlRenderer
 import com.ai.assistance.operit.ui.features.chat.components.part.ThinkToolsXmlNodeGrouper
+import com.ai.assistance.operit.ui.features.chat.components.part.parsePersistedToolExecutions
 import com.ai.assistance.operit.ui.features.chat.components.LinkPreviewDialog
 import com.ai.assistance.operit.util.markdown.toCharStream
 import com.ai.assistance.operit.util.stream.Stream
@@ -51,8 +54,15 @@ fun AiMessageComposable(
     forceShowThinkingProcess: Boolean = false,
     overrideStream: Stream<String>? = null,
     heightMemory: ChatMessageHeightMemory? = null,
-    enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
+    enableDialogs: Boolean = true,
+
+    enableToolDetailDialogs: Boolean? = null,
+    inlineContent: (@Composable () -> Unit)? = null,
+    showHeader: Boolean = true,
 ) {
+    val ends = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptCardEnds.current
+    val timelineSlice = com.ai.assistance.operit.ui.common.markdown.LocalTranscriptMarkdownSlice.current
+    val section = LocalResponseMessageSection.current
     val context = LocalContext.current
     val displayPreferencesManager = remember { DisplayPreferencesManager.getInstance(context) }
     val themeSnapshot = LocalThemePreferenceSnapshot.current
@@ -63,6 +73,7 @@ fun AiMessageComposable(
     val showModelProvider = themeSnapshot.showModelProvider
     val showModelName = themeSnapshot.showModelName
     val showRoleName = themeSnapshot.showRoleName
+    val collapseCompletedProcess by displayPreferencesManager.collapseCompletedProcess.collectAsState(initial = true)
     val toolCollapseMode by displayPreferencesManager.toolCollapseMode.collectAsState(initial = ToolCollapseMode.ALL)
 
     // 链接预览弹窗状态
@@ -71,6 +82,8 @@ fun AiMessageComposable(
     
     // 创建并保存StreamMarkdownRenderer的状态，使用message.timestamp作为key确保同一条消息共享状态
     val rendererState = remember(message.timestamp) { StreamMarkdownRendererState() }
+    val persistedToolExecutions =
+        com.ai.assistance.operit.ui.features.chat.components.part.rememberPersistedToolExecutions(message.timestamp, message.content)
 
     // 创建自定义XML渲染器
     val xmlRenderer = remember(
@@ -78,14 +91,20 @@ fun AiMessageComposable(
         showStatusTags,
         initialThinkingExpanded,
         allowExpandedThinkingFullHeight,
-        enableDialogs
+        enableDialogs,
+        enableToolDetailDialogs,
+        message.timestamp,
+        persistedToolExecutions,
     ) {
         CustomXmlRenderer(
             showThinkingProcess = effectiveShowThinkingProcess,
             showStatusTags = showStatusTags,
             initialThinkingExpanded = initialThinkingExpanded,
             allowExpandedThinkingFullHeight = allowExpandedThinkingFullHeight,
-            enableDialogs = enableDialogs  // 传递弹窗启用状态
+            enableDialogs = enableDialogs,
+            enableToolDetailDialogs = enableToolDetailDialogs,  // 传递弹窗启用状态
+            toolTimingScopeId = message.timestamp.toString(),
+            persistedToolExecutions = persistedToolExecutions,
         )
     }
 
@@ -120,13 +139,16 @@ fun AiMessageComposable(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 2.dp)
+                    .padding(top = if (timelineSlice?.first != false) 2.dp else 0.dp,
+                        bottom = if (timelineSlice?.last != false) 2.dp else 0.dp)
                     .onSizeChanged { size ->
-                        heightMemory?.updateMeasured(message.timestamp, size.height)
+                        if (section != ResponseMessageSection.HEADER) {
+                            heightMemory?.updateMeasured(message.timestamp, size.height)
+                        }
                     }
         ) {
         // 构建标题 - 分左右两部分显示
-        Row(
+        if (showHeader && section != ResponseMessageSection.BODY) Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
@@ -175,7 +197,7 @@ fun AiMessageComposable(
         // 使用 message.timestamp 作为 key，确保在重组期间，
         // 只要是同一条消息，StreamMarkdownRenderer就不会被销毁和重建。
         // 这可以防止流被不必要地取消，保证了渲染的连续性。
-        key(message.timestamp) {
+        if (section != ResponseMessageSection.HEADER && inlineContent != null) inlineContent() else if (section != ResponseMessageSection.HEADER) key(message.timestamp) {
             val streamToRender = rememberRevisableTextStream(overrideStream ?: message.contentStream)
             if (streamToRender != null) {
                 // 对于正在流式传输的消息，使用流式渲染器
@@ -198,6 +220,8 @@ fun AiMessageComposable(
                 // 共享相同的state，避免重新计算nodes等状态
                 StreamMarkdownRenderer(
                     content = message.content,
+                    collapseCompletedProcess = collapseCompletedProcess,
+                    responseDurationMs = (message.waitDurationMs + message.outputDurationMs).coerceAtLeast(0L),
                     textColor = textColor,
                     backgroundColor = backgroundColor,
                     onLinkClick = rememberedOnLinkClick,

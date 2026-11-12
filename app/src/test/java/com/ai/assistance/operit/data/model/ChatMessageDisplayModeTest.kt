@@ -14,8 +14,13 @@ class ChatMessageDisplayModeTest {
         assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, ChatMessageDisplayMode.valueOf("HIDDEN_PLACEHOLDER"))
     }
 
-    @Test fun `enum has exactly two values`() {
-        assertEquals(2, ChatMessageDisplayMode.values().size)
+    @Test fun `steered assistant segments round trip by their stored name`() {
+        assertEquals(ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE, ChatMessageDisplayMode.valueOf("ASSISTANT_INTERMEDIATE"))
+    }
+
+    @Test fun `only collaboration rows use the event presentation`() {
+        assertEquals(setOf(ChatMessageDisplayMode.COLLABORATION_EVENT, ChatMessageDisplayMode.COLLABORATION_TASK),
+            ChatMessageDisplayMode.values().filter { it.isCollaborationEvent }.toSet())
     }
 
     @Test fun `valueOf is case sensitive`() {

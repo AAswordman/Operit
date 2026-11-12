@@ -21,7 +21,9 @@ data class ToolInvocation(
         val tool: AITool,
         val rawText: String,
         @Contextual
-        val responseLocation: IntRange // Where in the response this tool invocation was found
+        val responseLocation: IntRange, // Where in the response this tool invocation was found
+        val callId: String? = null,
+        val invocationIndex: Int = -1
 )
 
 /** Represents the result of a tool execution */
@@ -30,8 +32,22 @@ data class ToolResult(
         val toolName: String,
         val success: Boolean,
         val result: ToolResultData,
-        val error: String? = null
+        val error: String? = null,
+        val callId: String? = null,
+        val invocationIndex: Int? = null,
+        val executionDurationMs: Long? = null,
+        val executionState: ToolExecutionState? = null,
+        val isFinal: Boolean = false
 )
+
+@Serializable
+enum class ToolExecutionState {
+    WAITING_AUTHORIZATION,
+    WAITING_EXECUTION,
+    RUNNING,
+    COMPLETED,
+    NOT_EXECUTED
+}
 
 /** Represents the validation result for tool parameters */
 @Serializable data class ToolValidationResult(val valid: Boolean, val errorMessage: String = "")

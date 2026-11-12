@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.services.core
 
+import com.ai.assistance.operit.data.model.ChatKind
+import com.ai.assistance.operit.plugins.toolpkg.ToolPkgChatMessageHookBridge
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
@@ -12,6 +14,8 @@ import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +29,8 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
 import com.ai.assistance.operit.data.model.ChatMessageTimestampAllocator
-import com.ai.assistance.operit.plugins.toolpkg.ToolPkgChatMessageHookBridge
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.CancellationException
 
 /** 委托类，负责管理聊天历史相关功能 */
 class ChatHistoryDelegate(
@@ -37,7 +41,8 @@ class ChatHistoryDelegate(
         private val getEnhancedAiService: () -> EnhancedAIService?,
         private val ensureAiServiceAvailable: () -> Unit = {}, // 确保AI服务可用的回调
         private val getChatStatistics: () -> Triple<Long, Long, Long> = { Triple(0L, 0L, 0L) }, // 获取（输入token, 输出token, 窗口大小）
-        private val onScrollToBottom: () -> Unit = {} // 滚动到底部事件回调
+        private val onScrollToBottom: () -> Unit = {}, // 滚动到底部事件回调
+        private val onStableHistoryLoaded: suspend (String) -> Unit = {},
 ) {
     companion object {
         private const val TAG = "ChatHistoryDelegate"
@@ -52,6 +57,7 @@ class ChatHistoryDelegate(
     private val activePromptManager = ActivePromptManager.getInstance(context)
     private val isInitialized = AtomicBoolean(false)
     private val historyUpdateMutex = Mutex()
+    private val transcriptProcessMutex = Mutex()
     private val allowAddMessage = AtomicBoolean(true) // 控制是否允许添加消息，切换对话时设为false
     private var beforeDestructiveHistoryMutation: (suspend (String) -> Unit)? = null
     private var afterDestructiveHistoryMutation: (suspend (String) -> Unit)? = null
@@ -64,11 +70,17 @@ class ChatHistoryDelegate(
     // State flows
     private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory.asStateFlow()
+    private val _displayedChatId = MutableStateFlow<String?>(null)
+    val displayedChatId: StateFlow<String?> = _displayedChatId.asStateFlow()
     private val currentChatWindow = CurrentChatWindowController()
     val hasOlderDisplayHistory: StateFlow<Boolean> = currentChatWindow.hasOlderDisplayHistory
     val hasNewerDisplayHistory: StateFlow<Boolean> = currentChatWindow.hasNewerDisplayHistory
     val isLoadingDisplayWindow: StateFlow<Boolean> = currentChatWindow.isLoadingDisplayWindow
     private val latestDisplayPageCountByChatId = mutableMapOf<String, Int>()
+    private var currentStructure = TranscriptStructure(emptyList())
+    private val _processMetadata =
+        MutableStateFlow<List<com.ai.assistance.operit.data.model.ChatMessageProcessMetadata>>(emptyList())
+    val processMetadata = _processMetadata.asStateFlow()
 
     fun setBeforeDestructiveHistoryMutation(handler: suspend (String) -> Unit) {
         beforeDestructiveHistoryMutation = handler
@@ -79,6 +91,7 @@ class ChatHistoryDelegate(
     }
 
     private suspend fun prepareChatForDestructiveMutation(chatId: String) {
+        if (_currentChatId.value == chatId) currentChatWindow.invalidateLoads()
         beforeDestructiveHistoryMutation?.invoke(chatId)
     }
 
@@ -88,6 +101,9 @@ class ChatHistoryDelegate(
 
     private fun clearCurrentChatHistoryInMemory() {
         _chatHistory.value = emptyList()
+        _displayedChatId.value = null
+        _processMetadata.value = emptyList()
+        currentStructure = TranscriptStructure(emptyList())
         currentChatWindow.reset()
     }
 
@@ -104,11 +120,36 @@ class ChatHistoryDelegate(
         )
     }
 
+    private suspend fun loadStructure(chatId: String): TranscriptStructure =
+        withContext(Dispatchers.Default) {
+            TranscriptStructure(chatHistoryManager.loadChatMessageProcessMetadata(chatId))
+        }
+
+    private fun topLevelMessages(messages: List<ChatMessage>): List<ChatMessage> {
+        val structure = currentStructure
+        return messages.filter { message ->
+            structure.turnByTimestamp[message.timestamp]?.let {
+                it.finalTimestamp == message.timestamp
+            } ?: true
+        }
+    }
+
+    private fun retainLoadedProcessBodies(logical: List<ChatMessage>): List<ChatMessage> {
+        val loaded = _chatHistory.value
+        val retained = currentStructure.retainedTimestamps(
+            logical.mapTo(hashSetOf()) { it.timestamp }, loaded.map { it.timestamp })
+        return (logical + loaded.filter { it.timestamp in retained })
+            .distinctBy { it.timestamp }.sortedBy { it.timestamp }
+    }
+
     private suspend fun refreshCurrentChatDisplayFlags(
         chatId: String,
         messages: List<ChatMessage> = _chatHistory.value,
     ) {
+        val generation = currentChatWindow.generation()
         val loadResult = buildCurrentChatLoadResult(chatId, messages)
+        if (_currentChatId.value != chatId || !currentChatWindow.isCurrent(generation) ||
+            _chatHistory.value !== messages) return
         setCurrentChatMessagesInMemory(
             messages = loadResult.messages,
             hasOlderPersistedHistory = loadResult.hasOlderPersistedHistory,
@@ -119,15 +160,19 @@ class ChatHistoryDelegate(
     private suspend fun buildCurrentChatLoadResult(
         chatId: String,
         messages: List<ChatMessage>,
+        structure: TranscriptStructure? = null,
     ): CurrentChatWindowLoadResult {
-        val displayStartTimestamp = messages.firstOrNull()?.timestamp
-        val displayEndTimestamp = messages.lastOrNull()?.timestamp
+        val resolvedStructure = structure ?: loadStructure(chatId)
+        val topLevel = resolvedStructure.topLevelRows.mapTo(hashSetOf()) { it.timestamp }
+        val visible = messages.map { it.timestamp }.filter { it in topLevel }
+        val displayStartTimestamp = visible.firstOrNull()
+        val displayEndTimestamp = visible.lastOrNull()
         val hasOlderPersistedHistory =
             displayStartTimestamp != null &&
-                chatHistoryManager.hasMessagesBefore(chatId, displayStartTimestamp)
+                topLevel.any { it < displayStartTimestamp }
         val hasNewerPersistedHistory =
             displayEndTimestamp != null &&
-                chatHistoryManager.hasMessagesAfter(chatId, displayEndTimestamp)
+                topLevel.any { it > displayEndTimestamp }
         return CurrentChatWindowLoadResult(
             messages = messages,
             hasOlderPersistedHistory = hasOlderPersistedHistory,
@@ -138,16 +183,38 @@ class ChatHistoryDelegate(
     private suspend fun applyCurrentChatDisplayWindow(
         chatId: String,
         messages: List<ChatMessage>,
-    ): List<ChatMessage> {
-        val loadResult = buildCurrentChatLoadResult(chatId, messages)
-        currentChatWindow.applyLoadResult(loadResult, _chatHistory)
+        expectedMessages: List<ChatMessage>? = null,
+        generation: Long = currentChatWindow.generation(),
+        mergePage: Boolean = false,
+    ): List<ChatMessage>? {
+        val structure = loadStructure(chatId)
+        val metadata = structure.rows
+        val present = messages.mapTo(mutableSetOf()) { it.timestamp }
+        val missingFinals = messages.mapNotNull { structure.turnByTimestamp[it.timestamp]?.finalTimestamp }
+            .distinct().filterNot { it in present }
+        val completeWindow = (messages + chatHistoryManager.loadChatMessagesByTimestamps(chatId, missingFinals))
+            .sortedBy { it.timestamp }
+        val loadResult = buildCurrentChatLoadResult(chatId, completeWindow, structure)
+        if (_currentChatId.value != chatId || !currentChatWindow.isCurrent(generation)) return null
+        val committed = if (mergePage) {
+            // Merge into the state at submission, not the snapshot taken before IO.
+            val merged = mergeLoadedTranscriptMessages(_chatHistory.value, loadResult.messages)
+            buildCurrentChatLoadResult(chatId, merged, structure)
+        } else loadResult
+        if (!currentChatWindow.tryApplyLoadResult(
+                committed, _chatHistory, generation, expectedMessages)) return null
+        currentStructure = structure
+        _processMetadata.value = metadata
+        if (_currentChatId.value == chatId) {
+            _displayedChatId.value = chatId
+        }
         if (loadResult.messages.isEmpty()) {
             latestDisplayPageCountByChatId.remove(chatId)
         } else if (!loadResult.hasNewerPersistedHistory) {
             latestDisplayPageCountByChatId[chatId] =
                 countDisplayPages(loadResult.messages).coerceIn(1, MAX_DISPLAY_PAGE_COUNT)
         }
-        return loadResult.messages
+        return committed.messages
     }
 
     private fun currentDisplayPageCount(): Int {
@@ -159,41 +226,7 @@ class ChatHistoryDelegate(
         pageCount: Int,
         endTimestampInclusive: Long? = null,
     ): List<ChatMessage> {
-        val collectedMessagesDesc = mutableListOf<ChatMessage>()
-        var beforeTimestampExclusive: Long? = null
-
-        while (true) {
-            val batch =
-                if (endTimestampInclusive != null && beforeTimestampExclusive == null) {
-                    chatHistoryManager.loadChatMessagesDescUpTo(
-                        chatId = chatId,
-                        maxTimestampInclusive = endTimestampInclusive,
-                        limit = DISPLAY_WINDOW_QUERY_BATCH_SIZE,
-                    )
-                } else {
-                    chatHistoryManager.loadChatMessagesDesc(
-                        chatId = chatId,
-                        limit = DISPLAY_WINDOW_QUERY_BATCH_SIZE,
-                        beforeTimestampExclusive = beforeTimestampExclusive,
-                    )
-                }
-            if (batch.isEmpty()) {
-                break
-            }
-
-            collectedMessagesDesc += batch
-            val currentAscendingMessages = collectedMessagesDesc.asReversed()
-            if (countDisplayPages(currentAscendingMessages) >= pageCount) {
-                return takeNewestDisplayPages(currentAscendingMessages, pageCount)
-            }
-
-            beforeTimestampExclusive = batch.lastOrNull()?.timestamp
-            if (batch.size < DISPLAY_WINDOW_QUERY_BATCH_SIZE || beforeTimestampExclusive == null) {
-                break
-            }
-        }
-
-        return takeNewestDisplayPages(collectedMessagesDesc.asReversed(), pageCount)
+        return loadTranscriptPages(chatId, pageCount, upTo = endTimestampInclusive)
     }
 
     private suspend fun collectOlderDisplayPagesBefore(
@@ -201,33 +234,7 @@ class ChatHistoryDelegate(
         beforeTimestampExclusive: Long,
         pageCount: Int,
     ): List<ChatMessage> {
-        val collectedMessagesDesc = mutableListOf<ChatMessage>()
-        var nextBeforeTimestampExclusive = beforeTimestampExclusive
-
-        while (true) {
-            val batch =
-                chatHistoryManager.loadChatMessagesDesc(
-                    chatId = chatId,
-                    limit = DISPLAY_WINDOW_QUERY_BATCH_SIZE,
-                    beforeTimestampExclusive = nextBeforeTimestampExclusive,
-                )
-            if (batch.isEmpty()) {
-                break
-            }
-
-            collectedMessagesDesc += batch
-            val currentAscendingMessages = collectedMessagesDesc.asReversed()
-            if (countDisplayPages(currentAscendingMessages) >= pageCount) {
-                return takeNewestDisplayPages(currentAscendingMessages, pageCount)
-            }
-
-            nextBeforeTimestampExclusive = batch.lastOrNull()?.timestamp ?: break
-            if (batch.size < DISPLAY_WINDOW_QUERY_BATCH_SIZE) {
-                break
-            }
-        }
-
-        return takeNewestDisplayPages(collectedMessagesDesc.asReversed(), pageCount)
+        return loadTranscriptPages(chatId, pageCount, before = beforeTimestampExclusive)
     }
 
     private suspend fun collectNewerDisplayPagesAfter(
@@ -235,68 +242,79 @@ class ChatHistoryDelegate(
         afterTimestampExclusive: Long,
         pageCount: Int,
     ): List<ChatMessage> {
-        val collectedMessagesAsc = mutableListOf<ChatMessage>()
-        var nextAfterTimestampExclusive = afterTimestampExclusive
+        return loadTranscriptPages(chatId, pageCount, after = afterTimestampExclusive)
+    }
 
-        while (true) {
-            val batch =
-                chatHistoryManager.loadChatMessagesAscAfter(
-                    chatId = chatId,
-                    afterTimestampExclusive = nextAfterTimestampExclusive,
-                    limit = DISPLAY_WINDOW_QUERY_BATCH_SIZE,
-                )
-            if (batch.isEmpty()) {
-                break
-            }
+    private suspend fun loadTranscriptPages(
+        chatId: String,
+        pageCount: Int,
+        before: Long? = null,
+        after: Long? = null,
+        upTo: Long? = null,
+    ): List<ChatMessage> {
+        val structure = loadStructure(chatId)
+        val candidates = structure.topLevelRows.filter {
+            (before == null || it.timestamp < before) && (after == null || it.timestamp > after) &&
+                (upTo == null || it.timestamp <= upTo)
+        }.map { ChatMessage(timestamp = it.timestamp, sender = it.sender, content = "") }
+        val page = if (after != null) takeOldestDisplayPages(candidates, pageCount)
+            else takeNewestDisplayPages(candidates, pageCount)
+        return chatHistoryManager.loadChatMessagesByTimestamps(chatId, page.map { it.timestamp })
+    }
 
-            collectedMessagesAsc += batch
-            if (countDisplayPages(collectedMessagesAsc) >= pageCount) {
-                return takeOldestDisplayPages(collectedMessagesAsc, pageCount)
-            }
-
-            nextAfterTimestampExclusive = batch.lastOrNull()?.timestamp ?: break
-            if (batch.size < DISPLAY_WINDOW_QUERY_BATCH_SIZE) {
-                break
-            }
+    suspend fun loadTranscriptProcess(key: Long) {
+        if (!transcriptProcessMutex.tryLock()) return
+        try {
+        val chatId = _currentChatId.value ?: return
+        val generation = currentChatWindow.generation()
+        val structure = loadStructure(chatId)
+        val turn = structure.turns.firstOrNull { it.key == key } ?: return
+        val present = _chatHistory.value.mapTo(hashSetOf()) { it.timestamp }
+        if (turn.finalTimestamp !in present) return
+        val missing = turn.memberTimestamps.filterNot { it in present }.take(32)
+        if (missing.isEmpty()) return
+        val loaded = chatHistoryManager.loadChatMessagesByTimestamps(chatId, missing)
+        if (_currentChatId.value != chatId || !currentChatWindow.isCurrent(generation)) return
+        if (_chatHistory.value.none { it.timestamp == turn.finalTimestamp }) return
+        val current = _chatHistory.value
+        val merged = (loaded + current).associateBy { it.timestamp }.values.sortedBy { it.timestamp }
+        applyCurrentChatDisplayWindow(chatId, merged, expectedMessages = current, generation = generation)
+        } finally {
+            transcriptProcessMutex.unlock()
         }
-
-        return takeOldestDisplayPages(collectedMessagesAsc, pageCount)
     }
 
     private suspend fun loadLatestCurrentChatDisplayWindow(
         chatId: String,
         pageCount: Int = 1,
+        generation: Long = currentChatWindow.generation(),
     ): List<ChatMessage> {
         return applyCurrentChatDisplayWindow(
             chatId = chatId,
             messages = collectNewestDisplayPages(chatId, pageCount.coerceIn(1, MAX_DISPLAY_PAGE_COUNT)),
-        )
+            generation = generation,
+        ) ?: _chatHistory.value
     }
 
     private suspend fun reloadCurrentChatDisplayHistory(chatId: String): List<ChatMessage> {
-        val currentMessages = _chatHistory.value
-        if (currentMessages.isEmpty()) {
-            return loadLatestCurrentChatDisplayWindow(chatId)
+        val generation = currentChatWindow.generation()
+        while (_currentChatId.value == chatId && currentChatWindow.isCurrent(generation)) {
+            val currentMessages = _chatHistory.value
+            val structure = loadStructure(chatId)
+            val timestamps = retainedTranscriptReloadTimestamps(
+                structure, currentMessages.map { it.timestamp },
+                currentChatWindow.hasPersistedNewerHistoryNow(),
+            )
+            // Storage stays authoritative for edits/deletions. A concurrent page/process
+            // load invalidates this snapshot; retry rather than discard newly opened rows.
+            val reloadedMessages = chatHistoryManager.loadChatMessagesByTimestamps(chatId, timestamps)
+                .ifEmpty { collectNewestDisplayPages(chatId, 1) }
+            val committed = applyCurrentChatDisplayWindow(
+                chatId, reloadedMessages, expectedMessages = currentMessages, generation = generation,
+            )
+            if (committed != null) return committed
         }
-
-        val currentPageCount = currentDisplayPageCount()
-        val reloadedMessages =
-            if (currentChatWindow.hasPersistedNewerHistoryNow()) {
-                val displayEndTimestamp = currentChatWindow.currentDisplayEndTimestamp()
-                if (displayEndTimestamp == null) {
-                    collectNewestDisplayPages(chatId, currentPageCount)
-                } else {
-                    collectNewestDisplayPages(
-                        chatId = chatId,
-                        pageCount = currentPageCount,
-                        endTimestampInclusive = displayEndTimestamp,
-                    )
-                }
-            } else {
-                collectNewestDisplayPages(chatId, currentPageCount)
-            }
-
-        return applyCurrentChatDisplayWindow(chatId, reloadedMessages)
+        return _chatHistory.value
     }
 
     private suspend fun runDestructiveHistoryMutation(
@@ -335,6 +353,22 @@ class ChatHistoryDelegate(
 
     suspend fun getChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadChatMessages(chatId)
+
+    suspend fun getPersistedMessage(chatId: String, timestamp: Long): ChatMessage? =
+        chatHistoryManager.loadChatMessagesWindow(chatId, timestamp, timestamp)
+            .firstOrNull { it.sender == "ai" }
+
+    suspend fun getUserMessageCount(chatId: String): Int =
+        chatHistoryManager.getUserMessageCount(chatId)
+
+    suspend fun isSubagentChat(chatId: String): Boolean =
+        chatHistoryManager.getChatHistorySnapshot(chatId)?.chatKind == ChatKind.SUBAGENT.name
+
+    suspend fun chatExists(chatId: String): Boolean =
+        chatHistoryManager.chatExists(chatId)
+
+    suspend fun getChatMetadata(chatId: String): ChatHistory? =
+        chatHistoryManager.getChatHistorySnapshot(chatId)
 
     suspend fun getRuntimeChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadRuntimeChatMessages(chatId)
@@ -375,39 +409,26 @@ class ChatHistoryDelegate(
         }
 
         val chatId = _currentChatId.value ?: return false
+        currentChatWindow.invalidateLoads()
+        val generation = currentChatWindow.generation()
         if (!currentChatWindow.beginLoadingDisplayWindow()) {
             return false
         }
         return try {
-            val locatorEntries = chatHistoryManager.loadChatMessageLocatorPreviews(chatId)
-            val pageRanges = resolveDisplayPageRanges(locatorEntries)
-            val targetPageIndex =
-                pageRanges.indexOfFirst { range ->
-                    targetTimestamp in range.startTimestampInclusive..range.endTimestampInclusive
-                }
-            if (targetPageIndex < 0) {
+            val structure = loadStructure(chatId)
+            if (structure.rows.none { it.timestamp == targetTimestamp }) {
                 currentChatWindow.finishLoadingDisplayWindowFailure()
                 return false
             }
-
-            val windowStartPageIndex =
-                if (targetPageIndex < pageRanges.lastIndex) {
-                    targetPageIndex
-                } else {
-                    (targetPageIndex - (MAX_DISPLAY_PAGE_COUNT - 1)).coerceAtLeast(0)
-                }
-            val windowEndPageIndex =
-                (windowStartPageIndex + MAX_DISPLAY_PAGE_COUNT - 1).coerceAtMost(pageRanges.lastIndex)
-            val revealedMessages =
-                chatHistoryManager.loadChatMessagesWindow(
-                    chatId = chatId,
-                    startTimestampInclusive = pageRanges[windowStartPageIndex].startTimestampInclusive,
-                    endTimestampInclusive = pageRanges[windowEndPageIndex].endTimestampInclusive,
-                )
-            applyCurrentChatDisplayWindow(chatId, revealedMessages)
+            val finalTimestamp = structure.turnByTimestamp[targetTimestamp]?.finalTimestamp ?: targetTimestamp
+            val page = loadTranscriptPages(chatId, 1, upTo = finalTimestamp)
+            val target = chatHistoryManager.loadChatMessagesByTimestamps(chatId, listOf(targetTimestamp))
+            val revealedMessages = (page + target).distinctBy { it.timestamp }.sortedBy { it.timestamp }
+            applyCurrentChatDisplayWindow(chatId, revealedMessages, generation = generation)
             _chatHistory.value.any { it.timestamp == targetTimestamp }
         } catch (e: Exception) {
-            currentChatWindow.finishLoadingDisplayWindowFailure()
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
+            if (e is CancellationException) throw e
             AppLogger.e(TAG, "定位当前聊天消息失败", e)
             false
         }
@@ -415,14 +436,14 @@ class ChatHistoryDelegate(
 
     suspend fun loadOlderMessagesForCurrentChat(): Boolean {
         val chatId = _currentChatId.value ?: return false
-        val currentMessages = _chatHistory.value
-        val displayStartTimestamp = currentChatWindow.currentDisplayStartTimestamp() ?: return false
+        val generation = currentChatWindow.generation()
+        val currentMessages = topLevelMessages(_chatHistory.value)
+        val displayStartTimestamp = currentMessages.firstOrNull()?.timestamp ?: return false
         if (!currentChatWindow.hasPersistedOlderHistoryNow() || !currentChatWindow.beginLoadingDisplayWindow()) {
             return false
         }
 
         return try {
-            val currentPageCount = countDisplayPages(currentMessages).coerceIn(1, MAX_DISPLAY_PAGE_COUNT)
             val olderPage =
                 collectOlderDisplayPagesBefore(
                     chatId = chatId,
@@ -430,23 +451,22 @@ class ChatHistoryDelegate(
                     pageCount = 1,
                 )
             if (olderPage.isEmpty()) {
-                currentChatWindow.finishLoadingDisplayWindowFailure()
+                currentChatWindow.finishLoadingDisplayWindowFailure(generation)
                 false
             } else {
-                val retainedCurrentMessages =
-                    if (currentPageCount < MAX_DISPLAY_PAGE_COUNT) {
-                        currentMessages
-                    } else {
-                        takeOldestDisplayPages(currentMessages, MAX_DISPLAY_PAGE_COUNT - 1)
-                    }
                 applyCurrentChatDisplayWindow(
                     chatId = chatId,
-                    messages = olderPage + retainedCurrentMessages,
+                    messages = olderPage,
+                    generation = generation,
+                    mergePage = true,
                 )
                 true
             }
+        } catch (e: CancellationException) {
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
+            throw e
         } catch (e: Exception) {
-            currentChatWindow.finishLoadingDisplayWindowFailure()
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
             AppLogger.e(TAG, "加载当前聊天更早历史失败", e)
             false
         }
@@ -454,15 +474,12 @@ class ChatHistoryDelegate(
 
     suspend fun loadNewerMessagesForCurrentChat(): Boolean {
         val chatId = _currentChatId.value ?: return false
-        val currentMessages = _chatHistory.value
+        val generation = currentChatWindow.generation()
+        val currentMessages = topLevelMessages(_chatHistory.value)
         if (currentMessages.isEmpty()) {
             return false
         }
-        val currentPageCount = countDisplayPages(currentMessages).coerceIn(1, MAX_DISPLAY_PAGE_COUNT)
-        if (
-            !currentChatWindow.hasPersistedNewerHistoryNow() &&
-                currentPageCount <= 1
-        ) {
+        if (!currentChatWindow.hasPersistedNewerHistoryNow()) {
             return false
         }
         if (!currentChatWindow.beginLoadingDisplayWindow()) {
@@ -470,10 +487,8 @@ class ChatHistoryDelegate(
         }
 
         return try {
-            val retainedNewestMessages =
-                takeNewestDisplayPages(currentMessages, (currentPageCount - 1).coerceAtLeast(0))
             val newerPage =
-                currentChatWindow.currentDisplayEndTimestamp()?.let { displayEndTimestamp ->
+                currentMessages.lastOrNull()?.timestamp?.let { displayEndTimestamp ->
                     if (currentChatWindow.hasPersistedNewerHistoryNow()) {
                         collectNewerDisplayPagesAfter(
                             chatId = chatId,
@@ -485,16 +500,14 @@ class ChatHistoryDelegate(
                     }
                 }.orEmpty()
 
-            val nextMessages =
-                when {
-                    newerPage.isNotEmpty() -> retainedNewestMessages + newerPage
-                    retainedNewestMessages.isNotEmpty() -> retainedNewestMessages
-                    else -> takeNewestDisplayPages(currentMessages, 1)
-                }
-            applyCurrentChatDisplayWindow(chatId, nextMessages)
+            applyCurrentChatDisplayWindow(chatId, newerPage, generation = generation,
+                mergePage = true)
             true
+        } catch (e: CancellationException) {
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
+            throw e
         } catch (e: Exception) {
-            currentChatWindow.finishLoadingDisplayWindowFailure()
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
             AppLogger.e(TAG, "加载当前聊天更新历史失败", e)
             false
         }
@@ -505,6 +518,8 @@ class ChatHistoryDelegate(
         if (!currentChatWindow.hasNewerDisplayHistoryNow() && _chatHistory.value.isNotEmpty()) {
             return false
         }
+        currentChatWindow.invalidateLoads()
+        val generation = currentChatWindow.generation()
         if (!currentChatWindow.beginLoadingDisplayWindow()) {
             return false
         }
@@ -512,7 +527,8 @@ class ChatHistoryDelegate(
             loadLatestCurrentChatDisplayWindow(chatId)
             true
         } catch (e: Exception) {
-            currentChatWindow.finishLoadingDisplayWindowFailure()
+            currentChatWindow.finishLoadingDisplayWindowFailure(generation)
+            if (e is CancellationException) throw e
             AppLogger.e(TAG, "切换到当前聊天最新窗口失败", e)
             false
         }
@@ -523,6 +539,8 @@ class ChatHistoryDelegate(
 
     private val _chatHistories = MutableStateFlow<List<ChatHistory>>(emptyList())
     val chatHistories: StateFlow<List<ChatHistory>> = _chatHistories.asStateFlow()
+    private val _chatHistoriesLoaded = MutableStateFlow(false)
+    val chatHistoriesLoaded: StateFlow<Boolean> = _chatHistoriesLoaded.asStateFlow()
 
     private val _currentChatId = MutableStateFlow<String?>(null)
     val currentChatId: StateFlow<String?> = _currentChatId.asStateFlow()
@@ -540,8 +558,9 @@ class ChatHistoryDelegate(
         }
 
         coroutineScope.launch {
-            chatHistoryManager.chatHistoriesFlow.collect { histories ->
+            chatHistoryManager.allChatHistoriesUpdatesFlow.collect { histories ->
                 _chatHistories.value = histories
+                _chatHistoriesLoaded.value = true
 
                 val currentId = _currentChatId.value
                 if (currentId != null && histories.none { it.id == currentId }) {
@@ -616,9 +635,15 @@ class ChatHistoryDelegate(
     }
 
     private suspend fun loadChatMessages(chatId: String) {
+        currentChatWindow.invalidateLoads()
+        val generation = currentChatWindow.generation()
         try {
-            val initialPageCount = latestDisplayPageCountByChatId[chatId] ?: 1
-            val messages = loadLatestCurrentChatDisplayWindow(chatId, pageCount = initialPageCount)
+            // Restore only a bounded page. VirtualTranscript reveals the saved timestamp
+            // while its restoration placeholder is active; expanded bodies load on demand.
+            val messages = loadLatestCurrentChatDisplayWindow(
+                chatId, pageCount = 1, generation = generation,
+            )
+            if (_currentChatId.value != chatId || !currentChatWindow.isCurrent(generation)) return
             AppLogger.d(TAG, "加载聊天 $chatId 的消息：${messages.size} 条")
 
             // 查找聊天元数据，更新token统计
@@ -631,11 +656,14 @@ class ChatHistoryDelegate(
 
             // 打开历史对话时也执行开场白同步：仅当当前会话还没有用户消息时
             syncOpeningStatementIfNoUserMessage(chatId)
+            onStableHistoryLoaded(chatId)
 
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             AppLogger.e(TAG, "加载聊天消息失败", e)
         } finally {
-            allowAddMessage.set(true)
+            if (_currentChatId.value == chatId && currentChatWindow.isCurrent(generation)) allowAddMessage.set(true)
             AppLogger.d(TAG, "聊天 $chatId 加载流程结束，已允许添加消息")
         }
     }
@@ -666,7 +694,8 @@ class ChatHistoryDelegate(
         AppLogger.d(TAG, "开始同步开场白，聊天ID: $chatId")
 
         historyUpdateMutex.withLock {
-            val chatMeta = _chatHistories.value.firstOrNull { it.id == chatId }
+            val chatMeta = chatHistoryManager.getChatHistorySnapshot(chatId)
+            if (chatMeta?.chatKind == ChatKind.SUBAGENT.name) return@withLock
             if (!chatMeta?.characterGroupId.isNullOrBlank()) {
                 AppLogger.d(TAG, "聊天 $chatId 绑定群组角色卡，跳过开场白同步")
                 return@withLock
@@ -778,7 +807,8 @@ class ChatHistoryDelegate(
         group: String? = null,
         inheritGroupFromCurrent: Boolean = true,
         setAsCurrentChat: Boolean = true,
-        characterCardId: String? = null
+        characterCardId: String? = null,
+        onCreated: ((String) -> Unit)? = null,
     ) {
         coroutineScope.launch {
             val (inputTokens, outputTokens, windowSize) = getChatStatistics()
@@ -857,11 +887,12 @@ class ChatHistoryDelegate(
                 }
                 onTokenStatisticsLoaded(newChat.id, 0, 0, 0)
             }
+            onCreated?.invoke(newChat.id)
         }
     }
 
     /** 切换聊天 */
-    fun switchChat(chatId: String, syncToGlobal: Boolean = true) {
+    fun switchChat(chatId: String, syncToGlobal: Boolean = true, scrollToBottom: Boolean = true) {
         coroutineScope.launch {
             // 切换对话时，禁止添加消息
             allowAddMessage.set(false)
@@ -888,7 +919,7 @@ class ChatHistoryDelegate(
                     loadChatMessages(chatId)
                 }
 
-                onScrollToBottom()
+                if (scrollToBottom) onScrollToBottom()
             } finally {
                 if (!allowAddMessage.get()) {
                     allowAddMessage.set(true)
@@ -1010,7 +1041,7 @@ class ChatHistoryDelegate(
     ): ChatHistory? {
         return _chatHistories.value
             .asSequence()
-            .filter { history -> history.id != deletingChatId }
+            .filter { history -> history.id != deletingChatId && history.chatKind != ChatKind.SUBAGENT.name }
             .filter { history -> matchesDeletionReplacementTarget(history, target) }
             .maxByOrNull { history -> history.updatedAt }
     }
@@ -1214,17 +1245,17 @@ class ChatHistoryDelegate(
     }
 
     /** 清空当前聊天 */
-    fun clearCurrentChat(onResult: (Boolean) -> Unit = {}) {
+    fun clearCurrentChat(onResult: (deleted: Boolean, deletedChatId: String?) -> Unit = { _, _ -> }) {
         coroutineScope.launch {
             val chatId = _currentChatId.value
             if (chatId == null) {
                 createNewChat()
-                onResult(false)
+                onResult(false, null)
                 return@launch
             }
 
             if (!chatHistoryManager.canDeleteChatHistory(chatId)) {
-                onResult(false)
+                onResult(false, chatId)
                 return@launch
             }
             prepareChatForDestructiveMutation(chatId)
@@ -1235,7 +1266,7 @@ class ChatHistoryDelegate(
                 } else {
                     chatHistoryManager.deleteChatHistory(chatId)
                 }
-            onResult(deleted)
+            onResult(deleted, chatId)
         }
     }
 
@@ -1409,12 +1440,10 @@ class ChatHistoryDelegate(
             return false
         }
 
-        val currentPageCount = countDisplayPages(currentMessages).coerceIn(1, MAX_DISPLAY_PAGE_COUNT)
         val updatedMessages = currentMessages + message
-        val windowMessages = takeNewestDisplayPages(updatedMessages, currentPageCount)
         AppLogger.d(TAG, "向当前会话内存追加消息, ts: ${message.timestamp}")
         setCurrentChatMessagesInMemory(
-            messages = windowMessages,
+            messages = updatedMessages,
             hasOlderPersistedHistory = currentChatWindow.hasPersistedOlderHistoryNow(),
             hasNewerPersistedHistory = false,
         )
@@ -1466,7 +1495,8 @@ class ChatHistoryDelegate(
                     "添加新消息到聊天 $targetChatId, isCurrent=$isCurrentChat, stream is null: ${message.contentStream == null}, ts: ${message.timestamp}"
                 )
                 if (isVisibleNewMessage) {
-                    chatHistoryManager.addMessage(targetChatId, message)
+                    // Absence from the paged display window does not mean absence from storage.
+                    chatHistoryManager.updateMessage(targetChatId, message)
                     ToolPkgChatMessageHookBridge.dispatchMessagePersisted(targetChatId, message)
                     refreshCurrentChatDisplayFlags(targetChatId)
                 } else {
@@ -1598,59 +1628,58 @@ class ChatHistoryDelegate(
         beforeTimestamp: Long?,
         afterTimestamp: Long?,
         chatIdOverride: String? = null,
-    ) {
-        historyUpdateMutex.withLock {
-            val chatId = chatIdOverride ?: _currentChatId.value ?: return@withLock
-            val isCurrentChat = chatId == _currentChatId.value
-            val currentDisplayStartTimestamp = currentChatWindow.currentDisplayStartTimestamp()
-            val currentDisplayEndTimestamp = currentChatWindow.currentDisplayEndTimestamp()
-            val currentPageCount = currentDisplayPageCount()
-            val persistedSummaryMessage =
-                chatHistoryManager.addSummaryMessageBetweenSliceNeighbors(
-                    chatId = chatId,
-                    message = summaryMessage,
-                    beforeTimestamp = beforeTimestamp,
-                    afterTimestamp = afterTimestamp,
-                )
-
-            if (persistedSummaryMessage == null) {
-                AppLogger.w(
-                    TAG,
-                    "总结消息插入被跳过: chatId=$chatId, before=$beforeTimestamp, after=$afterTimestamp",
-                )
-                return@withLock
-            }
-
-            AppLogger.d(
-                TAG,
-                "添加总结消息: chatId=$chatId, persistedTimestamp=${persistedSummaryMessage.timestamp}, before=$beforeTimestamp, after=$afterTimestamp",
+    ): Boolean = historyUpdateMutex.withLock {
+        val chatId = chatIdOverride ?: _currentChatId.value ?: return@withLock false
+        val isCurrentChat = chatId == _currentChatId.value
+        val currentDisplayStartTimestamp = currentChatWindow.currentDisplayStartTimestamp()
+        val currentDisplayEndTimestamp = currentChatWindow.currentDisplayEndTimestamp()
+        val currentPageCount = currentDisplayPageCount()
+        val persistedSummaryMessage =
+            chatHistoryManager.addSummaryMessageBetweenSliceNeighbors(
+                chatId = chatId,
+                message = summaryMessage,
+                beforeTimestamp = beforeTimestamp,
+                afterTimestamp = afterTimestamp,
             )
 
-            // 更新消息列表
-            if (isCurrentChat) {
-                if (
-                    currentDisplayEndTimestamp != null &&
-                    persistedSummaryMessage.timestamp > currentDisplayEndTimestamp
-                ) {
-                    applyCurrentChatDisplayWindow(
-                        chatId = chatId,
-                        messages =
-                            collectNewestDisplayPages(
-                                chatId = chatId,
-                                pageCount = currentPageCount,
-                                endTimestampInclusive = persistedSummaryMessage.timestamp,
-                            ),
-                    )
-                } else if (
-                    currentDisplayStartTimestamp != null &&
-                    persistedSummaryMessage.timestamp < currentDisplayStartTimestamp
-                ) {
-                    revealMessageForCurrentChat(persistedSummaryMessage.timestamp)
-                } else {
-                    reloadCurrentChatDisplayHistory(chatId)
-                }
+        if (persistedSummaryMessage == null) {
+            AppLogger.w(
+                TAG,
+                "总结消息插入被跳过: chatId=$chatId, before=$beforeTimestamp, after=$afterTimestamp",
+            )
+            return@withLock false
+        }
+
+        AppLogger.d(
+            TAG,
+            "添加总结消息: chatId=$chatId, persistedTimestamp=${persistedSummaryMessage.timestamp}, before=$beforeTimestamp, after=$afterTimestamp",
+        )
+
+        // 更新消息列表
+        if (isCurrentChat) {
+            if (
+                currentDisplayEndTimestamp != null &&
+                persistedSummaryMessage.timestamp > currentDisplayEndTimestamp
+            ) {
+                applyCurrentChatDisplayWindow(
+                    chatId = chatId,
+                    messages =
+                        collectNewestDisplayPages(
+                            chatId = chatId,
+                            pageCount = currentPageCount,
+                            endTimestampInclusive = persistedSummaryMessage.timestamp,
+                        ),
+                )
+            } else if (
+                currentDisplayStartTimestamp != null &&
+                persistedSummaryMessage.timestamp < currentDisplayStartTimestamp
+            ) {
+                revealMessageForCurrentChat(persistedSummaryMessage.timestamp)
+            } else {
+                reloadCurrentChatDisplayHistory(chatId)
             }
         }
+        true
     }
 
     // This function is moved to AIMessageManager

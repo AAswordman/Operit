@@ -104,6 +104,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatHistory
+import com.ai.assistance.operit.data.model.ChatKind
 import com.ai.assistance.operit.data.model.CharacterCard
 import com.ai.assistance.operit.data.model.CharacterGroupCard
 import com.ai.assistance.operit.data.model.ActivePrompt
@@ -452,6 +453,7 @@ fun ChatHistorySelector(
 ) {
     var chatToEdit by remember { mutableStateOf<ChatHistory?>(null) }
     var chatToDelete by remember { mutableStateOf<ChatHistory?>(null) }
+    var chatToDeleteChildCount by remember { mutableStateOf(0) }
     var chatItemActionTarget by remember { mutableStateOf<ChatHistory?>(null) }
     var showNewGroupDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
@@ -488,7 +490,15 @@ fun ChatHistorySelector(
         if (deletingChatIds.contains(history.id)) {
             return
         }
-        chatToDelete = history
+        coroutineScope.launch {
+            val childCount =
+                runCatching { chatHistoryManager.getSubagentChildCount(history.id) }
+                    .getOrDefault(0)
+            if (!deletingChatIds.contains(history.id)) {
+                chatToDeleteChildCount = childCount
+                chatToDelete = history
+            }
+        }
     }
 
     fun requestDeleteChat(history: ChatHistory) {
@@ -513,7 +523,19 @@ fun ChatHistorySelector(
             title = { Text(stringResource(R.string.confirm_delete_chat)) },
             text = {
                 Text(
-                    text = stringResource(R.string.delete_chat_confirmation, deletingChat.title)
+                    text =
+                        if (chatToDeleteChildCount > 0) {
+                            stringResource(
+                                R.string.delete_chat_with_subagents_confirmation,
+                                deletingChat.title,
+                                chatToDeleteChildCount,
+                            )
+                        } else {
+                            stringResource(
+                                R.string.delete_chat_confirmation,
+                                deletingChat.title,
+                            )
+                        }
                 )
             },
             confirmButton = {
@@ -609,7 +631,7 @@ fun ChatHistorySelector(
                 matchesTitleOrGroup || matchesContent
             }
         } else {
-            chatHistories
+            chatHistories.filter { it.chatKind != ChatKind.SUBAGENT.name }
         }
     }
     val groupIdsInFilteredHistories = remember(filteredHistories) {
@@ -2430,7 +2452,7 @@ fun ChatHistorySelector(
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
 
-                                                            // 如果是分支，在右侧显示分支图标和父对话标题
+                                                            // 分支和 Subagent 搜索结果都标出其父聊天来源。
                                                             if (item.history.parentChatId != null) {
                                                                 val parentChat = chatHistories.find { it.id == item.history.parentChatId }
                                                                 if (parentChat != null) {
@@ -2447,7 +2469,18 @@ fun ChatHistorySelector(
                                                                         )
                                                                         Spacer(modifier = Modifier.width(4.dp))
                                                                         Text(
-                                                                            text = parentChat.title,
+                                                                            text =
+                                                                                if (
+                                                                                    item.history.chatKind ==
+                                                                                        ChatKind.SUBAGENT.name
+                                                                                ) {
+                                                                                    stringResource(
+                                                                                        R.string.subagent_search_parent_label,
+                                                                                        parentChat.title,
+                                                                                    )
+                                                                                } else {
+                                                                                    parentChat.title
+                                                                                },
                                                                             style = MaterialTheme.typography.bodySmall,
                                                                             color = contentColor.copy(alpha = 0.6f),
                                                                             maxLines = 1,

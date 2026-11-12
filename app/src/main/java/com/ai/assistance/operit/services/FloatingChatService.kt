@@ -716,23 +716,57 @@ class FloatingChatService : Service(), FloatingWindowCallback {
         stopSelf()
     }
 
+    data class SendTarget(
+        val core: ChatServiceCore,
+        val chatId: String?,
+        val attachments: List<AttachmentInfo>,
+    )
+
+    fun captureSendTarget(): SendTarget =
+        SendTarget(chatCore, chatCore.currentChatId.value, chatCore.getAttachmentDelegate().attachments.value.toList())
+
     override fun onSendMessage(message: String, promptType: PromptFunctionType) {
-        AppLogger.d(TAG, "onSendMessage: $message, promptType: $promptType")
-        
-        // 直接使用 chatCore 发送消息，不再通过 SharedFlow
-        serviceScope.launch {
+        val target = captureSendTarget()
+        serviceScope.launch { sendCapturedMessage(target, message, promptType) }
+    }
+
+    /** Attachment capture may suspend. Never resolve its destination from the later UI selection. */
+    suspend fun sendCapturedMessage(
+        target: SendTarget, message: String, promptType: PromptFunctionType,
+        capturedAttachments: List<AttachmentInfo> = emptyList(),
+    ): String? {
             try {
-                // 发送消息（包含总结逻辑）
-                chatCore.sendUserMessage(
+                val core = target.core
+                val chatId = target.chatId
+                val destination = if (chatId == null) {
+                    // A new-chat composer no longer belongs to this request after a selection change.
+                    if (core !== chatCore || core.currentChatId.value != null) return null
+                    val created = kotlinx.coroutines.CompletableDeferred<String>()
+                    core.getChatHistoryDelegate().createNewChat(onCreated = { created.complete(it) })
+                    kotlinx.coroutines.withTimeout(30_000) { created.await() }
+                } else chatId
+                val metadata = core.getChatHistoryDelegate().getChatMetadata(destination) ?: return null
+                if (metadata.chatKind == com.ai.assistance.operit.data.model.ChatKind.SUBAGENT.name) {
+                    android.widget.Toast.makeText(applicationContext, R.string.floating_chat_subagent_read_only, android.widget.Toast.LENGTH_SHORT).show()
+                    return null
+                }
+                val accepted = core.getMessageCoordinationDelegate().trySendUserMessageToExistingChat(
                     promptFunctionType = promptType,
-                    messageTextOverride = message
+                    chatId = destination,
+                    messageText = message,
+                    attachments = target.attachments + capturedAttachments,
+                    turnOptions = com.ai.assistance.operit.data.model.ChatTurnOptions(useComposerReply = false),
                 )
-                
-                AppLogger.d(TAG, "消息已通过 chatCore 发送")
-            } catch (e: Exception) {
-                AppLogger.e(TAG, "发送消息时出错", e)
+                if (accepted && core.currentChatId.value == destination &&
+                    core.getAttachmentDelegate().attachments.value == target.attachments
+                ) core.getAttachmentDelegate().clearAttachments()
+                return destination.takeIf { accepted }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "Unable to send floating message", error)
+                return null
             }
-        }
     }
 
     override fun onCancelMessage() {

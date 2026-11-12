@@ -6,6 +6,7 @@ import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.defaultTool.ToolGetter
+import com.ai.assistance.operit.core.tools.defaultTool.standard.TaskToolExecutor
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
@@ -1054,7 +1055,11 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                         context = context,
                         packageManager = handler.getOrCreatePackageManager(),
                         roleCardToolAccess = roleCardToolAccess,
-                        useEnglish = useEnglish
+                        useEnglish = useEnglish,
+                        includeSubagentTools = runtimeContext?.isSubagent != true ||
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator.getInstance(context).isAgent(runtimeContext?.callerChatId),
+                        collaborationVisibility =
+                            com.ai.assistance.operit.core.agent.collaboration.CollaborationToolPolicy.visibility(context, runtimeContext?.callerChatId, runtimeContext?.isSubagent == true, runtimeContext?.isGroupOrchestration == true, isPluginSubtask = runtimeContext?.subtaskExecution != null),
                     )
                 }
                 val results = CliToolModeSupport.searchHiddenToolCatalog(
@@ -1607,6 +1612,27 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
 
     // 对话管理工具
     val chatManagerTool = ToolGetter.getChatManagerTool(context)
+    val taskToolExecutor = TaskToolExecutor(context)
+    val collaborationExecutor =
+        com.ai.assistance.operit.core.tools.defaultTool.standard.CollaborationToolExecutor(context)
+    com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.names.forEach { name ->
+        handler.registerTool(
+            name = name,
+            descriptionGenerator = { name },
+            executor = collaborationExecutor,
+        )
+    }
+
+    handler.registerTool(
+        name = "task",
+        descriptionGenerator = { tool ->
+            val subagent =
+                tool.parameters.find { it.name == "subagent_type" }?.value.orEmpty()
+            val title = tool.parameters.find { it.name == "title" }?.value.orEmpty()
+            "task $subagent - $title"
+        },
+        executor = taskToolExecutor,
+    )
 
     // 启动聊天服务
     handler.registerTool(

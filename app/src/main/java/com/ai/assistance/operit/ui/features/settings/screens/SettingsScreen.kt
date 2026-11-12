@@ -41,6 +41,7 @@ fun SettingsScreen(
         navigateToGitHubAccount: () -> Unit,
         navigateToToolPermissions: () -> Unit,
         navigateToModelConfig: () -> Unit,
+        navigateToAgentProfiles: () -> Unit,
         navigateToThemeSettings: () -> Unit,
         navigateToGlobalDisplaySettings: () -> Unit,
         navigateToModelPrompts: () -> Unit,
@@ -183,6 +184,13 @@ fun SettingsScreen(
                                 subtitle = stringResource(id = R.string.settings_model_params_subtitle),
                                 icon = Icons.Default.Api,
                                 onClick = navigateToModelConfig
+                        )
+
+                        CompactSettingsItem(
+                                title = stringResource(R.string.settings_agent_profiles),
+                                subtitle = stringResource(R.string.settings_agent_profiles_subtitle),
+                                icon = Icons.Default.AccountTree,
+                                onClick = navigateToAgentProfiles
                         )
                         
                         CompactSettingsItem(

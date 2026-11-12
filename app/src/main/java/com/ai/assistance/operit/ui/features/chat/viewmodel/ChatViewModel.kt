@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.TextFieldValue.Companion
 import androidx.core.content.FileProvider
 import com.ai.assistance.operit.ui.features.chat.components.ChatStyle
+import com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ai.assistance.operit.api.chat.ChatRuntimeHolder
@@ -28,6 +29,7 @@ import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.AttachmentInfo
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ChatHistory
+import com.ai.assistance.operit.data.model.ChatKind
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.FunctionType
@@ -157,6 +159,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 添加回复相关状态
     private val _replyToMessage = MutableStateFlow<ChatMessage?>(null)
+    private val replyDrafts = com.ai.assistance.operit.services.core.ChatDraftStore<ChatMessage?>(null)
     val replyToMessage: StateFlow<ChatMessage?> = _replyToMessage.asStateFlow()
 
     // API服务
@@ -244,10 +247,17 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 聊天历史相关
     val chatHistory: StateFlow<List<ChatMessage>> by lazy { chatHistoryDelegate.chatHistory }
+    val displayedChatId: StateFlow<String?> by lazy { chatHistoryDelegate.displayedChatId }
+    val processMetadata by lazy { chatHistoryDelegate.processMetadata }
+    suspend fun estimateConversationCost(chatId: String): com.ai.assistance.operit.data.stats.ChatCostEstimate =
+        com.ai.assistance.operit.data.stats.estimateChatCost(context, chatId)
+
+    suspend fun loadTranscriptProcess(key: Long) = chatHistoryDelegate.loadTranscriptProcess(key)
     val showChatHistorySelector: StateFlow<Boolean> by lazy {
         chatHistoryDelegate.showChatHistorySelector
     }
     val chatHistories: StateFlow<List<ChatHistory>> by lazy { chatHistoryDelegate.chatHistories }
+    val chatHistoriesLoaded: StateFlow<Boolean> by lazy { chatHistoryDelegate.chatHistoriesLoaded }
     val currentChatId: StateFlow<String?> by lazy { chatHistoryDelegate.currentChatId }
     val hasOlderDisplayHistory: StateFlow<Boolean> by lazy {
         chatHistoryDelegate.hasOlderDisplayHistory
@@ -261,6 +271,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 消息处理相关
     val userMessage: StateFlow<TextFieldValue> by lazy { messageProcessingDelegate.userMessage }
+    val activeRunStartedAt: StateFlow<Map<String, Long>> by lazy { messageProcessingDelegate.activeRunStartedAt }
     val isLoading: StateFlow<Boolean> by lazy { messageProcessingDelegate.isLoading }
 
     // 会话隔离：仅当“当前聊天ID == 正在流式的聊天ID”时，才显示处理中/停止按钮
@@ -421,6 +432,19 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         // Setup additional components
         setupPermissionSystemCollection()
         setupAttachmentDelegateToastCollection()
+        viewModelScope.launch {
+            var previousChatIds = emptySet<String>()
+            chatHistories.collect { histories ->
+                val chatIds = histories.mapTo(mutableSetOf()) { it.id }
+                // Covers group deletion as well as deletion through the individual chat action.
+                (previousChatIds - chatIds).forEach { chatId ->
+                    attachmentDelegate.removeDraft(chatId)
+                    if (replyDrafts.remove(chatId)) _replyToMessage.value = null
+                }
+                previousChatIds = chatIds
+                pendingMessageQueueStore.syncExistingChatIds(chatIds)
+            }
+        }
 
         // 初始化语音服务
         initializeVoiceService()
@@ -464,6 +488,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         enhancedAiService = mainChatCore.getEnhancedAiService()
         mainChatCore.setUiBridge(
                 object : ChatServiceUiBridge {
+                    override fun setActiveDraftChat(chatId: String?) {
+                        _replyToMessage.value = replyDrafts.switchTo(chatId, _replyToMessage.value)
+                    }
                     override fun updateWebServerForCurrentChat(chatId: String) {
                         this@ChatViewModel.updateWebServerForCurrentChat(chatId)
                     }
@@ -682,8 +709,8 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         }
     }
 
-    fun switchChat(chatId: String) {
-        chatHistoryDelegate.switchChat(chatId)
+    fun switchChat(chatId: String, scrollToBottom: Boolean = true) {
+        chatHistoryDelegate.switchChat(chatId, scrollToBottom = scrollToBottom)
         chatRuntimeHolder.syncMainChatSelectionToFloating(chatId)
 
         // 如果当前WebView正在显示，则更新工作区并触发刷新
@@ -739,15 +766,26 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         chatHistoryDelegate.deleteChatHistory(chatId) { deleted ->
             if (deleted) {
                 pendingMessageQueueStore.removeChat(chatId)
+                attachmentDelegate.removeDraft(chatId)
+                if (replyDrafts.remove(chatId)) _replyToMessage.value = null
+                com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState.clear(chatId)
             } else {
                 uiStateDelegate.showToast(context.getString(R.string.chat_locked_cannot_delete))
             }
         }
     }
 
+
+
     fun clearCurrentChat() {
-        chatHistoryDelegate.clearCurrentChat { deleted ->
+        chatHistoryDelegate.clearCurrentChat { deleted, deletedChatId ->
             if (deleted) {
+                deletedChatId?.let {
+                    pendingMessageQueueStore.removeChat(it)
+                    attachmentDelegate.removeDraft(it)
+                    if (replyDrafts.remove(it)) _replyToMessage.value = null
+                    com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState.clear(it)
+                }
                 uiStateDelegate.showToast(context.getString(R.string.chat_cleared))
             } else {
                 uiStateDelegate.showToast(context.getString(R.string.chat_locked_cannot_delete))
@@ -806,7 +844,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                         chatHistories.value
                             .asSequence()
                             .filter { history ->
-                                history.characterGroupId?.trim() == targetGroupId
+                                history.chatKind != ChatKind.SUBAGENT.name && history.characterGroupId?.trim() == targetGroupId
                             }
                             .maxByOrNull { it.updatedAt }
                     if (latestChat != null) {
@@ -826,6 +864,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         return chatHistories.value
             .asSequence()
             .filter { history ->
+                if (history.chatKind == ChatKind.SUBAGENT.name) return@filter false
                 val historyGroupId = history.characterGroupId?.trim()?.takeIf { it.isNotBlank() }
                 if (!historyGroupId.isNullOrBlank()) {
                     return@filter false
@@ -840,14 +879,22 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             .maxByOrNull { it.updatedAt }
     }
 
+    private fun isCurrentTranscriptReadOnly(): Boolean {
+        val chatId = currentChatId.value ?: return false
+        return chatHistories.value.firstOrNull { it.id == chatId }?.chatKind ==
+            ChatKind.SUBAGENT.name
+    }
+
     /** 创建对话分支 */
     fun createBranch(upToMessageTimestamp: Long? = null) {
+        if (isCurrentTranscriptReadOnly()) return
         chatHistoryDelegate.createBranch(upToMessageTimestamp)
         uiStateDelegate.showToast(context.getString(R.string.chat_branch_created))
     }
 
     /** 插入总结 */
     fun insertSummary(message: ChatMessage) {
+        if (isCurrentTranscriptReadOnly()) return
         performInsertSummary(message)
     }
 
@@ -950,6 +997,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     /** 删除单条消息 */
     fun deleteMessage(index: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         AppLogger.d(TAG, "准备删除消息，索引: $index")
         val chatIdSnapshot = chatHistoryDelegate.currentChatId.value
         val historySnapshot = chatHistoryDelegate.chatHistory.value
@@ -963,6 +1011,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     /** 从指定索引删除后续所有消息 */
     fun deleteMessagesFrom(index: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             AppLogger.d(TAG, "准备从索引 $index 开始删除后续消息")
             chatHistoryDelegate.deleteMessagesFrom(index)
@@ -970,7 +1019,16 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     /** 批量删除消息 */
+    fun deleteMessagesByTimestamp(timestamps: Set<Long>) {
+        if (isCurrentTranscriptReadOnly()) return
+        val chatId = chatHistoryDelegate.currentChatId.value ?: return
+        viewModelScope.launch {
+            chatHistoryDelegate.deleteMessagesByTimestamps(chatId, timestamps.toList())
+        }
+    }
+
     fun deleteMessages(indices: Set<Int>) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             AppLogger.d(TAG, "准备批量删除消息，索引: $indices")
             val chatIdSnapshot = chatHistoryDelegate.currentChatId.value
@@ -1103,6 +1161,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     // 添加消息编辑方法
     fun updateMessage(index: Int, editedMessage: ChatMessage) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 val currentHistory = chatHistoryDelegate.chatHistory.value
@@ -1125,7 +1184,77 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         }
     }
 
+    /**
+     * 修改记忆：一次保存回复正文和它这一轮的协作消息。
+     *
+     * 协作消息各自写回自己那条，绝不并进 AI 正文——模型下一轮仍然把子代理的话读成子代理说的，
+     * 而不是当成自己说过的；删除同理，删掉的就是那条消息本身。
+     */
+    fun saveMemoryEdit(
+        expectedChatId: String?,
+        editedMessage: ChatMessage,
+        fragmentContents: Map<Long, String>,
+        deletedFragments: Set<Long>,
+    ) {
+        if (isCurrentTranscriptReadOnly()) return
+        viewModelScope.launch {
+            try {
+                val currentHistory = chatHistoryDelegate.chatHistory.value
+                if (chatHistoryDelegate.currentChatId.value != expectedChatId ||
+                    currentHistory.none { it.timestamp == editedMessage.timestamp }) {
+                    uiStateDelegate.showErrorMessage(
+                        context.getString(R.string.chat_invalid_message_index),
+                    )
+                    return@launch
+                }
+
+                // 写入一律绑在保存这一刻的会话上：这段编辑跨多次挂起，中途切会话不该落到别处。
+                val chatId = chatHistoryDelegate.currentChatId.value
+                if (chatId == null) {
+                    uiStateDelegate.showToast(
+                        context.getString(R.string.chat_no_active_conversation),
+                    )
+                    return@launch
+                }
+
+                val fragmentUpdates = fragmentContents.map { (timestamp, content) ->
+                    val fragment = currentHistory.firstOrNull { it.timestamp == timestamp }
+                        ?: error("Memory fragment is no longer available: $timestamp")
+                    fragment.copy(content = content, contentStream = null)
+                }
+                if (deletedFragments.isNotEmpty()) {
+                    chatHistoryDelegate.deleteMessagesByTimestamps(
+                        chatId,
+                        deletedFragments.toList(),
+                    )
+                }
+
+                fragmentUpdates.forEach { fragment ->
+                    chatHistoryDelegate.addMessageToChat(
+                        fragment,
+                        chatIdOverride = chatId,
+                    )
+                }
+
+                chatHistoryDelegate.addMessageToChat(
+                    editedMessage,
+                    chatIdOverride = chatId,
+                )
+
+                messageCoordinationDelegate.refreshStableContextWindow(chatId = chatId)
+
+                uiStateDelegate.showToast(context.getString(R.string.chat_message_updated))
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "保存修改记忆失败", e)
+                uiStateDelegate.showErrorMessage(
+                    context.getString(R.string.chat_update_message_failed, e.message ?: ""),
+                )
+            }
+        }
+    }
+
     fun regenerateSingleAiMessage(index: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 messageCoordinationDelegate.regenerateSingleAiMessage(index)
@@ -1141,6 +1270,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     fun switchMessageVariant(index: Int, targetVariantIndex: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 val currentHistory = chatHistoryDelegate.chatHistory.value
@@ -1165,6 +1295,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     fun deleteCurrentMessageVariant(index: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 val currentHistory = chatHistoryDelegate.chatHistory.value
@@ -1203,6 +1334,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
      * @param editedContent 编辑后的消息内容（如果有）
      */
     fun rewindAndResendMessage(index: Int, editedContent: String) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 // 获取当前聊天历史
@@ -1308,6 +1440,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     fun rollbackToMessage(index: Int) {
+        if (isCurrentTranscriptReadOnly()) return
         viewModelScope.launch {
             try {
                 val currentHistory = chatHistoryDelegate.chatHistory.value.toMutableList()
@@ -1459,6 +1592,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     fun sendUserMessage(promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT) {
+        if (isCurrentTranscriptReadOnly()) return
         hideMentionSuggestionPanel()
         messageCoordinationDelegate.sendUserMessage(
             promptFunctionType = promptFunctionType,
@@ -1467,6 +1601,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     fun sendTextMessage(text: String, promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT) {
+        if (isCurrentTranscriptReadOnly()) return
         hideMentionSuggestionPanel()
         messageCoordinationDelegate.sendUserMessage(
             promptFunctionType = promptFunctionType,
@@ -1475,29 +1610,102 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         )
     }
 
-    fun sendTextMessage(
+    fun steeringTurnId(chatId: String): String? = messageProcessingDelegate.steeringTurnId(chatId)
+
+    suspend fun trySteerQueuedMessage(chatId: String, expectedTurnId: String, item: PendingQueueMessageItem): Boolean {
+        if (!pendingMessageQueueStore.isCurrentGeneration(chatId, item.chatGeneration)) return false
+        if (chatId == currentChatId.value && isCurrentTranscriptReadOnly()) return false
+        val preparedText = try {
+            messageProcessingDelegate.prepareSteeringInput(
+                chatId, expectedTurnId, item.text, item.attachments, item.replyToMessage
+            ) ?: return false
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            AppLogger.e(TAG, "Failed to prepare queued attachments for steering", e)
+            return false
+        }
+        if (!pendingMessageQueueStore.isCurrentGeneration(chatId, item.chatGeneration)) return false
+        if (chatId == currentChatId.value && isCurrentTranscriptReadOnly()) return false
+        pendingMessageQueueStore.restore(chatId, item.copy(isSteering = true))
+        val accepted = messageProcessingDelegate.trySteerMessage(
+            chatId,
+            expectedTurnId,
+            com.ai.assistance.operit.core.chat.TurnInputInbox.Input(
+                text = preparedText,
+                consumed = { pendingMessageQueueStore.remove(chatId, item.id) },
+                returned = { pendingMessageQueueStore.returnSteer(chatId, item) },
+                returnedForSummary = { pendingMessageQueueStore.returnSteer(chatId, item, sendLater = true) },
+            ),
+        )
+        if (!accepted) pendingMessageQueueStore.remove(chatId, item.id)
+        return accepted
+    }
+
+    fun trySendQueuedTextMessage(
         text: String,
         chatId: String,
+        chatGeneration: Long,
+        attachments: List<AttachmentInfo> = emptyList(),
         promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
-    ) {
+        replyToMessage: ChatMessage? = null,
+        onDeferredRejected: () -> Unit = {},
+    ): Boolean {
+        if (!pendingMessageQueueStore.isCurrentGeneration(chatId, chatGeneration)) return false
+        if (chatId == currentChatId.value && isCurrentTranscriptReadOnly()) return false
+        if (isChatBusy(chatId)) return false
         hideMentionSuggestionPanel()
-        messageCoordinationDelegate.sendUserMessage(
+        return messageCoordinationDelegate.trySendUserMessageToExistingChat(
             promptFunctionType = promptFunctionType,
-            chatIdOverride = chatId,
-            messageTextOverride = text,
+            chatId = chatId,
+            messageText = text,
+            attachments = attachments,
+            // A queued message took its quote (or none) along when it was queued.
+            turnOptions = com.ai.assistance.operit.data.model.ChatTurnOptions(useComposerReply = false),
+            replyToMessage = replyToMessage,
+            onDeferredRejected = onDeferredRejected,
         )
     }
 
-    fun enqueuePendingQueueMessage(chatId: String, text: String, isQueueBlocked: Boolean) {
-        pendingMessageQueueStore.enqueue(chatId, text, isQueueBlocked)
+    private fun isChatBusy(chatId: String): Boolean {
+        val summarizingThisChat =
+            messageCoordinationDelegate.isSummarizing.value &&
+                messageCoordinationDelegate.summarizingChatId.value == chatId
+        val sendTriggeredSummaryForThisChat =
+            messageCoordinationDelegate.isSendTriggeredSummarizing.value &&
+                messageCoordinationDelegate.sendTriggeredSummarizingChatId.value == chatId
+        return messageProcessingDelegate.isChatLoading(chatId) ||
+            summarizingThisChat ||
+            sendTriggeredSummaryForThisChat
+    }
+
+    /**
+     * Queues the composer's draft and its attachments; returns the queued item's id.
+     * The quoted message moves from the composer into the queued item, so it goes with this message.
+     */
+    fun enqueuePendingQueueMessage(chatId: String, text: String, isQueueBlocked: Boolean): Long? {
+        val snapshot = attachmentDelegate.attachments.value.toList()
+        val reply = _replyToMessage.value
+        val id = pendingMessageQueueStore.enqueue(chatId, text, isQueueBlocked, snapshot, reply) ?: return null
+        snapshot.forEach { attachmentDelegate.removeAttachment(it.filePath) }
+        if (reply != null && _replyToMessage.value == reply) _replyToMessage.value = null
+        return id
+    }
+
+    fun restoreQueuedAttachments(item: PendingQueueMessageItem) {
+        attachmentDelegate.addAttachments(item.attachments)
+        _replyToMessage.value = item.replyToMessage
     }
 
     fun removePendingQueueMessage(chatId: String, messageId: Long): PendingQueueMessageItem? =
         pendingMessageQueueStore.remove(chatId, messageId)
 
-    fun restorePendingQueueMessage(chatId: String, message: PendingQueueMessageItem) {
-        pendingMessageQueueStore.restore(chatId, message)
+    fun restorePendingQueueMessage(chatId: String, message: PendingQueueMessageItem, pauseAutoSend: Boolean = false) {
+        pendingMessageQueueStore.restore(chatId, message, pauseAutoSend)
     }
+
+    fun isPendingQueueItemCurrent(chatId: String, message: PendingQueueMessageItem): Boolean =
+        pendingMessageQueueStore.isCurrentGeneration(chatId, message.chatGeneration)
 
     fun setPendingQueueExpanded(chatId: String, expanded: Boolean) {
         pendingMessageQueueStore.setExpanded(chatId, expanded)
@@ -1506,11 +1714,13 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     fun consumePendingQueueAutoDequeueSignal(chatId: String, isQueueBlocked: Boolean): Boolean =
         pendingMessageQueueStore.consumeAutoDequeueSignal(chatId, isQueueBlocked)
 
-    fun suppressNextPendingQueueAutoDequeue(chatId: String) {
-        pendingMessageQueueStore.suppressNextAutoDequeue(chatId)
-    }
+    fun takeNextPendingQueueAutoDequeue(chatId: String): PendingQueueMessageItem? =
+        pendingMessageQueueStore.takeNextAutoDequeue(chatId)
+
+    fun isPendingQueueTargetBusy(chatId: String): Boolean = isChatBusy(chatId)
 
     suspend fun removeLastVisibleUserMessageFromCurrentChat(text: String): Boolean {
+        if (isCurrentTranscriptReadOnly()) return false
         val chatId = currentChatId.value ?: return false
         val messageText = text.trim()
         if (messageText.isBlank()) return false
@@ -1529,6 +1739,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     suspend fun addVisibleUserMessageToCurrentChat(text: String) {
+        if (isCurrentTranscriptReadOnly()) return
         val messageText = text.trim()
         if (messageText.isBlank()) return
 
@@ -1596,13 +1807,17 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     }
 
     private fun attachMentionPackage(packageName: String) {
-        viewModelScope.launch {
+        viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             try {
+                attachmentDelegate.withAttachmentDraft {
                 attachmentDelegate.attachPackage(packageName)
-                if (!containsMentionToken(userMessage.value.text, packageName)) {
-                    attachmentDelegate.removePackageAttachment(packageName)
+                val chatId = attachmentDelegate.capturedDraftChatId()
+                if (!containsMentionToken(messageProcessingDelegate.getUserMessageDraft(chatId).text, packageName)) {
+                    attachmentDelegate.removeMentionFromCapturedDraft(packageName, workspace = false)
+                }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.e(TAG, "添加 mention 包附件失败", e)
                 uiStateDelegate.showToast(context.getString(R.string.attachment_package_failed, packageName))
             }
@@ -1614,17 +1829,21 @@ class ChatViewModel(private val context: Context) : ViewModel() {
         relativePath: String,
         workspaceEnv: String?,
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             try {
+                attachmentDelegate.withAttachmentDraft {
                 attachmentDelegate.attachWorkspaceMention(
                     workspacePath = workspacePath,
                     relativePath = relativePath,
                     workspaceEnv = workspaceEnv,
                 )
-                if (!containsMentionToken(userMessage.value.text, relativePath)) {
-                    attachmentDelegate.removeWorkspaceMentionAttachment(relativePath)
+                val chatId = attachmentDelegate.capturedDraftChatId()
+                if (!containsMentionToken(messageProcessingDelegate.getUserMessageDraft(chatId).text, relativePath)) {
+                    attachmentDelegate.removeMentionFromCapturedDraft(relativePath, workspace = true)
+                }
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.e(TAG, "添加 mention 工作区附件失败", e)
                 uiStateDelegate.showToast(context.getString(R.string.attachment_cannot_attach, relativePath))
             }
@@ -1727,11 +1946,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     // 附件相关方法
     /** Handles a file or image attachment selected by the user */
     fun handleAttachment(filePath: String) {
-        viewModelScope.launch {
+        val currentChatId = chatHistoryDelegate.currentChatId.value ?: return
+        viewModelScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             try {
-                // 获取当前会话ID并绑定
-                val currentChatId = chatHistoryDelegate.currentChatId.value
-                if (currentChatId == null) return@launch
                 
                 // 显示附件处理进度
                 messageProcessingDelegate.setInputProcessingStateForChat(
@@ -1744,14 +1961,12 @@ class ChatViewModel(private val context: Context) : ViewModel() {
                 // 清除附件处理进度显示
                 messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 AppLogger.e(TAG, "处理附件失败", e)
                 // 修改: 使用错误弹窗而不是 Toast 显示附件处理错误
                 uiStateDelegate.showErrorMessage(context.getString(R.string.chat_attachment_processing_failed, e.message ?: ""))
                 // 发生错误时也需要清除进度显示
-                val currentChatId = chatHistoryDelegate.currentChatId.value
-                if (currentChatId != null) {
-                    messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
-                }
+                messageProcessingDelegate.setInputProcessingStateForChat(currentChatId, InputProcessingState.Idle)
             }
         }
     }
