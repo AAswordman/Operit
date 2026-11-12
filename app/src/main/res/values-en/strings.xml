@@ -8724,4 +8724,5 @@
     <string name="chat_estimated_cost_partial">Estimated conversation cost: ¥%1$s (partly unknown)</string>
     <string name="chat_estimated_cost_unavailable">Estimated conversation cost: unavailable</string>
     <string name="chat_estimated_cost_loading">Estimating conversation cost…</string>
+    <string name="subagent_owner_restore_failed">Could not restore subagent ownership. Original files and chat records are preserved. Check the logs; restart the app after repairing storage to retry.</string>
 </resources>

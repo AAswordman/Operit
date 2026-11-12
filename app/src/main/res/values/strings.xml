@@ -8712,4 +8712,5 @@
     <string name="chat_estimated_cost_partial">本对话估算费用：¥%1$s（部分未知）</string>
     <string name="chat_estimated_cost_unavailable">本对话估算费用：暂不可用</string>
     <string name="chat_estimated_cost_loading">正在估算对话费用…</string>
+    <string name="subagent_owner_restore_failed">子代理归属信息恢复失败，原始文件和聊天记录已保留。请检查日志；修复存储后重启应用可重试。</string>
 </resources>

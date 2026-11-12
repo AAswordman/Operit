@@ -5,11 +5,39 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Transaction
 import com.ai.assistance.operit.data.model.SubagentRunEntity
 import kotlinx.coroutines.flow.Flow
 
+data class SubagentRunOwner(val runId: String, val childChatId: String, val path: String)
+
 @Dao
 interface SubagentRunDao {
+    @Query("SELECT EXISTS(SELECT 1 FROM pending_subagent_owner_restore WHERE id = 1)")
+    suspend fun hasPendingOwnerRestore(): Boolean
+
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun markPendingOwnerRestore(state: com.ai.assistance.operit.data.model.PendingSubagentOwnerRestore)
+
+    @Query("DELETE FROM pending_subagent_owner_restore WHERE id = 1")
+    suspend fun completeOwnerRestore()
+
+    @Query("SELECT EXISTS(SELECT 1 FROM subagent_runs WHERE externalOwnerType IS NULL AND externalOwnerId IS NULL)")
+    suspend fun hasUnownedRuns(): Boolean
+
+    @Query("""
+        UPDATE subagent_runs SET externalOwnerType = 'subagent_v2', externalOwnerId = :path
+        WHERE id = :runId AND childChatId = :childChatId
+            AND externalOwnerType IS NULL AND externalOwnerId IS NULL
+    """)
+    suspend fun restoreV2Owner(runId: String, childChatId: String, path: String): Int
+
+    @Transaction
+    suspend fun restoreV2Owners(owners: List<SubagentRunOwner>) {
+        owners.forEach { restoreV2Owner(it.runId, it.childChatId, it.path) }
+        completeOwnerRestore()
+    }
+
     @Query("UPDATE subagent_runs SET modelRoundCount = modelRoundCount + 1 WHERE childChatId = :childChatId")
     suspend fun incrementModelRoundCountByChildChatId(childChatId: String): Int
 

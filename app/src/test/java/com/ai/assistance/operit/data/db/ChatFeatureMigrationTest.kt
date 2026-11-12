@@ -5,6 +5,18 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ChatFeatureMigrationTest {
+    @Test fun presentationMigrationOnlyChangesSchemaAndPreservesRows() {
+        val db = JdbcSQLiteDriver().open(":memory:")
+        try {
+            db.execute("CREATE TABLE subagent_runs (id TEXT PRIMARY KEY, title TEXT NOT NULL)")
+            db.execute("INSERT INTO subagent_runs VALUES ('run', 'Existing task')")
+            SubagentPresentationMigration.migrate(db)
+            assertEquals("Existing task", db.text("SELECT title FROM subagent_runs"))
+            assertEquals(0L, db.number("SELECT modelRoundCount FROM subagent_runs"))
+            assertEquals(1L, db.number("SELECT COUNT(*) FROM pending_subagent_owner_restore WHERE id=1"))
+            assertEquals(1L, db.number("SELECT COUNT(*) FROM subagent_runs WHERE externalOwnerType IS NULL AND externalOwnerId IS NULL"))
+        } finally { db.close() }
+    }
     @Test
     fun releasedV21HistoryAndGroupsSurviveSubagentMigration() {
         val db = JdbcSQLiteDriver().open(":memory:")

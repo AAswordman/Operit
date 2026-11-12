@@ -34,6 +34,7 @@ private const val APP_DATABASE_VERSION = 24
         MessageEntity::class,
         MessageVariantEntity::class,
         SubagentRunEntity::class,
+        com.ai.assistance.operit.data.model.PendingSubagentOwnerRestore::class,
         TokenUsageRecordEntity::class,
         TokenStatsModelEntity::class,
     ],
@@ -544,7 +545,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_18_19,
                     MIGRATION_19_20,
                     MIGRATION_20_21,
-                    SubagentMigration, SubagentPresentationMigration(context.applicationContext)
+                    SubagentMigration, SubagentPresentationMigration
                 )
                 .build()
 

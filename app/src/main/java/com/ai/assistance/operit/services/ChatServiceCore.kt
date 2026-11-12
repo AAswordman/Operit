@@ -277,6 +277,19 @@ class ChatServiceCore(
         }
 
         initialized = true
+        coroutineScope.launch {
+            try {
+                com.ai.assistance.operit.data.repository.SubagentRunRepository
+                    .getInstance(context).restoreV2Owners(context)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                AppLogger.e(TAG, "Subagent owner metadata restoration failed", error)
+                uiStateDelegate.showErrorMessage(
+                    context.getString(com.ai.assistance.operit.R.string.subagent_owner_restore_failed)
+                )
+            }
+        }
         AppLogger.d(TAG, "所有委托已初始化")
     }
 

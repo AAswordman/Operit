@@ -9,6 +9,12 @@ import com.ai.assistance.operit.data.model.SubagentRunEntity
 import com.ai.assistance.operit.data.model.SubagentRunStatus
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import com.ai.assistance.operit.core.agent.collaboration.CollaborationStore
+import com.ai.assistance.operit.data.dao.SubagentRunOwner
 
 data class CreateSubagentRunRequest(
     val parentChatId: String,
@@ -33,11 +39,32 @@ data class SubagentRunWithChat(
  * The child chat and its run are created in one Room transaction so a task id can never point at
  * a missing transcript. Prompt and result content continue to live only in the child transcript.
  */
-class SubagentRunRepository private constructor(
+class SubagentRunRepository internal constructor(
     private val database: AppDatabase,
 ) {
     private val chatDao = database.chatDao()
     private val runDao = database.subagentRunDao()
+    private val ownerRestoreMutex = Mutex()
+
+    /**
+     * Restore presentation metadata after Room opens, never inside its schema migration.
+     * A failed read leaves both stores untouched and remains retryable on the next initialization.
+     */
+    internal suspend fun restoreV2Owners(context: Context) = restoreV2Owners(CollaborationStore(context))
+
+    internal suspend fun restoreV2Owners(store: CollaborationStore) = ownerRestoreMutex.withLock {
+        if (!runDao.hasPendingOwnerRestore()) return@withLock
+        if (runDao.hasUnownedRuns()) {
+            val owners = withContext(Dispatchers.IO) {
+                store.load().agents.mapNotNull { agent ->
+                    agent.runId?.let { SubagentRunOwner(it, agent.chatId, agent.path) }
+                }
+            }
+            runDao.restoreV2Owners(owners)
+        } else {
+            runDao.restoreV2Owners(emptyList())
+        }
+    }
 
     suspend fun createSubagentChatAndRun(
         request: CreateSubagentRunRequest,

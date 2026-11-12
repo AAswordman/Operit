@@ -58,19 +58,16 @@ internal object SubagentMigration : Migration(21, 23) {
     }
 }
 
-/** Backfill by persisted run ID, never by the user-editable task title. */
-internal class SubagentPresentationMigration(private val context: android.content.Context) : Migration(23, 24) {
-    private fun migrateSchema(exec: (String) -> Unit, bind: (String, String) -> Unit) {
+/** External collaboration files must not decide whether the chat database can open. */
+internal object SubagentPresentationMigration : Migration(23, 24) {
+    private fun migrateSchema(exec: (String) -> Unit) {
         exec("ALTER TABLE subagent_runs ADD COLUMN externalOwnerType TEXT")
         exec("ALTER TABLE subagent_runs ADD COLUMN externalOwnerId TEXT")
         exec("ALTER TABLE subagent_runs ADD COLUMN modelRoundCount INTEGER NOT NULL DEFAULT 0")
-        com.ai.assistance.operit.core.agent.collaboration.CollaborationStore(context).load().agents.forEach { agent ->
-            agent.runId?.let { bind(agent.path, it) }
-        }
+        exec("CREATE TABLE pending_subagent_owner_restore (id INTEGER NOT NULL PRIMARY KEY)")
+        exec("INSERT INTO pending_subagent_owner_restore (id) VALUES (1)")
     }
-    private val update = "UPDATE subagent_runs SET externalOwnerType = 'subagent_v2', externalOwnerId = ? WHERE id = ?"
-    override fun migrate(db: SupportSQLiteDatabase) = migrateSchema({ db.execSQL(it) }) { path, id -> db.execSQL(update, arrayOf(path, id)) }
-    override fun migrate(connection: SQLiteConnection) = migrateSchema({ sql -> connection.prepare(sql).use { it.step() } }) { path, id ->
-        connection.prepare(update).use { it.bindText(1, path); it.bindText(2, id); it.step() }
-    }
+    override fun migrate(db: SupportSQLiteDatabase) = migrateSchema { db.execSQL(it) }
+    override fun migrate(connection: SQLiteConnection) =
+        migrateSchema { sql -> connection.prepare(sql).use { it.step() } }
 }
