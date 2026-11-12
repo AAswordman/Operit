@@ -104,10 +104,16 @@ class LlamaProvider(
     }
 
     override fun release() {
-        synchronized(sessionLock) {
-            session?.release()
+        // 先把引用摘出来，再在锁外释放。
+        // nativeReleaseSession 要拿进程级推理锁，正在生成时会等；若此时仍握着
+        // sessionLock，推理回调里任何需要 sessionLock 的动作（取消/切模型）
+        // 都会与之互等。摘出引用后 sessionLock 只保护字段本身。
+        val toRelease = synchronized(sessionLock) {
+            val current = session
             session = null
+            current
         }
+        toRelease?.release()
     }
 
     override suspend fun getModelsList(context: Context): Result<List<ModelOption>> {
@@ -124,12 +130,23 @@ class LlamaProvider(
             return@withContext Result.failure(Exception(context.getString(R.string.llama_error_model_file_not_exist, modelFile.absolutePath)))
         }
 
-        val testSession = LlamaSession.create(
-            pathModel = modelFile.absolutePath,
-            config = sessionConfig
-        ) ?: return@withContext Result.failure(Exception(context.getString(R.string.llama_error_create_session_failed)))
+        // [PATCH 0019] 复用共享 session，而不是单独 create 再 release。
+        //
+        // 背景：c10.log 显示 testConnection 与 sendMessage 在 150ms 内并发
+        // 各创建一个 session（线程 1655 / 1677），模型被加载两份。
+        // 0.5B(380MB) 尚可，但 E4B(4.3G) / 7B(4.4G) 双份 = 8.6G+，
+        // 12GB 手机扣掉系统与显存占用后必然 OOM 被杀。
+        //
+        // ensureSessionLocked() 内部 synchronized(sessionLock)：并发时第二个
+        // 调用会等待并直接复用同一个 session，从根本上消除双份加载。
+        // 同时仍然保留 PATCH 0013 的错误原因透出。
+        ensureSessionLocked() ?: return@withContext Result.failure(
+            Exception(
+                context.getString(R.string.llama_error_create_session_failed) +
+                    (LlamaSession.lastError?.takeIf { it.isNotBlank() }?.let { "\n\n$it" } ?: "")
+            )
+        )
 
-        testSession.release()
         Result.success("llama.cpp backend is available (native ready).")
     }
 
@@ -192,7 +209,11 @@ class LlamaProvider(
             ensureSessionLocked()
         }
         if (s == null) {
-            throw IOException(context.getString(R.string.llama_error_session_create_failed))
+            // [PATCH 0013] 带上具体原因（如模型文件下载不完整）。
+            throw IOException(
+                context.getString(R.string.llama_error_session_create_failed) +
+                    (LlamaSession.lastError?.takeIf { it.isNotBlank() }?.let { "\n\n$it" } ?: "")
+            )
         }
 
         val effectiveEnableToolCall = shouldUseToolCall(availableTools)
@@ -394,6 +415,18 @@ class LlamaProvider(
         return roles to contents
     }
 
+    /**
+     * 取当前会话，没有就建一个；建好后**常驻**，不再 isAlive 探测就释放。
+     *
+     * [REVIEW P2] 这里刻意不再"建一个临时会话验证后端可用，然后释放"：
+     * 旧的 validateModelFile 会 create-then-release，而 testConnection 与
+     * sendMessage 在 150 ms 内接连触发时会把 4 GB 模型加载两遍（峰值 8 GB+，
+     * 直接被 OOM killer 干掉）。现在两条路径共用同一个会话，加载只发生一次。
+     *
+     * 副作用（有意为之）：testConnection 通过后模型仍驻留内存，下一次
+     * sendMessage 直接复用，不再重复加载。释放只发生在 releaseSession()
+     * 或 provider 被回收时。
+     */
     private fun ensureSessionLocked(): LlamaSession? {
         synchronized(sessionLock) {
             session?.let { return it }

@@ -250,7 +250,12 @@ object AIServiceFactory {
             useMmap = false,
             flashAttention = false,
             kvUnified = true,
-            offloadKqv = false
+            // [PATCH 0028 / gpu11] 日用化：默认请求 KQV 卸载到 GPU。
+            // A/B 实测（offload_kqv-A-B判读报告-20261107-0930.md）结论为保留 =1：
+            // graph splits 74→2、decode 5.09→14.93 tok/s、crash 全空、输出纯中文。
+            // config.llamaOffloadKqv 默认 true；JNI 在 layers=0 / 无 GPU backend
+            // 时会自动忽略，纯 CPU 档不受影响。用户想回退可在 JNI 放 off 标记。
+            offloadKqv = config.llamaOffloadKqv
         )
     }
 
