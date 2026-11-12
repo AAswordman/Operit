@@ -1,14 +1,22 @@
 package com.ai.assistance.operit.ui.common.markdown
 
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.ChatMarkupRegex
 import android.widget.ImageView
 import androidx.collection.LruCache
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.InlineTextContent
@@ -23,6 +31,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
@@ -248,6 +258,51 @@ interface XmlContentRenderer {
         xmlStream: Stream<String>?,
         renderInstanceKey: Any?
     )
+}
+
+data class ToolXmlRenderInstanceKey(
+    val stableKey: Any?,
+    val invocationIndex: Int,
+)
+
+private val namedToolOpening = Regex("""^<[^>]*\bname="[^"]+"[^>]*>""")
+
+private fun hasNamedToolOpening(node: MarkdownNodeStable): Boolean =
+    node.type == MarkdownProcessorType.XML_BLOCK && namedToolOpening.containsMatchIn(node.content.trimStart())
+
+internal fun toolInvocationIndices(nodes: List<MarkdownNodeStable>): List<Int?> {
+    var invocationIndex = 0
+    return nodes.map { node ->
+        if (hasNamedToolOpening(node) && ChatMarkupRegex.normalizeToolLikeTagName(
+                ChatMarkupRegex.extractOpeningTagName(node.content)) == "tool") invocationIndex++ else null
+    }
+}
+
+internal fun toolInvocationIndexAt(
+    nodes: List<MarkdownNodeStable>,
+    nodeIndex: Int,
+): Int? {
+    val target = nodes.getOrNull(nodeIndex) ?: return null
+    if (!hasNamedToolOpening(target) ||
+        ChatMarkupRegex.normalizeToolLikeTagName(
+            ChatMarkupRegex.extractOpeningTagName(target.content)
+        ) != "tool"
+    ) {
+        return null
+    }
+
+    var invocationIndex = 0
+    for (index in 0 until nodeIndex) {
+        val node = nodes[index]
+        if (hasNamedToolOpening(node) &&
+            ChatMarkupRegex.normalizeToolLikeTagName(
+                ChatMarkupRegex.extractOpeningTagName(node.content)
+            ) == "tool"
+        ) {
+            invocationIndex++
+        }
+    }
+    return invocationIndex
 }
 
 @Composable
@@ -662,7 +717,6 @@ fun StreamMarkdownRenderer(
         }
     }
 
-    // 渲染Markdown内容 - 使用统一的Canvas渲染器
     Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
         CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STREAMING) {
             key(rendererId) {
@@ -686,6 +740,44 @@ fun StreamMarkdownRenderer(
 }
 
 /** A cache for parsed markdown nodes to improve performance. */
+private data class PreparedMarkdownNodes(
+    val nodes: List<MarkdownNode>,
+    val stableNodes: List<MarkdownNodeStable>,
+)
+
+private val transcriptParseSlots = kotlinx.coroutines.sync.Semaphore(2)
+
+internal suspend fun prepareTranscriptMarkdown(
+    content: String,
+    grouper: MarkdownNodeGrouper,
+): TranscriptMarkdownDocument {
+    transcriptParseSlots.acquire()
+    try {
+        return withContext(Dispatchers.Default) {
+            val prepared = MarkdownNodeCache.get(content) ?: run {
+                val parsed = parseMarkdownToNodes(content)
+                PreparedMarkdownNodes(parsed, parsed.map { it.toStableNode() }).also {
+                    MarkdownNodeCache.put(content, it)
+                }
+            }
+            TranscriptMarkdownDocument(
+                prepared.stableNodes,
+                grouper.group(prepared.stableNodes, "transcript"),
+                toolInvocationIndices(prepared.stableNodes),
+                completedProcessEnd(prepared.stableNodes),
+                com.ai.assistance.operit.ui.features.chat.components.part.parsePersistedToolExecutions(content),
+                prepared.stableNodes.indices.filterTo(hashSetOf()) { index ->
+                    val node = prepared.stableNodes[index]
+                    node.type == MarkdownProcessorType.XML_BLOCK &&
+                        !com.ai.assistance.operit.ui.features.chat.components.part.shouldRenderStandaloneToolResult(node.content)
+                },
+            )
+        }
+    } finally {
+        transcriptParseSlots.release()
+    }
+}
+
 private object MarkdownNodeCache {
     // Limit static markdown cache by estimated bytes instead of entry count, so
     // incrementally growing content does not retain many large historical versions.
@@ -695,19 +787,19 @@ private object MarkdownNodeCache {
             .toInt()
 
     private val cache =
-        object : LruCache<String, List<MarkdownNode>>(maxCacheBytes) {
-            override fun sizeOf(key: String, value: List<MarkdownNode>): Int {
-                return (estimateStringBytes(key) + estimateNodeListBytes(value))
+        object : LruCache<String, PreparedMarkdownNodes>(maxCacheBytes) {
+            override fun sizeOf(key: String, value: PreparedMarkdownNodes): Int {
+                return (estimateStringBytes(key) + 2L * estimateNodeListBytes(value.nodes))
                     .coerceAtMost(Int.MAX_VALUE.toLong())
                     .toInt()
             }
         }
 
-    fun get(key: String): List<MarkdownNode>? {
+    fun get(key: String): PreparedMarkdownNodes? {
         return cache.get(key)
     }
 
-    fun put(key: String, value: List<MarkdownNode>) {
+    fun put(key: String, value: PreparedMarkdownNodes) {
         cache.put(key, value)
     }
 
@@ -884,82 +976,113 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        collapseCompletedProcess: Boolean = false,
+        responseDurationMs: Long = 0L,
 ) {
+    val slice = LocalTranscriptMarkdownSlice.current
+    if (slice != null) {
+        CompositionLocalProvider(
+            LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC,
+        ) {
+            if (slice.processHeader) {
+                Box(modifier) {
+                    ResponseActivityHeader(responseDurationMs, slice.expanded, textColor, slice.toggle)
+                }
+            } else {
+                UnifiedMarkdownCanvas(
+                    nodes = slice.document.nodes,
+                    rendererId = "static-${slice.messageKey}",
+                    nodeAnimationStates = emptyMap(),
+                    textColor = textColor,
+                    fontSize = fontSize,
+                    onLinkClick = onLinkClick,
+                    xmlRenderer = xmlRenderer,
+                    xmlStreamsByIndex = emptyMap(),
+                    nodeGrouper = nodeGrouper,
+                    enableDialogs = enableDialogs,
+                    modifier = modifier.then(if (slice.indented) Modifier.padding(start = 24.dp) else Modifier),
+                    fillMaxWidth = fillMaxWidth,
+                    onlyItems = listOfNotNull(slice.item) + slice.extraItems,
+                    preparedInvocationIndices = slice.document.invocationIndices,
+                )
+            }
+        }
+        return
+    }
     // 使用流式版本相同的渲染器ID生成逻辑
     val rendererId = remember(content) { "static-renderer-${content.hashCode()}" }
 
     // 使用传入的state或创建新的state。静态内容完成过解析时，创建组合阶段直接
     // 带入缓存节点；LazyColumn 首帧用空节点测量会形成 0 高度 item，节点离开活跃组合后
     // 后台解析结果无法驱动当前可见项重新布局。
-    val rendererState = state ?: remember(content) {
-        StreamMarkdownRendererState().also { newState ->
-            val cachedNodes = MarkdownNodeCache.get(content)
-            if (cachedNodes != null) {
-                newState.replaceStaticNodes(rendererId, cachedNodes)
-            }
-        }
-    }
+    val rendererState = state ?: remember(content) { StreamMarkdownRendererState() }
     rendererState.updateRendererId(rendererId)
-
-    // 使用与流式版本相同的节点列表结构
     val nodes = rendererState.nodes
     val renderNodes = rendererState.renderNodes
-    // 添加节点动画状态映射表，与流式版本保持一致
     val nodeAnimationStates = rendererState.nodeAnimationStates
     val scope = rememberCoroutineScope()
-    // XML 节点子流映射（静态渲染通常为空）
     val xmlNodeStreams = rendererState.xmlNodeStreams
 
-    // 当content字符串变化时，一次性完成解析
-    LaunchedEffect(content) {
-        // 先检查内容是否与流式渲染收集的内容一致，如果一致则跳过解析
-        val collectedContentStr = rendererState.collectedContent.toString()
-        val streamParsingCompleted = rendererState.streamParsingCompletedSuccessfully
+    fun replaceStaticNodes(prepared: PreparedMarkdownNodes) {
+        rendererState.reset()
+        nodes.addAll(prepared.nodes)
+        renderNodes.addAll(prepared.stableNodes)
+        prepared.nodes.indices.forEach { index ->
+            nodeAnimationStates["static-node-$rendererId-$index"] = true
+        }
+    }
+
+    // Lazy lists may measure a returning message before effects run. Restore cached
+    // nodes during initialization so that its first measurement includes the body.
+    val staticNodesReady = remember(content, rendererState) {
         val shouldReuseExistingNodes =
-            collectedContentStr == content &&
-                areRenderNodesSynchronized(nodes, renderNodes) &&
-                streamParsingCompleted
-
+            rendererState.collectedContent.toString() == content &&
+                rendererState.streamParsingCompletedSuccessfully &&
+                areRenderNodesSynchronized(nodes, renderNodes)
         if (shouldReuseExistingNodes) {
-            // 从流式渲染切到静态渲染时，避免沿用已结束的 XML 子流导致子节点渲染异常
             xmlNodeStreams.clear()
-            // 内容一致且已有节点，跳过解析
-            return@LaunchedEffect
-        }
+            // Cache a snapshot, not the mutable list cleared by the next stream.
+            MarkdownNodeCache.put(content, PreparedMarkdownNodes(nodes.toList(), renderNodes.toList()))
+            true
+        } else MarkdownNodeCache.get(content)?.let { replaceStaticNodes(it); true } ?: false
+    }
 
-        xmlNodeStreams.clear()
-
-        val cachedNodes = MarkdownNodeCache.get(content)
-
-        if (cachedNodes != null) {
-            rendererState.replaceStaticNodes(rendererId, cachedNodes)
-            return@LaunchedEffect
-        }
-
-        launch(Dispatchers.IO) {
+    var pendingStaticParse by remember(content, rendererState) { mutableStateOf(!staticNodesReady) }
+    LaunchedEffect(content, rendererState) {
+        if (staticNodesReady) return@LaunchedEffect
+        launch {
             try {
-                val parsedNodes = parseMarkdownToNodes(content)
-
-                // 将解析完成的节点添加到节点列表，并更新动画状态
-                withContext(Dispatchers.Main) {
-                    // 保存到缓存，这样下次渲染同样内容时可以直接使用
-                    MarkdownNodeCache.put(content, parsedNodes)
-
-                    rendererState.replaceStaticNodes(rendererId, parsedNodes)
+                val prepared = withContext(Dispatchers.Default) {
+                    val parsed = parseMarkdownToNodes(content)
+                    PreparedMarkdownNodes(parsed, parsed.map { it.toStableNode() }).also {
+                        MarkdownNodeCache.put(content, it)
+                    }
                 }
+                replaceStaticNodes(prepared)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                AppLogger.e(TAG, "【静态渲染】解析Markdown内容出错: ${e.message}", e)
+                AppLogger.e(TAG, "Failed to parse static Markdown: ${e.message}", e)
+            } finally {
+                pendingStaticParse = false
             }
         }
     }
 
-    // 渲染Markdown内容 - 使用统一的Canvas渲染器
-    Surface(modifier = modifier, color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
-        CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC) {
+    // A cold large message must not measure as zero-height: a lazy parent would then
+    // compose and parse many off-screen messages before the first parse completes.
+    val pendingHeight =
+        if (pendingStaticParse && renderNodes.isEmpty() && content.length > 4096) {
+            LocalConfiguration.current.screenHeightDp.coerceAtLeast(320).dp
+        } else 0.dp
+    Surface(modifier = modifier.heightIn(min = pendingHeight), color = Color.Transparent, shape = RoundedCornerShape(4.dp)) {
+        CompositionLocalProvider(
+            LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC,
+        ) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
+                    collapseCompletedProcess = collapseCompletedProcess,
+                    responseDurationMs = responseDurationMs,
                     nodes = renderNodes,
                     rendererId = rendererId,
                     nodeAnimationStates = nodeAnimationStates,
@@ -979,8 +1102,8 @@ fun StreamMarkdownRenderer(
 }
 
 /**
- * 统一的Markdown Canvas渲染器
- * 真正在一个大Canvas中批量绘制所有节点
+ * Shared Markdown node renderer. Static timeline slices render one semantic block;
+ * streaming and non-timeline callers retain the full document path.
  * 
  * 优势：
  * - 使用单个Canvas绘制所有内容，大幅减少Composable数量
@@ -1007,10 +1130,31 @@ private fun AnimatedNode(
     onLinkClick: ((String) -> Unit)?,
     xmlRenderer: XmlContentRenderer,
     xmlStream: Stream<String>?,
+    xmlRenderInstanceKey: Any?,
     enableDialogs: Boolean,
     fillMaxWidth: Boolean,
     isLastNode: Boolean = false
 ) {
+    if (LocalMarkdownRenderMode.current == MarkdownRenderMode.STATIC) {
+        // Completed nodes are already visible. Thousands of identity graphics layers in a
+        // long historical reply retain rendering resources without animating anything.
+        CanvasMarkdownNodeRenderer(
+            nodeKey = nodeKey,
+            node = node,
+            textColor = textColor,
+            fontSize = fontSize,
+            modifier = Modifier,
+            onLinkClick = onLinkClick,
+            index = index,
+            xmlRenderer = xmlRenderer,
+            xmlStream = xmlStream,
+            xmlRenderInstanceKey = xmlRenderInstanceKey,
+            enableDialogs = enableDialogs,
+            fillMaxWidth = fillMaxWidth,
+            isLastNode = isLastNode,
+        )
+        return
+    }
     // alpha 动画状态在这里，变化只影响这个 Composable 的作用域
     val alpha by animateFloatAsState(
         targetValue = if (isVisible) 1f else 0f,
@@ -1033,6 +1177,7 @@ private fun AnimatedNode(
             index = index,
             xmlRenderer = xmlRenderer,
             xmlStream = xmlStream,
+            xmlRenderInstanceKey = xmlRenderInstanceKey,
             enableDialogs = enableDialogs,
             fillMaxWidth = fillMaxWidth,
             isLastNode = isLastNode
@@ -1054,6 +1199,10 @@ private fun UnifiedMarkdownCanvas(
     enableDialogs: Boolean,
     modifier: Modifier = Modifier,
     fillMaxWidth: Boolean = true,
+    collapseCompletedProcess: Boolean = false,
+    responseDurationMs: Long = 0L,
+    onlyItems: List<MarkdownGroupedItem>? = null,
+    preparedInvocationIndices: List<Int?>? = null,
 ) {
     val lastRenderableIndex = run {
         val idx = nodes.indexOfLast { it.content.isNotEmpty() || it.children.isNotEmpty() }
@@ -1068,23 +1217,34 @@ private fun UnifiedMarkdownCanvas(
         }
     }
 
-    val tailNode = nodes.lastOrNull()
-    val groupingKey = remember(nodes.size, tailNode?.content?.length, tailNode?.type, rendererId, nodeGrouper) {
-        Triple(nodes.size, tailNode?.content?.length ?: -1, tailNode?.type)
+    val nodeSnapshot = if (onlyItems != null) nodes else nodes.toList()
+    val invocationIndices = preparedInvocationIndices ?: remember(nodeSnapshot) { toolInvocationIndices(nodeSnapshot) }
+    val groupedItems = onlyItems ?: remember(nodeSnapshot, rendererId, nodeGrouper) {
+        nodeGrouper.group(nodeSnapshot, rendererId)
     }
 
-    val groupedItems =
-        remember(groupingKey, rendererId, nodeGrouper) {
-            nodeGrouper.group(nodes, rendererId)
-        }
-    Column(modifier = modifier) {
-        groupedItems.forEach { item ->
+    val transcriptExpanded = LocalResponseProcessExpanded.current
+    // Image export and markdown previews have no transcript identity and must render their
+    // explicitly selected content without adding an interactive, initially collapsed section.
+    val inTranscript = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptMessageId.current != null
+    val processEnd =
+        if (onlyItems == null && ((collapseCompletedProcess && inTranscript) || transcriptExpanded != null)) completedProcessEnd(nodes) else -1
+    val transcriptChatId = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptChatId.current
+    val transcriptMessageId = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptMessageId.current
+    val expansionKey = "single-process-${transcriptMessageId ?: rendererId}"
+    val expanded = com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
+        .isExpanded(transcriptChatId, expansionKey)
+    val renderItems: @Composable (List<MarkdownGroupedItem>) -> Unit = { items ->
+        items.forEach { item ->
             when (item) {
                 is MarkdownGroupedItem.Single -> {
                     val index = item.index
                     val node = nodes.getOrNull(index) ?: return@forEach
                     val nodeKey = nodeKeyForIndex(index)
                     key(nodeKey) {
+                        // A nested renderer (thinking, tool details, etc.) owns different
+                        // content and must not reuse its enclosing timeline slice.
+                        CompositionLocalProvider(LocalTranscriptMarkdownSlice provides null) {
                         AnimatedNode(
                             nodeKey = nodeKey,
                             node = node,
@@ -1095,10 +1255,15 @@ private fun UnifiedMarkdownCanvas(
                             onLinkClick = onLinkClick,
                             xmlRenderer = xmlRenderer,
                             xmlStream = xmlStreamsByIndex[index],
+                            xmlRenderInstanceKey =
+                                invocationIndices.getOrNull(index)?.let { invocationIndex ->
+                                    ToolXmlRenderInstanceKey(nodeKey, invocationIndex)
+                                } ?: nodeKey,
                             enableDialogs = enableDialogs,
                             fillMaxWidth = fillMaxWidth,
                             isLastNode = index == lastRenderableIndex,
                         )
+                        }
                     }
                 }
 
@@ -1123,6 +1288,39 @@ private fun UnifiedMarkdownCanvas(
                     }
                 }
             }
+        }
+    }
+    Column(modifier = modifier) {
+        if (processEnd >= 0) {
+            val processItemCount = groupedItems.takeWhile { item ->
+                val itemEnd = when (item) {
+                    is MarkdownGroupedItem.Single -> item.index
+                    is MarkdownGroupedItem.Group -> item.endIndexInclusive
+                }
+                itemEnd <= processEnd
+            }.size
+            if (transcriptExpanded == null) ResponseActivityHeader(
+                durationMs = responseDurationMs,
+                expanded = expanded,
+                textColor = textColor,
+                onClick = {
+                    com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
+                        .toggle(transcriptChatId, expansionKey)
+                },
+            )
+            // Animate the process as one region, keeping the final answer outside its lifecycle.
+            AnimatedVisibility(
+                visible = transcriptExpanded ?: expanded,
+                enter = expandVertically(tween(240), expandFrom = Alignment.Top) +
+                    fadeIn(tween(180)),
+                exit = shrinkVertically(tween(240), shrinkTowards = Alignment.Top) +
+                    fadeOut(tween(180)),
+            ) {
+                Column { renderItems(groupedItems.take(processItemCount)) }
+            }
+            renderItems(groupedItems.drop(processItemCount))
+        } else {
+            renderItems(groupedItems)
         }
     }
 }

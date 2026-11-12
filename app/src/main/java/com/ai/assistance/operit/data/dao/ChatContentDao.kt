@@ -88,6 +88,20 @@ data class ChatContentCharacterCount(
 /** Reads message text in bounded rows so a single large message cannot overflow CursorWindow. */
 @Dao
 abstract class ChatContentDao {
+    @Query("SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'ai' AND displayMode != 'ASSISTANT_INTERMEDIATE' ORDER BY timestamp DESC LIMIT 1")
+    protected abstract suspend fun latestAnswerTimestamp(chatId: String): Long?
+
+    @Query(MESSAGE_VARIANT_CONTENT_ROW_QUERY + " WHERE chatId = :chatId AND messageTimestamp = :timestamp AND variantIndex = :idx LIMIT 1")
+    protected abstract suspend fun selectedAnswerVariant(chatId: String, timestamp: Long, idx: Int): MessageVariantContentRow?
+
+    @Transaction
+    open suspend fun latestAnswerContent(chatId: String): String? {
+        val time = latestAnswerTimestamp(chatId) ?: return null
+        val row = queryMessageByTimestamp(chatId, time) ?: return null
+        val idx = row.message.selectedVariantIndex
+        return if (idx == 0) materializeMessage(row).content else selectedAnswerVariant(chatId, time, idx)?.let { materializeVariant(it).content }
+    }
+
     @Query(MESSAGE_CONTENT_ROW_QUERY + " WHERE chatId = :chatId ORDER BY timestamp ASC")
     protected abstract suspend fun queryMessagesForChat(chatId: String): List<MessageContentRow>
 
@@ -199,6 +213,16 @@ abstract class ChatContentDao {
         chatId: String,
         timestamp: Long,
     ): MessageContentRow?
+
+    @Query(MESSAGE_CONTENT_ROW_QUERY + " WHERE chatId = :chatId AND timestamp IN (:timestamps) ORDER BY timestamp ASC")
+    protected abstract suspend fun queryMessagesByTimestamps(
+        chatId: String,
+        timestamps: List<Long>,
+    ): List<MessageContentRow>
+
+    @Transaction
+    open suspend fun getMessagesByTimestamps(chatId: String, timestamps: List<Long>): List<MessageEntity> =
+        materializeMessages(queryMessagesByTimestamps(chatId, timestamps))
 
     @Query(
         "SELECT CAST(SUBSTR(CAST(content AS BLOB), :startByte, :byteCount) AS BLOB)" +

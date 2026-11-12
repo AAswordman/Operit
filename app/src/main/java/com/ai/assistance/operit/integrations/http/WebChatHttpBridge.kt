@@ -361,6 +361,7 @@ class WebChatHttpBridge(
     private fun handleListChats(): NanoHTTPD.Response {
         val chats = runBlocking {
             val histories = chatHistoryManager.chatHistoriesFlow.first()
+                .filter { it.chatKind != com.ai.assistance.operit.data.model.ChatKind.SUBAGENT.name }
             val characterGroupNamesById = resolveCharacterGroupNames(histories)
             val bindingAvatarUrlByChatId = resolveBindingAvatarUrls(histories)
 
@@ -1068,6 +1069,12 @@ class WebChatHttpBridge(
                 NanoHTTPD.Response.Status.NOT_FOUND,
                 WebErrorResponse("Chat not found")
             )
+        }
+
+        if (runBlocking { chatHistoryManager.getChatHistoriesSnapshot().any {
+                it.id == chatId && it.chatKind == com.ai.assistance.operit.data.model.ChatKind.SUBAGENT.name
+            } }) {
+            return jsonResponse(NanoHTTPD.Response.Status.FORBIDDEN, WebErrorResponse("Subagent transcripts are read-only"))
         }
 
         val request = parseJsonRequest<WebSendMessageRequest>(session)

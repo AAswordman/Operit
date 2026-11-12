@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -36,7 +35,12 @@ import com.ai.assistance.operit.R
 
 data class PendingQueueMessageItem(
     val id: Long,
-    val text: String
+    val text: String,
+    internal val chatGeneration: Long = 0L,
+    val isSteering: Boolean = false,
+    val attachments: List<com.ai.assistance.operit.data.model.AttachmentInfo> = emptyList(),
+    /** The message the user quoted when this was written; it goes along whenever this is sent. */
+    val replyToMessage: com.ai.assistance.operit.data.model.ChatMessage? = null,
 )
 
 @Composable
@@ -46,7 +50,7 @@ fun PendingMessageQueuePanel(
     onExpandedChange: (Boolean) -> Unit,
     onDeleteMessage: (Long) -> Unit,
     onEditMessage: (Long) -> Unit,
-    onSendMessage: (Long) -> Unit,
+    onSteerMessage: (Long) -> Unit,
     containerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
     itemColor: Color = MaterialTheme.colorScheme.surface,
     modifier: Modifier = Modifier
@@ -112,14 +116,15 @@ fun PendingMessageQueuePanel(
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                QueueIconAction(
+                                if (!item.isSteering) QueueIconAction(
                                     onClick = { onEditMessage(item.id) },
                                     imageVector = Icons.Default.Edit,
                                     contentDescription = stringResource(R.string.edit),
                                     tint = actionIconTint
                                 )
                                 Text(
-                                    text = item.text,
+                                    text = listOf(item.text, item.attachments.joinToString { it.fileName })
+                                        .filter { it.isNotBlank() }.joinToString("\n"),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
@@ -130,13 +135,16 @@ fun PendingMessageQueuePanel(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.End
                                 ) {
-                                    QueueIconAction(
-                                        onClick = { onSendMessage(item.id) },
-                                        imageVector = Icons.AutoMirrored.Filled.Send,
-                                        contentDescription = stringResource(R.string.send),
-                                        tint = actionIconTint
+                                    Text(
+                                        text = stringResource(
+                                            if (item.isSteering) R.string.chat_steer_pending else R.string.chat_steer_turn
+                                        ),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.clickable(enabled = !item.isSteering) {
+                                            onSteerMessage(item.id)
+                                        }.padding(6.dp),
                                     )
-                                    QueueIconAction(
+                                    if (!item.isSteering) QueueIconAction(
                                         onClick = { onDeleteMessage(item.id) },
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = stringResource(R.string.delete),

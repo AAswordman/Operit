@@ -89,6 +89,7 @@ private fun PermissionRequestContent(
     onAllow: () -> Unit,
     onDeny: () -> Unit,
     onAlwaysAllow: () -> Unit,
+    allowAlwaysAllow: Boolean = true,
     colorScheme: ColorScheme? = null,
     tool: AITool? = null
 ) {
@@ -212,8 +213,9 @@ private fun PermissionRequestContent(
                                         )
                                     )
                                 }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
+                                if (allowAlwaysAllow) {
+                                  Spacer(modifier = Modifier.height(8.dp))
+                                  Text(
                                     text = stringResource(R.string.permission_request_always_allow),
                                     style = MaterialTheme.typography.bodySmall.copy(
                                         fontSize = 12.sp
@@ -222,7 +224,8 @@ private fun PermissionRequestContent(
                                     modifier = Modifier
                                         .clickable { onAlwaysAllow() }
                                         .padding(vertical = 4.dp)
-                                )
+                                  )
+                                }
                             }
                         }
 
@@ -381,6 +384,7 @@ class PermissionRequestOverlay(private val context: Context) {
     fun show(
         tool: AITool,
         operationDescription: String,
+        allowAlwaysAllow: Boolean = true,
         onResult: (PermissionRequestResult) -> Unit
     ) {
         if (overlayView != null) return
@@ -416,6 +420,7 @@ class PermissionRequestOverlay(private val context: Context) {
                     operationDescription = operationDescription,
                     colorScheme = colorScheme,
                     tool = tool,
+                    allowAlwaysAllow = allowAlwaysAllow,
                     onAllow = {
                         onResult(PermissionRequestResult.ALLOW)
                         dismiss()

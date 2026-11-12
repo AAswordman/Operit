@@ -1,6 +1,7 @@
 
 package com.ai.assistance.operit.ui.features.chat.components.style.bubble
 
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.ai.assistance.operit.data.model.ChatMessage
@@ -41,11 +42,14 @@ fun BubbleStyleChatMessage(
     heightMemory: ChatMessageHeightMemory? = null,
     onDeleteMessage: ((Int) -> Unit)? = null,
     index: Int = -1,
-    enableDialogs: Boolean = true,  // 新增参数：是否启用弹窗功能，默认启用
+    enableDialogs: Boolean = true,
+
+    enableToolDetailDialogs: Boolean? = null,
     onRoleAvatarLongPress: ((String) -> Unit)? = null,
+    showAssistantHeader: Boolean = true,
     onEditSummary: ((ChatMessage) -> Unit)? = null,
 ) {
-    when (message.sender) {
+    when (if (message.displayMode.isCollaborationEvent) "ai" else message.sender) {
         "user" -> {
             BubbleUserMessageComposable(
                 message = message,
@@ -63,6 +67,8 @@ fun BubbleStyleChatMessage(
         "ai" -> {
             BubbleAiMessageComposable(
                 message = message,
+                showHeader = showAssistantHeader && !message.displayMode.isCollaborationEvent,
+                inlineContent = if (message.displayMode.isCollaborationEvent) { { com.ai.assistance.operit.ui.features.chat.components.CollaborationMessageCard(message, horizontalPadding = 0.dp) } } else null,
                 backgroundColor = aiMessageColor,
                 textColor = aiTextColor,
                 enableLiquidGlass = aiMessageLiquidGlassEnabled,
@@ -78,6 +84,7 @@ fun BubbleStyleChatMessage(
                 isHidden = isHidden,
                 heightMemory = heightMemory,
                 enableDialogs = enableDialogs,
+                enableToolDetailDialogs = enableToolDetailDialogs,
                 onAvatarLongPressMention = onRoleAvatarLongPress,
             )
         }
