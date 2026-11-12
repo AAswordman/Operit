@@ -175,13 +175,13 @@ object TokenStatsQueryService {
         }
     }
 
-    private fun buildDisplayModels(
+    internal fun buildDisplayModels(
         rows: List<TokenUsageModelAggregateRow>,
         prices: TokenPriceSettingsSnapshot,
         params: TokenStatsQueryParams,
     ): List<TokenStatsDisplayModelBreakdown> =
-        rows.groupBy { row -> displayModelIdFor(row.model) }
-            .map { (displayModelId, groupRows) ->
+        rows.groupBy { row -> displayGroupIdFor(params.grouping, row.configId, row.model) }
+            .map { (displayGroupId, groupRows) ->
                 val identities = groupRows.map { row ->
                     TokenStatsIdentityBreakdown(
                         configId = row.configId,
@@ -191,12 +191,22 @@ object TokenStatsQueryService {
                     )
                 }
                 TokenStatsDisplayModelBreakdown(
-                    displayModelId = displayModelId,
+                    displayModelId = displayGroupId,
+                    // displayName 只含模型名；"配置名/模型名"的拼装在 ViewModel 层，
+                    // 数据层不掌握配置名。
                     displayName = groupRows.first().model,
                     normalizedModel = groupRows.first().model.trim().lowercase(),
                     totals = combineTotals(identities.map(TokenStatsIdentityBreakdown::totals), params),
                     identities = identities,
                     providerModels = groupRows.map(TokenUsageModelAggregateRow::providerModel).distinct(),
+                    // 分组键含 configId 时组内共享同一配置；按模型名合并的组跨配置，
+                    // configId 不适用。组键相同保证 first() 即该组配置，不是猜测。
+                    configId =
+                        if (params.grouping == TokenStatsGrouping.CONFIG_MODEL) {
+                            groupRows.first().configId
+                        } else {
+                            null
+                        },
                 )
             }
             .sortedByDescending { it.totals.totalTokens.knownSum }
@@ -332,7 +342,15 @@ object TokenStatsQueryService {
     private fun Set<String>?.queryValues(): List<String> =
         if (this == null || isEmpty()) listOf("__none__") else toList()
 
-    private fun displayModelIdFor(model: String): String = "model:${model.trim().lowercase()}"
+    private fun displayGroupIdFor(
+        grouping: TokenStatsGrouping,
+        configId: String,
+        model: String,
+    ): String =
+        when (grouping) {
+            TokenStatsGrouping.CONFIG_MODEL -> "config:${configId}|model:${model.trim().lowercase()}"
+            TokenStatsGrouping.MERGED_MODEL -> "model:${model.trim().lowercase()}"
+        }
 
     private fun List<TokenStatsModelEntity>.toPriceSnapshot(): TokenPriceSettingsSnapshot {
         val priceRows = filter(TokenStatsModelEntity::hasPriceSetting)

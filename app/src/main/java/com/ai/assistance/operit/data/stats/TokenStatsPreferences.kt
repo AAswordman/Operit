@@ -23,6 +23,7 @@ internal class TokenStatsPreferences(context: Context) {
         private val TIME_RANGE_START = longPreferencesKey("time_range_start")
         private val TIME_RANGE_END = longPreferencesKey("time_range_end")
         private val ACTIVITY_VIEW_MODE = stringPreferencesKey("activity_view_mode")
+        private val MODEL_GROUPING = stringPreferencesKey("model_grouping")
         private val IMPORTED_AT = longPreferencesKey("imported_at_ms")
     }
 
@@ -78,6 +79,16 @@ internal class TokenStatsPreferences(context: Context) {
 
     suspend fun saveActivityViewMode(mode: TokenActivityViewMode) {
         dataStore.edit { preferences -> preferences[ACTIVITY_VIEW_MODE] = mode.name }
+    }
+
+    suspend fun loadModelGrouping(): TokenStatsGrouping {
+        val stored = dataStore.data.first()[MODEL_GROUPING]
+        return stored?.let { TokenStatsGrouping.valueOf(it) }
+            ?: TokenStatsGrouping.CONFIG_MODEL
+    }
+
+    suspend fun saveModelGrouping(grouping: TokenStatsGrouping) {
+        dataStore.edit { preferences -> preferences[MODEL_GROUPING] = grouping.name }
     }
 
     suspend fun loadTimeRange(): TokenStatsTimeRange? {

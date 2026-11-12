@@ -20,6 +20,10 @@ interface TokenStatsSettingsStore {
 
     suspend fun saveActivityViewMode(mode: TokenActivityViewMode)
 
+    suspend fun loadModelGrouping(): TokenStatsGrouping
+
+    suspend fun saveModelGrouping(grouping: TokenStatsGrouping)
+
     suspend fun loadTimeRange(): TokenStatsTimeRange?
 
     suspend fun saveTimeRange(range: TokenStatsTimeRange?)
@@ -59,6 +63,14 @@ class TokenStatsPreferencesStore(context: Context) : TokenStatsSettingsStore {
 
     override suspend fun saveActivityViewMode(mode: TokenActivityViewMode) {
         preferences.saveActivityViewMode(mode)
+    }
+
+    override suspend fun loadModelGrouping(): TokenStatsGrouping {
+        return preferences.loadModelGrouping()
+    }
+
+    override suspend fun saveModelGrouping(grouping: TokenStatsGrouping) {
+        preferences.saveModelGrouping(grouping)
     }
 
     override suspend fun loadTimeRange(): TokenStatsTimeRange? {
