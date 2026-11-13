@@ -116,6 +116,13 @@ class SiliconFlowVoiceProvider(
                     if (prepared == null) {
                         request.completion.complete(false)
                     } else {
+                        // 合成完成即放行调用方（complete 必须在 send 之前）：调用方拿到结果后
+                        // 就能提交下一句，当前句播放期间下一句照常预合成，流水线得以保持。
+                        // 若等播放结束才返回，调用方（ChatViewModel 的串行消费者）每句都要
+                        // 等上一句播完才发起合成，句间会出现可感知的空窗。
+                        // 播放顺序仍由 playbackQueue 串行保证，打断/停止语义由
+                        // generation 与 isCurrent 校验保证，均不受影响。
+                        request.completion.complete(true)
                         playbackQueue.send(prepared)
                     }
                 } catch (e: Exception) {
@@ -127,10 +134,11 @@ class SiliconFlowVoiceProvider(
         speakScope.launch {
             for (prepared in playbackQueue) {
                 try {
-                    val result = playPreparedRequest(prepared)
-                    prepared.request.completion.complete(result)
+                    // 调用方在合成完成时已拿到结果，播放阶段的失败（文件损坏等，
+                    // playAudioFileAndAwait 内部已记录日志）只影响本句发声，不再回传。
+                    playPreparedRequest(prepared)
                 } catch (e: Exception) {
-                    prepared.request.completion.completeExceptionally(e)
+                    AppLogger.e(TAG, "TTS播放队列处理失败", e)
                 }
             }
         }
@@ -156,6 +164,10 @@ class SiliconFlowVoiceProvider(
         }
     }
 
+    /**
+     * 提交一段文本到播放队列。返回 true 表示合成成功且已进入播放队列（不等待播放结束），
+     * false 表示合成失败。播放由 playbackQueue 串行推进，打断/停止通过 generation 校验生效。
+     */
     override suspend fun speak(
         text: String,
         interrupt: Boolean,
@@ -314,13 +326,13 @@ class SiliconFlowVoiceProvider(
         }
     }
 
-    private suspend fun playPreparedRequest(prepared: PreparedRequest): Boolean {
+    private suspend fun playPreparedRequest(prepared: PreparedRequest) {
         if (prepared.request.generation != stopGeneration.get()) {
             prepared.audioFile.delete()
-            return false
+            return
         }
 
-        return playAudioFileAndAwait(prepared.audioFile)
+        playAudioFileAndAwait(prepared.audioFile)
     }
 
     private fun clearPendingRequests() {
