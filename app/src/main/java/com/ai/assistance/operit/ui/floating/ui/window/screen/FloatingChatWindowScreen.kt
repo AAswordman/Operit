@@ -495,6 +495,10 @@ private fun TitleBar(
                                     viewModel.endDragging()
                                     floatContext.saveWindowState?.invoke()
                                 },
+                                onDragCancel = {
+                                    viewModel.endDragging()
+                                    floatContext.saveWindowState?.invoke()
+                                },
                                 onDrag = { change, dragAmount ->
                                     change.consume()
                                     viewModel.handleMove(dragAmount.x, dragAmount.y)
@@ -1132,6 +1136,10 @@ private fun BoxScope.RightEdgeScaleHandle(
                         viewModel.endEdgeResize()
                         onScalingChange(false)
                     },
+                    onDragCancel = {
+                        viewModel.endEdgeResize()
+                        onScalingChange(false)
+                    },
                     onDrag = { change, dragAmount ->
                         change.consume()
                         val widthDelta = with(density) { dragAmount.x.toDp() }
@@ -1223,6 +1231,12 @@ private fun BoxScope.CornerScaleHandle(
                     onDragEnd = {
                         viewModel.endDragging()
                         onScalingChange(false)
+                        floatContext.saveWindowState?.invoke()
+                    },
+                    onDragCancel = {
+                        viewModel.endDragging()
+                        onScalingChange(false)
+                        floatContext.saveWindowState?.invoke()
                     },
                     onDrag = { change, dragAmount ->
                         change.consume()
@@ -1292,6 +1306,10 @@ private fun BoxScope.BottomResizeHandle(
                         onResizingChange(true)
                     },
                     onDragEnd = {
+                        viewModel.endEdgeResize()
+                        onResizingChange(false)
+                    },
+                    onDragCancel = {
                         viewModel.endEdgeResize()
                         onResizingChange(false)
                     },
