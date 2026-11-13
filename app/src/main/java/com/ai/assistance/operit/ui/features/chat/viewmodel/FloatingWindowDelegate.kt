@@ -57,7 +57,7 @@ class FloatingWindowDelegate(
                     }
                     FloatingChatService.ACTION_FLOATING_CHAT_SERVICE_STOPPED -> {
                         moveTaskToBackOnWindowShownPending = false
-                        disconnectFromService(updateFloatingMode = false)
+                        disconnectFromService(updateFloatingMode = true)
                     }
                     FloatingChatService.ACTION_FLOATING_CHAT_WINDOW_SHOWN -> {
                         if (moveTaskToBackOnWindowShownPending) {
@@ -76,9 +76,11 @@ class FloatingWindowDelegate(
     private val serviceConnection =
         object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                val binder = service as FloatingChatService.LocalBinder
+                if (!isBoundToService) return
+                val binder = service as? FloatingChatService.LocalBinder ?: return
                 floatingService = binder.getService()
                 floatingBinder = binder
+                _isFloatingMode.value = true
                 // 设置回调，允许服务通知委托关闭
                 binder.setCloseCallback {
                     closeFloatingWindow()
@@ -184,8 +186,20 @@ class FloatingWindowDelegate(
             isBoundToService = context.bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
         } else {
             moveTaskToBackOnWindowShownPending = false
-            // 统一调用关闭逻辑，确保服务被正确关闭
-            floatingService?.onClose()
+            // 统一调用关闭逻辑，确保服务被正确关闭；若尚未完成绑定则回退到实例或直接停止服务
+            val activeService = floatingService ?: FloatingChatService.getInstance()
+            if (activeService != null) {
+                activeService.onClose()
+                if (floatingService == null) {
+                    disconnectFromService(updateFloatingMode = true)
+                }
+            } else {
+                try {
+                    context.stopService(Intent(context, FloatingChatService::class.java))
+                } catch (_: Exception) {
+                }
+                disconnectFromService(updateFloatingMode = true)
+            }
         }
     }
 
