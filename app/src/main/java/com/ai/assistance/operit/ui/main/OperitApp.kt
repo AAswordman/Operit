@@ -40,7 +40,8 @@ import com.ai.assistance.operit.ui.main.navigation.AppNavigationModel
 import com.ai.assistance.operit.ui.main.navigation.AppRouteCatalog
 import com.ai.assistance.operit.ui.main.screens.Screen
 import com.ai.assistance.operit.ui.main.navigation.AppRouterGateway
-import com.ai.assistance.operit.ui.main.navigation.AppRouterState
+import com.ai.assistance.operit.ui.main.navigation.AppNavigationViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ai.assistance.operit.ui.main.navigation.AppRouteDiscoveryGateway
 import com.ai.assistance.operit.ui.main.navigation.screenKeysAliveOnStack
 import com.ai.assistance.operit.ui.main.navigation.NavigationEntrySpec
@@ -50,6 +51,8 @@ import com.ai.assistance.operit.ui.main.navigation.LocalRouteBackGuardRegistry
 import com.ai.assistance.operit.ui.main.navigation.RouteBackGuardRegistry
 import com.ai.assistance.operit.util.NetworkUtils
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -114,8 +117,9 @@ fun OperitApp(
     val configuration = LocalConfiguration.current
     val navigationModel = remember(context, configuration, navigationRevision) { AppRouteCatalog.build(context) }
 
-    val routerState = remember {
-        AppRouterState(AppRouteCatalog.initialEntry(initialNavItem))
+    val navigationViewModel: AppNavigationViewModel = viewModel()
+    val routerState = navigationViewModel.getOrCreateRouter {
+        AppRouteCatalog.initialEntry(initialNavItem)
     }
     val routeBackGuardRegistry = remember { RouteBackGuardRegistry() }
     val currentRouteEntry = routerState.currentEntry
@@ -147,16 +151,20 @@ fun OperitApp(
     var lastHandledRouteRequestId by remember { mutableStateOf(0L) }
     var lastHandledChatOpenRequestId by remember { mutableStateOf(0L) }
     var isRouteTransitionInProgress by remember { mutableStateOf(false) }
-    var queuedRouteTransition by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var queuedRouteTransition by remember {
+        mutableStateOf<Pair<() -> Unit, () -> Unit>?>(null)
+    }
 
     fun requestRouteTransition(
         queueIfBusy: Boolean = true,
+        onRejected: () -> Unit = {},
         onAllowed: () -> Unit,
     ) {
         scope.launch {
             if (isRouteTransitionInProgress) {
                 if (queueIfBusy) {
-                    queuedRouteTransition = onAllowed
+                    queuedRouteTransition?.second?.invoke()
+                    queuedRouteTransition = onAllowed to onRejected
                 }
                 return@launch
             }
@@ -166,6 +174,9 @@ fun OperitApp(
                 val canLeave = routeBackGuardRegistry.canLeaveRoute(routeInstanceId)
                 if (canLeave && routerState.currentEntry.instanceId == routeInstanceId) {
                     onAllowed()
+                } else if (!canLeave) {
+                    // An explicit cancel consumes the request; a cancelled coroutine does not.
+                    onRejected()
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -176,7 +187,10 @@ fun OperitApp(
                 val queuedTransition = queuedRouteTransition
                 queuedRouteTransition = null
                 if (queuedTransition != null) {
-                    requestRouteTransition(onAllowed = queuedTransition)
+                    requestRouteTransition(
+                        onAllowed = queuedTransition.first,
+                        onRejected = queuedTransition.second,
+                    )
                 }
             }
         }
@@ -199,11 +213,11 @@ fun OperitApp(
 
         val targetEntry = AppRouteCatalog.initialEntry(requestNavItem)
         lastHandledShortcutRequestId = shortcutNavRequestId
-        onShortcutNavHandled(shortcutNavRequestId)
-        requestRouteTransition {
+        requestRouteTransition(onRejected = { onShortcutNavHandled(shortcutNavRequestId) }) {
             isNavigatingBack = false
             navigationTransitionSource = NavigationTransitionSource.DEFAULT
             routerState.resetTo(targetEntry)
+            onShortcutNavHandled(shortcutNavRequestId)
         }
     }
 
@@ -222,8 +236,7 @@ fun OperitApp(
             return@LaunchedEffect
         }
         lastHandledRouteRequestId = routeNavRequestId
-        onRouteNavHandled(routeNavRequestId)
-        requestRouteTransition {
+        requestRouteTransition(onRejected = { onRouteNavHandled(routeNavRequestId) }) {
             isNavigatingBack = false
             navigationTransitionSource = NavigationTransitionSource.DEFAULT
             routerState.resetTo(
@@ -233,6 +246,7 @@ fun OperitApp(
                     source = RouteEntrySource.DEFAULT
                 )
             )
+            onRouteNavHandled(routeNavRequestId)
         }
     }
     LaunchedEffect(chatOpenRequestId, chatOpenRequest) {
@@ -246,25 +260,29 @@ fun OperitApp(
         lastHandledChatOpenRequestId = chatOpenRequestId
         val chatHistoryManager = ChatHistoryManager.getInstance(context)
         val chatExists = runCatching { chatHistoryManager.chatExists(requestChatId) }
+            .onFailure { if (it is CancellationException) throw it }
             .getOrDefault(false)
+        currentCoroutineContext().ensureActive()
         if (!chatExists) {
             AppLogger.w(TAG, "Ignored chat open request for missing chatId=$requestChatId")
             onChatOpenHandled(chatOpenRequestId)
             return@LaunchedEffect
         }
-        runCatching {
+        val openChatResult = runCatching {
             chatHistoryManager.setCurrentChatId(requestChatId)
-        }.onFailure { e ->
+        }.onFailure { if (it is CancellationException) throw it }
+        currentCoroutineContext().ensureActive()
+        openChatResult.onFailure { e ->
             AppLogger.e(TAG, "Failed to open chat from notification: ${e.message}", e)
             onChatOpenHandled(chatOpenRequestId)
             return@LaunchedEffect
         }
-        requestRouteTransition {
+        requestRouteTransition(onRejected = { onChatOpenHandled(chatOpenRequestId) }) {
             isNavigatingBack = false
             navigationTransitionSource = NavigationTransitionSource.DEFAULT
             routerState.resetTo(AppRouteCatalog.initialEntry(NavItem.AiChat))
+            onChatOpenHandled(chatOpenRequestId)
         }
-        onChatOpenHandled(chatOpenRequestId)
     }
 
     // 当currentScreen改变时，检查是否需要清空TopBarActions
