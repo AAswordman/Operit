@@ -7674,4 +7674,17 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="token_activity_chart_tap_hint">Ketuk grafik untuk melihat data detail</string>
     <string name="token_activity_total_tokens">Total Token</string>
     <string name="token_activity_peak_tokens">Token puncak</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Distilasi AI bacaan file</string>
+    <string name="function_desc_file_distill">Saat membaca file, AI mendestilasi konten relevan untuk menghemat konteks; jika tidak dikonfigurasi, memakai model utama</string>
+    <string name="tool_workspace_outside_forbidden">Alat %1$s disetel ke terlarang dan jalur tujuan berada di luar workspace sesi saat ini (atau sesi tidak mengikat workspace); panggilan ini ditolak.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Konfirmasi operasi di luar workspace: jalur tujuan berikut berada di luar workspace sesi saat ini (atau sesi tidak mengikat workspace). Periksa jalur dengan cermat sebelum mengizinkan:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 Tinjauan AI menilai panggilan ini tidak sesuai: %1$s\nKonfirmasi apakah tetap mengizinkan eksekusi.</string>
+    <string name="tool_review_failed_confirmation">⚠ Tinjauan AI tidak dapat diselesaikan: %1$s\nKonfirmasi secara manual apakah panggilan ini boleh dijalankan.</string>
+    <string name="agent_menu_tool_review_section">Tinjauan otomatis panggilan alat</string>
+    <string name="agent_menu_tool_review_inside">Tinjauan otomatis alat file (dalam workspace)</string>
+    <string name="agent_menu_tool_review_outside">Tinjauan otomatis alat file (luar workspace)</string>
+    <string name="agent_menu_tool_review_high_risk">Tinjauan otomatis alat berisiko tinggi</string>
+    <string name="agent_menu_file_distill">Distilasi AI untuk bacaan file</string>
 </resources>

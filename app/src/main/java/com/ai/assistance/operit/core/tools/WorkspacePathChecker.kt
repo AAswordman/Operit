@@ -70,9 +70,42 @@ object WorkspacePathChecker {
 
     /** 修改意图：递归删除危险根目录的硬底线。命中即拒绝，独立于工作区判定与权限模式 */
     fun isDangerousRecursiveDeleteTarget(path: String): Boolean {
-        val normalized = path.trim().trimEnd('/')
+        // 评审 P1：模型传入的拼写变体（/sdcard/.、//sdcard、/storage/emulated/0/.）与
+        // 集合的精确字符串匹配不符但指向同一目录，deleteRecursively 会真的清空。
+        // 词法规范化覆盖 ./..//重复斜杠（纯字符串运算，测试可跨平台断言）；
+        // canonical 再覆盖符号链接与文件系统层差异（路径不存在时 canonicalPath 不抛错，
+        // 仍按词法规范化返回）。两道比较任一命中即拒绝。
+        val normalized = lexicallyNormalizePath(path)
         if (normalized.isEmpty()) return false
-        return normalized in DANGEROUS_DELETE_ROOTS
+        if (normalized in DANGEROUS_DELETE_ROOTS) return true
+        val canonical = runCatching { File(normalized).canonicalPath }.getOrNull() ?: return false
+        return canonical in DANGEROUS_DELETE_ROOTS
+    }
+
+    /**
+     * 纯词法路径规范化：折叠重复斜杠、消解 "." 与 ".."（绝对路径在根处的 ".." 停留在根）、
+     * 去首尾空白与尾部斜杠。不做文件系统访问，桌面 JVM 与设备行为一致，供单测断言。
+     */
+    internal fun lexicallyNormalizePath(path: String): String {
+        val trimmed = path.trim()
+        if (trimmed.isEmpty()) return ""
+        val absolute = trimmed.startsWith('/')
+        val parts = trimmed.split('/').filter { it.isNotEmpty() && it != "." }
+        val stack = ArrayDeque<String>()
+        for (part in parts) {
+            if (part == "..") {
+                val canPop = stack.isNotEmpty() && stack.last() != ".."
+                if (canPop) {
+                    stack.removeLast()
+                } else if (!absolute) {
+                    stack.addLast(part)
+                }
+            } else {
+                stack.addLast(part)
+            }
+        }
+        val joined = stack.joinToString("/")
+        return if (absolute) "/$joined" else joined
     }
 
     fun isWorkspaceProtectedTool(toolName: String): Boolean {

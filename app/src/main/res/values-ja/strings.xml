@@ -295,4 +295,17 @@
     <string name="test_media_unverified">接続できましたが、確認できませんでした</string>
     <string name="test_result_expand">展開</string>
     <string name="test_result_collapse">折りたたむ</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">ファイル読み取りAI抽出</string>
+    <string name="function_desc_file_distill">ファイル読み取り時にAIが関連内容を抽出してコンテキストを節約します。未設定の場合はメインモデルを使用します</string>
+    <string name="tool_workspace_outside_forbidden">ツール %1$s は禁止に設定されており、対象パスは現在のセッションのワークスペース外（またはセッションにワークスペースが未バインド）のため、この呼び出しは拒否されます。</string>
+    <string name="tool_workspace_outside_confirmation">⚠ ワークスペース外操作の確認: 以下の対象パスは現在のセッションのワークスペース外（またはセッションにワークスペースが未バインド）です。許可する前にパスを慎重に確認してください:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 AIレビューでこの呼び出しは不適合と判断されました: %1$s\nそれでも実行を許可するか確認してください。</string>
+    <string name="tool_review_failed_confirmation">⚠ AIレビューを完了できませんでした: %1$s\nこの呼び出しの実行可否を手動で確認してください。</string>
+    <string name="agent_menu_tool_review_section">ツール呼び出しの自動レビュー</string>
+    <string name="agent_menu_tool_review_inside">ファイルツールの自動レビュー（ワークスペース内）</string>
+    <string name="agent_menu_tool_review_outside">ファイルツールの自動レビュー（ワークスペース外）</string>
+    <string name="agent_menu_tool_review_high_risk">高リスクツールの自動レビュー</string>
+    <string name="agent_menu_file_distill">ファイル読み取りAI抽出</string>
 </resources>

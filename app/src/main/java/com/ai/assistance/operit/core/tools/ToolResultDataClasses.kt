@@ -582,6 +582,14 @@ data class FileApplyResultData(
             }
     }
 
+    /**
+     * 评审 P3：CDATA 段内的 `]]>` 会提前闭合段并破坏 XML 结构（含 `]]>` 的代码 diff
+     * 直接截断后续内容）。按 XML 规范把该序列拆成两段 CDATA——`]]` 变为
+     * `]]]]><![CDATA[>`——拼接后语义不变。
+     */
+    private fun escapeCdataEnd(content: String): String =
+        content.replace("]]>", "]]]]><![CDATA[>")
+
     override fun toString(): String {
         val sb = StringBuilder()
         sb.appendLine(operation.toString())
@@ -589,16 +597,16 @@ data class FileApplyResultData(
         // If diffContent is available, embed it in a custom XML-like tag for the renderer.
         if (diffContent != null) {
             // 修改意图：原"转义"链是恒等替换（&→&、<→<、>→>），实际什么都没做；
-            // diff 内容进入 CDATA 段，CDATA 内无需转义，直接使用原文并删除误导性代码
+            // diff 内容进入 CDATA 段，无需按普通 XML 转义，仅需处理 `]]>` 序列
             val encodedDiff = diffContent
             sb.append("<file-diff path=\"${operation.path}\" details=\"${operation.details}\">")
-            sb.append("<![CDATA[$encodedDiff]]>")
+            sb.append("<![CDATA[${escapeCdataEnd(encodedDiff)}]]>")
             sb.append("</file-diff>")
         }
 
         val requestContent = buildRequestContent()
         if (requestContent.isNotBlank()) {
-            sb.append("<file-request-content><![CDATA[$requestContent]]></file-request-content>")
+            sb.append("<file-request-content><![CDATA[${escapeCdataEnd(requestContent)}]]></file-request-content>")
         }
 
         if (aiDiffInstructions.isNotEmpty() && !aiDiffInstructions.startsWith("Error")) {

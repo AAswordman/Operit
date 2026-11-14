@@ -1219,8 +1219,18 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
 
         // 修改意图：native ripgrep 运行在宿主文件系统上，直接传 linux/proot 逻辑路径
         // （/home/... 等）会扫不到目标；先映射到宿主 rootfs 真实路径再扫描，
-        // 结果路径再反向映射回 linux 逻辑路径回传给模型
-        val mappedPath = PathMapper.resolvePath(context, path, "linux")
+        // 结果路径再反向映射回 linux 逻辑路径回传给模型。
+        // 评审 P1：映射含 containment 校验，.. 逃出 rootfs 的路径（含 /../..）返回 null，
+        // 这里必须显式拒绝，不得回落原始路径交给 ripgrep。
+        val mappedPath =
+            PathMapper.resolvePath(context, path, "linux")
+                ?: return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "Path escapes the linux root filesystem and was rejected: path=\"$path\". " +
+                        "Use a path inside the linux environment root."
+                )
         val grepResult =
             grepCodeWithNativeRipgrep(
                 toolName = tool.name,
@@ -1238,10 +1248,20 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             return grepResult
         }
 
+        // 评审 P3：反向映射失败说明该结果在 rootfs 之外（宿主内部真实路径），把宿主路径
+        // 回传给模型既泄露内部结构、模型也无法把它当 linux 路径复用——丢弃该条目并记日志
         val remappedMatches =
-            resultData.matches.map { fileMatch ->
+            resultData.matches.mapNotNull { fileMatch ->
                 val linuxFilePath = PathMapper.mapAndroidPathToLinux(context, fileMatch.filePath)
-                if (linuxFilePath != null) fileMatch.copy(filePath = linuxFilePath) else fileMatch
+                if (linuxFilePath != null) {
+                    fileMatch.copy(filePath = linuxFilePath)
+                } else {
+                    AppLogger.w(
+                        TAG,
+                        "grep result outside rootfs dropped: ${fileMatch.filePath}"
+                    )
+                    null
+                }
             }
         return grepResult.copy(
             result =

@@ -8350,4 +8350,17 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Distilare AI a citirii fișierelor</string>
+    <string name="function_desc_file_distill">La citirea fișierelor, AI-ul distilează conținutul relevant pentru a economisi contextul; dacă nu este configurat, se folosește modelul principal</string>
+    <string name="tool_workspace_outside_forbidden">Instrumentul %1$s este setat ca interzis, iar calea destinație este în afara spațiului de lucru al sesiunii curente (sau sesiunea nu are un spațiu de lucru legat); apelul este respins.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Confirmare operațiune în afara spațiului de lucru: următoarele căi de destinație sunt în afara spațiului de lucru al sesiunii curente (sau sesiunea nu are un spațiu de lucru legat). Verificați căile cu atenție înainte de a permite:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 Recenzia AI consideră acest apel non-conform: %1$s\nConfirmați dacă permiteți în continuare executarea.</string>
+    <string name="tool_review_failed_confirmation">⚠ Recenzia AI nu a putut fi finalizată: %1$s\nConfirmați manual dacă acest apel poate fi executat.</string>
+    <string name="agent_menu_tool_review_section">Recenzie automată a apelurilor de instrumente</string>
+    <string name="agent_menu_tool_review_inside">Recenzie automată a instrumentelor de fișiere (în interiorul spațiului de lucru)</string>
+    <string name="agent_menu_tool_review_outside">Recenzie automată a instrumentelor de fișiere (în afara spațiului de lucru)</string>
+    <string name="agent_menu_tool_review_high_risk">Recenzie automată a instrumentelor cu risc ridicat</string>
+    <string name="agent_menu_file_distill">Distilare AI pentru citirea fișierelor</string>
 </resources>

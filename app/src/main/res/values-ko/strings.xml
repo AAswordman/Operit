@@ -7521,4 +7521,17 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">파일 읽기 AI 추출</string>
+    <string name="function_desc_file_distill">파일을 읽을 때 AI가 관련 내용을 추출해 컨텍스트를 절약합니다. 미설정 시 기본 모델을 사용합니다</string>
+    <string name="tool_workspace_outside_forbidden">도구 %1$s(이)가 금지로 설정되어 있고 대상 경로가 현재 세션 작업 공간 밖(또는 세션에 작업 공간이 바인딩되지 않음)이므로 이 호출은 거부됩니다.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ 작업 공간 외 작업 확인: 다음 대상 경로는 현재 세션 작업 공간 밖(또는 세션에 작업 공간이 바인딩되지 않음)에 있습니다. 허용하기 전에 경로를 신중히 확인하세요:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 AI 검토에서 이 호출이 규정 미준수로 판단되었습니다: %1$s\n그래도 실행을 허용할지 확인해 주세요.</string>
+    <string name="tool_review_failed_confirmation">⚠ AI 검토를 완료하지 못했습니다: %1$s\n이 호출의 실행 여부를 직접 확인해 주세요.</string>
+    <string name="agent_menu_tool_review_section">도구 호출 자동 검토</string>
+    <string name="agent_menu_tool_review_inside">파일 도구 자동 검토(작업 공간 내)</string>
+    <string name="agent_menu_tool_review_outside">파일 도구 자동 검토(작업 공간 외)</string>
+    <string name="agent_menu_tool_review_high_risk">고위험 도구 자동 검토</string>
+    <string name="agent_menu_file_distill">파일 읽기 AI 추출</string>
 </resources>

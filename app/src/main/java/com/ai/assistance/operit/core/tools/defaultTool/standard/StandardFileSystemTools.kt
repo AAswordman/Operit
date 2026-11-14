@@ -1762,6 +1762,21 @@ open class StandardFileSystemTools(protected val context: Context) {
         val startLineParam = tool.parameters.find { it.name == "start_line" }?.value?.toIntOrNull() ?: 1
         val endLineParam = tool.parameters.find { it.name == "end_line" }?.value?.toIntOrNull()
 
+        // 评审 P2：显式传入 end_line < start_line 属于非法范围。旧实现会把 end_line 钳到
+        // 有效范围返回实际内容，流式实现则 coerceAtLeast(0) 后静默返回空成功——模型传错
+        // 范围都得不到纠错信号。在 android/linux/saf 三分支委托前统一显式失败。
+        if (endLineParam != null && endLineParam < startLineParam) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = StringResultData(""),
+                error = "Invalid range: end_line (%d) must be >= start_line (%d). Re-check the line numbers with read_file_part or read_file first.".format(
+                    endLineParam,
+                    startLineParam
+                )
+            )
+        }
+
         // 如果是Linux环境，委托给LinuxFileSystemTools
         if (isLinuxEnvironment(environment)) {
             return linuxTools.readFilePart(tool)
@@ -3657,6 +3672,19 @@ open class StandardFileSystemTools(protected val context: Context) {
     }
 
     /** Zip files or directories */
+    /**
+     * 评审 P1：linux 环境路径逃出 proot rootfs（PathMapper.resolvePath 返回 null）时
+     * 的统一拒绝结果。不得回落原路径继续执行——那会把宿主文件系统暴露给工具。
+     */
+    private fun rootfsEscapeResult(tool: AITool, path: String, paramName: String): ToolResult =
+        ToolResult(
+            toolName = tool.name,
+            success = false,
+            result = StringResultData(""),
+            error = "Path escapes the linux root filesystem and was rejected: $paramName=\"$path\". " +
+                "Use a path inside the linux environment root."
+        )
+
     open suspend fun zipFiles(tool: AITool): ToolResult {
         val sourcePath = tool.parameters.find { it.name == "source" }?.value ?: ""
         val zipPath = tool.parameters.find { it.name == "destination" }?.value ?: ""
@@ -3687,8 +3715,11 @@ open class StandardFileSystemTools(protected val context: Context) {
         PathValidator.validateAndroidPath(sourcePath, tool.name, "source")?.let { return it }
         PathValidator.validateAndroidPath(zipPath, tool.name, "destination")?.let { return it }
 
+        // 评审 P1：linux 环境映射后必须校验 containment，.. 逃出 rootfs 的路径一律拒绝
         val actualSourcePath = PathMapper.resolvePath(context, sourcePath, environment)
+            ?: return rootfsEscapeResult(tool, sourcePath, "source")
         val actualZipPath = PathMapper.resolvePath(context, zipPath, environment)
+            ?: return rootfsEscapeResult(tool, zipPath, "destination")
 
         if (sourcePath.isBlank() || zipPath.isBlank()) {
             return ToolResult(
@@ -3853,8 +3884,11 @@ open class StandardFileSystemTools(protected val context: Context) {
         PathValidator.validateAndroidPath(zipPath, tool.name, "source")?.let { return it }
         PathValidator.validateAndroidPath(destPath, tool.name, "destination")?.let { return it }
 
+        // 评审 P1：linux 环境映射后必须校验 containment，.. 逃出 rootfs 的路径一律拒绝
         val actualZipPath = PathMapper.resolvePath(context, zipPath, environment)
+            ?: return rootfsEscapeResult(tool, zipPath, "source")
         val actualDestPath = PathMapper.resolvePath(context, destPath, environment)
+            ?: return rootfsEscapeResult(tool, destPath, "destination")
 
         if (zipPath.isBlank() || destPath.isBlank()) {
             return ToolResult(
@@ -4506,7 +4540,9 @@ open class StandardFileSystemTools(protected val context: Context) {
         val environment = tool.parameters.find { it.name == "environment" }?.value
         PathValidator.validateAndroidPath(destPath, tool.name, "destination")?.let { return it }
 
+        // 评审 P1：linux 环境映射后必须校验 containment，.. 逃出 rootfs 的路径一律拒绝
         val actualDestPath = PathMapper.resolvePath(context, destPath, environment)
+            ?: return rootfsEscapeResult(tool, destPath, "destination")
 
         fun parseHeaders(headersJson: String?): Map<String, String> {
             if (headersJson.isNullOrBlank()) return emptyMap()

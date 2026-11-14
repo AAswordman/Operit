@@ -149,4 +149,36 @@ class WorkspacePathCheckerTest {
             assertFalse("path=$path", WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path))
         }
     }
+
+    @Test
+    fun `dangerous root spelling variants are refused`() {
+        // 评审 P1：这些变体与根集合的精确匹配不符，但指向同一目录，
+        // deleteRecursively 会真的清空——词法规范化必须全部命中。
+        listOf(
+            "/sdcard/.",
+            "/sdcard//",
+            "//sdcard",
+            "/storage/emulated/0/.",
+            "/sdcard/..",
+            "/data/../data",
+            "/sdcard/sub/..",
+            "/storage/emulated/0/../storage/emulated/0",
+            "/etc/../etc",
+        ).forEach { path ->
+            assertTrue("variant=$path", WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path))
+        }
+    }
+
+    @Test
+    fun `lexical normalization collapses dot and duplicate segments`() {
+        assertEquals("/", WorkspacePathChecker.lexicallyNormalizePath("/"))
+        assertEquals("/sdcard", WorkspacePathChecker.lexicallyNormalizePath("/sdcard/."))
+        assertEquals("/sdcard", WorkspacePathChecker.lexicallyNormalizePath("//sdcard//"))
+        assertEquals("/", WorkspacePathChecker.lexicallyNormalizePath("/sdcard/.."))
+        assertEquals("/data", WorkspacePathChecker.lexicallyNormalizePath("/data/../data"))
+        assertEquals("/data/ws", WorkspacePathChecker.lexicallyNormalizePath("/data/ws/./x/.."))
+        assertEquals("", WorkspacePathChecker.lexicallyNormalizePath("   "))
+        // 相对路径在根之外的 ".." 保留词法形态，不逃逸到上级目录
+        assertEquals("../..", WorkspacePathChecker.lexicallyNormalizePath("a/../../a/../.."))
+    }
 }

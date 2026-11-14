@@ -8580,4 +8580,15 @@
     <string name="thinking_config_placeholder_high_zh">e.g. high</string>
     <string name="thinking_config_write_path">Write path</string>
     <string name="thinking_config_placeholder_high">e.g. high</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="tool_workspace_outside_forbidden">Tool %1$s is set to forbidden and the target path is outside the current session workspace (or the session has no workspace bound); this call is rejected.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Outside-workspace operation confirmation: the following target paths are outside the current session workspace (or the session has no workspace bound). Review the paths carefully before allowing:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 AI review flagged this call as non-compliant: %1$s\nConfirm whether to still allow the execution.</string>
+    <string name="tool_review_failed_confirmation">⚠ AI review could not complete: %1$s\nConfirm manually whether this call may run.</string>
+    <string name="agent_menu_tool_review_section">Auto-review tool calls</string>
+    <string name="agent_menu_tool_review_inside">Auto-review file tools (inside workspace)</string>
+    <string name="agent_menu_tool_review_outside">Auto-review file tools (outside workspace)</string>
+    <string name="agent_menu_tool_review_high_risk">Auto-review high-risk tools</string>
+    <string name="agent_menu_file_distill">AI distillation for file reads</string>
 </resources>

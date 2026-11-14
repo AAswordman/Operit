@@ -35,7 +35,7 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(name = "type", type = "string", description = "operation type: replace | delete | create", required = true),
                                     ToolParameterSchema(name = "old", type = "string", description = "the content block to be matched and replaced/deleted (required for replace/delete); must be UNIQUE in the file; do not include read_file line-number prefixes", required = false),
                                     ToolParameterSchema(name = "new", type = "string", description = "the new content to insert (required for replace/create)", required = false),
-                                    ToolParameterSchema(name = "occurrence", type = "integer", description = "optional, 1-based index of the match to operate on when old matches multiple locations (default 1)", required = false, default = "1")
+                                    ToolParameterSchema(name = "occurrence", type = "integer", description = "optional, 1-based index of the match to operate on when old matches multiple locations (the error lists the candidates); omitted occurrence means the operation is rejected, not defaulted to 1", required = false)
                                 ),
                             details = """
   - **How it works**:
