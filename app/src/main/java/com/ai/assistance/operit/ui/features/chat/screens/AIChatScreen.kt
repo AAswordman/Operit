@@ -1011,6 +1011,26 @@ val actualViewModel: ChatViewModel = viewModel ?: viewModel { ChatViewModel(cont
                                                     .collectAsState()
                                                     .value,
                                     onSetPermissionLevel = actualViewModel::setMasterPermissionLevel,
+                                    toolReviewInsideWorkspace =
+                                            actualViewModel.toolReviewInsideWorkspace
+                                                    .collectAsState()
+                                                    .value,
+                                    toolReviewOutsideWorkspace =
+                                            actualViewModel.toolReviewOutsideWorkspace
+                                                    .collectAsState()
+                                                    .value,
+                                    toolReviewHighRiskTools =
+                                            actualViewModel.toolReviewHighRiskTools
+                                                    .collectAsState()
+                                                    .value,
+                                    fileDistillEnabled =
+                                            actualViewModel.fileDistillEnabled
+                                                    .collectAsState()
+                                                    .value,
+                                    onSaveToolReviewInsideWorkspace = actualViewModel::saveToolReviewInsideWorkspace,
+                                    onSaveToolReviewOutsideWorkspace = actualViewModel::saveToolReviewOutsideWorkspace,
+                                    onSaveToolReviewHighRiskTools = actualViewModel::saveToolReviewHighRiskTools,
+                                    onSaveFileDistillEnabled = actualViewModel::saveFileDistillEnabled,
                                     enableThinkingMode = enableThinkingMode,
                                     onToggleThinkingMode = { actualViewModel.toggleThinkingMode() },
                                     thinkingOptionId = thinkingOptionId,
@@ -1528,6 +1548,12 @@ private fun ChatInputBottomBar(
     val attachmentPanelState by actualViewModel.attachmentPanelState.collectAsState()
     val replyToMessage by actualViewModel.replyToMessage.collectAsState()
     val permissionLevel by actualViewModel.masterPermissionLevel.collectAsState()
+    // 修改意图：文件工具自动审查开关（区内/区外），工具菜单在允许模式下展示
+    val toolReviewInsideWorkspace by actualViewModel.toolReviewInsideWorkspace.collectAsState()
+    val toolReviewOutsideWorkspace by actualViewModel.toolReviewOutsideWorkspace.collectAsState()
+    val toolReviewHighRiskTools by actualViewModel.toolReviewHighRiskTools.collectAsState()
+    // 修改意图：文件读取 AI 提炼开关（工具菜单允许模式下展示）
+    val fileDistillEnabled by actualViewModel.fileDistillEnabled.collectAsState()
     val isSummarizing by actualViewModel.isSummarizing.collectAsState()
     val isSendTriggeredSummarizing by actualViewModel.isSendTriggeredSummarizing.collectAsState()
     val isWaifuModeEnabled by waifuPreferences.enableWaifuModeFlow.collectAsState(initial = false)
@@ -1916,6 +1942,14 @@ private fun ChatInputBottomBar(
                 inputMenuRuntime = inputMenuRuntime,
                 permissionLevel = permissionLevel,
                 onSetPermissionLevel = actualViewModel::setMasterPermissionLevel,
+                toolReviewInsideWorkspace = toolReviewInsideWorkspace,
+                toolReviewOutsideWorkspace = toolReviewOutsideWorkspace,
+                toolReviewHighRiskTools = toolReviewHighRiskTools,
+                fileDistillEnabled = fileDistillEnabled,
+                onSaveToolReviewInsideWorkspace = actualViewModel::saveToolReviewInsideWorkspace,
+                onSaveToolReviewOutsideWorkspace = actualViewModel::saveToolReviewOutsideWorkspace,
+                onSaveToolReviewHighRiskTools = actualViewModel::saveToolReviewHighRiskTools,
+                onSaveFileDistillEnabled = actualViewModel::saveFileDistillEnabled,
                 enableMemoryAutoUpdate = enableMemoryAutoUpdate,
                 onToggleMemoryAutoUpdate = actualViewModel::toggleMemoryAutoUpdate,
                 isAutoReadEnabled = isAutoReadEnabled,

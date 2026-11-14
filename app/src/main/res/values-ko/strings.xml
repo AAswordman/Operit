@@ -2658,6 +2658,8 @@
     <string name="function_desc_ui_controller">UI 인터페이스의 자동 순회 및 작동에 사용됩니다. 해당 UI 컨트롤러 모델은 사용자가 제어를 위해 "에이전트"를 사용하도록 명시적으로 요청하는 경우에만 활성화됩니다(예: autoglm-phone-9b와 같은 전용 모델 선택).</string>
     <string name="function_desc_translation">다국어 번역 기능을 제공하여 텍스트 콘텐츠의 언어 변환을 지원합니다. 다국어를 지원하는 모델을 사용하는 것이 좋습니다.</string>
     <string name="function_desc_grep">grep_context 계획 및 결과 필터링에 사용됩니다(다중 grep_code).</string>
+    <string name="function_type_tool_review">도구 호출 검토</string>
+    <string name="function_desc_tool_review">도구 모드가 허용일 때 파일 도구 호출의 규정 준수를 자동 검토합니다(구역별 스위치)</string>
     <string name="function_desc_role_response_planner">그룹 내 말하기 순서 및 건너뛰기 결정을 동적으로 계획하고 다단계 토론을 지원합니다.</string>
     <string name="function_desc_image_recognition">이미지 내용 인식 및 분석에 사용되며, 깊은 이해를 위해 read_file 도구 호출 시 intent 매개변수를 지원합니다. 비전 기능을 갖춘 다중 모드 모델을 사용하는 것이 좋습니다.</string>
     <string name="function_desc_audio_recognition">오디오 콘텐츠 인식 및 분석에 사용됩니다. 오디오에 대해 read_file을 호출할 때 더 깊은 이해를 위해 intent(예: 전사, 요약, 화자별 내용)를 전달할 수 있습니다. 오디오 입력 또는 고품질 전사를 지원하는 모델 사용을 권장합니다.</string>
@@ -7519,4 +7521,17 @@
     <string name="token_activity_chart_tap_hint">차트를 탭하여 자세한 데이터 보기</string>
     <string name="token_activity_total_tokens">누적 토큰</string>
     <string name="token_activity_peak_tokens">최대 토큰</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">파일 읽기 AI 추출</string>
+    <string name="function_desc_file_distill">파일을 읽을 때 AI가 관련 내용을 추출해 컨텍스트를 절약합니다. 미설정 시 기본 모델을 사용합니다</string>
+    <string name="tool_workspace_outside_forbidden">도구 %1$s(이)가 금지로 설정되어 있고 대상 경로가 현재 세션 작업 공간 밖(또는 세션에 작업 공간이 바인딩되지 않음)이므로 이 호출은 거부됩니다.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ 작업 공간 외 작업 확인: 다음 대상 경로는 현재 세션 작업 공간 밖(또는 세션에 작업 공간이 바인딩되지 않음)에 있습니다. 허용하기 전에 경로를 신중히 확인하세요:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 AI 검토에서 이 호출이 규정 미준수로 판단되었습니다: %1$s\n그래도 실행을 허용할지 확인해 주세요.</string>
+    <string name="tool_review_failed_confirmation">⚠ AI 검토를 완료하지 못했습니다: %1$s\n이 호출의 실행 여부를 직접 확인해 주세요.</string>
+    <string name="agent_menu_tool_review_section">도구 호출 자동 검토</string>
+    <string name="agent_menu_tool_review_inside">파일 도구 자동 검토(작업 공간 내)</string>
+    <string name="agent_menu_tool_review_outside">파일 도구 자동 검토(작업 공간 외)</string>
+    <string name="agent_menu_tool_review_high_risk">고위험 도구 자동 검토</string>
+    <string name="agent_menu_file_distill">파일 읽기 AI 추출</string>
 </resources>

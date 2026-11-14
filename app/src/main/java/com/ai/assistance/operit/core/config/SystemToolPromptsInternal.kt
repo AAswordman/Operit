@@ -31,15 +31,17 @@ object SystemToolPromptsInternal {
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
-                                    ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment", required = false),
+                                    ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" - repo:<name> is not supported", required = false),
                                     ToolParameterSchema(name = "type", type = "string", description = "operation type: replace | delete | create", required = true),
-                                    ToolParameterSchema(name = "old", type = "string", description = "the exact content to be matched and replaced/deleted (required for replace/delete)", required = false),
-                                    ToolParameterSchema(name = "new", type = "string", description = "the new content to insert (required for replace/create)", required = false)
+                                    ToolParameterSchema(name = "old", type = "string", description = "the content block to be matched and replaced/deleted (required for replace/delete); must be UNIQUE in the file; do not include read_file line-number prefixes", required = false),
+                                    ToolParameterSchema(name = "new", type = "string", description = "the new content to insert (required for replace/create)", required = false),
+                                    ToolParameterSchema(name = "occurrence", type = "integer", description = "optional, 1-based index of the match to operate on when old matches multiple locations (the error lists the candidates); omitted occurrence means the operation is rejected, not defaulted to 1", required = false)
                                 ),
                             details = """
   - **How it works**:
-    - The tool finds the best fuzzy match of `old` in the current file content (not by line numbers) and applies the requested operation.
+    - Matching strategy: 1) whitespace-tolerant exact match; 2) fuzzy similarity > 0.9. If `old` matches MULTIPLE locations, the operation is REJECTED with candidate line numbers - add more surrounding context to `old`, or pass `occurrence` to target the Nth match.
     - You can call this tool multiple times to apply multiple independent edits.
+    - Do NOT strip line numbers with shell tools; read_file/read_file_part output prefixes "N| " are removed automatically before matching.
 
   - **Parameters**:
     - `type`:
@@ -49,9 +51,14 @@ object SystemToolPromptsInternal {
     - `old`: required for `replace` / `delete`
     - `new`: required for `replace` / `create`
 
+  - **Result format**:
+    - On success: "[android] Successfully applied AI code to file: <path>" plus a unified diff and the replaced line range ("Replaced at lines X-Y").
+    - On failure: "Could not find a match for an OLD block" (re-read the target lines with read_file_part, refine `old`, retry) / "Found multiple perfect matches" / "Found N similar matches" (make `old` unique or pass `occurrence`).
+
   - **CRITICAL RULES**:
-    1. **If you need to rewrite a whole existing file**: do **NOT** use apply_file to overwrite it. Instead, call `delete_file` first, then use `apply_file` with `type=create`.
+    1. **If you need to rewrite a whole existing file**: do **NOT** use apply_file to overwrite it. Instead, call `delete_file` first, then `write_file` with the full content.
     2. **If you need to modify an existing file**: you **MUST** use `type=replace` (or `type=delete`) and provide `old` / `new`. Do **NOT** delete the whole file and rewrite it.
+    3. **Do NOT fall back to shell commands** (sed/awk/echo) to edit files - keep using this tool or edit_file.
 """
                         ),
                         ToolPrompt(
@@ -747,16 +754,26 @@ object SystemToolPromptsInternal {
                             name = "file_exists",
                             description = "Check if a file or directory exists.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "target path", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "target path", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment (android | linux | repo:<name>)", required = false)
+                            ),
+                            details = """
+                                |On success: "[android] File exists at path: <path>" or "[android] No file or directory exists at path: <path>". A "does not exist" answer is a SUCCESSFUL query, not an error.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "move_file",
                             description = "Move or rename a file or directory.",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "source path", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "destination path", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "destination path", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" - repo:<name> is not supported for move", required = false)
+                            ),
+                            details = """
+                                |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
+                                |On success: "[android] Successfully moved <source> to <destination>".
+                                |On failure: permission or destination-exists errors; fix per the message.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "copy_file",
@@ -764,48 +781,83 @@ object SystemToolPromptsInternal {
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "source path", required = true),
                                 ToolParameterSchema(name = "destination", type = "string", description = "destination path", required = true),
-                                ToolParameterSchema(name = "recursive", type = "boolean", description = "boolean", required = false, default = "false"),
+                                ToolParameterSchema(name = "recursive", type = "boolean", description = "true = copy directories recursively; false (default) = single file / empty dir only", required = false, default = "false"),
                                 ToolParameterSchema(name = "source_environment", type = "string", description = "optional, \"android\" or \"linux\"", required = false, default = "\"android\""),
                                 ToolParameterSchema(name = "dest_environment", type = "string", description = "optional, \"android\" or \"linux\". For cross-environment copy (e.g., Android → Linux or Linux → Android), specify both source_environment and dest_environment", required = false, default = "\"android\"")
-                            )
+                            ),
+                            details = """
+                                |Environment: "android" | "linux" (also per-side via source_environment/dest_environment). "repo:<name>" is not supported for copy.
+                                |Directories need recursive=true, otherwise the call fails with a clear error.
+                                |On success: "[android] Successfully copied <source> to <destination>".
+                                |On failure: "Failed to read source file" / destination errors - verify both paths exist in their stated environments.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "file_info",
                             description = "Get detailed information about a file or directory including type, size, permissions, owner, group, and last modified time.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "target path", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "target path", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "optional, same as read_file environment (android | linux | repo:<name>)", required = false)
+                            ),
+                            details = """
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                                |On success: a stat block (type/size/permissions/owner/modified). Permission strings on repo: are provider-level approximations.
+                                |On failure: "File does not exist" - fix the path.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "zip_files",
                             description = "Compress files or directories.",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "path to compress", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "output zip file", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "output zip file", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" (paths resolved inside the proot rootfs) - repo:<name> is not supported", required = false)
+                            ),
+                            details = """
+                                |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
+                                |On success: "[android] Successfully created zip archive: <destination>".
+                                |On failure: source missing / destination unwritable - verify both paths in the stated environment.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "unzip_files",
                             description = "Extract a zip file.",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "zip file path", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "extract path", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "extract path", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "optional, \"android\" (default) or \"linux\" (paths resolved inside the proot rootfs) - repo:<name> is not supported", required = false)
+                            ),
+                            details = """
+                                |Environment: "android" | "linux". "repo:<name>" is not supported - the call is rejected with a clear error.
+                                |Zip-slip entries are rejected automatically.
+                                |On success: "[android] Successfully extracted zip archive to: <destination>".
+                                |On failure: source zip missing / destination unwritable.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "open_file",
                             description = "Open a file using the system's default application.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "file path", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "file path on the Android file system", required = true)
+                            ),
+                            details = """
+                                |Environment: "android" only. "linux" returns "not supported in Linux environment"; "repo:<name>" is rejected with a clear error.
+                                |On success: the share/open intent was dispatched (does not guarantee the app rendered the file).
+                                |On failure: "File does not exist" or no app can handle the type (ActivityNotFoundException).
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "share_file",
                             description = "Share a file with other applications.",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "file path", required = true),
+                                ToolParameterSchema(name = "path", type = "string", description = "file path on the Android file system", required = true),
                                 ToolParameterSchema(name = "title", type = "string", description = "optional share title", required = false, default = "\"Share File\"")
-                            )
+                            ),
+                            details = """
+                                |Environment: "android" only. "linux" returns "not supported in Linux environment"; "repo:<name>" is rejected with a clear error.
+                                |On success: the share intent was dispatched to the system chooser.
+                                |On failure: "File does not exist" - verify the Android path.
+                            """.trimMargin()
                         )
                     )
             ),
@@ -1393,7 +1445,7 @@ object SystemToolPromptsInternal {
                     listOf(
                         ToolPrompt(
                             name = "read_file_full",
-                            description = "Read the full content of a file without enforcing size limit.",
+                            description = "Read the full content of a text file without the 32000-character truncation of read_file. Files over 32 MB are rejected - use read_file_part for those. Text files over 2048 bytes are AI-distilled by default: pass focus and only the relevant lines (with original line numbers) come back.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1403,23 +1455,43 @@ object SystemToolPromptsInternal {
                                         required = true
                                     ),
                                     ToolParameterSchema(
+                                        name = "focus",
+                                        type = "string",
+                                        description = "what you want from this file; required for the default AI-distilled read, ignored when raw=true",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "raw",
+                                        type = "boolean",
+                                        description = "optional, default false: AI-distilled read returning only focus-relevant lines; set true only when you are sure you need the raw full content",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "optional, \"android\" (default) or \"linux\"",
+                                        description = "optional, \"android\" (default) | \"linux\" | \"repo:<name>\"",
                                         required = false
                                     ),
                                     ToolParameterSchema(
                                         name = "text_only",
                                         type = "boolean",
-                                        description = "optional",
+                                        description = "optional, when true the tool is restricted to text-like files and skips non-text files with an explicit error",
                                         required = false,
                                         default = "false"
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported (linux/repo: are not distilled).
+                                |AI distill (default, raw=false): text files over 2048 bytes return only the lines relevant to focus - verbatim, with original "N| " line numbers usable by edit_file, preceded by an "[AI distilled read ...]" header; "no content matching the focus" plus a file summary when nothing matches. Small files are distilled in one pass; larger ones are scanned chunk by chunk, and the result notes when the scan stopped before the end of the file. Unless you are sure you need the raw content, keep the default and state focus precisely.
+                                |raw=true: returns the full original content. Images/PDF/doc/audio/video always go through the extraction pipeline untouched.
+                                |On AI-distill failure: the error says so - retry with raw=true to read the original content.
+                                |raw=true Output: raw text WITHOUT line-number prefixes (apply_file matching works directly on this).
+                                |On failure: "File does not appear to be a text file" (use read_file_binary) / "exceeds the 32 MB read limit" (use read_file_part) / file not found.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "read_file_binary",
-                            description = "Read binary file and return base64 content.",
+                            description = "Read a binary file and return its base64 content (the base64 is included in the result text).",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1431,14 +1503,19 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "optional, \"android\" (default) or \"linux\"",
+                                        description = "optional, \"android\" (default) | \"linux\" | \"repo:<name>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                                |Pairs with write_file_binary (param name there is base64Content) for binary copy round-trips.
+                                |On failure: "exceeds the 32 MB read limit" - do not try to read large binaries; operate on them by path instead.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "write_file",
-                            description = "Write content to a file.",
+                            description = "Write text content to a file. OVERWRITES an existing file by default; set append=true to append.",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1450,27 +1527,34 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "content",
                                         type = "string",
-                                        description = "file content",
+                                        description = "full file content to write",
                                         required = true
                                     ),
                                     ToolParameterSchema(
                                         name = "append",
                                         type = "boolean",
-                                        description = "optional",
+                                        description = "optional, true = append to the existing file; false (default) = overwrite the whole file",
                                         required = false,
                                         default = "false"
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "optional, \"android\" (default) or \"linux\"",
+                                        description = "optional, \"android\" (default) | \"linux\" | \"repo:<name>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported. Parent directories are created automatically.
+                                |This is the tool for whole-file rewrites (after delete_file) and for creating files when create_file refuses to overwrite.
+                                |For partial edits prefer edit_file/apply_file - they are cheaper than rewriting the whole file.
+                                |On success: "[android] Successfully wrote to file: <path>" (append variant says so).
+                                |On failure: permission errors with hints; an empty written file is reported explicitly.
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "write_file_binary",
-                            description = "Write base64 content to a binary file.",
+                            description = "Write base64 content to a binary file (overwrites; parent directories are created automatically).",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -1482,16 +1566,21 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "base64Content",
                                         type = "string",
-                                        description = "base64 encoded content",
+                                        description = "base64 encoded content (note: this is the exact parameter name, camelCase)",
                                         required = true
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "optional, \"android\" (default) or \"linux\"",
+                                        description = "optional, \"android\" (default) | \"linux\" | \"repo:<name>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment: "android" | "linux" | "repo:<name>" - all supported.
+                                |On success: "[android] Successfully wrote binary file: <path>" with decoded byte size.
+                                |On failure: invalid base64 / permission errors.
+                            """.trimMargin()
                         )
                     )
             ),
@@ -3745,16 +3834,26 @@ object SystemToolPromptsInternal {
                             name = "file_exists",
                             description = "检查文件或目录是否存在。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "目标路径", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "目标路径", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment（android | linux | repo:<名称>）", required = false)
+                            ),
+                            details = """
+                                |成功时返回："[android] File exists at path: <路径>" 或 "[android] No file or directory exists at path: <路径>"。"不存在"是正常的查询结果，不是错误。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "move_file",
                             description = "移动或重命名文件或目录。",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "源路径", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "目标路径", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "目标路径", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"——移动不支持 repo:<名称>", required = false)
+                            ),
+                            details = """
+                                |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
+                                |成功时返回："[android] Successfully moved <源> 到 <目标>"。
+                                |失败时返回：权限或目标已存在错误，按错误信息修正。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "copy_file",
@@ -3762,48 +3861,83 @@ object SystemToolPromptsInternal {
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "源路径", required = true),
                                 ToolParameterSchema(name = "destination", type = "string", description = "目标路径", required = true),
-                                ToolParameterSchema(name = "recursive", type = "boolean", description = "布尔值", required = false, default = "false"),
+                                ToolParameterSchema(name = "recursive", type = "boolean", description = "true=递归复制目录；false（默认）=仅单文件/空目录", required = false, default = "false"),
                                 ToolParameterSchema(name = "source_environment", type = "string", description = "可选，\"android\"或\"linux\"", required = false, default = "\"android\""),
                                 ToolParameterSchema(name = "dest_environment", type = "string", description = "可选，\"android\"或\"linux\"。跨环境复制（如Android → Linux或Linux → Android）时，需指定source_environment和dest_environment", required = false, default = "\"android\"")
-                            )
+                            ),
+                            details = """
+                                |Environment："android" | "linux"（也可用 source_environment/dest_environment 分别指定）。复制不支持 "repo:<名称>"。
+                                |复制目录需要 recursive=true，否则失败并给出明确错误。
+                                |成功时返回："[android] Successfully copied <源> 到 <目标>"。
+                                |失败时返回："Failed to read source file" / 目标错误——确认两个路径在各自环境中存在。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "file_info",
                             description = "获取文件或目录的详细信息，包括类型、大小、权限、所有者、组和最后修改时间。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "目标路径", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "目标路径", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "可选，同 read_file 的 environment（android | linux | repo:<名称>）", required = false)
+                            ),
+                            details = """
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                                |成功时返回：stat 信息块（类型/大小/权限/所有者/修改时间）。repo: 的权限串是提供端近似值。
+                                |失败时返回："File does not exist"——修正路径。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "zip_files",
                             description = "压缩文件或目录。",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "要压缩的路径", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "输出zip文件", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "输出zip文件", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"（路径在proot根文件系统内解析）——不支持 repo:<名称>", required = false)
+                            ),
+                            details = """
+                                |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
+                                |成功时返回："[android] Successfully created zip archive: <目标>"。
+                                |失败时返回：源不存在 / 目标不可写——确认两个路径在对应环境中有效。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "unzip_files",
                             description = "解压zip文件。",
                             parametersStructured = listOf(
                                 ToolParameterSchema(name = "source", type = "string", description = "zip文件路径", required = true),
-                                ToolParameterSchema(name = "destination", type = "string", description = "解压路径", required = true)
-                            )
+                                ToolParameterSchema(name = "destination", type = "string", description = "解压路径", required = true),
+                                ToolParameterSchema(name = "environment", type = "string", description = "可选，\"android\"（默认）或 \"linux\"（路径在proot根文件系统内解析）——不支持 repo:<名称>", required = false)
+                            ),
+                            details = """
+                                |Environment："android" | "linux"。不支持 "repo:<名称>"——调用会被拒绝并给出明确错误。
+                                |Zip-slip（路径穿越）条目会被自动拒绝。
+                                |成功时返回："[android] Successfully extracted zip archive to: <目标>"。
+                                |失败时返回：源 zip 不存在 / 目标不可写。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "open_file",
                             description = "使用系统默认应用程序打开文件。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true)
-                            )
+                                ToolParameterSchema(name = "path", type = "string", description = "Android 文件系统上的文件路径", required = true)
+                            ),
+                            details = """
+                                |Environment：仅 "android"。"linux" 返回 "not supported in Linux environment"；"repo:<名称>" 会被拒绝并给出明确错误。
+                                |成功时返回：系统打开意图已发出（不保证目标应用成功渲染文件）。
+                                |失败时返回："File does not exist" 或无应用可处理该类型（ActivityNotFoundException）。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "share_file",
                             description = "与其他应用程序共享文件。",
                             parametersStructured = listOf(
-                                ToolParameterSchema(name = "path", type = "string", description = "文件路径", required = true),
+                                ToolParameterSchema(name = "path", type = "string", description = "Android 文件系统上的文件路径", required = true),
                                 ToolParameterSchema(name = "title", type = "string", description = "可选的共享标题", required = false, default = "\"Share File\"")
-                            )
+                            ),
+                            details = """
+                                |Environment：仅 "android"。"linux" 返回 "not supported in Linux environment"；"repo:<名称>" 会被拒绝并给出明确错误。
+                                |成功时返回：共享意图已发送到系统分享面板。
+                                |失败时返回："File does not exist"——确认 Android 路径。
+                            """.trimMargin()
                         )
                     )
             ),
@@ -4391,7 +4525,7 @@ object SystemToolPromptsInternal {
                     listOf(
                         ToolPrompt(
                             name = "read_file_full",
-                            description = "读取完整文件内容（不限制大小）。",
+                            description = "读取完整文本文件内容，没有 read_file 的 32000 字符截断。超过 32MB 的文件会被拒绝——请改用 read_file_part。超过 2048 字节的文本文件默认走 AI 提炼：传入 focus，只返回相关行（带原文行号）。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4401,23 +4535,43 @@ object SystemToolPromptsInternal {
                                         required = true
                                     ),
                                     ToolParameterSchema(
+                                        name = "focus",
+                                        type = "string",
+                                        description = "你想从该文件读取什么；默认 AI 提炼读取必填，raw=true 时忽略",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
+                                        name = "raw",
+                                        type = "boolean",
+                                        description = "可选，默认 false：AI 提炼读取只返回与 focus 相关的行；仅确认需要完整原文时设为 true",
+                                        required = false
+                                    ),
+                                    ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "可选，\"android\"（默认）或 \"linux\"",
+                                        description = "可选，\"android\"（默认）| \"linux\" | \"repo:<名称>\"",
                                         required = false
                                     ),
                                     ToolParameterSchema(
                                         name = "text_only",
                                         type = "boolean",
-                                        description = "可选",
+                                        description = "可选，为 true 时仅限文本类文件，非文本文件明确报错跳过",
                                         required = false,
                                         default = "false"
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持（linux/repo: 不做提炼）。
+                                |AI 提炼（默认，raw=false）：超过 2048 字节的文本文件只返回与 focus 相关的行——原文摘录、保留可直接用于 edit_file 的 "N| " 行号、头部带 "[AI distilled read ...]" 声明；无相关内容时返回"未找到"+文件概要。小文件单次提炼，更大的文件逐块扫描，扫描未到文件尾时结果中会明示。除非确认需要完整原文，保持默认并精确描述 focus。
+                                |raw=true：返回完整原文。图片/PDF/文档/音视频始终走原抽取管线，不受影响。
+                                |提炼失败时：报错中会说明——用 raw=true 重试即可读取原文。
+                                |raw=true 输出：原始文本，不带 "N| " 行号前缀（可直接用于 apply_file 匹配）。
+                                |失败时返回："File does not appear to be a text file"（改用 read_file_binary）/ "exceeds the 32 MB read limit"（改用 read_file_part）/ 文件不存在。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "read_file_binary",
-                            description = "读取二进制文件并返回 Base64 内容。",
+                            description = "读取二进制文件并返回 Base64 内容（base64 会包含在结果文本中）。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4429,14 +4583,19 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "可选，\"android\"（默认）或 \"linux\"",
+                                        description = "可选，\"android\"（默认）| \"linux\" | \"repo:<名称>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                                |与 write_file_binary（其参数名为 base64Content）配合可完成二进制复制往返。
+                                |失败时返回："exceeds the 32 MB read limit"——不要读取大体积二进制，改为按路径直接操作。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "write_file",
-                            description = "写入文件内容。",
+                            description = "写入文本文件。默认覆盖已有文件；append=true 时为追加。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4448,27 +4607,34 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "content",
                                         type = "string",
-                                        description = "文件内容",
+                                        description = "要写入的完整文件内容",
                                         required = true
                                     ),
                                     ToolParameterSchema(
                                         name = "append",
                                         type = "boolean",
-                                        description = "可选",
+                                        description = "可选，true=追加到已有文件；false（默认）=整体覆盖",
                                         required = false,
                                         default = "false"
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "可选，\"android\"（默认）或 \"linux\"",
+                                        description = "可选，\"android\"（默认）| \"linux\" | \"repo:<名称>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持。父目录自动创建。
+                                |整体重写文件（delete_file 之后）用它；create_file 拒绝覆盖时也用它。
+                                |局部修改优先用 edit_file/apply_file——比整文件重写更省。
+                                |成功时返回："[android] Successfully wrote to file: <路径>"（追加会注明）。
+                                |失败时返回：权限错误（含修法提示）；写出的文件为空会被明确报告。
+                            """.trimMargin()
                         ),
                         ToolPrompt(
                             name = "write_file_binary",
-                            description = "将 Base64 内容写入二进制文件。",
+                            description = "将 Base64 内容写入二进制文件（覆盖写；父目录自动创建）。",
                             parametersStructured =
                                 listOf(
                                     ToolParameterSchema(
@@ -4480,16 +4646,21 @@ object SystemToolPromptsInternal {
                                     ToolParameterSchema(
                                         name = "base64Content",
                                         type = "string",
-                                        description = "Base64 编码内容",
+                                        description = "Base64 编码内容（注意：参数名就是 base64Content，驼峰命名）",
                                         required = true
                                     ),
                                     ToolParameterSchema(
                                         name = "environment",
                                         type = "string",
-                                        description = "可选，\"android\"（默认）或 \"linux\"",
+                                        description = "可选，\"android\"（默认）| \"linux\" | \"repo:<名称>\"",
                                         required = false
                                     )
-                                )
+                                ),
+                            details = """
+                                |Environment："android" | "linux" | "repo:<名称>"——全部支持。
+                                |成功时返回："[android] Successfully wrote binary file: <路径>"，附解码后字节数。
+                                |失败时返回：base64 非法 / 权限错误。
+                            """.trimMargin()
                         )
                     )
             ),

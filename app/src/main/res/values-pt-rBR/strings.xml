@@ -2561,6 +2561,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="function_desc_ui_controller">Usado para passagem e operação automática da interface UI. O modelo de controlador de UI correspondente só será habilitado quando o usuário solicitar explicitamente o uso do controle "inteligente". Por exemplo, modelos especiais como o autoglm podem ser selecionados.</string>
     <string name="function_desc_translation">Fornece função de tradução multilíngue e suporta conversão de idioma de conteúdo de texto. Recomenda-se usar um modelo que suporte vários idiomas.</string>
     <string name="function_desc_grep">Planejamento de pesquisa e filtragem de resultados para grep_context (várias rodadas de grep_code)</string>
+    <string name="function_type_tool_review">Revisão de chamadas de ferramentas</string>
+    <string name="function_desc_tool_review">Revisa automaticamente a conformidade das chamadas de ferramentas de arquivos quando o modo é Permitir (chaves por zona)</string>
     <string name="function_desc_role_response_planner">Usado para determinar dinamicamente a ordem de fala e a estratégia de pular desta rodada no grupo, apoiando múltiplas rodadas de discussões</string>
     <string name="function_desc_image_recognition">Usado para reconhecimento e análise de conteúdo de imagem. Ao chamar a ferramenta read_file para ler imagens, ela suporta parâmetros de intenção para uma compreensão aprofundada. Recomenda-se a utilização de modelos multimodais que apoiem a visão.</string>
     <string name="function_desc_audio_recognition">Usado para reconhecimento e análise de conteúdo de áudio. Ao chamar a ferramenta read_file para ler áudio, você pode usar o parâmetro intent para compreensão aprofundada (como transliteração/resumo/identificação de conteúdo falado). Recomenda-se usar um modelo que suporte entrada de áudio ou transcrição de alta qualidade.</string>
@@ -7510,4 +7512,17 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="token_activity_chart_tap_hint">Toque no gráfico para ver dados detalhados</string>
     <string name="token_activity_total_tokens">Tokens acumulados</string>
     <string name="token_activity_peak_tokens">Pico de tokens</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Destilação por IA de leitura de arquivos</string>
+    <string name="function_desc_file_distill">Ao ler arquivos, a IA destila o conteúdo relevante para economizar contexto; sem configuração, usa o modelo principal</string>
+    <string name="tool_workspace_outside_forbidden">A ferramenta %1$s está definida como proibida e o caminho de destino está fora do workspace da sessão atual (ou a sessão não tem workspace vinculado); a chamada é recusada.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Confirmação de operação fora do workspace: os seguintes caminhos de destino estão fora do workspace da sessão atual (ou a sessão não tem workspace vinculado). Revise os caminhos com cuidado antes de permitir:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 A revisão por IA considerou esta chamada fora de conformidade: %1$s\nConfirme se deseja permitir a execução mesmo assim.</string>
+    <string name="tool_review_failed_confirmation">⚠ A revisão por IA não pôde ser concluída: %1$s\nConfirme manualmente se esta chamada pode ser executada.</string>
+    <string name="agent_menu_tool_review_section">Revisão automática de chamadas de ferramentas</string>
+    <string name="agent_menu_tool_review_inside">Revisão automática de ferramentas de arquivo (dentro do workspace)</string>
+    <string name="agent_menu_tool_review_outside">Revisão automática de ferramentas de arquivo (fora do workspace)</string>
+    <string name="agent_menu_tool_review_high_risk">Revisão automática de ferramentas de alto risco</string>
+    <string name="agent_menu_file_distill">Destilação por IA para leitura de arquivos</string>
 </resources>
