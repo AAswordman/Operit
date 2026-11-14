@@ -23,6 +23,7 @@ internal class TokenStatsPreferences(context: Context) {
         private val TIME_RANGE_START = longPreferencesKey("time_range_start")
         private val TIME_RANGE_END = longPreferencesKey("time_range_end")
         private val ACTIVITY_VIEW_MODE = stringPreferencesKey("activity_view_mode")
+        private val MODEL_GROUPING = stringPreferencesKey("model_grouping")
         private val IMPORTED_AT = longPreferencesKey("imported_at_ms")
     }
 
@@ -78,6 +79,19 @@ internal class TokenStatsPreferences(context: Context) {
 
     suspend fun saveActivityViewMode(mode: TokenActivityViewMode) {
         dataStore.edit { preferences -> preferences[ACTIVITY_VIEW_MODE] = mode.name }
+    }
+
+    suspend fun loadModelGrouping(): TokenStatsGrouping {
+        val stored = dataStore.data.first()[MODEL_GROUPING]
+        // 评审 P3：存值来自历史版本或手工改动时可能非法，valueOf 直接抛错会让整页
+        // 加载失败；这里解析失败回退到默认口径，与"缺失即默认"的读法保持一致
+        return stored?.let { value ->
+            runCatching { TokenStatsGrouping.valueOf(value) }.getOrNull()
+        } ?: TokenStatsGrouping.CONFIG_MODEL
+    }
+
+    suspend fun saveModelGrouping(grouping: TokenStatsGrouping) {
+        dataStore.edit { preferences -> preferences[MODEL_GROUPING] = grouping.name }
     }
 
     suspend fun loadTimeRange(): TokenStatsTimeRange? {

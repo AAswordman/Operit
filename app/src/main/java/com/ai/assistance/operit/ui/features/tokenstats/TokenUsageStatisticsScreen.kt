@@ -46,6 +46,7 @@ import com.ai.assistance.operit.data.collects.PricingCurrency
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsGranularity
+import com.ai.assistance.operit.data.stats.TokenStatsGrouping
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting
 import com.ai.assistance.operit.data.stats.TokenStatsRangeData
@@ -277,6 +278,12 @@ private fun TokenStatsPageContent(
                     selectedModels = state.selectedModels,
                     availableModels = state.availableDisplayModels,
                     knownModelNames = state.knownModelNames,
+                    mergeSameModels = state.modelGrouping == TokenStatsGrouping.MERGED_MODEL,
+                    onToggleMergeSameModels = { merged ->
+                        viewModel.setModelGrouping(
+                            if (merged) TokenStatsGrouping.MERGED_MODEL else TokenStatsGrouping.CONFIG_MODEL,
+                        )
+                    },
                     onToggleModel = viewModel::toggleModel,
                     onSelectAllModels = viewModel::selectAllModels,
                 )
