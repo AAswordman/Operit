@@ -162,10 +162,13 @@ class WorkspacePathCheckerTest {
             "/sdcard/..",
             "/data/../data",
             "/sdcard/sub/..",
-            "/storage/emulated/0/../storage/emulated/0",
+            "/storage/emulated/0/..",
             "/etc/../etc",
         ).forEach { path ->
-            assertTrue("variant=$path", WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path))
+            assertTrue(
+                "variant=$path normalized=${WorkspacePathChecker.lexicallyNormalizePath(path)}",
+                WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path),
+            )
         }
     }
 

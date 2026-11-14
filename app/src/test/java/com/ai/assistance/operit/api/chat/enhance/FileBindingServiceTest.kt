@@ -119,14 +119,16 @@ class FileBindingServiceTest {
     @Test
     fun `fuzzy match tolerates small content drift and reports fuzzy range`() = runBlocking {
         // 修改意图：长块（20 行）中单字符漂移只影响极少数 3-gram，相似度能稳过 0.9 阈值；
-        // 短块单字符漂移的 Jaccard 会跌到阈值以下，不适合做模糊命中用例
-        val originalLines = (1..20).map { "        val line$i = $i" }
+        // 短块单字符漂移的 Jaccard 会跌到阈值以下，不适合做模糊命中用例。
+        // 评审补记：lambda 必须显式命名参数 i——隐式 it 与字符串模板里的 $i 对不上，
+        // 该文件此前从未通过编译（compileDebugKotlin 不编测试源）
+        val originalLines = (1..20).map { i -> "        val line$i = $i" }
         val original = "fun a() {\n" + originalLines.joinToString("\n") + "\n}\n"
 
-        val oldLines = (1..20).map { "    val line$i = ${if (i == 7) "8" else "$i"}" }
+        val oldLines = (1..20).map { i -> "    val line$i = ${if (i == 7) "8" else "$i"}" }
         val old = "fun a() {\n" + oldLines.joinToString("\n") + "\n}"
 
-        val newLines = (1..20).map { "    val line$i = ${if (i == 7) "9" else "$i"}" }
+        val newLines = (1..20).map { i -> "    val line$i = ${if (i == 7) "9" else "$i"}" }
         val newContent = "fun a() {\n" + newLines.joinToString("\n") + "\n}"
 
         val result = service.processFileBindingOperations(original, listOf(op(old = old, new = newContent)))
@@ -144,9 +146,16 @@ class FileBindingServiceTest {
     @Test
     fun `unmatchable old block fails with diagnostic message`() = runBlocking {
         val original = "alpha beta gamma\ndelta epsilon zeta\neta theta iota\n"
+        // 评审补记：new 必须非空——空 new 的 REPLACE 在校验阶段就被丢弃
+        // （"No valid edit operations provided"），走不到无匹配诊断路径
         val result = service.processFileBindingOperations(
             original,
-            listOf(op(old = "completely unrelated content that does not exist anywhere here"))
+            listOf(
+                op(
+                    old = "completely unrelated content that does not exist anywhere here",
+                    new = "brand new content that replaces nothing real"
+                )
+            )
         )
 
         assertTrue(result.diff.startsWith("Error"))

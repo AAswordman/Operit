@@ -182,10 +182,17 @@ object WorkspacePathChecker {
     }
 
     private fun isAndroidPathInside(workspaceRoot: String, path: String): Boolean {
-        val root = runCatching { File(workspaceRoot).canonicalPath }.getOrDefault(workspaceRoot)
-            .trimEnd('/')
-        val target = runCatching { File(path).canonicalPath }.getOrDefault(path)
+        // 评审补记：canonicalPath 的分隔符随平台变化（Windows 桌面 JVM 为 '\'，设备为 '/'），
+        // 前缀比较前必须归一到 '/'，否则纯 JVM 单测在 Windows 上全部误判 OUTSIDE。
+        // Android 设备上 canonicalPath 本就用 '/'，该归一是 no-op。
+        val root = canonicalizeForComparison(workspaceRoot).trimEnd('/')
+        val target = canonicalizeForComparison(path)
         if (root.isEmpty()) return false
         return target == root || target.startsWith("$root/")
     }
+
+    private fun canonicalizeForComparison(path: String): String =
+        runCatching { File(path).canonicalPath }
+            .getOrDefault(path)
+            .let { if (File.separatorChar == '\\') it.replace('\\', '/') else it }
 }
