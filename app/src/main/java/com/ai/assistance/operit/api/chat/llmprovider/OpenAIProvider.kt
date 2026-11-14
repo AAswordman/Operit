@@ -3282,6 +3282,16 @@ open class OpenAIProvider(
             var retryCount = 0
             var lastException: Exception? = null
 
+            // 评审 P1（PR #1497）：OPENAI_GENERIC / OPENAI_LOCAL 的流式请求由基类注入
+            // stream_options.include_usage，少数严格端点会以 400 拒绝未知参数——影响面从
+            // "统计缺失"扩大到"对话不可用"。首次 400 时去掉该参数立即重试一次（不消耗
+            // enableRetry 的重试预算）；该降级仅覆盖这两个类型，官方 OPENAI / Xai / Kimi /
+            // DeepSeek 长期携带该参数且工作正常，不参与降级。
+            val usageParamAttachedByBase =
+                stream && (providerType == ApiProviderType.OPENAI_GENERIC ||
+                    providerType == ApiProviderType.OPENAI_LOCAL)
+            var includeUsageForRequest = usageParamAttachedByBase
+
             // 用于保存当前 attempt 已接收到的内容；一旦需要重试，会整体回滚到请求起点
             val receivedContent = StringBuilder()
             val emitter = StreamEmitter(receivedContent, ::emit, eventChannel, onTokensUpdated)
@@ -3307,15 +3317,46 @@ open class OpenAIProvider(
                     "【发送消息】准备构建请求体，模型参数数量: ${modelParameters.size}，已启用参数: ${modelParameters.count { it.isEnabled }}"
                 )
                 // 直接传递原始历史记录给createRequestBody，让具体的Provider决定如何处理（例如Deepseek需要保留<think>标签）
-                val requestBody = createRequestBody(
-                    context,
-                    currentHistory,
-                    modelParameters,
-                    enableThinking,
-                    stream,
-                    availableTools,
-                    preserveThinkInHistory
-                )
+                val requestBody =
+                    if (usageParamAttachedByBase && !includeUsageForRequest) {
+                        // 评审 P1：降级重试——重建请求体并移除基类注入的 stream_options。
+                        // 仅 OPENAI_GENERIC / OPENAI_LOCAL 走基类实现（不覆写
+                        // createRequestBody），按 base 步骤（internal + ThinkingConfigurationApplier）
+                        // 重建后剥离该键；子类（Kimi/Deepseek）自注入的 stream_options 不受影响。
+                        val requestJson =
+                            JSONObject(
+                                createRequestBodyInternal(
+                                    context,
+                                    currentHistory,
+                                    modelParameters,
+                                    stream,
+                                    availableTools,
+                                    preserveThinkInHistory
+                                )
+                            )
+                        requestJson.remove("stream_options")
+                        ThinkingConfigurationApplier.apply(
+                            context = context,
+                            requestJson = requestJson,
+                            providerTypeId = providerType.name,
+                            modelName = modelName,
+                            apiEndpoint = apiEndpoint,
+                            thinkingConfigurations = thinkingConfigurations,
+                            enableThinking = enableThinking,
+                            optionId = thinkingOptionId,
+                        )
+                        createJsonRequestBody(requestJson.toString())
+                    } else {
+                        createRequestBody(
+                            context,
+                            currentHistory,
+                            modelParameters,
+                            enableThinking,
+                            stream,
+                            availableTools,
+                            preserveThinkInHistory
+                        )
+                    }
                 onTokensUpdated(
                     tokenCacheManager.totalInputTokenCount,
                     tokenCacheManager.cachedInputTokenCount,
@@ -3511,6 +3552,17 @@ open class OpenAIProvider(
                 )
                 return@stream
             } catch (e: Exception) {
+                // 评审 P1：仅当本次请求由基类注入了 usage 参数且端点以 400 拒绝时，
+                // 去掉该参数立即重试一次，不消耗 enableRetry 的重试预算。400 在响应头
+                // 阶段即失败、未发出任何内容，无需回滚；再次 400 走正常重试路径。
+                if ((e as? HttpStatusException)?.statusCode == 400 && includeUsageForRequest) {
+                    includeUsageForRequest = false
+                    AppLogger.w(
+                        "AIService",
+                        "端点以 400 拒绝 stream_options.include_usage，去掉该参数立即重试一次（仅 OPENAI_GENERIC/OPENAI_LOCAL）"
+                    )
+                    continue
+                }
                 lastException = e
                 retryCount = handleRetryableError(
                     context = context,

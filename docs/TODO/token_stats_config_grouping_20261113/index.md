@@ -1,5 +1,5 @@
 ---
-working_branch: feat/file-tool-hardening
+working_branch: feat/token-stats-grouping
 ---
 
 # Token 统计按模型配置分组 + 流式 usage 落库修复

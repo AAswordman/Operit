@@ -13,6 +13,7 @@ import com.ai.assistance.operit.data.stats.TokenActivityViewMode
 import com.ai.assistance.operit.data.stats.TokenActivityRangeData
 import com.ai.assistance.operit.data.stats.TokenCostCurrency
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
+import com.ai.assistance.operit.data.stats.TokenStatsDisplayNames
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
 import com.ai.assistance.operit.data.stats.TokenStatsGrouping
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
@@ -304,25 +305,18 @@ class TokenUsageStatisticsViewModel(
     }
 
     /**
-     * CONFIG_MODEL 分组下把展示名拼装为"配置名/模型名"。
-     * - configId 为 null（MERGED_MODEL 合并组跨配置，无单一配置归属）或空字符串
-     *   （legacy 累计导入记录没有配置概念）时保持模型名原样；
-     * - 配置已删除时使用既有的"已删除配置"文案，与配置详情卡的口径一致。
+     * CONFIG_MODEL 分组下把展示名拼装为"配置名/模型名"。实现抽到
+     * [TokenStatsDisplayNames]（纯函数，单测覆盖），这里只注入删除配置的文案。
      */
     private fun resolveDisplayNames(
         models: List<TokenStatsDisplayModelBreakdown>,
         configurationNames: Map<String, String>,
     ): List<TokenStatsDisplayModelBreakdown> =
-        models.map { model ->
-            val configId = model.configId
-            if (configId.isNullOrEmpty()) {
-                model
-            } else {
-                val configName = configurationNames[configId]
-                    ?: stringResolver(R.string.token_stats_config_deleted)
-                model.copy(displayName = "$configName/${model.displayName}")
-            }
-        }
+        TokenStatsDisplayNames.resolve(
+            models,
+            configurationNames,
+            stringResolver(R.string.token_stats_config_deleted),
+        )
 
     private fun providerModelsFor(state: TokenStatsUiState): Set<String>? {
         val providerModelsByDisplayId = knownModelProviderModels.toMutableMap().apply {
@@ -398,7 +392,7 @@ class TokenUsageStatisticsViewModel(
                 AppLogger.e(tag, "Failed to save token stats model grouping", e)
                 return@launch
             }
-            _state.update { it.copy(modelGrouping = grouping, selectedModels = emptySet()) }
+            _state.update { applyGroupingChange(it, grouping) }
             load()
         }
     }
@@ -471,6 +465,17 @@ class TokenUsageStatisticsViewModel(
 
     companion object {
         const val MAX_CUSTOM_RANGE_DAYS = 3 * 366L
+
+        /**
+         * 评审 P3：分组切换的状态转移抽成纯函数（单测覆盖）。displayModelId 的语义
+         * 随分组变化（配置组键 vs 模型组键），旧选中集在新口径下指向别的条目，
+         * 必须清空让用户在新视图上重选。
+         */
+        fun applyGroupingChange(
+            state: TokenStatsUiState,
+            grouping: TokenStatsGrouping,
+        ): TokenStatsUiState =
+            state.copy(modelGrouping = grouping, selectedModels = emptySet())
     }
 }
 
