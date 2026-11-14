@@ -340,6 +340,43 @@ public:
         return out;
     }
 
+    std::vector<Segment> finish() {
+        std::vector<Segment> out;
+        int runTag = MD_PLAIN_TEXT;
+        int runStart = -1;
+        int runEnd = -1;
+
+        // At EOF, a tentative marker such as "42" cannot become a list marker.
+        // Emit unresolved input instead of discarding it when the session is destroyed.
+        for (const auto& pending : waitforPending_) {
+            if (pending.shouldEmit) {
+                emitIndex(out, MD_PLAIN_TEXT, pending.globalIndex, runTag, runStart, runEnd);
+            }
+        }
+        for (int i = 0; i < static_cast<int>(evaluationBuffer_.size()); i++) {
+            emitIndex(out, MD_PLAIN_TEXT, evalStartGlobal_ + i, runTag, runStart, runEnd);
+        }
+
+        if (activePlugin_ != nullptr) {
+            emitBreak(out, globalOffset_, runTag, runStart, runEnd);
+        } else {
+            flushRun(out, runTag, runStart, runEnd);
+        }
+
+        evaluationBuffer_.clear();
+        evaluationEmitMask_.clear();
+        evalStartGlobal_ = -1;
+        waitforPending_.clear();
+        waitforActive_ = false;
+        activePlugin_ = nullptr;
+        activeTag_ = MD_PLAIN_TEXT;
+        activeIndex_ = -1;
+        for (auto& entry : plugins_) {
+            entry.plugin->reset();
+        }
+        return out;
+    }
+
 private:
     struct WaitforPending {
         int globalIndex;
@@ -419,6 +456,13 @@ std::vector<Segment> markdownSessionPush(MarkdownSession* session, const jchar* 
         return {};
     }
     return session->push(chars, len);
+}
+
+std::vector<Segment> markdownSessionFinish(MarkdownSession* session) {
+    if (session == nullptr) {
+        return {};
+    }
+    return session->finish();
 }
 
 std::vector<Segment> splitByXml(const jchar* chars, int len) {
