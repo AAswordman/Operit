@@ -2016,17 +2016,16 @@ internal fun renderWebViewNode(
 
             webChromeClient =
                 object : WebChromeClient() {
+                    // Popups are not hosted by this Compose DSL WebView yet. Chromium
+                    // rejects a WebView that is asked to host its own popup, so report
+                    // the request as unhandled instead of handing the parent back.
                     override fun onCreateWindow(
                         view: WebView?,
                         isDialog: Boolean,
                         isUserGesture: Boolean,
                         resultMsg: android.os.Message?
                     ): Boolean {
-                        val message = resultMsg ?: return false
-                        val transport = message.obj as? WebView.WebViewTransport ?: return false
-                        transport.webView = view
-                        message.sendToTarget()
-                        return true
+                        return false
                     }
 
                     override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
@@ -2255,7 +2254,9 @@ internal fun renderWebViewNode(
             databaseEnabled = props.bool("databaseEnabled", true)
             javaScriptCanOpenWindowsAutomatically =
                 props.bool("javaScriptCanOpenWindowsAutomatically", true)
-            setSupportMultipleWindows(props.bool("supportMultipleWindows", true))
+            // Multiple windows stay off until a dedicated popup surface exists:
+            // window.open() then does nothing instead of crashing the app.
+            setSupportMultipleWindows(props.bool("supportMultipleWindows", false))
             allowFileAccess = props.bool("allowFileAccess", true)
             allowContentAccess = props.bool("allowContentAccess", true)
             allowFileAccessFromFileURLs = props.bool("allowFileAccessFromFileURLs", true)
