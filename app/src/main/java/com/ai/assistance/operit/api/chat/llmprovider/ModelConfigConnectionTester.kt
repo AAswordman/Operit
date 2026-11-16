@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.api.chat.llmprovider
 
 import android.content.Context
+import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.model.ModelConfigData
 import com.ai.assistance.operit.data.model.ToolParameterSchema
 import com.ai.assistance.operit.data.model.ToolPrompt
@@ -116,13 +117,17 @@ object ModelConfigConnectionTester {
         try {
             val parameters = modelConfigManager.getModelParametersForConfig(configForTest.id)
 
+            // The Codex backend only accepts streaming requests, so Codex probes must stream;
+            // every other provider keeps the non-streaming probe.
+            val probeStream = configForTest.apiProviderType == ApiProviderType.OPENAI_CODEX
+
             suspend fun collectResponse(history: List<PromptTurn>): String {
                 val buffer = StringBuilder()
                 service.sendMessage(
                     context,
                     history,
                     parameters,
-                    stream = false,
+                    stream = probeStream,
                     enableRetry = false,
                     recordTokenUsage = false,
                 ).collect { chunk -> buffer.append(chunk) }
@@ -179,7 +184,7 @@ object ModelConfigConnectionTester {
                             context,
                             buildToolCallProbeHistory(toolName),
                             parameters,
-                            stream = false,
+                            stream = probeStream,
                             availableTools = availableTools,
                             enableRetry = false,
                             recordTokenUsage = false,
