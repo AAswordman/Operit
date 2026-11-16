@@ -127,7 +127,8 @@ internal data class ToolPkgAiProviderRuntime(
     val listModelsHandler: ToolPkgAiProviderHandlerRuntime,
     val sendMessageHandler: ToolPkgAiProviderHandlerRuntime,
     val testConnectionHandler: ToolPkgAiProviderHandlerRuntime,
-    val calculateInputTokensHandler: ToolPkgAiProviderHandlerRuntime
+    val calculateInputTokensHandler: ToolPkgAiProviderHandlerRuntime,
+    val auth: com.ai.assistance.operit.core.auth.ProviderOAuthConfig? = null
 )
 
 internal data class ToolPkgTagFunctionHookRuntime(
@@ -325,7 +326,8 @@ internal data class ToolPkgRegisteredAiProvider(
     val listModelsHandler: ToolPkgRegisteredAiProviderHandler,
     val sendMessageHandler: ToolPkgRegisteredAiProviderHandler,
     val testConnectionHandler: ToolPkgRegisteredAiProviderHandler,
-    val calculateInputTokensHandler: ToolPkgRegisteredAiProviderHandler
+    val calculateInputTokensHandler: ToolPkgRegisteredAiProviderHandler,
+    val auth: com.ai.assistance.operit.core.auth.ProviderOAuthConfig? = null
 )
 
 internal data class ToolPkgRegisteredTagFunctionHook(
@@ -1398,7 +1400,8 @@ internal object ToolPkgArchiveParser {
                         buildHandler(
                             "calculateInputTokens",
                             provider.calculateInputTokensHandler
-                        )
+                        ),
+                    auth = provider.auth
                 )
             )
         }

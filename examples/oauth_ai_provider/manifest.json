@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "toolpkg_id": "com.operit.oauth_ai_provider_example",
+  "version": "0.1.0",
+  "api_version": "1.0.1",
+  "main": "main.js",
+  "display_name": {
+    "zh": "OAuth 供应商示例",
+    "en": "OAuth Provider Example"
+  },
+  "description": {
+    "zh": "演示宿主托管 OAuth 授权和 Provider 请求。示例地址必须替换为你注册的公共客户端配置。",
+    "en": "Demonstrates host-managed OAuth and provider requests. Replace the example endpoints with your registered public-client configuration."
+  },
+  "enabled_by_default": false,
+  "subpackages": []
+}

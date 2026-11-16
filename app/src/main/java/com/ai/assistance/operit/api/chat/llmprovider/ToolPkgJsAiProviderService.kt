@@ -108,6 +108,8 @@ internal class ToolPkgJsAiProviderService(
                 )
             ensureNoFatalError(decoded)
             parseModelOptions(decoded)
+        }.onFailure { error ->
+            if (error is kotlinx.coroutines.CancellationException) throw error
         }
     }
 
@@ -301,13 +303,25 @@ internal class ToolPkgJsAiProviderService(
         }
     }
 
-    private fun buildBasePayload(context: Context?): JSONObject {
-        return jsonObjectOf(
+    private suspend fun buildBasePayload(context: Context?): JSONObject {
+        val payload = jsonObjectOf(
             "providerId" to provider.providerId,
             "providerDisplayName" to provider.displayName,
             "providerDescription" to provider.description,
             "config" to serializeModelConfig(context)
         )
+        // Token estimation is local and must not require login or cause refresh/network traffic.
+        // Refresh tokens and authorization codes never enter the plugin event payload.
+        if (provider.auth != null && context != null) {
+            val token = com.ai.assistance.operit.plugins.toolpkg.ToolPkgProviderOAuth
+                .getInstance(context).accessToken(provider, config)
+            payload.put("auth", jsonObjectOf(
+                "type" to "oauth2",
+                "accessToken" to token,
+                "tokenType" to "Bearer"
+            ))
+        }
+        return payload
     }
 
     private fun serializeModelConfig(context: Context?): JSONObject {
@@ -316,7 +330,7 @@ internal class ToolPkgJsAiProviderService(
             "name" to config.name,
             "apiProviderType" to config.apiProviderTypeId,
             "apiProviderTypeId" to config.apiProviderTypeId,
-            "apiKey" to config.apiKey,
+            "apiKey" to if (provider.auth == null) config.apiKey else "",
             "apiEndpoint" to config.apiEndpoint,
             "modelName" to config.modelName,
             "customHeaders" to decodeJsonObjectString(config.customHeaders),

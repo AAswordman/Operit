@@ -112,7 +112,8 @@ internal data class ToolPkgAiProviderRegistration(
     val testConnectionFunctionName: String,
     val testConnectionFunctionSource: String? = null,
     val calculateInputTokensFunctionName: String,
-    val calculateInputTokensFunctionSource: String? = null
+    val calculateInputTokensFunctionSource: String? = null,
+    val auth: com.ai.assistance.operit.core.auth.ProviderOAuthConfig? = null
 ) {
     /** Historical counters use the full provider ID while new requests use the display name. */
     val releasedTokenProviderAliases: Map<String, String>
