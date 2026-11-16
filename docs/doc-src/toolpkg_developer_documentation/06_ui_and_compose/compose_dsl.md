@@ -134,6 +134,30 @@ setter 只接受新值，不支持 React 风格的 updater function；如果把�
 
 `createWebViewController(key)` 要求非空 key，创建绑定当前 route instance 与 execution context 的 controller。可调用 `loadUrl(url, headers?)`、`loadHtml(html, options?)`、`reload()`、`stopLoading()`、`goBack()`、`goForward()`、`clearHistory()`、`getState()`、`addJavascriptInterface(name, object)` 和 `removeJavascriptInterface(name)`；这些同步命令通过 native bridge 派发并通常返回 `void`。空 URL、空 interface name 或非对象 interface 会在 JS 层抛错；host 返回结构化失败时会抛出 bridge error，但缺失 native 方法/调用异常在当前 `invokeNative` 路径可能被转成 `undefined`，不能把每个同步调用都当成可靠的失败异常。`evaluateJavascript(script)` 通过 suspend callback 返回 Promise，native callback 报错时 reject。
 
+### 媒体播放与编码
+
+`<video>` 的播放由系统 WebView 的媒体管线完成，既不经过 Operit 自己的解码器，也不经过 [FFmpeg 模块](../04_modules/ffmpeg.md)。能播哪些编码取决于设备上的 WebView 版本和硬件解码器，同一份页面在不同设备上可能表现不同。宿主默认开启 `allowFileAccess` 和 `allowContentAccess`，`mediaPlaybackRequiresUserGesture` 默认关闭，本地 `file://` 与 `content://` 视频可以直接播放，不需要先等用户手势。
+
+在 Android 上通用性最好的组合是 MP4 容器加 H.264 视频与 AAC 音频，WebM 容器里的 VP8 和 VP9 在多数设备上可用，AV1 取决于设备解码器。H.265/HEVC 依赖硬件解码器，不能当作通用方案。转码时用 `ffmpeg -i input.mp4 -c:v libx264 -pix_fmt yuv420p -c:a aac output.mp4`，其中 `libx264` 需要 ffmpeg 构建包含；用 [FFmpeg 模块](../04_modules/ffmpeg.md)转码时，`video_codec` 传 `h264`，`audio_codec` 传 `aac`。
+
+MPEG-4 Part 2 不在可解码范围内，对应 ffmpeg 的 `mpeg4` 编码器和 MP4 里的 `mp4v` fourcc。这类文件在 `<video>` 里表现为有声音、无画面：音频轨照常解码，视频轨被跳过，`videoWidth` 和 `videoHeight` 都是 `0`，画面区域全黑，但 `error` 事件不会触发，`play()` 正常 resolve，`readyState` 也会继续推进。同一个文件用系统播放器能正常播放，因为平台解码器支持 mp4v，WebView 的媒体管线不把它当作可解码格式。其他不在可解码范围内的视频编码有同样的静默行为。
+
+因为失败是静默的，只监听 `error` 无法判断。在 `loadedmetadata` 之后检查 `videoWidth`，为 `0` 就说明当前 WebView 不支持这个视频编码：
+
+```html
+<video id="player" src="file:///storage/emulated/0/Download/demo.mp4" controls></video>
+<p id="status"></p>
+<script>
+  const player = document.getElementById("player");
+  const status = document.getElementById("status");
+  player.addEventListener("loadedmetadata", () => {
+    if (player.videoWidth === 0) {
+      status.textContent = "当前 WebView 不支持这个视频编码，请改用 H.264 转码";
+    }
+  });
+</script>
+```
+
 ## Modifier
 
 `Modifier` 是链式动态 Proxy。每次调用都会返回新 proxy，并在 `__modifierOps` 中追加 `{ name, args }`；`toJSON()` 复制当前操作列表。声明的操作全集为：
