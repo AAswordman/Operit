@@ -278,6 +278,9 @@ fun ChatArea(
     var pendingJumpToMessageTimestamp by remember(currentChatId) { mutableStateOf<Long?>(null) }
     // true = pending jump was scheduled by streaming auto-follow (not by an explicit user jump)
     var pendingJumpIsAutoFollow by remember(currentChatId) { mutableStateOf(false) }
+    // The first bottom jump after entering the screen is applied without animation, so reopening
+    // the chat does not replay a long slide from the top. Later jumps stay animated.
+    var hasCompletedInitialScroll by remember(currentChatId) { mutableStateOf(false) }
     val isUserDragging by scrollState.interactionSource.collectIsDraggedAsState()
     val latestAutoScrollToBottom by rememberUpdatedState(autoScrollToBottom)
     LaunchedEffect(isUserDragging) {
@@ -353,7 +356,16 @@ fun ChatArea(
         }
 
         if (targetIndex == messagesCount - 1) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+            if (hasCompletedInitialScroll) {
+                scrollState.animateScrollTo(scrollState.maxValue)
+            } else {
+                scrollState.scrollTo(scrollState.maxValue)
+                // A display window load can still change the list; keep positioning instantly
+                // until the settled window is on screen.
+                if (!isLoadingDisplayWindow) {
+                    hasCompletedInitialScroll = true
+                }
+            }
         } else {
             val targetOffset =
                 targetAnchor.absoluteTopPx.roundToInt().coerceIn(0, scrollState.maxValue)
