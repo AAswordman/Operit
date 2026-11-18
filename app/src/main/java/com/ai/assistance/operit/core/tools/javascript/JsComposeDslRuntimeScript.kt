@@ -171,6 +171,13 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
                     Object.prototype.hasOwnProperty.call(__request, '__action_payload')
                         ? __request.__action_payload
                         : __request.payload;
+                var __payloadIsArgumentList =
+                    Object.prototype.hasOwnProperty.call(
+                        __request,
+                        '__action_payload_is_argument_list'
+                    ) &&
+                    __request.__action_payload_is_argument_list === true &&
+                    Array.isArray(__payload);
                 var __noRender =
                     __payload &&
                     typeof __payload === 'object' &&
@@ -304,7 +311,11 @@ internal fun buildComposeDslRuntimeWrappedScript(script: String): String {
 
                 var __maybePromise;
                 try {
-                    __maybePromise = __bundle.invokeAction(__actionId, __payload);
+                    __maybePromise = __bundle.invokeAction(
+                        __actionId,
+                        __payload,
+                        __payloadIsArgumentList
+                    );
                 } catch (__actionError) {
                     __operit_finalize_action();
                     throw __actionError;
