@@ -3896,6 +3896,7 @@
     <string name="token_stats_price_label">Price</string>
     <string name="token_stats_unknown_pricing">Pricing unknown</string>
     <string name="token_stats_config_deleted">Deleted configuration</string>
+    <string name="token_stats_merge_same_models">Merge identical models</string>
     <string name="token_stats_pricing_edit">Edit override</string>
     <string name="token_stats_pricing_delete">Delete</string>
     <string name="token_stats_pricing_input">Input price (per million)</string>

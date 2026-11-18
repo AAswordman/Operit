@@ -2,10 +2,17 @@ package com.ai.assistance.operit.data.stats
 
 import com.ai.assistance.operit.data.collects.PricingCurrency
 
+/** 模型维度的划分口径：按"模型配置 + 模型"拆分渠道，或按模型名合并同名的所有渠道。 */
+enum class TokenStatsGrouping {
+    CONFIG_MODEL,
+    MERGED_MODEL,
+}
+
 data class TokenStatsQueryParams(
     val targetCurrency: PricingCurrency = PricingCurrency.CNY,
     val manualRate: Double = TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE,
     val providerModels: Set<String>? = null,
+    val grouping: TokenStatsGrouping = TokenStatsGrouping.CONFIG_MODEL,
 )
 
 data class TokenStatsCostSummary(
@@ -73,6 +80,11 @@ data class TokenStatsDisplayModelBreakdown(
     val totals: TokenStatsTotals,
     val identities: List<TokenStatsIdentityBreakdown>,
     val providerModels: List<String>,
+    /**
+     * CONFIG_MODEL 分组时该组共享的模型配置 ID（legacy 导入记录为空字符串）；
+     * MERGED_MODEL 分组跨多个配置，该字段不适用，为 null。
+     */
+    val configId: String?,
 )
 
 /** 年度报告的 token 汇总：全年合计、按模型、按月和按本地日期。 */

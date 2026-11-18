@@ -268,13 +268,40 @@ class TokenTrackingAIService(
         }
 
         fun finish(): TokenUsageRecordEntity? {
-            if (cancelled.get()) return null
-            val snapshot =
-                synchronized(lock) {
-                    successfulAttempt?.let(attempts::get)
-                } ?: return null
-            if (cancelled.get()) return null
-            if (!snapshot.hasKnownFields()) return null
+            if (cancelled.get()) {
+                // 取消不落库是设计内行为（只记成功正式请求），debug 级避免刷屏；
+                // 但必须留痕，否则"这条消息为什么没进统计"无从回答。
+                AppLogger.d(TAG, "token统计跳过：请求已取消 configId=$configId providerModel=$providerModel")
+                return null
+            }
+            val attempt = synchronized(lock) { successfulAttempt }
+            if (attempt == null) {
+                AppLogger.w(
+                    TAG,
+                    "token统计跳过：请求成功但未收到usage完成回调 configId=$configId providerModel=$providerModel",
+                )
+                return null
+            }
+            val snapshot = synchronized(lock) { attempts[attempt] }
+            if (snapshot == null) {
+                // 成功回调已到但该 attempt 从未上报 usage：典型原因是端点流式未回
+                // usage 分块（如未携带 stream_options.include_usage 时严格端点按
+                // 规范省略）。此处曾是静默返回，排查只能翻数据库，必须留下观测痕迹。
+                AppLogger.w(
+                    TAG,
+                    "token统计跳过：成功attempt=$attempt 无usage上报（端点未返回usage？）" +
+                        " configId=$configId providerModel=$providerModel",
+                )
+                return null
+            }
+            if (!snapshot.hasKnownFields()) {
+                AppLogger.w(
+                    TAG,
+                    "token统计跳过：usage快照无任何已知字段 source=${snapshot.source}" +
+                        " configId=$configId providerModel=$providerModel",
+                )
+                return null
+            }
 
             val separator = providerModel.indexOf(':')
             require(separator > 0 && separator < providerModel.lastIndex) {
@@ -295,6 +322,11 @@ class TokenTrackingAIService(
                 snapshot.totalInputTokens == null &&
                 persistedOutputTokens == null
             ) {
+                AppLogger.w(
+                    TAG,
+                    "token统计跳过：usage快照各分量均为未知 source=${snapshot.source}" +
+                        " configId=$configId providerModel=$providerModel",
+                )
                 return null
             }
             return TokenUsageRecordEntity(

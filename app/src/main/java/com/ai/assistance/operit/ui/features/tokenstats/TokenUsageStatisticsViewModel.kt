@@ -13,7 +13,9 @@ import com.ai.assistance.operit.data.stats.TokenActivityViewMode
 import com.ai.assistance.operit.data.stats.TokenActivityRangeData
 import com.ai.assistance.operit.data.stats.TokenCostCurrency
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayModelBreakdown
+import com.ai.assistance.operit.data.stats.TokenStatsDisplayNames
 import com.ai.assistance.operit.data.stats.TokenStatsDisplayUnit
+import com.ai.assistance.operit.data.stats.TokenStatsGrouping
 import com.ai.assistance.operit.data.stats.TokenStatsPriceDraft
 import com.ai.assistance.operit.data.stats.TokenStatsLifetimeOverview
 import com.ai.assistance.operit.data.stats.TokenStatsPriceSetting
@@ -56,6 +58,7 @@ data class TokenStatsUiState(
     val manualRate: Double = TokenCostCurrency.DEFAULT_USD_TO_CNY_RATE,
     val rateIsEstimated: Boolean = true,
     val selectedModels: Set<String> = emptySet(),
+    val modelGrouping: TokenStatsGrouping = TokenStatsGrouping.CONFIG_MODEL,
     val availableDisplayModels: List<TokenStatsDisplayModelBreakdown> = emptyList(),
     val knownModelNames: Map<String, String> = emptyMap(),
     val configurationNames: Map<String, String> = emptyMap(),
@@ -161,6 +164,7 @@ class TokenUsageStatisticsViewModel(
                 val rateInfo = settings.loadRateWithEstimate()
                 val currency = settings.loadTargetCurrency()
                 val tokenDisplayUnit = settings.loadTokenDisplayUnit()
+                val modelGrouping = settings.loadModelGrouping()
                 val entryViewMode = if (loadViewMode) settings.loadActivityViewMode() else null
                 val range = settings.loadTimeRange() ?: defaultDateRange(nowMs(), zone)
 
@@ -169,6 +173,7 @@ class TokenUsageStatisticsViewModel(
                     it.copy(
                         loading = true,
                         errorMessage = null,
+                        modelGrouping = modelGrouping,
                         activity = it.activity.copy(
                             loading = true,
                             viewMode = entryViewMode ?: it.activity.viewMode,
@@ -183,6 +188,7 @@ class TokenUsageStatisticsViewModel(
                         targetCurrency = currency,
                         manualRate = rateInfo.first,
                         providerModels = selectedProviderModels,
+                        grouping = modelGrouping,
                     )
                     val availableParams = rangeParams.copy(providerModels = null)
                     val lifetimeDeferred = async(Dispatchers.IO) {
@@ -191,6 +197,7 @@ class TokenUsageStatisticsViewModel(
                             TokenStatsQueryParams(
                                 targetCurrency = currency,
                                 manualRate = rateInfo.first,
+                                grouping = modelGrouping,
                             ),
                         )
                     }
@@ -213,12 +220,14 @@ class TokenUsageStatisticsViewModel(
                         TokenStatsQueryService.activitySnapshot(appContext, range, rangeParams, zone)
                     }
                     val rangeData = rangeDeferred.await()
+                    val lifetimeData = lifetimeDeferred.await()
+                    val availableData = availableDeferred.await() ?: rangeData
+                    // 配置名解析覆盖全部三处查询结果：分组后 lifetime 的模型累计
+                    // 与筛选下拉同样需要"配置名/模型名"。
                     val configurationIds =
-                        rangeData
-                            ?.displayModels
-                            .orEmpty()
+                        (lifetimeData.displayModels + rangeData.displayModels + availableData.displayModels)
                             .flatMap { it.identities }
-                            .mapNotNull { it.configId }
+                            .map { it.configId }
                             .distinct()
                     val configurationNamesDeferred = async(Dispatchers.IO) {
                         buildMap {
@@ -229,12 +238,19 @@ class TokenUsageStatisticsViewModel(
                             }
                         }
                     }
+                    val configurationNames = configurationNamesDeferred.await()
                     QueryLoadResult(
-                        lifetime = lifetimeDeferred.await(),
-                        range = rangeData,
-                        available = availableDeferred.await() ?: rangeData,
+                        lifetime = lifetimeData.copy(
+                            displayModels = resolveDisplayNames(lifetimeData.displayModels, configurationNames),
+                        ),
+                        range = rangeData.copy(
+                            displayModels = resolveDisplayNames(rangeData.displayModels, configurationNames),
+                        ),
+                        available = availableData.copy(
+                            displayModels = resolveDisplayNames(availableData.displayModels, configurationNames),
+                        ),
                         prices = pricesDeferred.await(),
-                        configurationNames = configurationNamesDeferred.await(),
+                        configurationNames = configurationNames,
                         activity = TokenActivityAggregator.rangeData(activityDeferred.await(), range),
                     )
                 }
@@ -252,6 +268,7 @@ class TokenUsageStatisticsViewModel(
                         currentRange = range,
                         targetCurrency = currency,
                         tokenDisplayUnit = tokenDisplayUnit,
+                        modelGrouping = modelGrouping,
                         manualRate = rateInfo.first,
                         rateIsEstimated = rateInfo.second,
                         availableDisplayModels = result.available?.displayModels.orEmpty(),
@@ -286,6 +303,20 @@ class TokenUsageStatisticsViewModel(
                 knownModelProviderModels[it.displayModelId].orEmpty() + it.providerModels
         }
     }
+
+    /**
+     * CONFIG_MODEL 分组下把展示名拼装为"配置名/模型名"。实现抽到
+     * [TokenStatsDisplayNames]（纯函数，单测覆盖），这里只注入删除配置的文案。
+     */
+    private fun resolveDisplayNames(
+        models: List<TokenStatsDisplayModelBreakdown>,
+        configurationNames: Map<String, String>,
+    ): List<TokenStatsDisplayModelBreakdown> =
+        TokenStatsDisplayNames.resolve(
+            models,
+            configurationNames,
+            stringResolver(R.string.token_stats_config_deleted),
+        )
 
     private fun providerModelsFor(state: TokenStatsUiState): Set<String>? {
         val providerModelsByDisplayId = knownModelProviderModels.toMutableMap().apply {
@@ -344,6 +375,26 @@ class TokenUsageStatisticsViewModel(
             state.copy(selectedModels = selected)
         }
         load()
+    }
+
+    /**
+     * 切换模型维度分组口径。displayModelId 的语义随分组变化（配置组键 vs 模型组键），
+     * 旧选中集在新口径下指向别的条目，必须清空让用户在新视图上重选。
+     */
+    fun setModelGrouping(grouping: TokenStatsGrouping) {
+        modeRangeJob?.cancel()
+        viewModelScope.launch(dispatcher) {
+            try {
+                settings.saveModelGrouping(grouping)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                AppLogger.e(tag, "Failed to save token stats model grouping", e)
+                return@launch
+            }
+            _state.update { applyGroupingChange(it, grouping) }
+            load()
+        }
     }
 
     fun selectAllModels() {
@@ -414,6 +465,17 @@ class TokenUsageStatisticsViewModel(
 
     companion object {
         const val MAX_CUSTOM_RANGE_DAYS = 3 * 366L
+
+        /**
+         * 评审 P3：分组切换的状态转移抽成纯函数（单测覆盖）。displayModelId 的语义
+         * 随分组变化（配置组键 vs 模型组键），旧选中集在新口径下指向别的条目，
+         * 必须清空让用户在新视图上重选。
+         */
+        fun applyGroupingChange(
+            state: TokenStatsUiState,
+            grouping: TokenStatsGrouping,
+        ): TokenStatsUiState =
+            state.copy(modelGrouping = grouping, selectedModels = emptySet())
     }
 }
 

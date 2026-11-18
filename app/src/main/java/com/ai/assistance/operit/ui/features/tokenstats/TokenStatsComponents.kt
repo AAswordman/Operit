@@ -41,6 +41,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -730,12 +731,14 @@ internal fun TokenStatsModelRankSection(
 
 // ==== 范围分析（筛选） ====
 
-/** 范围分析卡：标题 + 单个全宽模型筛选下拉（沿用现有筛选逻辑）。 */
+/** 范围分析卡：标题 + 合并相同模型开关 + 单个全宽模型筛选下拉（沿用现有筛选逻辑）。 */
 @Composable
 internal fun TokenStatsFilterBar(
     selectedModels: Set<String>,
     availableModels: List<TokenStatsDisplayModelBreakdown>,
     knownModelNames: Map<String, String>,
+    mergeSameModels: Boolean,
+    onToggleMergeSameModels: (Boolean) -> Unit,
     onToggleModel: (String) -> Unit,
     onSelectAllModels: () -> Unit,
 ) {
@@ -745,6 +748,20 @@ internal fun TokenStatsFilterBar(
             verticalArrangement = Arrangement.spacedBy(TokenStatsSpacing.content),
         ) {
             TokenStatsCardTitle(stringResource(R.string.token_stats_range_analysis))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = stringResource(R.string.token_stats_merge_same_models),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Switch(
+                    checked = mergeSameModels,
+                    onCheckedChange = onToggleMergeSameModels,
+                )
+            }
             ModelFilterDropdown(
                 selectedModels,
                 availableModels,

@@ -364,6 +364,12 @@ object AIServiceFactory {
                     enableToolCall = enableToolCall,
                     thinkingConfigurations = config.thinkingConfigurations,
                     thinkingOptionId = config.thinkingOptionId,
+                    // 流式必须显式索要 usage：OpenAI 规范下流式默认不回 usage 分块，
+                    // 不带该参数时严格端点的成功请求拿不到快照，token 统计永远不落库
+                    //（排查报告 GLM-5.2 未统计的根因）。与官方 OPENAI 类型、Kimi、
+                    // DeepSeek 的既有做法对齐；个别端点若拒绝该参数属于不符合规范，
+                    // 按请求错误正常暴露，不做按端点降级。
+                    includeUsageInStream = true,
                 )
 
             ApiProviderType.OPENAI_RESPONSES,
