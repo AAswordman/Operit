@@ -201,6 +201,37 @@ object ModelThinkingConfigDefaults {
                     ]
                   },
                   {
+                    "id": "tokenrhythm-deepseek-reasoning-effort",
+                    "providers": ["TOKENRHYTHM"],
+                    "match": {"modelPrefix": ["deepseek-"]},
+                    "control": "levels",
+                    "parameterLabel": "reasoning_effort",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}],
+                    "options": [
+                      {"id": "low", "label": "low", "path": "reasoning_effort", "value": "low"},
+                      {"id": "high", "label": "high", "path": "reasoning_effort", "value": "high"},
+                      {"id": "max", "label": "max", "path": "reasoning_effort", "value": "max"}
+                    ]
+                  },
+                  {
+                    "id": "tokenrhythm-thinking-toggle",
+                    "providers": ["TOKENRHYTHM"],
+                    "match": {"modelPrefix": ["qwen3.7-", "qwen3.8-", "seed-2.1-"]},
+                    "control": "toggle_only",
+                    "parameterLabel": "thinking.type",
+                    "enable": [{"path": "thinking.type", "value": "enabled"}],
+                    "disable": [{"path": "thinking.type", "value": "disabled"}]
+                  },
+                  {
+                    "id": "tokenrhythm-required-thinking",
+                    "providers": ["TOKENRHYTHM"],
+                    "match": {"modelPrefix": ["glm-", "kimi-", "longcat-", "minimax-", "mimo-"]},
+                    "control": "toggle_only",
+                    "parameterLabel": "thinking.type",
+                    "required": true
+                  },
+                  {
                     "id": "zhipu-glm-53-required-effort",
                     "providers": ["ZHIPU"],
                     "match": {"modelContains": ["glm-5.3", "glm-5-3"]},

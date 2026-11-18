@@ -42,6 +42,7 @@ enum class ApiProviderType {
         PPINFRA, // 派欧云
         NOVITA, // Novita AI
         MINIMAX, // MiniMax
+        TOKENRHYTHM, // 基元律动
         OTHER; // 其他提供商（自定义端点）
 
         companion object {

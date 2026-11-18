@@ -292,6 +292,11 @@ object ApiProviderConfigs {
             )
         ),
         ProviderApiConfig(
+            providerType = ApiProviderType.TOKENRHYTHM,
+            defaultModelName = "deepseek-v4-pro-0813",
+            defaultApiEndpoint = "https://tokenrhythm.studio/v1/chat/completions"
+        ),
+        ProviderApiConfig(
             providerType = ApiProviderType.OTHER,
             defaultModelName = "",
             defaultApiEndpoint = ""

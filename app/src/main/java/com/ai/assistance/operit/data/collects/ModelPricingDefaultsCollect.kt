@@ -36,7 +36,8 @@ object DefaultModelPricingCollect {
         "PPINFRA",
         "OPENAI_LOCAL",
         "MIMO",
-        "MINIMAX"
+        "MINIMAX",
+        "TOKENRHYTHM"
     )
 
     private fun defaultPricePerRequest(currency: PricingCurrency): Double {
@@ -187,7 +188,8 @@ object DefaultModelPricingCollect {
         "LLAMA_CPP" to zeroPricing(PricingCurrency.CNY),
         "MIMO" to zeroPricing(PricingCurrency.CNY),
         "NOVITA" to zeroPricing(PricingCurrency.USD),
-        "MINIMAX" to zeroPricing(PricingCurrency.CNY)
+        "MINIMAX" to zeroPricing(PricingCurrency.CNY),
+        "TOKENRHYTHM" to zeroPricing(PricingCurrency.CNY)
     )
 
     private fun splitProviderModel(providerModel: String): Pair<String, String> {

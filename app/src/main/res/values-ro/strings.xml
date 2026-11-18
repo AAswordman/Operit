@@ -3932,6 +3932,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="provider_ppinfra">Paiou Cloud</string>
     <string name="provider_novita">Novita AI</string>
     <string name="provider_minimax">MiniMax</string>
+    <string name="provider_tokenrhythm">TokenRhythm</string>
     <string name="provider_openai_generic">OpenAIGeneralități</string>
     <string name="provider_other">Alți furnizori</string>
     <string name="select_api_provider_title">AlegereAPIFurnizor</string>
