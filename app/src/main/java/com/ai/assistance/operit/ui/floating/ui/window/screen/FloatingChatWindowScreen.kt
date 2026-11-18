@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ChatKind
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.ui.floating.FloatContext
@@ -231,7 +232,10 @@ private fun RecentChatSelectorOverlay(
     val coroutineScope = rememberCoroutineScope()
     val ungroupedText = stringResource(R.string.ungrouped)
     val items = remember(chatHistories) {
-        chatHistories.sortedByDescending { it.updatedAt }.take(20)
+        chatHistories
+            .filterNot { it.chatKind == ChatKind.SUBAGENT.name }
+            .sortedByDescending { it.updatedAt }
+            .take(20)
     }
 
     val avatarUriMap = remember { mutableStateMapOf<String, String?>() }
@@ -698,10 +702,8 @@ private fun ChatMessagesView(
     val isLoadingDisplayWindow = isLoadingDisplayWindowState.value
     val scrollState = rememberLazyListState()
     val messagesCount = floatContext.messages.size
-    val displayMessages =
-        floatContext.messages
-            .filter { it.sender != "think" }
-            .asReversed()
+    val displayIndices = floatContext.messages.indices.filter { floatContext.messages[it].sender != "think" }.asReversed()
+    val displayMessages = displayIndices.map { floatContext.messages[it] }
     val messageHeightMemory = rememberChatMessageHeightMemory(displayMessages)
     val coroutineScope = rememberCoroutineScope()
     val lastMessage = floatContext.messages.lastOrNull()
@@ -747,6 +749,10 @@ private fun ChatMessagesView(
     val loadMoreText = stringResource(id = R.string.load_more_history)
     val loadNewerText = stringResource(id = R.string.load_newer_history)
     val loadMoreTextStyle = MaterialTheme.typography.bodyMedium
+    val responseProcessState =
+        com.ai.assistance.operit.ui.features.chat.components.rememberResponseProcessState(
+            floatContext.messages, currentChatId,
+        )
     val renderItems = buildList<Any> {
         if (hasNewerDisplayHistory) {
             add(FloatingLoadNewerItem)
@@ -826,15 +832,15 @@ private fun ChatMessagesView(
                     }
 
                     is ChatMessage -> {
-                        val messageListOffset =
-                            (if (hasNewerDisplayHistory) 1 else 0) +
-                                (if (showLoadingIndicator) 1 else 0)
-                        val displayIndex = renderIndex - messageListOffset
-                        val actualIndex = messagesCount - 1 - displayIndex
+                        val messageOffset = (if (hasNewerDisplayHistory) 1 else 0) + (if (showLoadingIndicator) 1 else 0)
+                        val actualIndex = displayIndices[renderIndex - messageOffset]
 
+                        com.ai.assistance.operit.ui.features.chat.components.ResponseProcessMessage(
+                            responseProcessState, actualIndex, aiTextColor,
+                        ) { processIndex ->
                         FloatingMessageItem(
-                            index = actualIndex,
-                            message = item,
+                            index = processIndex,
+                            message = floatContext.messages[processIndex],
                             userMessageColor = userMessageColor,
                             aiMessageColor = aiMessageColor,
                             userTextColor = userTextColor,
@@ -843,10 +849,15 @@ private fun ChatMessagesView(
                             systemTextColor = systemTextColor,
                             thinkingBackgroundColor = thinkingBackgroundColor,
                             thinkingTextColor = thinkingTextColor,
+                            showAssistantHeader =
+                                !com.ai.assistance.operit.ui.features.chat.components.isAssistantContinuation(
+                                    floatContext.messages, processIndex,
+                                ),
                             heightMemory = messageHeightMemory,
                             onSelectMessageToEdit = null,
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        }
                     }
 
                     FloatingLoadingItem -> {
@@ -903,10 +914,12 @@ private fun FloatingMessageItem(
     thinkingBackgroundColor: Color,
     thinkingTextColor: Color,
     heightMemory: ChatMessageHeightMemory,
+    showAssistantHeader: Boolean,
     onSelectMessageToEdit: ((Int, ChatMessage, String) -> Unit)?,
 ) {
     CursorStyleChatMessage(
         message = message,
+        showAssistantHeader = showAssistantHeader,
         userMessageColor = userMessageColor,
         aiMessageColor = aiMessageColor,
         userTextColor = userTextColor,

@@ -49,6 +49,7 @@ import com.ai.assistance.operit.ui.features.packages.market.PluginCreationIntent
 import com.ai.assistance.operit.ui.features.settings.screens.ChatBackupSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ChatHistorySettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ContextSummarySettingsScreen
+import com.ai.assistance.operit.ui.features.settings.screens.AgentProfileSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ExternalHttpChatSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.FunctionalConfigScreen
 import com.ai.assistance.operit.ui.features.settings.screens.GlobalDisplaySettingsScreen
@@ -604,6 +605,7 @@ sealed class Screen(
                     navigateToToolPermissions = { navigateTo(ToolPermission) },
                     navigateToGitHubAccount = { navigateTo(GitHubAccount) },
                     navigateToModelConfig = { navigateTo(ModelConfig) },
+                    navigateToAgentProfiles = { navigateTo(AgentProfiles) },
                     navigateToThemeSettings = { navigateTo(ThemeSettings) },
                     navigateToGlobalDisplaySettings = { navigateTo(GlobalDisplaySettings) },
                     navigateToModelPrompts = { navigateTo(ModelPromptsSettings) },
@@ -830,6 +832,22 @@ sealed class Screen(
             ModelConfigScreen(
                 navigateToMnnModelDownload = { navigateTo(MnnModelDownload) }
             )
+        }
+    }
+
+    data object AgentProfiles :
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_agent_profiles) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            AgentProfileSettingsScreen()
         }
     }
 

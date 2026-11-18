@@ -68,6 +68,7 @@ object ChatHistoryCsv {
         "variant_output_duration_ms",
         "variant_wait_duration_ms",
         "variant_completed_at",
+        "chat_kind",
     )
 
     private val columnIndex = HEADER.withIndex().associate { it.value to it.index }
@@ -96,6 +97,7 @@ object ChatHistoryCsv {
         put(row, "character_group_id", history.characterGroupId)
         put(row, "locked", history.locked.toString())
         put(row, "pinned", history.pinned.toString())
+        put(row, "chat_kind", history.chatKind)
         writeRow(writer, row)
     }
 

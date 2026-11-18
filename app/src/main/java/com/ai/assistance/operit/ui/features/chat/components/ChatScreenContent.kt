@@ -97,8 +97,9 @@ fun ChatScreenContent(
         modifier: Modifier = Modifier,
         paddingValues: PaddingValues,
         bottomInset: Dp = 0.dp,
-        actualViewModel: ChatViewModel,
-        enableMessageDialogs: Boolean = true,
+         actualViewModel: ChatViewModel,
+         enableMessageDialogs: Boolean = true,
+         readOnlyTranscript: Boolean = false,
         showChatHistorySelector: Boolean,
         chatHistory: List<ChatMessage>,
         isLoading: Boolean,
@@ -217,6 +218,15 @@ fun ChatScreenContent(
     val isSpeechSessionActive by actualViewModel.isSpeechSessionActive.collectAsState()
     val isSpeechPaused by actualViewModel.isSpeechPaused.collectAsState()
     val isAutoReadEnabled by actualViewModel.isAutoReadEnabled.collectAsState()
+    LaunchedEffect(readOnlyTranscript) {
+        if (readOnlyTranscript) {
+            isMultiSelectMode = false
+            selectedMessageIndices = emptySet()
+            editingMessageIndex.value = null
+            pendingRollbackIndex = null
+            pendingRewindIndex = null
+        }
+    }
     LaunchedEffect(isSpeechSessionActive, isSpeechPaused, isAutoReadEnabled) {
         AppLogger.d(
             "ChatScreenContent",
@@ -258,7 +268,8 @@ fun ChatScreenContent(
                         currentChatId = currentChatId,
                         scrollState = scrollState,
                         isLoading = isLoading,
-                        enableDialogs = enableMessageDialogs,
+                        enableDialogs = enableMessageDialogs && !readOnlyTranscript,
+                        allowTranscriptMutation = !readOnlyTranscript,
                         userMessageColor = userMessageColor,
                         aiMessageColor = aiMessageColor,
                         userTextColor = userTextColor,
@@ -379,7 +390,8 @@ fun ChatScreenContent(
                         currentChatId = currentChatId,
                         scrollState = scrollState,
                         isLoading = isLoading,
-                        enableDialogs = enableMessageDialogs,
+                        enableDialogs = enableMessageDialogs && !readOnlyTranscript,
+                        allowTranscriptMutation = !readOnlyTranscript,
                         userMessageColor = userMessageColor,
                         aiMessageColor = aiMessageColor,
                         userTextColor = userTextColor,
@@ -476,7 +488,7 @@ fun ChatScreenContent(
 
         // 多选模式底部操作栏
         AnimatedVisibility(
-            visible = isMultiSelectMode,
+            visible = isMultiSelectMode && !readOnlyTranscript,
             enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
             exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier

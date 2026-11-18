@@ -612,9 +612,13 @@ private fun ChatMessageLocatorDialog(
     onToggleFavoriteMessage: ((Long, Boolean) -> Unit)?,
     onJumpToMessage: (Long) -> Unit,
 ) {
-    val currentMessageIndex = locatorEntries.indexOfFirst { it.timestamp == currentMessageTimestamp }
+    val visibleLocatorEntries = locatorVisibleEntries(locatorEntries)
+    val currentVisiblePosition =
+        visibleLocatorEntries.indexOfFirst { it.timestamp == currentMessageTimestamp }
+    val currentMessageIndex =
+        visibleLocatorEntries.getOrNull(currentVisiblePosition)?.messageIndex ?: -1
     val initialIndex =
-        currentMessageIndex
+        currentVisiblePosition
             .takeIf { it >= 0 }
             ?.let { (it - 2).coerceAtLeast(0) }
             ?: 0
@@ -629,9 +633,9 @@ private fun ChatMessageLocatorDialog(
     val normalizedSearchQuery = normalizeMessageSearchText(searchQuery)
     val activeLocatorEntries =
         if (normalizedSearchQuery.isBlank()) {
-            locatorEntries
+            visibleLocatorEntries
         } else {
-            searchEntries
+            locatorVisibleEntries(searchEntries)
         }
     val dialogIsLoading = isLoading || isLoadingSearchEntries
     val dialogLoadFailed =

@@ -10,10 +10,11 @@ data class OperitChatArchive(
     val formatVersion: Int = CURRENT_FORMAT_VERSION,
     val exportedAt: Long = System.currentTimeMillis(),
     val chats: List<OperitArchivedChat>,
+    val subagentRuns: List<OperitArchivedSubagentRun> = emptyList(),
 ) {
     companion object {
         const val ARCHIVE_TYPE = "operit_chat_archive"
-        const val CURRENT_FORMAT_VERSION = 2
+        const val CURRENT_FORMAT_VERSION = 5
     }
 }
 
@@ -34,6 +35,7 @@ data class OperitArchivedChat(
     val workspace: String? = null,
     val workspaceEnv: String? = null,
     val parentChatId: String? = null,
+    val chatKind: String? = null,
     val characterCardName: String? = null,
     val characterGroupId: String? = null,
     val locked: Boolean = false,
@@ -54,6 +56,13 @@ data class OperitArchivedChat(
             workspace = workspace,
             workspaceEnv = workspaceEnv,
             parentChatId = parentChatId,
+            chatKind =
+                chatKind
+                    ?: if (parentChatId == null) {
+                        ChatKind.NORMAL.name
+                    } else {
+                        ChatKind.BRANCH.name
+                    },
             characterCardName = characterCardName,
             characterGroupId = characterGroupId,
             locked = locked,
@@ -80,12 +89,75 @@ data class OperitArchivedChat(
                 workspace = history.workspace,
                 workspaceEnv = history.workspaceEnv,
                 parentChatId = history.parentChatId,
+                chatKind = history.chatKind,
                 characterCardName = history.characterCardName,
                 characterGroupId = history.characterGroupId,
                 locked = history.locked,
                 pinned = history.pinned,
             )
         }
+    }
+}
+
+@Serializable
+data class OperitArchivedSubagentRun(
+    val id: String,
+    val parentChatId: String,
+    val childChatId: String,
+    val parentToolCallId: String? = null,
+    val agentProfileId: String,
+    val title: String,
+    val status: String,
+    val createdAt: Long,
+    val startedAt: Long? = null,
+    val completedAt: Long? = null,
+    val error: String? = null,
+    val agentConfigSnapshot: String? = null,
+    val modelConfigIdSnapshot: String? = null,
+    val modelIndexSnapshot: Int? = null,
+    val toolInvocationCount: Int = 0,
+    val archivedAt: Long? = null,
+) {
+    fun toEntity(): SubagentRunEntity =
+        SubagentRunEntity(
+            id = id,
+            parentChatId = parentChatId,
+            childChatId = childChatId,
+            parentToolCallId = parentToolCallId,
+            agentProfileId = agentProfileId,
+            title = title,
+            status = status,
+            createdAt = createdAt,
+            startedAt = startedAt,
+            completedAt = completedAt,
+            error = error,
+            agentConfigSnapshot = agentConfigSnapshot,
+            modelConfigIdSnapshot = modelConfigIdSnapshot,
+            modelIndexSnapshot = modelIndexSnapshot,
+            toolInvocationCount = toolInvocationCount,
+            archivedAt = archivedAt,
+        )
+
+    companion object {
+        fun fromEntity(entity: SubagentRunEntity): OperitArchivedSubagentRun =
+            OperitArchivedSubagentRun(
+                id = entity.id,
+                parentChatId = entity.parentChatId,
+                childChatId = entity.childChatId,
+                parentToolCallId = entity.parentToolCallId,
+                agentProfileId = entity.agentProfileId,
+                title = entity.title,
+                status = entity.status,
+                createdAt = entity.createdAt,
+                startedAt = entity.startedAt,
+                completedAt = entity.completedAt,
+                error = entity.error,
+                agentConfigSnapshot = entity.agentConfigSnapshot,
+                modelConfigIdSnapshot = entity.modelConfigIdSnapshot,
+                modelIndexSnapshot = entity.modelIndexSnapshot,
+                toolInvocationCount = entity.toolInvocationCount,
+                archivedAt = entity.archivedAt,
+            )
     }
 }
 

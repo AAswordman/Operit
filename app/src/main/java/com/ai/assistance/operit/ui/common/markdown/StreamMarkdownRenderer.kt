@@ -1,8 +1,14 @@
 package com.ai.assistance.operit.ui.common.markdown
 
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.ChatMarkupRegex
 import android.widget.ImageView
 import androidx.collection.LruCache
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
@@ -248,6 +254,43 @@ interface XmlContentRenderer {
         xmlStream: Stream<String>?,
         renderInstanceKey: Any?
     )
+}
+
+data class ToolXmlRenderInstanceKey(
+    val stableKey: Any?,
+    val invocationIndex: Int,
+)
+
+private val namedToolOpening = Regex("""^<[^>]*\bname="[^"]+"[^>]*>""")
+
+private fun hasNamedToolOpening(node: MarkdownNodeStable): Boolean =
+    node.type == MarkdownProcessorType.XML_BLOCK && namedToolOpening.containsMatchIn(node.content.trimStart())
+
+internal fun toolInvocationIndexAt(
+    nodes: List<MarkdownNodeStable>,
+    nodeIndex: Int,
+): Int? {
+    val target = nodes.getOrNull(nodeIndex) ?: return null
+    if (!hasNamedToolOpening(target) ||
+        ChatMarkupRegex.normalizeToolLikeTagName(
+            ChatMarkupRegex.extractOpeningTagName(target.content)
+        ) != "tool"
+    ) {
+        return null
+    }
+
+    var invocationIndex = 0
+    for (index in 0 until nodeIndex) {
+        val node = nodes[index]
+        if (hasNamedToolOpening(node) &&
+            ChatMarkupRegex.normalizeToolLikeTagName(
+                ChatMarkupRegex.extractOpeningTagName(node.content)
+            ) == "tool"
+        ) {
+            invocationIndex++
+        }
+    }
+    return invocationIndex
 }
 
 @Composable
@@ -884,6 +927,8 @@ fun StreamMarkdownRenderer(
         state: StreamMarkdownRendererState? = null,
         enableDialogs: Boolean = true,
         fillMaxWidth: Boolean = true,
+        collapseCompletedProcess: Boolean = false,
+        responseDurationMs: Long = 0L,
 ) {
     // 使用流式版本相同的渲染器ID生成逻辑
     val rendererId = remember(content) { "static-renderer-${content.hashCode()}" }
@@ -960,6 +1005,8 @@ fun StreamMarkdownRenderer(
         CompositionLocalProvider(LocalMarkdownRenderMode provides MarkdownRenderMode.STATIC) {
             key(rendererId) {
                 UnifiedMarkdownCanvas(
+                    collapseCompletedProcess = collapseCompletedProcess,
+                    responseDurationMs = responseDurationMs,
                     nodes = renderNodes,
                     rendererId = rendererId,
                     nodeAnimationStates = nodeAnimationStates,
@@ -1007,6 +1054,7 @@ private fun AnimatedNode(
     onLinkClick: ((String) -> Unit)?,
     xmlRenderer: XmlContentRenderer,
     xmlStream: Stream<String>?,
+    xmlRenderInstanceKey: Any?,
     enableDialogs: Boolean,
     fillMaxWidth: Boolean,
     isLastNode: Boolean = false
@@ -1033,6 +1081,7 @@ private fun AnimatedNode(
             index = index,
             xmlRenderer = xmlRenderer,
             xmlStream = xmlStream,
+            xmlRenderInstanceKey = xmlRenderInstanceKey,
             enableDialogs = enableDialogs,
             fillMaxWidth = fillMaxWidth,
             isLastNode = isLastNode
@@ -1054,6 +1103,8 @@ private fun UnifiedMarkdownCanvas(
     enableDialogs: Boolean,
     modifier: Modifier = Modifier,
     fillMaxWidth: Boolean = true,
+    collapseCompletedProcess: Boolean = false,
+    responseDurationMs: Long = 0L,
 ) {
     val lastRenderableIndex = run {
         val idx = nodes.indexOfLast { it.content.isNotEmpty() || it.children.isNotEmpty() }
@@ -1077,8 +1128,19 @@ private fun UnifiedMarkdownCanvas(
         remember(groupingKey, rendererId, nodeGrouper) {
             nodeGrouper.group(nodes, rendererId)
         }
-    Column(modifier = modifier) {
-        groupedItems.forEach { item ->
+    val transcriptExpanded = LocalResponseProcessExpanded.current
+    // Image export and markdown previews have no transcript identity and must render their
+    // explicitly selected content without adding an interactive, initially collapsed section.
+    val inTranscript = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptMessageId.current != null
+    val processEnd =
+        if ((collapseCompletedProcess && inTranscript) || transcriptExpanded != null) completedProcessEnd(nodes) else -1
+    val transcriptChatId = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptChatId.current
+    val transcriptMessageId = com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptMessageId.current
+    val expansionKey = "single-process-${transcriptMessageId ?: rendererId}"
+    val expanded = com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
+        .isExpanded(transcriptChatId, expansionKey)
+    val renderItems: @Composable (List<MarkdownGroupedItem>) -> Unit = { items ->
+        items.forEach { item ->
             when (item) {
                 is MarkdownGroupedItem.Single -> {
                     val index = item.index
@@ -1095,6 +1157,10 @@ private fun UnifiedMarkdownCanvas(
                             onLinkClick = onLinkClick,
                             xmlRenderer = xmlRenderer,
                             xmlStream = xmlStreamsByIndex[index],
+                            xmlRenderInstanceKey =
+                                toolInvocationIndexAt(nodes, index)?.let { invocationIndex ->
+                                    ToolXmlRenderInstanceKey(nodeKey, invocationIndex)
+                                } ?: nodeKey,
                             enableDialogs = enableDialogs,
                             fillMaxWidth = fillMaxWidth,
                             isLastNode = index == lastRenderableIndex,
@@ -1123,6 +1189,39 @@ private fun UnifiedMarkdownCanvas(
                     }
                 }
             }
+        }
+    }
+    Column(modifier = modifier) {
+        if (processEnd >= 0) {
+            val processItemCount = groupedItems.takeWhile { item ->
+                val itemEnd = when (item) {
+                    is MarkdownGroupedItem.Single -> item.index
+                    is MarkdownGroupedItem.Group -> item.endIndexInclusive
+                }
+                itemEnd <= processEnd
+            }.size
+            if (transcriptExpanded == null) ResponseActivityHeader(
+                durationMs = responseDurationMs,
+                expanded = expanded,
+                textColor = textColor,
+                onClick = {
+                    com.ai.assistance.operit.ui.features.chat.components.TranscriptExpansionState
+                        .toggle(transcriptChatId, expansionKey)
+                },
+            )
+            // Animate the process as one region, keeping the final answer outside its lifecycle.
+            AnimatedVisibility(
+                visible = transcriptExpanded ?: expanded,
+                enter = expandVertically(tween(240), expandFrom = Alignment.Top) +
+                    fadeIn(tween(180)),
+                exit = shrinkVertically(tween(240), shrinkTowards = Alignment.Top) +
+                    fadeOut(tween(180)),
+            ) {
+                Column { renderItems(groupedItems.take(processItemCount)) }
+            }
+            renderItems(groupedItems.drop(processItemCount))
+        } else {
+            renderItems(groupedItems)
         }
     }
 }

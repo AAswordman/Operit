@@ -1,5 +1,7 @@
 package com.ai.assistance.operit.services.core
 
+import com.ai.assistance.operit.data.model.ChatKind
+
 import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
@@ -37,7 +39,8 @@ class ChatHistoryDelegate(
         private val getEnhancedAiService: () -> EnhancedAIService?,
         private val ensureAiServiceAvailable: () -> Unit = {}, // 确保AI服务可用的回调
         private val getChatStatistics: () -> Triple<Long, Long, Long> = { Triple(0L, 0L, 0L) }, // 获取（输入token, 输出token, 窗口大小）
-        private val onScrollToBottom: () -> Unit = {} // 滚动到底部事件回调
+        private val onScrollToBottom: () -> Unit = {}, // 滚动到底部事件回调
+        private val onStableHistoryLoaded: suspend (String) -> Unit = {},
 ) {
     companion object {
         private const val TAG = "ChatHistoryDelegate"
@@ -64,6 +67,8 @@ class ChatHistoryDelegate(
     // State flows
     private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
     val chatHistory: StateFlow<List<ChatMessage>> = _chatHistory.asStateFlow()
+    private val _displayedChatId = MutableStateFlow<String?>(null)
+    val displayedChatId: StateFlow<String?> = _displayedChatId.asStateFlow()
     private val currentChatWindow = CurrentChatWindowController()
     val hasOlderDisplayHistory: StateFlow<Boolean> = currentChatWindow.hasOlderDisplayHistory
     val hasNewerDisplayHistory: StateFlow<Boolean> = currentChatWindow.hasNewerDisplayHistory
@@ -88,6 +93,7 @@ class ChatHistoryDelegate(
 
     private fun clearCurrentChatHistoryInMemory() {
         _chatHistory.value = emptyList()
+        _displayedChatId.value = null
         currentChatWindow.reset()
     }
 
@@ -141,6 +147,9 @@ class ChatHistoryDelegate(
     ): List<ChatMessage> {
         val loadResult = buildCurrentChatLoadResult(chatId, messages)
         currentChatWindow.applyLoadResult(loadResult, _chatHistory)
+        if (_currentChatId.value == chatId) {
+            _displayedChatId.value = chatId
+        }
         if (loadResult.messages.isEmpty()) {
             latestDisplayPageCountByChatId.remove(chatId)
         } else if (!loadResult.hasNewerPersistedHistory) {
@@ -336,6 +345,19 @@ class ChatHistoryDelegate(
     suspend fun getChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadChatMessages(chatId)
 
+    suspend fun getPersistedMessage(chatId: String, timestamp: Long): ChatMessage? =
+        chatHistoryManager.loadChatMessagesWindow(chatId, timestamp, timestamp)
+            .firstOrNull { it.sender == "ai" }
+
+    suspend fun getUserMessageCount(chatId: String): Int =
+        chatHistoryManager.getUserMessageCount(chatId)
+
+    suspend fun isSubagentChat(chatId: String): Boolean =
+        chatHistoryManager.getChatHistorySnapshot(chatId)?.chatKind == ChatKind.SUBAGENT.name
+
+    suspend fun chatExists(chatId: String): Boolean =
+        chatHistoryManager.chatExists(chatId)
+
     suspend fun getRuntimeChatHistory(chatId: String): List<ChatMessage> =
         chatHistoryManager.loadRuntimeChatMessages(chatId)
 
@@ -523,6 +545,8 @@ class ChatHistoryDelegate(
 
     private val _chatHistories = MutableStateFlow<List<ChatHistory>>(emptyList())
     val chatHistories: StateFlow<List<ChatHistory>> = _chatHistories.asStateFlow()
+    private val _chatHistoriesLoaded = MutableStateFlow(false)
+    val chatHistoriesLoaded: StateFlow<Boolean> = _chatHistoriesLoaded.asStateFlow()
 
     private val _currentChatId = MutableStateFlow<String?>(null)
     val currentChatId: StateFlow<String?> = _currentChatId.asStateFlow()
@@ -540,8 +564,9 @@ class ChatHistoryDelegate(
         }
 
         coroutineScope.launch {
-            chatHistoryManager.chatHistoriesFlow.collect { histories ->
+            chatHistoryManager.allChatHistoriesUpdatesFlow.collect { histories ->
                 _chatHistories.value = histories
+                _chatHistoriesLoaded.value = true
 
                 val currentId = _currentChatId.value
                 if (currentId != null && histories.none { it.id == currentId }) {
@@ -631,6 +656,7 @@ class ChatHistoryDelegate(
 
             // 打开历史对话时也执行开场白同步：仅当当前会话还没有用户消息时
             syncOpeningStatementIfNoUserMessage(chatId)
+            onStableHistoryLoaded(chatId)
 
         } catch (e: Exception) {
             AppLogger.e(TAG, "加载聊天消息失败", e)
@@ -666,7 +692,8 @@ class ChatHistoryDelegate(
         AppLogger.d(TAG, "开始同步开场白，聊天ID: $chatId")
 
         historyUpdateMutex.withLock {
-            val chatMeta = _chatHistories.value.firstOrNull { it.id == chatId }
+            val chatMeta = chatHistoryManager.getChatHistorySnapshot(chatId)
+            if (chatMeta?.chatKind == ChatKind.SUBAGENT.name) return@withLock
             if (!chatMeta?.characterGroupId.isNullOrBlank()) {
                 AppLogger.d(TAG, "聊天 $chatId 绑定群组角色卡，跳过开场白同步")
                 return@withLock
@@ -861,7 +888,7 @@ class ChatHistoryDelegate(
     }
 
     /** 切换聊天 */
-    fun switchChat(chatId: String, syncToGlobal: Boolean = true) {
+    fun switchChat(chatId: String, syncToGlobal: Boolean = true, scrollToBottom: Boolean = true) {
         coroutineScope.launch {
             // 切换对话时，禁止添加消息
             allowAddMessage.set(false)
@@ -888,7 +915,7 @@ class ChatHistoryDelegate(
                     loadChatMessages(chatId)
                 }
 
-                onScrollToBottom()
+                if (scrollToBottom) onScrollToBottom()
             } finally {
                 if (!allowAddMessage.get()) {
                     allowAddMessage.set(true)
@@ -1010,7 +1037,7 @@ class ChatHistoryDelegate(
     ): ChatHistory? {
         return _chatHistories.value
             .asSequence()
-            .filter { history -> history.id != deletingChatId }
+            .filter { history -> history.id != deletingChatId && history.chatKind != ChatKind.SUBAGENT.name }
             .filter { history -> matchesDeletionReplacementTarget(history, target) }
             .maxByOrNull { history -> history.updatedAt }
     }
@@ -1214,17 +1241,17 @@ class ChatHistoryDelegate(
     }
 
     /** 清空当前聊天 */
-    fun clearCurrentChat(onResult: (Boolean) -> Unit = {}) {
+    fun clearCurrentChat(onResult: (deleted: Boolean, deletedChatId: String?) -> Unit = { _, _ -> }) {
         coroutineScope.launch {
             val chatId = _currentChatId.value
             if (chatId == null) {
                 createNewChat()
-                onResult(false)
+                onResult(false, null)
                 return@launch
             }
 
             if (!chatHistoryManager.canDeleteChatHistory(chatId)) {
-                onResult(false)
+                onResult(false, chatId)
                 return@launch
             }
             prepareChatForDestructiveMutation(chatId)
@@ -1235,7 +1262,7 @@ class ChatHistoryDelegate(
                 } else {
                     chatHistoryManager.deleteChatHistory(chatId)
                 }
-            onResult(deleted)
+            onResult(deleted, chatId)
         }
     }
 
@@ -1466,7 +1493,8 @@ class ChatHistoryDelegate(
                     "添加新消息到聊天 $targetChatId, isCurrent=$isCurrentChat, stream is null: ${message.contentStream == null}, ts: ${message.timestamp}"
                 )
                 if (isVisibleNewMessage) {
-                    chatHistoryManager.addMessage(targetChatId, message)
+                    // Absence from the paged display window does not mean absence from storage.
+                    chatHistoryManager.updateMessage(targetChatId, message)
                     ToolPkgChatMessageHookBridge.dispatchMessagePersisted(targetChatId, message)
                     refreshCurrentChatDisplayFlags(targetChatId)
                 } else {
@@ -1598,59 +1626,58 @@ class ChatHistoryDelegate(
         beforeTimestamp: Long?,
         afterTimestamp: Long?,
         chatIdOverride: String? = null,
-    ) {
-        historyUpdateMutex.withLock {
-            val chatId = chatIdOverride ?: _currentChatId.value ?: return@withLock
-            val isCurrentChat = chatId == _currentChatId.value
-            val currentDisplayStartTimestamp = currentChatWindow.currentDisplayStartTimestamp()
-            val currentDisplayEndTimestamp = currentChatWindow.currentDisplayEndTimestamp()
-            val currentPageCount = currentDisplayPageCount()
-            val persistedSummaryMessage =
-                chatHistoryManager.addSummaryMessageBetweenSliceNeighbors(
-                    chatId = chatId,
-                    message = summaryMessage,
-                    beforeTimestamp = beforeTimestamp,
-                    afterTimestamp = afterTimestamp,
-                )
-
-            if (persistedSummaryMessage == null) {
-                AppLogger.w(
-                    TAG,
-                    "总结消息插入被跳过: chatId=$chatId, before=$beforeTimestamp, after=$afterTimestamp",
-                )
-                return@withLock
-            }
-
-            AppLogger.d(
-                TAG,
-                "添加总结消息: chatId=$chatId, persistedTimestamp=${persistedSummaryMessage.timestamp}, before=$beforeTimestamp, after=$afterTimestamp",
+    ): Boolean = historyUpdateMutex.withLock {
+        val chatId = chatIdOverride ?: _currentChatId.value ?: return@withLock false
+        val isCurrentChat = chatId == _currentChatId.value
+        val currentDisplayStartTimestamp = currentChatWindow.currentDisplayStartTimestamp()
+        val currentDisplayEndTimestamp = currentChatWindow.currentDisplayEndTimestamp()
+        val currentPageCount = currentDisplayPageCount()
+        val persistedSummaryMessage =
+            chatHistoryManager.addSummaryMessageBetweenSliceNeighbors(
+                chatId = chatId,
+                message = summaryMessage,
+                beforeTimestamp = beforeTimestamp,
+                afterTimestamp = afterTimestamp,
             )
 
-            // 更新消息列表
-            if (isCurrentChat) {
-                if (
-                    currentDisplayEndTimestamp != null &&
-                    persistedSummaryMessage.timestamp > currentDisplayEndTimestamp
-                ) {
-                    applyCurrentChatDisplayWindow(
-                        chatId = chatId,
-                        messages =
-                            collectNewestDisplayPages(
-                                chatId = chatId,
-                                pageCount = currentPageCount,
-                                endTimestampInclusive = persistedSummaryMessage.timestamp,
-                            ),
-                    )
-                } else if (
-                    currentDisplayStartTimestamp != null &&
-                    persistedSummaryMessage.timestamp < currentDisplayStartTimestamp
-                ) {
-                    revealMessageForCurrentChat(persistedSummaryMessage.timestamp)
-                } else {
-                    reloadCurrentChatDisplayHistory(chatId)
-                }
+        if (persistedSummaryMessage == null) {
+            AppLogger.w(
+                TAG,
+                "总结消息插入被跳过: chatId=$chatId, before=$beforeTimestamp, after=$afterTimestamp",
+            )
+            return@withLock false
+        }
+
+        AppLogger.d(
+            TAG,
+            "添加总结消息: chatId=$chatId, persistedTimestamp=${persistedSummaryMessage.timestamp}, before=$beforeTimestamp, after=$afterTimestamp",
+        )
+
+        // 更新消息列表
+        if (isCurrentChat) {
+            if (
+                currentDisplayEndTimestamp != null &&
+                persistedSummaryMessage.timestamp > currentDisplayEndTimestamp
+            ) {
+                applyCurrentChatDisplayWindow(
+                    chatId = chatId,
+                    messages =
+                        collectNewestDisplayPages(
+                            chatId = chatId,
+                            pageCount = currentPageCount,
+                            endTimestampInclusive = persistedSummaryMessage.timestamp,
+                        ),
+                )
+            } else if (
+                currentDisplayStartTimestamp != null &&
+                persistedSummaryMessage.timestamp < currentDisplayStartTimestamp
+            ) {
+                revealMessageForCurrentChat(persistedSummaryMessage.timestamp)
+            } else {
+                reloadCurrentChatDisplayHistory(chatId)
             }
         }
+        true
     }
 
     // This function is moved to AIMessageManager

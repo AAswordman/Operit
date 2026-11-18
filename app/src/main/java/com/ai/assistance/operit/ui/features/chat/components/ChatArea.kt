@@ -206,6 +206,7 @@ fun ChatArea(
     aiReferences: List<AiReference> = emptyList(),
     isLoading: Boolean,
     enableDialogs: Boolean = true,
+    allowTranscriptMutation: Boolean = true,
     userMessageColor: Color,
     aiMessageColor: Color,
     userTextColor: Color,
@@ -288,6 +289,20 @@ fun ChatArea(
             pendingJumpIsAutoFollow = false
         }
     }
+    val responseProcessState =
+        rememberResponseProcessState(chatHistory, currentChatId, !isMultiSelectMode)
+    val pendingProcessIndex =
+        chatHistory.indexOfFirst { it.timestamp == pendingJumpToMessageTimestamp }
+    val pendingProcessGroup = responseProcessState.groups[pendingProcessIndex]
+    val pendingProcessCollapsed =
+        pendingProcessGroup != null && pendingProcessIndex != pendingProcessGroup.finalIndex &&
+            !responseProcessState.isExpanded(pendingProcessGroup.key)
+    LaunchedEffect(pendingJumpToMessageTimestamp, pendingProcessGroup?.key, pendingProcessCollapsed) {
+        if (pendingProcessCollapsed && pendingProcessGroup != null) {
+            pendingJumpToMessageTimestamp?.let(messageAnchors::remove)
+            responseProcessState.expand(pendingProcessGroup.key)
+        }
+    }
     val lastMessage = chatHistory.lastOrNull()
     val pendingTargetAnchor =
         pendingJumpToMessageTimestamp?.let { targetTimestamp -> messageAnchors[targetTimestamp] }
@@ -326,12 +341,14 @@ fun ChatArea(
 
     LaunchedEffect(
         pendingJumpToMessageTimestamp,
+        pendingProcessCollapsed,
         messagesCount,
         chatHistory.firstOrNull()?.timestamp,
         chatHistory.lastOrNull()?.timestamp,
         pendingTargetAnchor,
         scrollState.maxValue,
     ) {
+        if (pendingProcessCollapsed) return@LaunchedEffect
         val targetTimestamp = pendingJumpToMessageTimestamp ?: return@LaunchedEffect
         val targetIndex = chatHistory.indexOfFirst { it.timestamp == targetTimestamp }
         if (targetIndex < 0) {
@@ -467,11 +484,15 @@ fun ChatArea(
                                     )
                             },
                     ) {
+                    ResponseProcessMessage(responseProcessState, actualIndex, aiTextColor) { processIndex ->
+                        val processMessage = chatHistory[processIndex]
                         MessageItem(
-                            index = actualIndex,
+                            index = processIndex,
                             currentChatId = currentChatId,
-                            message = message,
+                            message = processMessage,
+                            showAssistantHeader = !isAssistantContinuation(chatHistory, processIndex),
                             enableDialogs = enableDialogs,
+                            allowTranscriptMutation = allowTranscriptMutation,
                             userMessageColor = userMessageColor,
                             aiMessageColor = aiMessageColor,
                             userTextColor = userTextColor,
@@ -507,10 +528,10 @@ fun ChatArea(
                             bubbleAiBubbleWaterGlass = bubbleAiBubbleWaterGlass,
                             isHidden = shouldHide,
                             isMultiSelectMode = isMultiSelectMode,
-                            isSelected = selectedMessageIndices.contains(actualIndex),
-                            onToggleSelection = { onToggleMessageSelection?.invoke(actualIndex) },
+                            isSelected = selectedMessageIndices.contains(processIndex),
+                            onToggleSelection = { onToggleMessageSelection?.invoke(processIndex) },
                             onToggleMultiSelectMode = onToggleMultiSelectMode,
-                            messageIndex = actualIndex,
+                            messageIndex = processIndex,
                             bubbleUserImageStyle = bubbleUserImageStyle,
                             bubbleAiImageStyle = bubbleAiImageStyle,
                             bubbleUserRoundedCornersEnabled = bubbleUserRoundedCornersEnabled,
@@ -520,10 +541,10 @@ fun ChatArea(
                             bubbleAiContentPaddingLeft = bubbleAiContentPaddingLeft,
                             bubbleAiContentPaddingRight = bubbleAiContentPaddingRight,
                         )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
             }
 
             if (hasNewerDisplayHistory) {
@@ -644,7 +665,9 @@ private fun MessageItem(
     index: Int,
     currentChatId: String,
     message: ChatMessage,
+    showAssistantHeader: Boolean,
     enableDialogs: Boolean,
+    allowTranscriptMutation: Boolean,
     userMessageColor: Color,
     aiMessageColor: Color,
     userTextColor: Color,
@@ -705,8 +728,9 @@ private fun MessageItem(
     val coroutineScope = rememberCoroutineScope()
     val messageInteractionSource = remember { MutableInteractionSource() }
 
-    // 只有用户和AI的消息才能被操作
-    val isActionable = message.sender == "user" || message.sender == "ai"
+    // Collaboration events are transport input to the model, not editable user messages.
+    val isActionable = !message.displayMode.isCollaborationEvent &&
+        (message.sender == "user" || message.sender == "ai")
     val isHiddenUserMessage = isHiddenUserPlaceholder(message)
     var pluginMenuItems by remember(currentChatId, message.timestamp) {
         mutableStateOf<List<ChatMessageMenuItemDefinition>>(emptyList())
@@ -762,6 +786,7 @@ private fun MessageItem(
                 ChatStyle.CURSOR -> {
                     CursorStyleChatMessage(
                         message = message,
+                        showAssistantHeader = showAssistantHeader,
                         userMessageColor = userMessageColor,
                         userMessageLiquidGlassEnabled = cursorUserBubbleLiquidGlass,
                         userMessageWaterGlassEnabled = cursorUserBubbleWaterGlass,
@@ -786,6 +811,7 @@ private fun MessageItem(
                 ChatStyle.BUBBLE -> {
                     BubbleStyleChatMessage(
                         message = message,
+                        showAssistantHeader = showAssistantHeader,
                         userMessageColor = userMessageColor,
                         aiMessageColor = aiMessageColor,
                         userTextColor = userTextColor,
@@ -831,6 +857,7 @@ private fun MessageItem(
                     showMessageTimingStats = showMessageTimingStats,
                     showMessageTokenSpeed = showMessageTokenSpeed,
                     showMessageTimestamp = showMessageTimestamp,
+                    allowVariantSelection = allowTranscriptMutation,
                     onSelectVariant = { targetVariantIndex ->
                         onSwitchMessageVariant?.invoke(index, targetVariantIndex)
                     },
@@ -954,6 +981,7 @@ private fun MessageItem(
                 }
             }
 
+            if (allowTranscriptMutation) {
             // 根据消息发送者显示不同的操作
             if (message.sender == "user") {
                 if (!isHiddenUserMessage) {
@@ -1004,7 +1032,7 @@ private fun MessageItem(
                     },
                     modifier = Modifier.height(36.dp)
                 )
-            } else if (message.sender == "ai") {
+                } else if (message.sender == "ai") {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1052,7 +1080,7 @@ private fun MessageItem(
                 )
             }
 
-            if (message.sender == "ai" && message.variantCount > 1) {
+                if (message.sender == "ai" && message.variantCount > 1) {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1077,8 +1105,8 @@ private fun MessageItem(
                 )
             }
 
-            // 删除
-            DropdownMenuItem(
+                // 删除
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.delete),
@@ -1101,8 +1129,8 @@ private fun MessageItem(
                 modifier = Modifier.height(36.dp)
             )
 
-            // 回复选项
-            if (message.sender == "ai") {
+                // 回复选项
+                if (message.sender == "ai") {
                 DropdownMenuItem(
                 text = {
                         Text(
@@ -1127,7 +1155,7 @@ private fun MessageItem(
                 )
             }
 
-            if (message.sender == "user" || message.sender == "ai") {
+                if (message.sender == "user" || message.sender == "ai") {
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -1152,8 +1180,8 @@ private fun MessageItem(
                 )
             }
 
-            // 创建分支
-            DropdownMenuItem(
+                // 创建分支
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.create_branch),
@@ -1174,7 +1202,8 @@ private fun MessageItem(
                     )
                 },
                 modifier = Modifier.height(36.dp)
-            )
+                )
+            }
 
             // 信息
             DropdownMenuItem(
@@ -1200,7 +1229,8 @@ private fun MessageItem(
                 modifier = Modifier.height(36.dp)
             )
 
-            DropdownMenuItem(
+            if (allowTranscriptMutation) {
+                DropdownMenuItem(
                 text = {
                     Text(
                         stringResource(id = R.string.multi_select),
@@ -1221,7 +1251,8 @@ private fun MessageItem(
                     )
                 },
                 modifier = Modifier.height(36.dp)
-            )
+                )
+            }
         }
 
         if (enableDialogs && isHiddenUserMessage && showHiddenUserMessageDialog) {
@@ -1421,7 +1452,8 @@ private fun MessageCopyPreviewBottomSheet(
 }
 
 private fun hasDisplayableTokenStats(message: ChatMessage): Boolean {
-    return message.inputTokens > 0 || message.cachedInputTokens > 0 || message.outputTokens > 0
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        (message.inputTokens > 0 || message.cachedInputTokens > 0 || message.outputTokens > 0)
 }
 
 internal fun calculateMessageTokenSpeed(outputTokens: Long, outputDurationMs: Long): Double? {
@@ -1434,11 +1466,13 @@ private fun hasDisplayableTokenSpeedStats(message: ChatMessage): Boolean {
 }
 
 private fun hasDisplayableTimingStats(message: ChatMessage): Boolean {
-    return message.waitDurationMs > 0L || message.outputDurationMs > 0L
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        (message.waitDurationMs > 0L || message.outputDurationMs > 0L)
 }
 
 private fun hasDisplayableMessageTimestamp(message: ChatMessage): Boolean {
-    return message.completedAt > 0L
+    return message.displayMode != ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE &&
+        message.completedAt > 0L
 }
 
 private fun formatCompactDuration(durationMs: Long): String {
@@ -1470,8 +1504,10 @@ private fun MessageFooterBar(
     showMessageTimingStats: Boolean,
     showMessageTokenSpeed: Boolean,
     showMessageTimestamp: Boolean,
+    allowVariantSelection: Boolean,
     onSelectVariant: (Int) -> Unit,
 ) {
+    if (LocalResponseMessageSection.current == ResponseMessageSection.HEADER) return
     val hasPrevious = message.selectedVariantIndex > 0
     val hasNext = message.selectedVariantIndex < message.variantCount - 1
     val context = LocalContext.current
@@ -1531,7 +1567,7 @@ private fun MessageFooterBar(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.chat_previous_variant),
                     tint =
-                        if (hasPrevious) {
+                        if (hasPrevious && allowVariantSelection) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
@@ -1539,7 +1575,7 @@ private fun MessageFooterBar(
                     modifier =
                         Modifier
                             .size(16.dp)
-                            .clickable(enabled = hasPrevious) {
+                            .clickable(enabled = hasPrevious && allowVariantSelection) {
                                 onSelectVariant(message.selectedVariantIndex - 1)
                             },
                 )
@@ -1557,7 +1593,7 @@ private fun MessageFooterBar(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                     contentDescription = stringResource(R.string.chat_next_variant),
                     tint =
-                        if (hasNext) {
+                        if (hasNext && allowVariantSelection) {
                             MaterialTheme.colorScheme.onSurfaceVariant
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
@@ -1565,7 +1601,7 @@ private fun MessageFooterBar(
                     modifier =
                         Modifier
                             .size(16.dp)
-                            .clickable(enabled = hasNext) {
+                            .clickable(enabled = hasNext && allowVariantSelection) {
                                 onSelectVariant(message.selectedVariantIndex + 1)
                             },
                 )

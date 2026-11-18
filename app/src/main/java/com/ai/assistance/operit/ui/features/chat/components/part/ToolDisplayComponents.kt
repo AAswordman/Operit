@@ -43,6 +43,7 @@ import org.json.JSONObject
 fun CompactToolDisplay(
         toolName: String,
         params: String = "",
+        summaryOverride: String? = null,
         textColor: Color,
         modifier: Modifier = Modifier,
         enableDialog: Boolean = true  // 新增参数：是否启用弹窗功能，默认启用
@@ -73,7 +74,9 @@ fun CompactToolDisplay(
         )
     }
 
-    val summary = remember(displayParams) { buildParamsHeadPreview(displayParams) }
+    val summary = remember(displayParams, summaryOverride) {
+        summaryOverride ?: buildParamsHeadPreview(displayParams)
+    }
 
     CanvasToolSummaryRow(
         toolName = displayToolName,
