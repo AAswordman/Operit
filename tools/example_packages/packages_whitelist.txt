@@ -20,6 +20,7 @@ siliconflow_draw.js
 super_admin.js
 system_tools.js
 tavily.js
+firecrawl.js
 time.js
 various_search.js
 workflow.js
