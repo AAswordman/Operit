@@ -221,6 +221,45 @@ class ChatContentDaoNulContentTest {
         assertEquals(selectedVariantContent, variants.single().content)
     }
 
+    @Test
+    fun transcriptBodyWindowReadsOnlyRequestedRowsWithoutTruncation() = runBlocking {
+        val content = "a".repeat(200_000) + "\u0000末尾"
+        insertMessage(10L, 0, content)
+        insertMessage(20L, 1, "off-screen")
+        assertEquals(listOf(10L), chatContentDao.getMessagesByTimestamps(chatId, listOf(10L)).map { it.timestamp })
+        assertEquals(content, chatContentDao.getMessagesByTimestamps(chatId, listOf(10L)).single().content)
+        assertEquals(emptyList<MessageEntity>(), chatContentDao.getMessagesByTimestamps(chatId, emptyList()))
+    }
+
+    @Test
+    fun transcriptStructureUsesSelectedVariantTiming() = runBlocking {
+        insertMessage(10L, 0, "base", selectedVariantIndex = 1)
+        database.messageVariantDao().insertVariant(MessageVariantEntity(
+            chatId = chatId, messageTimestamp = 10L, variantIndex = 1, content = "selected",
+            sentAt = 100L, completedAt = 300L, waitDurationMs = 50L, outputDurationMs = 150L,
+        ))
+        val metadata = database.messageDao().getProcessMetadata(chatId).single()
+        assertEquals(100L, metadata.sentAt)
+        assertEquals(300L, metadata.completedAt)
+        assertEquals(150L, metadata.outputDurationMs)
+    }
+
+    @Test
+    fun usageProjectionReadsSelectedVariantWithoutMessageBodies() = runBlocking {
+        insertMessage(10L, 0, "x".repeat(200_000), selectedVariantIndex = 1)
+        database.messageVariantDao().insertVariant(MessageVariantEntity(
+            chatId = chatId, messageTimestamp = 10L, variantIndex = 1,
+            content = "selected\u0000body", provider = "OPENAI", modelName = "test-model",
+            inputTokens = 123L, cachedInputTokens = 23L, outputTokens = 45L,
+        ))
+        val usage = database.messageDao().getAssistantUsage(chatId).single()
+        assertEquals("OPENAI", usage.provider)
+        assertEquals("test-model", usage.modelName)
+        assertEquals(123L, usage.inputTokens)
+        assertEquals(23L, usage.cachedInputTokens)
+        assertEquals(45L, usage.outputTokens)
+    }
+
     private suspend fun insertMessage(
         timestamp: Long,
         orderIndex: Int,

@@ -41,6 +41,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import com.ai.assistance.operit.ui.common.markdown.rememberToolLabelTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,7 @@ internal fun CanvasExpandableHeaderRow(
     titleAlpha: Float = 1f,
 ) {
     val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberToolLabelTextMeasurer()
     val arrowPainter = rememberVectorPainter(Icons.AutoMirrored.Filled.KeyboardArrowRight)
     val interactionSource = remember { MutableInteractionSource() }
     val arrowTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
@@ -70,7 +71,7 @@ internal fun CanvasExpandableHeaderRow(
             color = titleColor.copy(alpha = titleColor.alpha * titleAlpha),
         )
 
-    BoxWithConstraints(
+    WidthMeasuredCanvas(
         modifier =
             modifier
                 .fillMaxWidth()
@@ -85,32 +86,23 @@ internal fun CanvasExpandableHeaderRow(
                     role = Role.Button,
                     onClick = onClick,
                 )
-    ) {
-        val widthPx = with(density) { maxWidth.roundToPx() }.fastCoerceAtLeast(1)
+    ) { widthPx ->
         val topBottomPaddingPx = 0
         val iconSizePx = with(density) { 20.dp.roundToPx().toFloat() }
         val gapPx = with(density) { 4.dp.roundToPx().toFloat() }
         val textMaxWidth = (widthPx - iconSizePx.toInt() - gapPx.toInt()).fastCoerceAtLeast(0)
         val titleLayout =
-            remember(title, titleStyle, textMeasurer, textMaxWidth) {
-                textMeasurer.measure(
+            textMeasurer.measure(
                     text = AnnotatedString(title),
                     style = titleStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     constraints = Constraints(maxWidth = textMaxWidth),
-                )
-            }
+            )
         val contentHeightPx = max(iconSizePx.toInt(), titleLayout.size.height)
         val totalHeightPx = contentHeightPx + topBottomPaddingPx * 2
 
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(with(density) { totalHeightPx.toDp() })
-        ) {
-            Canvas(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        MeasuredCanvas(totalHeightPx) {
                 val contentTop = topBottomPaddingPx.toFloat()
                 val arrowTop = contentTop + (contentHeightPx - iconSizePx) / 2f
                 val arrowLeft = 0f
@@ -168,7 +160,6 @@ internal fun CanvasExpandableHeaderRow(
                     )
                     drawContext.canvas.restore()
                 }
-            }
         }
     }
 }

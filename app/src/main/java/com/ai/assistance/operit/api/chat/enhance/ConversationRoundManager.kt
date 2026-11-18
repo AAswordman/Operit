@@ -53,13 +53,14 @@ class ConversationRoundManager {
     /**
      * Starts a new round.
      *
-     * @return The current round number after incrementing
+     * @return The display separator that must also be emitted into the live stream
      */
-    fun startNewRound(): Int {
+    fun startNewRound(): String {
+        val separator = if (roundContents.keys.any { it >= 0 }) "\n" else ""
         val newRound = currentResponseRound.incrementAndGet()
         roundContents[newRound] = SmartString()
         AppLogger.d(TAG, "Starting new round: $newRound")
-        return newRound
+        return separator
     }
 
     /**

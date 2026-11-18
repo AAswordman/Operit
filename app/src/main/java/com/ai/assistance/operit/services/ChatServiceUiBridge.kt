@@ -3,6 +3,7 @@ package com.ai.assistance.operit.services
 import com.ai.assistance.operit.data.model.ChatMessage
 
 interface ChatServiceUiBridge {
+    fun setActiveDraftChat(chatId: String?) = Unit
     fun updateWebServerForCurrentChat(chatId: String)
     fun resetAttachmentPanelState()
     fun clearReplyToMessage()

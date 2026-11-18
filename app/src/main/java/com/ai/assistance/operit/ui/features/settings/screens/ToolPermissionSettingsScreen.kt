@@ -29,6 +29,7 @@ import androidx.compose.ui.window.Dialog
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
+import com.ai.assistance.operit.core.agent.collaboration.CollaborationTools
 import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
 import kotlinx.coroutines.launch
 
@@ -64,6 +65,14 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
 
     fun handlePermissionChange(toolName: String, newLevel: PermissionLevel) {
         val currentLevel = toolPermissions[toolName]
+        if (newLevel == PermissionLevel.ALLOW && masterSwitch == PermissionLevel.ASK &&
+            CollaborationTools.isCollaborationTool(toolName) && (currentLevel == null || currentLevel == PermissionLevel.ALLOW)
+        ) {
+            // Clearing an inherited allowance must actually make the next call ask.
+            toolPermissions[toolName] = PermissionLevel.ASK
+            scope.launch { toolPermissionSystem.saveToolPermission(toolName, PermissionLevel.ASK) }
+            return
+        }
         if (currentLevel == newLevel) {
             // If the tool is already in the target level, move it back to ASK
             toolPermissions.remove(toolName)
@@ -158,9 +167,19 @@ fun ToolPermissionSettingsScreen(navigateBack: () -> Unit) {
             PermissionGroup(
                 level = PermissionLevel.ALLOW,
                 allTools = allTools,
-                toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.ALLOW }.keys,
+                toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.ALLOW }.keys +
+                    allTools.filter { masterSwitch == PermissionLevel.ASK && it !in toolPermissions && CollaborationTools.isCollaborationTool(it) },
                 toolHandler = toolHandler,
                 onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.ALLOW) }
+            )
+        }
+        item {
+            PermissionGroup(
+                level = PermissionLevel.ASK,
+                allTools = allTools,
+                toolsInLevel = toolPermissions.filterValues { it == PermissionLevel.ASK }.keys,
+                toolHandler = toolHandler,
+                onToolToggled = { toolName -> handlePermissionChange(toolName, PermissionLevel.ASK) }
             )
         }
         item {
@@ -198,7 +217,7 @@ private fun PermissionGroup(
         )
         PermissionLevel.ASK -> Triple(
             stringResource(R.string.permission_level_ask),
-            stringResource(R.string.permission_level_ask_description),
+            stringResource(R.string.tool_permission_explicit_ask_description),
             MaterialTheme.colorScheme.secondary
         )
     }

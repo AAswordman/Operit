@@ -10,17 +10,20 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -36,6 +39,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.drawText
+import com.ai.assistance.operit.ui.common.markdown.rememberToolLabelTextMeasurer
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -57,7 +61,7 @@ internal fun CanvasToolSummaryRow(
     onClick: (() -> Unit)? = null,
 ) {
     val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberToolLabelTextMeasurer()
     val iconPainter = rememberVectorPainter(leadingIcon)
     val titleStyle = MaterialTheme.typography.labelMedium.copy(color = titleColor)
     val summaryStyle = MaterialTheme.typography.bodySmall.copy(color = summaryColor)
@@ -80,8 +84,7 @@ internal fun CanvasToolSummaryRow(
             Modifier.semantics { contentDescription = semanticDescription }
         }
 
-    BoxWithConstraints(modifier = modifier.fillMaxWidth().then(clickableModifier)) {
-        val widthPx = with(density) { maxWidth.roundToPx() }.fastCoerceAtLeast(1)
+    WidthMeasuredCanvas(modifier = modifier.fillMaxWidth().then(clickableModifier)) { widthPx ->
         val topPaddingPx = with(density) { 4.dp.roundToPx() }
         val iconSizePx = with(density) { 16.dp.roundToPx().toFloat() }
         val gap1Px = with(density) { 8.dp.roundToPx().toFloat() }
@@ -90,42 +93,36 @@ internal fun CanvasToolSummaryRow(
         val titleMaxWidthPx = with(density) { 120.dp.roundToPx() }
 
         val unconstrainedTitleLayout =
-            remember(toolName, titleStyle, textMeasurer) {
-                textMeasurer.measure(
+            textMeasurer.measure(
                     text = AnnotatedString(toolName),
                     style = titleStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                )
-            }
+            )
         val titleWidthPx =
             unconstrainedTitleLayout.size.width
                 .coerceAtLeast(titleMinWidthPx)
                 .coerceAtMost(titleMaxWidthPx)
         val titleLayout =
-            remember(toolName, titleStyle, textMeasurer, titleWidthPx) {
-                textMeasurer.measure(
+            textMeasurer.measure(
                     text = AnnotatedString(toolName),
                     style = titleStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     constraints = Constraints(maxWidth = titleWidthPx),
-                )
-            }
+            )
 
         val summaryMaxWidth =
             (widthPx - iconSizePx.toInt() - gap1Px.toInt() - titleWidthPx - gap2Px.toInt())
                 .fastCoerceAtLeast(0)
         val summaryLayout =
-            remember(measuredSummary, summaryStyle, textMeasurer, summaryMaxWidth) {
-                textMeasurer.measure(
+            textMeasurer.measure(
                     text = AnnotatedString(measuredSummary),
                     style = summaryStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     constraints = Constraints(maxWidth = summaryMaxWidth),
-                )
-            }
+            )
 
         val contentHeightPx =
             max(
@@ -134,9 +131,7 @@ internal fun CanvasToolSummaryRow(
             )
         val totalHeightPx = topPaddingPx + contentHeightPx
 
-        Canvas(
-            modifier = Modifier.fillMaxWidth().height(with(density) { totalHeightPx.toDp() })
-        ) {
+        MeasuredCanvas(totalHeightPx) {
             val iconTop = topPaddingPx + (contentHeightPx - iconSizePx) / 2f
             translate(top = iconTop) {
                 with(iconPainter) {
@@ -175,11 +170,14 @@ internal fun CanvasToolResultRow(
     semanticDescription: String,
     modifier: Modifier = Modifier,
     emphasizeSummary: Boolean = false,
+    showStatusIcon: Boolean = true,
     onClick: (() -> Unit)? = null,
     onCopyClick: (() -> Unit)? = null,
+    onStopClick: (() -> Unit)? = null,
+    stopDescription: String = "",
 ) {
     val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
+    val textMeasurer = rememberToolLabelTextMeasurer()
     val arrowPainter = rememberVectorPainter(Icons.Default.SubdirectoryArrowRight)
     val statusPainter =
         rememberVectorPainter(
@@ -190,6 +188,7 @@ internal fun CanvasToolResultRow(
             }
         )
     val copyPainter = rememberVectorPainter(Icons.Default.ContentCopy)
+    val stopPainter = rememberVectorPainter(Icons.Default.Stop)
     val summaryColor =
         if (isSuccess) {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -211,6 +210,7 @@ internal fun CanvasToolResultRow(
     val copyTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
     val rowInteractionSource = remember { MutableInteractionSource() }
     val copyInteractionSource = remember { MutableInteractionSource() }
+    val stopInteractionSource = remember { MutableInteractionSource() }
     val rowModifier =
         if (onClick != null) {
             Modifier
@@ -229,20 +229,52 @@ internal fun CanvasToolResultRow(
             Modifier.semantics { contentDescription = semanticDescription }
         }
 
-    BoxWithConstraints(
+    WidthMeasuredCanvas(
         modifier =
             modifier
                 .fillMaxWidth()
-                .then(rowModifier)
-    ) {
-        val widthPx = with(density) { maxWidth.roundToPx() }.fastCoerceAtLeast(1)
+                .then(rowModifier),
+        overlay = {
+            val trailingAction = onStopClick ?: onCopyClick
+            if (trailingAction != null) {
+                Box(
+                    Modifier.align(Alignment.CenterEnd)
+                        .padding(end = 16.dp)
+                        .width(24.dp)
+                        .fillMaxHeight()
+                        .semantics {
+                            contentDescription =
+                                if (onStopClick != null) stopDescription else "$semanticDescription, copy"
+                            role = Role.Button
+                        }
+                        .indication(
+                            if (onStopClick != null) stopInteractionSource else copyInteractionSource,
+                            ripple(bounded = false),
+                        )
+                        .clickable(
+                            interactionSource =
+                                if (onStopClick != null) stopInteractionSource else copyInteractionSource,
+                            indication = null,
+                            role = Role.Button,
+                            onClick = trailingAction,
+                        ),
+                )
+            }
+        },
+    ) { widthPx ->
         val startPaddingPx = with(density) { 24.dp.roundToPx() }
         val endPaddingPx = with(density) { 16.dp.roundToPx() }
         val verticalPaddingPx = with(density) { 2.dp.roundToPx() }
         val arrowSizePx = with(density) { 18.dp.roundToPx().toFloat() }
-        val statusSizePx = with(density) { 14.dp.roundToPx().toFloat() }
+        val statusSizePx =
+            if (showStatusIcon) with(density) { 14.dp.roundToPx().toFloat() } else 0f
         val gapPx = with(density) { 8.dp.roundToPx().toFloat() }
-        val trailingSlotPx = if (onCopyClick != null) with(density) { 24.dp.roundToPx() } else 0
+        val trailingSlotPx =
+            if (onCopyClick != null || onStopClick != null) {
+                with(density) { 24.dp.roundToPx() }
+            } else {
+                0
+            }
         val trailingIconPx = with(density) { 14.dp.roundToPx().toFloat() }
 
         val summaryWidthPx =
@@ -250,15 +282,13 @@ internal fun CanvasToolResultRow(
                 statusSizePx.toInt() - gapPx.toInt() - trailingSlotPx)
                 .fastCoerceAtLeast(0)
         val summaryLayout =
-            remember(summary, summaryStyle, textMeasurer, summaryWidthPx) {
-                textMeasurer.measure(
+            textMeasurer.measure(
                     text = AnnotatedString(summary),
                     style = summaryStyle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     constraints = Constraints(maxWidth = summaryWidthPx),
-                )
-            }
+            )
 
         val contentHeightPx =
             max(
@@ -266,15 +296,7 @@ internal fun CanvasToolResultRow(
                 max(summaryLayout.size.height, trailingSlotPx),
             )
         val totalHeightPx = verticalPaddingPx * 2 + contentHeightPx
-        val trailingStartPx = widthPx - endPaddingPx - trailingSlotPx
-
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .height(with(density) { totalHeightPx.toDp() })
-        ) {
-            Canvas(modifier = Modifier.fillMaxWidth().fillMaxHeight()) {
+        MeasuredCanvas(totalHeightPx) {
                 val contentTop = verticalPaddingPx.toFloat()
                 val arrowTop = contentTop + (contentHeightPx - arrowSizePx) / 2f
                 translate(left = startPaddingPx.toFloat(), top = arrowTop) {
@@ -287,13 +309,15 @@ internal fun CanvasToolResultRow(
                 }
 
                 val statusLeft = startPaddingPx + arrowSizePx + gapPx
-                val statusTop = contentTop + (contentHeightPx - statusSizePx) / 2f
-                translate(left = statusLeft, top = statusTop) {
-                    with(statusPainter) {
-                        draw(
-                            size = Size(statusSizePx, statusSizePx),
-                            colorFilter = ColorFilter.tint(statusTint),
-                        )
+                if (showStatusIcon) {
+                    val statusTop = contentTop + (contentHeightPx - statusSizePx) / 2f
+                    translate(left = statusLeft, top = statusTop) {
+                        with(statusPainter) {
+                            draw(
+                                size = Size(statusSizePx, statusSizePx),
+                                colorFilter = ColorFilter.tint(statusTint),
+                            )
+                        }
                     }
                 }
 
@@ -301,11 +325,13 @@ internal fun CanvasToolResultRow(
                 val textY = contentTop + (contentHeightPx - summaryLayout.size.height) / 2f
                 drawText(summaryLayout, topLeft = Offset(textX, textY))
 
-                if (onCopyClick != null) {
-                    val copyLeft = widthPx - endPaddingPx - trailingSlotPx + (trailingSlotPx - trailingIconPx) / 2f
-                    val copyTop = contentTop + (contentHeightPx - trailingIconPx) / 2f
-                    translate(left = copyLeft, top = copyTop) {
-                        with(copyPainter) {
+                if (onCopyClick != null || onStopClick != null) {
+                    val trailingLeft =
+                        widthPx - endPaddingPx - trailingSlotPx +
+                            (trailingSlotPx - trailingIconPx) / 2f
+                    val trailingTop = contentTop + (contentHeightPx - trailingIconPx) / 2f
+                    translate(left = trailingLeft, top = trailingTop) {
+                        with(if (onStopClick != null) stopPainter else copyPainter) {
                             draw(
                                 size = Size(trailingIconPx, trailingIconPx),
                                 colorFilter = ColorFilter.tint(copyTint),
@@ -313,28 +339,6 @@ internal fun CanvasToolResultRow(
                         }
                     }
                 }
-            }
-
-            if (onCopyClick != null && trailingSlotPx > 0) {
-                Box(
-                    modifier =
-                        Modifier
-                            .offset(x = with(density) { trailingStartPx.toDp() })
-                            .width(with(density) { trailingSlotPx.toDp() })
-                            .fillMaxHeight()
-                            .semantics {
-                                contentDescription = "$semanticDescription, copy"
-                                role = Role.Button
-                            }
-                            .indication(copyInteractionSource, ripple(bounded = false))
-                            .clickable(
-                                interactionSource = copyInteractionSource,
-                                indication = null,
-                                role = Role.Button,
-                                onClick = onCopyClick,
-                            )
-                )
-            }
         }
     }
 }

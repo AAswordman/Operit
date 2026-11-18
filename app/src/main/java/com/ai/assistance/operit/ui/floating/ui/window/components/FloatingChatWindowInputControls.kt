@@ -65,6 +65,8 @@ import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.ui.features.chat.components.AttachmentChip
 import com.ai.assistance.operit.ui.floating.FloatContext
 import com.ai.assistance.operit.ui.floating.FloatingMode
+import com.ai.assistance.operit.ui.floating.ReadOnlyTranscriptNotice
+import com.ai.assistance.operit.ui.floating.rememberIsReadOnlyTranscript
 import com.ai.assistance.operit.ui.floating.ui.window.viewmodel.FloatingChatWindowModeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -75,6 +77,14 @@ fun FloatingChatWindowInputControls(
     floatContext: FloatContext,
     viewModel: FloatingChatWindowModeViewModel
 ) {
+    if (rememberIsReadOnlyTranscript(floatContext)) {
+        LaunchedEffect(Unit) {
+            floatContext.showInputDialog = false
+            floatContext.showAttachmentPanel = false
+        }
+        ReadOnlyTranscriptNotice()
+        return
+    }
     if (floatContext.showAttachmentPanel && !floatContext.showInputDialog) {
         AttachmentPanelOverlay(floatContext, viewModel)
     }

@@ -25,9 +25,14 @@ data class AiMarkdownTextLayoutSettings(
 val LocalAiMarkdownTextLayoutSettings = compositionLocalOf {
     AiMarkdownTextLayoutSettings()
 }
+private val LocalAiMarkdownSettingsProvided = compositionLocalOf { false }
 
 @Composable
 fun ProvideAiMarkdownTextLayoutSettings(content: @Composable () -> Unit) {
+    if (LocalAiMarkdownSettingsProvided.current) {
+        content()
+        return
+    }
     val context = LocalContext.current
     val preferencesManager = remember { UserPreferencesManager.getInstance(context) }
     val lineHeightMultiplier by preferencesManager.aiMarkdownLineHeightMultiplier.collectAsState(initial = 1f)
@@ -42,7 +47,10 @@ fun ProvideAiMarkdownTextLayoutSettings(content: @Composable () -> Unit) {
         )
     }
 
-    CompositionLocalProvider(LocalAiMarkdownTextLayoutSettings provides settings) {
+    CompositionLocalProvider(
+        LocalAiMarkdownTextLayoutSettings provides settings,
+        LocalAiMarkdownSettingsProvided provides true,
+    ) {
         content()
     }
 }
