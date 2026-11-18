@@ -7212,10 +7212,10 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="artifact_publish_published_name_readonly">Penamaan karya yang telah diterbitkan tidak boleh diubah suai</string>
     <string name="artifact_publish_locked_name_must_match_source">Apabila menerbitkan berdasarkan versi, nama pemalam mesti konsisten dengan versi sumber</string>
     <string name="artifact_publish_published_version_readonly">Nombor versi nod yang telah diterbitkan tidak boleh diubah suai</string>
-    <string name="pkg_toolpkg_api_version">API ToolPkg: %1$s</string>
-    <string name="toolpkg_api_version_label">Versi API ToolPkg</string>
-    <string name="toolpkg_api_version_value">Versi API ToolPkg: %1$s</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">Versi API ToolPkg berasal daripada manifest pakej dan tidak boleh diubah suai secara manual sebelum penerbitan</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">Versi API</string>
+    <string name="toolpkg_api_version_value">Versi API: %1$s</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">Versi API berasal daripada manifest pakej dan tidak boleh diubah suai secara manual sebelum penerbitan</string>
     <string name="artifact_publish_save_artifact_info">Simpan maklumat karya</string>
     <string name="artifact_publish_publish_update_version">Terbitkan versi kemas kini</string>
     <string name="artifact_publish_confirm_save_artifact_info">Sahkan simpan maklumat karya</string>
@@ -7571,8 +7571,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="github_login_method_external">Log masuk dengan penyemak imbas luaran</string>
     <string name="github_login_starting">Menyediakan kebenaran GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versi keluaran ToolPkg berasal daripada manifest dalam pakej, tidak boleh diubah suai secara manual sebelum penerbitan</string>
-    <string name="market_toolpkg_api_incompatible_title">Tidak dapat memasang: API ToolPkg tidak disokong</string>
-    <string name="market_toolpkg_api_incompatible_message">Pemalam ini mengisytiharkan API ToolPkg %1$s. Peranti ini menyokong %2$s, jadi pemalam ini tidak dapat dipasang.</string>
+    <string name="market_toolpkg_api_incompatible_title">Tidak dapat memasang: API tidak disokong</string>
+    <string name="market_toolpkg_api_incompatible_message">Pemalam ini mengisytiharkan API %1$s. Peranti ini menyokong %2$s, jadi pemalam ini tidak dapat dipasang.</string>
     <string name="external_http_chat_a2a_title">Antara muka A2A Agent</string>
     <string name="external_http_chat_a2a_desc">Menyediakan perkhidmatan A2A 1.0 JSON-RPC menggunakan port pendengar dan Token Bearer yang sama. Berikan alamat Agent Card kepada klien A2A untuk penemuan terlebih dahulu.</string>
     <string name="external_http_chat_a2a_agent_card">Alamat Agent Card</string>

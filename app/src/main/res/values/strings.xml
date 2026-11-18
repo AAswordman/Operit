@@ -1081,9 +1081,9 @@
     <string name="plugin_enable_failed">插件启用失败</string>
     <string name="plugin_disable_failed">插件禁用失败</string>
     <string name="plugin_subpackage_count">子包数：%1$d</string>
-    <string name="pkg_toolpkg_api_version">ToolPkg API：%1$s</string>
-    <string name="toolpkg_api_version_label">ToolPkg API 版本</string>
-    <string name="toolpkg_api_version_value">ToolPkg API 版本：%1$s</string>
+    <string name="pkg_toolpkg_api_version">API：%1$s</string>
+    <string name="toolpkg_api_version_label">API 版本</string>
+    <string name="toolpkg_api_version_value">API 版本：%1$s</string>
     <string name="pkg_toolpkg_requires">依赖包：%1$s</string>
     <string name="pkg_toolpkg_subpackages">ToolPkg 子包</string>
     <string name="pkg_toolpkg_version">版本：%1$s</string>
@@ -4916,7 +4916,7 @@
     <string name="artifact_publish_locked_name_must_match_source">基于版本发布时，插件名字必须和来源版本保持一致</string>
     <string name="artifact_publish_published_version_readonly">已发布节点的版本号不可修改</string>
     <string name="artifact_publish_toolpkg_version_readonly">ToolPkg 发布版本来自包内 manifest，发布前不可手动修改</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">ToolPkg API 版本来自包内 manifest，发布前不可手动修改</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">API 版本来自脚本元数据或插件清单，未声明时为 1.0.0，发布前不可手动修改</string>
     <string name="artifact_publish_save_artifact_info">保存作品信息</string>
     <string name="artifact_publish_publish_update_version">发布更新版本</string>
     <string name="artifact_publish_confirm_save_artifact_info">确认保存作品信息</string>
@@ -4992,8 +4992,8 @@
     <string name="unsupported_artifact_version_title">当前软件版本可能不兼容</string>
     <string name="unsupported_artifact_version_message">「%1$s」声明支持的软件版本为 %3$s，当前软件版本是 %2$s。继续下载仍可能失败或不可用。</string>
     <string name="continue_download_anyway">仍然继续下载</string>
-    <string name="market_toolpkg_api_incompatible_title">无法安装：ToolPkg API 不受支持</string>
-    <string name="market_toolpkg_api_incompatible_message">该插件声明的 ToolPkg API 版本为 %1$s，本机支持的版本为 %2$s，无法安装此插件。</string>
+    <string name="market_toolpkg_api_incompatible_title">无法安装：API 不受支持</string>
+    <string name="market_toolpkg_api_incompatible_message">该插件声明的 API 版本为 %1$s，本机支持的版本为 %2$s，无法安装此插件。</string>
     <string name="publisher_colon">发布者: %1$s</string>
     <string name="market_registrar_colon">登记者 %1$s</string>
     <string name="downloaded_already">已下载</string>

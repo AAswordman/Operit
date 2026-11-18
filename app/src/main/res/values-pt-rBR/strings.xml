@@ -7053,10 +7053,10 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="artifact_publish_published_name_readonly">O nome de uma obra publicada não pode ser modificado.</string>
     <string name="artifact_publish_locked_name_must_match_source">Ao publicar com base em uma versão, o nome do plugin deve corresponder ao da versão de origem.</string>
     <string name="artifact_publish_published_version_readonly">O número de versão de um nó publicado não pode ser modificado.</string>
-    <string name="pkg_toolpkg_api_version">API do ToolPkg: %1$s</string>
-    <string name="toolpkg_api_version_label">Versão da API do ToolPkg</string>
-    <string name="toolpkg_api_version_value">Versão da API do ToolPkg: %1$s</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">A versão da API do ToolPkg vem do manifesto do pacote e não pode ser alterada manualmente antes da publicação</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">Versão da API</string>
+    <string name="toolpkg_api_version_value">Versão da API: %1$s</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">A versão da API vem do manifesto do pacote e não pode ser alterada manualmente antes da publicação</string>
     <string name="artifact_publish_save_artifact_info">Salvar informações da obra</string>
     <string name="artifact_publish_publish_update_version">Publicar versão de atualização</string>
     <string name="artifact_publish_confirm_save_artifact_info">Confirmar salvamento das informações da obra</string>
@@ -7412,8 +7412,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="github_login_method_external">Entrar com navegador externo</string>
     <string name="github_login_starting">Preparando autorização do GitHub...</string>
     <string name="artifact_publish_toolpkg_version_readonly">A versão de publicação do ToolPkg vem do manifesto do pacote e não pode ser alterada manualmente antes da publicação</string>
-    <string name="market_toolpkg_api_incompatible_title">Não é possível instalar: API do ToolPkg não suportada</string>
-    <string name="market_toolpkg_api_incompatible_message">Este plugin declara a API do ToolPkg %1$s. Este dispositivo suporta %2$s, portanto o plugin não pode ser instalado.</string>
+    <string name="market_toolpkg_api_incompatible_title">Não é possível instalar: API não suportada</string>
+    <string name="market_toolpkg_api_incompatible_message">Este plugin declara a API %1$s. Este dispositivo suporta %2$s, portanto o plugin não pode ser instalado.</string>
     <string name="external_http_chat_a2a_title">Interface A2A Agent</string>
     <string name="external_http_chat_a2a_desc">Fornece o serviço A2A 1.0 JSON-RPC usando a mesma porta de escuta e Bearer Token. Primeiro, forneça o endereço do Agent Card ao cliente A2A para descoberta.</string>
     <string name="external_http_chat_a2a_agent_card">Endereço do Agent Card</string>

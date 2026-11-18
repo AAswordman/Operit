@@ -284,8 +284,8 @@
     <string name="market_manage_submit_revision">修正版を新しいバージョンとして提出</string>
     <string name="market_manage_loading_request_title">リクエストを読み込み中</string>
     <string name="market_manage_loading_request_message">リクエストを処理しています。しばらくお待ちください…</string>
-    <string name="market_toolpkg_api_incompatible_title">インストールできません：ToolPkg API がサポートされていません</string>
-    <string name="market_toolpkg_api_incompatible_message">このプラグインは ToolPkg API %1$s を宣言しています。この端末がサポートするバージョンは %2$s のため、インストールできません。</string>
+    <string name="market_toolpkg_api_incompatible_title">インストールできません：API がサポートされていません</string>
+    <string name="market_toolpkg_api_incompatible_message">このプラグインは API %1$s を宣言しています。この端末がサポートするバージョンは %2$s のため、インストールできません。</string>
     <string name="test_media_image_understood">このモデルは画像を理解できます</string>
     <string name="test_media_audio_understood">このモデルは音声を理解できます</string>
     <string name="test_media_video_understood">このモデルは動画を理解できます</string>

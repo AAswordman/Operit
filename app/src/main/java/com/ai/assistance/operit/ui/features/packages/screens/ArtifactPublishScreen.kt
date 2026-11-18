@@ -382,7 +382,7 @@ fun ArtifactPublishScreen(
     val isToolPkgVersionLocked = !isEditMode && toolPkgManifestVersion != null
     val toolPkgApiVersion =
         when {
-            selectedType != PublishArtifactType.PACKAGE -> null
+            selectedType == null -> null
             isEditMode -> (initialInfo?.apiVersion).effectiveToolPkgApiVersion()
             else -> (selectedArtifact?.apiVersion).effectiveToolPkgApiVersion()
         }
@@ -1101,6 +1101,11 @@ fun ArtifactPublishScreen(
                     Text(stringResource(R.string.artifact_publish_toolpkg_api_version_readonly))
                 }
             )
+            if (selectedType == PublishArtifactType.SCRIPT) {
+                OutlinedButton(onClick = { showMarketPreview = true }) {
+                    Text(stringResource(R.string.artifact_publish_logo_market_preview))
+                }
+            }
         }
         OutlinedTextField(
             value = minSupportedAppVersion,
@@ -1242,7 +1247,7 @@ fun ArtifactPublishScreen(
                             Text(stringResource(R.string.detail_colon, detail))
                         }
                         Text(stringResource(R.string.market_detail_category_label) + ": " + categoryId)
-                        if (initialInfo?.type == PublishArtifactType.PACKAGE) {
+                        if (initialInfo?.type != null) {
                             Text(
                                 stringResource(
                                     R.string.toolpkg_api_version_value,
@@ -1486,7 +1491,7 @@ fun ArtifactPublishScreen(
         )
     }
 
-    if (showMarketPreview && selectedType == PublishArtifactType.PACKAGE) {
+    if (showMarketPreview && selectedType != null) {
         MarketPublishPreviewDialog(
             title = displayName,
             description = description,

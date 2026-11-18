@@ -7215,10 +7215,10 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="artifact_publish_published_name_readonly">Nama karya yang sudah diterbitkan tidak dapat diubah</string>
     <string name="artifact_publish_locked_name_must_match_source">Saat menerbitkan berdasarkan versi, nama plugin harus sama dengan versi sumber</string>
     <string name="artifact_publish_published_version_readonly">Nomor versi node yang sudah diterbitkan tidak dapat diubah</string>
-    <string name="pkg_toolpkg_api_version">API ToolPkg: %1$s</string>
-    <string name="toolpkg_api_version_label">Versi API ToolPkg</string>
-    <string name="toolpkg_api_version_value">Versi API ToolPkg: %1$s</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">Versi API ToolPkg berasal dari manifes paket dan tidak dapat diubah secara manual sebelum publikasi</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">Versi API</string>
+    <string name="toolpkg_api_version_value">Versi API: %1$s</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">Versi API berasal dari manifes paket dan tidak dapat diubah secara manual sebelum publikasi</string>
     <string name="artifact_publish_save_artifact_info">Simpan Informasi Karya</string>
     <string name="artifact_publish_publish_update_version">Terbitkan Versi Pembaruan</string>
     <string name="artifact_publish_confirm_save_artifact_info">Konfirmasi Simpan Informasi Karya</string>
@@ -7574,8 +7574,8 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="github_login_method_external">Masuk dengan browser eksternal</string>
     <string name="github_login_starting">Menyiapkan otorisasi GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">Versi rilis ToolPkg berasal dari manifest dalam paket, tidak dapat dimodifikasi secara manual sebelum rilis</string>
-    <string name="market_toolpkg_api_incompatible_title">Tidak dapat menginstal: API ToolPkg tidak didukung</string>
-    <string name="market_toolpkg_api_incompatible_message">Plugin ini mendeklarasikan API ToolPkg %1$s. Perangkat ini mendukung %2$s, sehingga plugin ini tidak dapat diinstal.</string>
+    <string name="market_toolpkg_api_incompatible_title">Tidak dapat menginstal: API tidak didukung</string>
+    <string name="market_toolpkg_api_incompatible_message">Plugin ini mendeklarasikan API %1$s. Perangkat ini mendukung %2$s, sehingga plugin ini tidak dapat diinstal.</string>
     <string name="external_http_chat_a2a_title">Antarmuka Agen A2A</string>
     <string name="external_http_chat_a2a_desc">Menyediakan layanan A2A 1.0 JSON-RPC menggunakan port pendengar dan Bearer Token yang sama. Berikan alamat Agent Card ke klien A2A untuk ditemukan terlebih dahulu.</string>
     <string name="external_http_chat_a2a_agent_card">Alamat Agent Card</string>

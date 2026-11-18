@@ -516,7 +516,7 @@ private fun MarketVersionHistoryDialog(
                     MarketVersionHistoryRow(
                         version = version,
                         showToolPkgApiVersion =
-                            PublishArtifactType.fromWireValue(entry.type) == PublishArtifactType.PACKAGE,
+                            PublishArtifactType.fromWireValue(entry.type) != null,
                         selected = version.id == entry.latestVersion?.id,
                         onNavigateToAuthor = onNavigateToAuthor,
                         onClick = { onSelectVersion(version) }
@@ -712,7 +712,7 @@ private fun MarketV2Entry.metadataRows(
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let {
             add(UnifiedMarketDetailInfoRow(context.getString(R.string.version_label), it, Icons.Default.Update))
         }
-        if (PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE) {
+        if (PublishArtifactType.fromWireValue(type) != null) {
             latestVersion?.let {
                 add(
                     UnifiedMarketDetailInfoRow(
@@ -765,7 +765,7 @@ private fun MarketV2Entry.detailBadges(): List<String> {
         if (type.isNotBlank()) add(type)
         if (categoryId.isNotBlank()) add(categoryId)
         latestVersion?.version?.takeIf { it.isNotBlank() }?.let { add("v${normalizeDetailVersionBadge(it)}") }
-        if (PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE) {
+        if (PublishArtifactType.fromWireValue(type) != null) {
             latestVersion?.let {
                 add(stringResource(R.string.toolpkg_api_version_value, it.effectiveToolPkgApiVersion()))
             }

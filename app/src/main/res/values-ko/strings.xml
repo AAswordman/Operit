@@ -7094,10 +7094,10 @@
     <string name="artifact_publish_published_name_readonly">게시된 작품의 이름은 수정할 수 없습니다</string>
     <string name="artifact_publish_locked_name_must_match_source">버전 기반 게시 시 플러그인 이름은 원본 버전과 일치해야 합니다</string>
     <string name="artifact_publish_published_version_readonly">게시된 노드의 버전 번호는 수정할 수 없습니다</string>
-    <string name="pkg_toolpkg_api_version">ToolPkg API: %1$s</string>
-    <string name="toolpkg_api_version_label">ToolPkg API 버전</string>
-    <string name="toolpkg_api_version_value">ToolPkg API 버전: %1$s</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">ToolPkg API 버전은 패키지 내 매니페스트에서 가져오므로 게시 전에 수동으로 수정할 수 없습니다</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">API 버전</string>
+    <string name="toolpkg_api_version_value">API 버전: %1$s</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">API 버전은 패키지 내 매니페스트에서 가져오므로 게시 전에 수동으로 수정할 수 없습니다</string>
     <string name="artifact_publish_save_artifact_info">작품 정보 저장</string>
     <string name="artifact_publish_publish_update_version">업데이트 버전 게시</string>
     <string name="artifact_publish_confirm_save_artifact_info">작품 정보 저장 확인</string>
@@ -7421,8 +7421,8 @@
     <string name="github_login_method_external">외부 브라우저로 로그인</string>
     <string name="github_login_starting">GitHub 인증 준비 중...</string>
     <string name="artifact_publish_toolpkg_version_readonly">ToolPkg 릴리스 버전은 패키지 내 매니페스트에서 가져오므로 게시 전에 수동으로 수정할 수 없습니다</string>
-    <string name="market_toolpkg_api_incompatible_title">설치 불가: ToolPkg API가 지원되지 않음</string>
-    <string name="market_toolpkg_api_incompatible_message">이 플러그인은 ToolPkg API %1$s을(를) 선언합니다. 이 기기에서 지원하는 버전은 %2$s이므로 설치할 수 없습니다.</string>
+    <string name="market_toolpkg_api_incompatible_title">설치 불가: API가 지원되지 않음</string>
+    <string name="market_toolpkg_api_incompatible_message">이 플러그인은 API %1$s을(를) 선언합니다. 이 기기에서 지원하는 버전은 %2$s이므로 설치할 수 없습니다.</string>
     <string name="external_http_chat_a2a_title">A2A 에이전트 인터페이스</string>
     <string name="external_http_chat_a2a_desc">동일한 수신 포트와 Bearer 토큰을 사용하여 A2A 1.0 JSON-RPC 서비스를 제공합니다. 먼저 Agent Card 주소를 A2A 클라이언트에 제공하여 검색하세요.</string>
     <string name="external_http_chat_a2a_agent_card">Agent Card 주소</string>

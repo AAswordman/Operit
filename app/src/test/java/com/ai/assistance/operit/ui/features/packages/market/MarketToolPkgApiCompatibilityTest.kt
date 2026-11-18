@@ -44,8 +44,17 @@ class MarketToolPkgApiCompatibilityTest {
     }
 
     @Test
-    fun `non ToolPkg entries do not acquire an API requirement`() {
-        listOf("script", "skill", "mcp").forEach { type ->
+    fun `scripts reject unsupported contracts and preserve unversioned packages`() {
+        assertNotNull(resolveToolPkgApiCompatibility("script", "2.0.0", supportedApis))
+        assertNotNull(resolveToolPkgApiCompatibility("script", "1.0.2", supportedApis))
+        assertNotNull(resolveToolPkgApiCompatibility("script", "invalid", supportedApis))
+        assertNull(resolveToolPkgApiCompatibility("script", null, supportedApis))
+        assertNull(resolveToolPkgApiCompatibility("script", "1.0.1", supportedApis))
+    }
+
+    @Test
+    fun `repository entries do not acquire a script API requirement`() {
+        listOf("skill", "mcp").forEach { type ->
             assertNull(resolveToolPkgApiCompatibility(type, "2.0.0", supportedApis))
         }
     }

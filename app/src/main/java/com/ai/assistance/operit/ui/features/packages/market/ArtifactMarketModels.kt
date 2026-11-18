@@ -414,12 +414,7 @@ fun buildPublishArtifactDescriptor(
         detail = detail.trim(),
         categoryId = resolvedCategoryId,
         version = cleanVersion,
-        apiVersion =
-            if (type == PublishArtifactType.PACKAGE) {
-                localArtifact.apiVersion.effectiveToolPkgApiVersion()
-            } else {
-                null
-            },
+        apiVersion = localArtifact.apiVersion.effectiveToolPkgApiVersion(),
         allowPublicUpdates = allowPublicUpdates,
         sourceFile = localArtifact.sourceFile,
         contentType =
@@ -452,15 +447,7 @@ fun buildPublishReleaseDescriptor(
                 appendLine("Runtime package ID: ${descriptor.runtimePackageId}")
                 appendLine("Display name: ${descriptor.displayName}")
                 appendLine("Version: ${descriptor.version}")
-                if (descriptor.type == PublishArtifactType.PACKAGE) {
-                    appendLine(
-                        "ToolPkg API version: ${descriptor.apiVersion.effectiveToolPkgApiVersion()}"
-                    )
-                } else {
-                    descriptor.apiVersion?.let { apiVersion ->
-                        appendLine("ToolPkg API version: $apiVersion")
-                    }
-                }
+                appendLine("API version: ${descriptor.apiVersion.effectiveToolPkgApiVersion()}")
                 descriptor.protection?.let { protection ->
                     appendLine("Protection: $protection")
                 }
@@ -488,12 +475,7 @@ fun buildArtifactMarketMetadata(
         downloadUrl = payload.downloadUrl,
         sha256 = payload.sha256,
         version = payload.version,
-        apiVersion =
-            if (payload.type == PublishArtifactType.PACKAGE) {
-                payload.apiVersion.effectiveToolPkgApiVersion()
-            } else {
-                null
-            },
+        apiVersion = payload.apiVersion.effectiveToolPkgApiVersion(),
         displayName = payload.displayName,
         description = payload.description,
         categoryId = payload.categoryId,
@@ -550,7 +532,7 @@ fun resolveToolPkgApiCompatibility(
     supportedApiVersions: List<String> =
         ToolPkgApiCompatibility.supportedApiVersions().map { it.toString() }
 ): MarketToolPkgApiCompatibility? {
-    if (PublishArtifactType.fromWireValue(artifactType) != PublishArtifactType.PACKAGE) return null
+    if (PublishArtifactType.fromWireValue(artifactType) == null) return null
     val declaredVersion = apiVersion.effectiveToolPkgApiVersion()
     // Match the loader's parsed API versions, including rejection of malformed declarations.
     val parsedVersion = try {

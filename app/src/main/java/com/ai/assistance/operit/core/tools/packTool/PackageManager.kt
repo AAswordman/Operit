@@ -1461,7 +1461,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                         if (isToolPkg) {
                             toolPkgContainers[packageName]?.apiVersion?.takeIf { it.isNotBlank() }
                         } else {
-                            null
+                            toolPackage.apiVersion
                         }
                 )
             }
@@ -1538,11 +1538,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     }
 
     /**
-     * Resolves the manifest API version for either a ToolPkg container or one of its subpackages.
+     * Resolves the API contract of a standalone script or its owning ToolPkg container.
      * Execution code should use this package-centric lookup instead of inferring the container
      * from UI-only runtime parameters.
      */
-    internal fun getToolPkgApiVersion(packageName: String): String? {
+    internal fun getPackageApiVersion(packageName: String): String? {
         ensureInitialized()
         val normalizedPackageName = normalizePackageName(packageName)
         val containerPackageName =
@@ -1551,7 +1551,11 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
             } else {
                 toolPkgSubpackageByPackageName[normalizedPackageName]?.containerPackageName
             }
-        return containerPackageName?.let { toolPkgContainers[it]?.apiVersion }
+        return if (containerPackageName != null) {
+            toolPkgContainers[containerPackageName]?.apiVersion
+        } else {
+            availablePackages[normalizedPackageName]?.apiVersion
+        }
     }
 
     fun readToolPkgLogoBytes(packageName: String): ToolPkgLogoBytes? {
@@ -2331,6 +2335,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
 
             val jsonConfig = Json { ignoreUnknownKeys = true }
             val packageMetadata = jsonConfig.decodeFromString<ToolPackage>(jsonString)
+            ToolPkgApiCompatibility.requireSupported(packageMetadata.apiVersion)
 
             // 更新所有工具，使用相同的完整脚本内容，但记录每个工具的函数名
             val tools =
@@ -2372,6 +2377,14 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
     }
 
     private fun normalizeJsPackageMetadata(metadataJson: org.json.JSONObject) {
+        // Reject unsupported script contracts before import can replace an installed package.
+        if (metadataJson.has("api_version")) {
+            val declared = metadataJson.get("api_version")
+            require(declared is String && declared.isNotBlank()) {
+                "Script API version must be a non-empty major.minor.patch string"
+            }
+            metadataJson.put("api_version", ToolPkgApiCompatibility.requireSupported(declared).toString())
+        }
         normalizeBooleanFieldAlias(
             metadataJson = metadataJson,
             canonicalKey = "enabledByDefault",
@@ -2541,6 +2554,27 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
         return importPackageFileFromExternalStorage(filePath)
     }
 
+    /** Validates the downloaded file's contract before an existing installation is removed. */
+    fun validateArtifactApiVersion(filePath: String, expectedApiVersion: String) {
+        val file = File(filePath)
+        val actualApiVersion = when (file.extension.lowercase()) {
+            "toolpkg" -> loadToolPkgFromExternalFile(file)?.containerRuntime?.apiVersion
+            "hjson" -> {
+                val metadata = org.json.JSONObject(JsonValue.readHjson(file.readText()).toString())
+                normalizeJsPackageMetadata(metadata)
+                Json { ignoreUnknownKeys = true }.decodeFromString<ToolPackage>(metadata.toString()).apiVersion
+            }
+            "js", "ts" -> loadPackageFromJsFile(file)?.apiVersion
+            else -> throw IllegalArgumentException("Unsupported artifact file: ${file.name}")
+        }
+        requireNotNull(actualApiVersion) { "Failed to parse downloaded artifact" }
+        val actual = ToolPkgApiCompatibility.requireSupported(actualApiVersion)
+        val expected = ToolPkgApiCompatibility.requireSupported(expectedApiVersion)
+        require(actual == expected) {
+            "Downloaded artifact API $actual does not match market API $expected"
+        }
+    }
+
     private fun importPackageFileFromExternalStorage(filePath: String): ExternalPackageImportResult {
         try {
             ensureInitialized()
@@ -2630,6 +2664,7 @@ private constructor(private val context: Context, private val aiToolHandler: AIT
                 )
             }
 
+            ToolPkgApiCompatibility.requireSupported(packageMetadata.apiVersion)
             val destinationFile = File(externalPackagesDir, file.name)
             if (file.absolutePath != destinationFile.absolutePath) {
                 file.inputStream().use { input ->

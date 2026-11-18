@@ -14,8 +14,8 @@ status: completed
 - manifest 字段使用 `api_version`。
 - 市场发布请求和响应的版本对象使用 `apiVersion`。
 - `apiVersion` 描述宿主 ToolPkg API，不代表包自身的 `version` 或归档格式 `formatVer`。
-- 非 ToolPkg 版本不设置 `apiVersion`。
-- 市场响应中的 `apiVersion` 必须可选；`PACKAGE` 类型已有数据缺少该字段时，客户端按 `1.0.0` 解释，但不改写市场数据。
+- 独立脚本在 METADATA 或 HJSON 根对象中使用 `api_version`，发布到市场后同样使用 `apiVersion`。
+- 市场响应中的 `apiVersion` 必须可选；`SCRIPT` 和 `PACKAGE` 类型缺少该字段时，客户端按 `1.0.0` 解释，但不改写市场数据。Skill 和 MCP 不使用该契约。
 
 ## 完成情况
 

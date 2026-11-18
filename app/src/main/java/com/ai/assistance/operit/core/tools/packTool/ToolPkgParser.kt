@@ -490,6 +490,7 @@ internal object ToolPkgArchiveParser {
                 val normalizedPackage =
                     parsedPackage.copy(
                         name = packageName,
+                        apiVersion = apiVersion.toString(),
                         isBuiltIn = isBuiltIn
                     )
 
@@ -1413,6 +1414,7 @@ internal object ToolPkgArchiveParser {
         val containerPackage =
             ToolPackage(
                 name = manifest.toolpkgId,
+                apiVersion = apiVersion.toString(),
                 version = manifest.version,
                 description = containerDescription,
                 tools = emptyList(),

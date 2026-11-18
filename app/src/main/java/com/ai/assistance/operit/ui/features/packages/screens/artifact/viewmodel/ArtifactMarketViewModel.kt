@@ -518,12 +518,7 @@ class ArtifactMarketViewModel(
             sourceFileName = assetName,
             minSupportedAppVersion = normalizeAppVersionOrNull(minSupportedAppVersion),
             maxSupportedAppVersion = normalizeAppVersionOrNull(maxSupportedAppVersion),
-            apiVersion =
-                if (type == PublishArtifactType.PACKAGE) {
-                    (versionValue?.apiVersion).effectiveToolPkgApiVersion()
-                } else {
-                    null
-                }
+            apiVersion = (versionValue?.apiVersion).effectiveToolPkgApiVersion()
         )
     }
 

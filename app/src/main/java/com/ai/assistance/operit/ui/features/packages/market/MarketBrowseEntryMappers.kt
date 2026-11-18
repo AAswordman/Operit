@@ -47,7 +47,7 @@ fun MarketV2Entry.toUnifiedMarketBrowseEntry(
                 toolPkgApiVersion =
                     latestVersion
                         ?.takeIf {
-                            PublishArtifactType.fromWireValue(type) == PublishArtifactType.PACKAGE
+                            PublishArtifactType.fromWireValue(type) != null
                         }
                         ?.effectiveToolPkgApiVersion(),
                 ownerUsername = publisherLogin(),

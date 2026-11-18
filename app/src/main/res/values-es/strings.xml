@@ -7283,10 +7283,10 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="artifact_publish_published_name_readonly">El nombre de una obra publicada no se puede modificar</string>
     <string name="artifact_publish_locked_name_must_match_source">Al publicar basado en una versión, el nombre del complemento debe coincidir con el de la versión de origen</string>
     <string name="artifact_publish_published_version_readonly">El número de versión de un nodo publicado no se puede modificar</string>
-    <string name="pkg_toolpkg_api_version">API de ToolPkg: %1$s</string>
-    <string name="toolpkg_api_version_label">Versión de API de ToolPkg</string>
-    <string name="toolpkg_api_version_value">Versión de API de ToolPkg: %1$s</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">La versión de API de ToolPkg proviene del manifiesto del paquete y no se puede modificar manualmente antes de publicar</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">Versión de API</string>
+    <string name="toolpkg_api_version_value">Versión de API: %1$s</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">La versión de API proviene del manifiesto del paquete y no se puede modificar manualmente antes de publicar</string>
     <string name="artifact_publish_save_artifact_info">Guardar información de la obra</string>
     <string name="artifact_publish_publish_update_version">Publicar versión actualizada</string>
     <string name="artifact_publish_confirm_save_artifact_info">Confirmar guardar información de la obra</string>
@@ -7642,8 +7642,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="github_login_method_external">Iniciar sesión con navegador externo</string>
     <string name="github_login_starting">Preparando autorización de GitHub…</string>
     <string name="artifact_publish_toolpkg_version_readonly">La versión de publicación de ToolPkg proviene del manifiesto del paquete y no se puede modificar manualmente antes de publicar</string>
-    <string name="market_toolpkg_api_incompatible_title">No se puede instalar: API de ToolPkg no compatible</string>
-    <string name="market_toolpkg_api_incompatible_message">Este complemento declara la API de ToolPkg %1$s. Este dispositivo admite %2$s, por lo que no se puede instalar.</string>
+    <string name="market_toolpkg_api_incompatible_title">No se puede instalar: API no compatible</string>
+    <string name="market_toolpkg_api_incompatible_message">Este complemento declara la API %1$s. Este dispositivo admite %2$s, por lo que no se puede instalar.</string>
     <string name="external_http_chat_a2a_title">Interfaz de agente A2A</string>
     <string name="external_http_chat_a2a_desc">Proporciona un servicio JSON-RPC A2A 1.0 en el mismo puerto de escucha y con el mismo Bearer Token. Primero entregue la dirección de la Agent Card a los clientes A2A para que la descubran.</string>
     <string name="external_http_chat_a2a_agent_card">Dirección de Agent Card</string>

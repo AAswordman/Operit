@@ -1112,9 +1112,9 @@
     <string name="open_file_manager">Open File Manager</string>
     <string name="navigate_to_external_files">Please navigate to Android/data/com.ai.assistance.operit/files/packages directory</string>
     <string name="package_js_only">Only JavaScript (.js) and ToolPkg (.toolpkg) files are supported</string>
-    <string name="pkg_toolpkg_api_version">ToolPkg API: %1$s</string>
-    <string name="toolpkg_api_version_label">ToolPkg API version</string>
-    <string name="toolpkg_api_version_value">ToolPkg API version: %1$s</string>
+    <string name="pkg_toolpkg_api_version">API: %1$s</string>
+    <string name="toolpkg_api_version_label">API version</string>
+    <string name="toolpkg_api_version_value">API version: %1$s</string>
     <string name="pkg_toolpkg_requires">Required packages: %1$s</string>
     <string name="pkg_toolpkg_subpackages">ToolPkg Subpackages</string>
     <string name="pkg_toolpkg_version">Version: %1$s</string>
@@ -8269,7 +8269,7 @@
     <string name="artifact_publish_locked_name_must_match_source">When publishing based on a version, the plugin name must match the source version</string>
     <string name="artifact_publish_published_version_readonly">The version number of a published node cannot be modified</string>
     <string name="artifact_publish_toolpkg_version_readonly">ToolPkg publish version comes from the package manifest and cannot be edited before publishing</string>
-    <string name="artifact_publish_toolpkg_api_version_readonly">ToolPkg API version comes from the package manifest and cannot be edited before publishing</string>
+    <string name="artifact_publish_toolpkg_api_version_readonly">API version comes from script metadata or the package manifest, defaults to 1.0.0 when omitted, and cannot be edited before publishing</string>
     <string name="artifact_publish_save_artifact_info">Save artifact info</string>
     <string name="artifact_publish_publish_update_version">Publish update version</string>
     <string name="artifact_publish_confirm_save_artifact_info">Confirm save artifact info</string>
@@ -8517,8 +8517,8 @@
     <string name="market_manage_submit_revision">Submit new version after modification</string>
     <string name="market_manage_loading_request_title">Loading Request</string>
     <string name="market_manage_loading_request_message">Request is being processed, please wait…</string>
-    <string name="market_toolpkg_api_incompatible_title">Cannot Install: ToolPkg API Not Supported</string>
-    <string name="market_toolpkg_api_incompatible_message">This plugin declares ToolPkg API %1$s. This device supports %2$s, so this plugin cannot be installed.</string>
+    <string name="market_toolpkg_api_incompatible_title">Cannot Install: API Not Supported</string>
+    <string name="market_toolpkg_api_incompatible_message">This plugin declares API %1$s. This device supports %2$s, so this plugin cannot be installed.</string>
     <string name="thinking_config_invalid_json">Invalid Thinking Configuration</string>
 
     <!-- Thinking Configuration editor (localized) -->

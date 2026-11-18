@@ -322,7 +322,7 @@ class JsToolManager private constructor(
         val (packageName, functionName) = parsed
         val script = packageManager.getPackageScript(packageName)
             ?: return "Package not found: $packageName"
-        val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
+        val toolPkgApiVersion = packageManager.getPackageApiVersion(packageName)
 
         val runtimeParams = buildRuntimeParams(
             packageName = packageName,
@@ -356,7 +356,7 @@ class JsToolManager private constructor(
         }
 
         val (packageName, functionName) = parsed
-        val toolPkgApiVersion = packageManager.getToolPkgApiVersion(packageName)
+        val toolPkgApiVersion = packageManager.getPackageApiVersion(packageName)
         val runtimeParams = try {
             convertToolParameters(tool, packageName, functionName)
         } catch (e: ToolParameterConversionException) {

@@ -309,6 +309,16 @@ fun PackageDetailsDialog(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    if (!isToolPkgContainer) {
+                        resolvedPackage?.let { scriptPackage ->
+                            Text(
+                                text = stringResource(R.string.pkg_toolpkg_api_version, scriptPackage.apiVersion),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                    }
                     if (isToolPkgContainer) {
                         val details = toolPkgDetails
                         if (details == null) {

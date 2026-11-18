@@ -11,6 +11,7 @@ package com.ai.assistance.operit.core.tools
  import kotlinx.serialization.builtins.MapSerializer
  import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
@@ -335,7 +336,9 @@ data class ToolPackage(
     val category: String = "Other",
     @Serializable(with = StringOrStringListSerializer::class)
     val author: List<String> = emptyList(),
-    val version: String = ""
+    val version: String = "",
+    @SerialName("api_version")
+    val apiVersion: String = "1.0.0"
 )
  
  @Serializable

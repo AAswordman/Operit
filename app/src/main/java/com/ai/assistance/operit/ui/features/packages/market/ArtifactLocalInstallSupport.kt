@@ -178,6 +178,9 @@ suspend fun installArtifactProjectVersion(
 
     val tempFile = withContext(Dispatchers.IO) { downloadArtifactProjectVersionToTempFile(context, version, onProgress) }
     try {
+        withContext(Dispatchers.IO) {
+            packageManager.validateArtifactApiVersion(tempFile.absolutePath, version.apiVersion.effectiveToolPkgApiVersion())
+        }
         onProgress(MarketInstallStage.INSTALLING, null)
         if (
             installState.kind == LocalArtifactInstallStateKind.SAME_PROJECT_VARIANT_INSTALLED ||
