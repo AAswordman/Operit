@@ -22,6 +22,8 @@ object VoiceServiceFactory {
         MIMO_TTS,
         /** 豆包 TTS 服务 */
         DOUBAO_TTS,
+        /** 阶跃星辰 TTS 服务 */
+        STEP_TTS,
         OPENAI_TTS,
         /** 基于 VITS/Piper ONNX Runtime 推理形态的本地 TTS 服务 */
         VITS_TTS,
@@ -85,6 +87,12 @@ object VoiceServiceFactory {
                 }
                 VoiceServiceType.DOUBAO_TTS -> {
                     DoubaoVoiceProvider(
+                        context = context,
+                        config = profile.httpConfig
+                    )
+                }
+                VoiceServiceType.STEP_TTS -> {
+                    StepTtsVoiceProvider(
                         context = context,
                         config = profile.httpConfig
                     )
