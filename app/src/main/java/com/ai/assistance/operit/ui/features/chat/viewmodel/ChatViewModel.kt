@@ -39,9 +39,11 @@ import com.ai.assistance.operit.ui.floating.FloatingMode
 import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import com.ai.assistance.operit.ui.permissions.ToolPermissionSystem
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -136,6 +138,24 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     private var voiceStateCollectionJob: Job? = null
     private var speechPlaybackJob: Job? = null
     private var speechControlsHideJob: Job? = null
+
+    // 朗读请求串行化：所有 speakMessage 调用先进队，由单一消费者协程按入队顺序逐条提交给语音服务。
+    // 必须串行的原因：provider.speak 的提交顺序即播放顺序（系统 TTS 引擎队列、队列型 Provider 的
+    // speakQueue 都按提交顺序播放），此前自动朗读每次 flush 起一个并发协程，提交顺序取决于线程
+    // 调度，句子会乱序进入播放端（自动朗读跳句的根因）。请求到达 Provider 时 flush 顺序信息已经
+    // 丢失，Provider 侧加锁无法恢复顺序，所以必须在调用方收敛为单点串行。
+    private data class SpeakRequest(
+        val message: String,
+        val interrupt: Boolean,
+        val generation: Long,
+    )
+
+    private val speakRequests = Channel<SpeakRequest>(Channel.UNLIMITED)
+
+    // 代数用于打断/停止后拒绝残留请求：cancel 与 drain 覆盖不到"消费者刚取出、还没开始处理"
+    // 的窗口，靠代数比对丢弃，避免停止或打断后旧内容漏播一句。与 QueuedTtsPlayback 的
+    // stopGeneration 是同一套模式。
+    private val speakRequestGeneration = AtomicLong(0)
     private val speechServiceProfiles = SpeechServiceProfilesPreferences(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
     private val characterCardManager = CharacterCardManager.getInstance(context)
@@ -424,6 +444,9 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
         // 初始化语音服务
         initializeVoiceService()
+
+        // 启动朗读请求串行消费者，生命周期跟随 viewModelScope
+        startSpeakRequestConsumer()
 
         // 配置提示只跟随当前活跃聊天配置，避免被其他未使用配置误伤。
         viewModelScope.launch {
@@ -3019,81 +3042,139 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun speakMessage(message: String, interrupt: Boolean) {
         if (interrupt) {
+            // 打断三件事：提升代数、取消当前播放、清空积压请求。
+            // 代数与清空共同保证上一轮残留的 flush（已入队未处理的）不会插播到新一轮朗读中间，
+            // 与系统 TTS 的 QUEUE_FLUSH / 队列型 Provider 的 clearForInterrupt 语义对齐。
+            speakRequestGeneration.incrementAndGet()
             speechPlaybackJob?.cancel()
+            drainSpeakRequests("interrupt")
             logSpeechState("cancelPlaybackJob", "reason=newInterruptingSpeak")
         }
-        speechPlaybackJob = viewModelScope.launch {
-            try {
-                cancelSpeechControlsHide("newSpeak")
-                val currentVoiceService = ensureActiveVoiceService()
-                _isSpeechSessionActive.value = true
-                _isSpeechPaused.value = false
-                logSpeechState(
-                    "speakMessage.start",
-                    "interrupt=$interrupt provider=${currentVoiceService?.javaClass?.simpleName} rawLen=${message.length} preview=\"${speechPreview(message)}\""
-                )
-                if (currentVoiceService == null) {
-                    _isSpeechSessionActive.value = false
-                    logSpeechState("speakMessage.abort", "reason=noVoiceService")
-                    uiStateDelegate.showToast(context.getString(R.string.chat_voice_service_init_failed))
-                    AppLogger.e(TAG, "语音服务不可用")
-                    return@launch
+        speakRequests.trySend(
+            SpeakRequest(
+                message = message,
+                interrupt = interrupt,
+                generation = speakRequestGeneration.get()
+            )
+        )
+    }
+
+    private fun drainSpeakRequests(reason: String) {
+        while (true) {
+            val dropped = speakRequests.tryReceive().getOrNull() ?: break
+            logSpeechState("speakRequest.dropped", "reason=$reason rawLen=${dropped.message.length}")
+        }
+    }
+
+    /**
+     * 朗读请求的单一串行消费者。手动整条、自动流式逐句、waifu 分段全部经由
+     * speakMessage 入队，在这里严格按入队顺序处理：处理完一条（子协程结束）才取下一条，
+     * 保证 provider.speak 的调用顺序与请求顺序一致。
+     * 不串行的后果：并发协程的提交顺序取决于线程调度，句子乱序进入播放端（系统 TTS 跳句）。
+     * 队列型 Provider 内部自带预合成流水线（QueuedTtsPlayback 的 prepare 循环），
+     * 这里的串行等待不会造成句间空窗。
+     */
+    private fun startSpeakRequestConsumer() {
+        viewModelScope.launch {
+            for (request in speakRequests) {
+                if (request.generation != speakRequestGeneration.get()) {
+                    // 打断/停止之后才被消费者取出的残留请求，直接丢弃
+                    logSpeechState("speakRequest.stale", "generation=${request.generation} rawLen=${request.message.length}")
+                    continue
+                }
+                val playbackJob = launch {
+                    processSpeakRequest(request)
+                }
+                speechPlaybackJob = playbackJob
+                playbackJob.join()
+            }
+        }
+    }
+
+    private suspend fun processSpeakRequest(request: SpeakRequest) {
+        // Main.immediate 下子协程体会在 launch 返回前内联启动，消费者循环里的代数校验
+        // 覆盖不到"校验通过到子协程真正开始"的窗口，这里再校验一次（与 QueuedTtsPlayback
+        // 在合成、播放两处校验 isCurrent 是同一模式）。
+        if (request.generation != speakRequestGeneration.get()) {
+            logSpeechState("speakRequest.stale", "generation=${request.generation} rawLen=${request.message.length}")
+            return
+        }
+        val message = request.message
+        val interrupt = request.interrupt
+        try {
+            cancelSpeechControlsHide("newSpeak")
+            val currentVoiceService = ensureActiveVoiceService()
+            _isSpeechSessionActive.value = true
+            _isSpeechPaused.value = false
+            logSpeechState(
+                "speakMessage.start",
+                "interrupt=$interrupt provider=${currentVoiceService?.javaClass?.simpleName} rawLen=${message.length} preview=\"${speechPreview(message)}\""
+            )
+            if (currentVoiceService == null) {
+                _isSpeechSessionActive.value = false
+                logSpeechState("speakMessage.abort", "reason=noVoiceService")
+                uiStateDelegate.showToast(context.getString(R.string.chat_voice_service_init_failed))
+                AppLogger.e(TAG, "语音服务不可用")
+                return
+            }
+
+            val cleanerRegexs = speechServiceProfiles.getCurrentTtsProfile().cleanerRegexs
+            // 清理链沿用仓库既有实现：cleanForSpeech 先剥离 provider 协议 meta、思考链与
+            // tool/status/emotion 块（extractReplyBody），再套用用户 cleaner 规则，
+            // 最后交给 cleanContentForWaifu。串行化改造不复制这套链，避免同一内容被
+            // 两套过滤器重复裁剪。
+            val cleanedText = TtsCleaner.cleanForSpeech(message, cleanerRegexs)
+            val cleanMessage = WaifuMessageProcessor.cleanContentForWaifu(cleanedText)
+            AppLogger.d(
+                TAG,
+                "speech[cleaned] rawLen=${message.length} cleanedLen=${cleanedText.length} finalLen=${cleanMessage.length} preview=\"${speechPreview(cleanMessage)}\""
+            )
+
+            if (cleanMessage.isBlank()) {
+                AppLogger.d(TAG, "朗读内容为空，跳过请求")
+                _isSpeechSessionActive.value = false
+                logSpeechState("speakMessage.abort", "reason=blankAfterClean")
+                return
+            }
+
+            val segments = TtsSegmenter.split(cleanMessage)
+            AppLogger.d(TAG, "speech[segments] count=${segments.size} lengths=${segments.joinToString(prefix = "[", postfix = "]") { it.length.toString() }}")
+            var isFirstSegment = true
+            for ((index, segment) in segments.withIndex()) {
+                if (_isSpeechPaused.value) {
+                    logSpeechState("waitResume", "segmentIndex=$index")
+                    isSpeechPaused.filter { !it }.first()
+                    logSpeechState("resumeObserved", "segmentIndex=$index")
                 }
 
-                val cleanerRegexs = speechServiceProfiles.getCurrentTtsProfile().cleanerRegexs
-                val cleanedText = TtsCleaner.cleanForSpeech(message, cleanerRegexs)
-                val cleanMessage = WaifuMessageProcessor.cleanContentForWaifu(cleanedText)
                 AppLogger.d(
                     TAG,
-                    "speech[cleaned] rawLen=${message.length} cleanedLen=${cleanedText.length} finalLen=${cleanMessage.length} preview=\"${speechPreview(cleanMessage)}\""
+                    "speech[segmentSpeak] index=$index/${segments.lastIndex} interrupt=${if (isFirstSegment) interrupt else false} len=${segment.length} preview=\"${speechPreview(segment)}\""
                 )
-
-                if (cleanMessage.isBlank()) {
-                    AppLogger.d(TAG, "朗读内容为空，跳过请求")
-                    _isSpeechSessionActive.value = false
-                    logSpeechState("speakMessage.abort", "reason=blankAfterClean")
-                    return@launch
-                }
-
-                val segments = TtsSegmenter.split(cleanMessage)
-                AppLogger.d(TAG, "speech[segments] count=${segments.size} lengths=${segments.joinToString(prefix = "[", postfix = "]") { it.length.toString() }}")
-                var isFirstSegment = true
-                for ((index, segment) in segments.withIndex()) {
-                    if (_isSpeechPaused.value) {
-                        logSpeechState("waitResume", "segmentIndex=$index")
-                        isSpeechPaused.filter { !it }.first()
-                        logSpeechState("resumeObserved", "segmentIndex=$index")
-                    }
-
-                    AppLogger.d(
-                        TAG,
-                        "speech[segmentSpeak] index=$index/${segments.lastIndex} interrupt=${if (isFirstSegment) interrupt else false} len=${segment.length} preview=\"${speechPreview(segment)}\""
-                    )
-                    val success = currentVoiceService.speak(
-                        text = segment,
-                        interrupt = if (isFirstSegment) interrupt else false,
-                        rate = null,
-                        pitch = null
-                    )
-                    AppLogger.d(TAG, "speech[segmentResult] index=$index success=$success provider=${currentVoiceService.javaClass.simpleName}")
-
-                    if (!success) {
-                        logSpeechState("segmentFailed", "index=$index")
-                        uiStateDelegate.showToast(context.getString(R.string.chat_speak_failed))
-                        break
-                    }
-                    isFirstSegment = false
-                }
-            } catch (e: CancellationException) {
-                logSpeechState(
-                    "speakMessage.cancelled",
-                    "paused=${_isSpeechPaused.value} session=${_isSpeechSessionActive.value} message=${e.message}"
+                val success = currentVoiceService.speak(
+                    text = segment,
+                    interrupt = if (isFirstSegment) interrupt else false,
+                    rate = null,
+                    pitch = null
                 )
-            } catch (e: Exception) {
-                logSpeechState("speakMessage.exception", "type=${e::class.java.simpleName} message=${e.message}")
-                AppLogger.e(TAG, "朗读消息失败", e)
-                uiStateDelegate.showToast(context.getString(R.string.chat_speak_message_failed, e.message ?: "Unknown error"))
+                AppLogger.d(TAG, "speech[segmentResult] index=$index success=$success provider=${currentVoiceService.javaClass.simpleName}")
+
+                if (!success) {
+                    logSpeechState("segmentFailed", "index=$index")
+                    uiStateDelegate.showToast(context.getString(R.string.chat_speak_failed))
+                    break
+                }
+                isFirstSegment = false
             }
+        } catch (e: CancellationException) {
+            logSpeechState(
+                "speakMessage.cancelled",
+                "paused=${_isSpeechPaused.value} session=${_isSpeechSessionActive.value} message=${e.message}"
+            )
+        } catch (e: Exception) {
+            logSpeechState("speakMessage.exception", "type=${e::class.java.simpleName} message=${e.message}")
+            AppLogger.e(TAG, "朗读消息失败", e)
+            uiStateDelegate.showToast(context.getString(R.string.chat_speak_message_failed, e.message ?: "Unknown error"))
         }
     }
 
@@ -3103,8 +3184,11 @@ class ChatViewModel(private val context: Context) : ViewModel() {
             try {
                 logSpeechState("stopSpeaking.request")
                 cancelSpeechControlsHide("stopSpeaking")
+                // 先提升代数再清空：消费者取出的残留请求会被代数比对丢弃，积压的直接出队
+                speakRequestGeneration.incrementAndGet()
                 speechPlaybackJob?.cancel()
                 speechPlaybackJob = null
+                drainSpeakRequests("stop")
                 ensureActiveVoiceService()?.stop()
                 _isSpeechPaused.value = false
                 _isSpeechSessionActive.value = false
