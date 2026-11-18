@@ -49,17 +49,16 @@ fork: https://github.com/AAswordman/Operit
 - MiniMax/Mimo 委托 HttpVoiceProvider（内部即 QueuedTtsPlayback），随本改动一并生效，无需单独修改；悬浮窗 SpeechInteractionManager 为 fire-and-forget 调用，不受返回时机变化影响
 - 涉及文件：app/src/main/java/com/ai/assistance/operit/api/voice/QueuedTtsPlayback.kt、SiliconFlowVoiceProvider.kt
 
-### 步骤 3：朗读清理链对齐复制功能的过滤 [DONE]
+### 步骤 3：朗读清理链复核 [DONE]
 
-- processSpeakRequest 清理链在 TtsCleaner 之后、cleanContentForWaifu 之前插入 cleanMessageContentForCopy（复制消息同款过滤）
-- 修复朗读链读出思考链的问题：ChatUtils.removeThinkingContent 区分大小写且不允许标签属性，`<Think>`、`<think >` 等变体漏删；复制链的 ChatMarkupRegex.thinkTag 忽略大小写并允许属性
-- 同时补齐：OpenAI Responses 协议 meta、附件与工作区标签、内部 image:/媒体链接的整块移除
-- 有意不修改 ChatUtils.removeThinkingContent：其被提示词构建链路共用（AIMessageManager、各 Provider），改正则有影响 LLM 输入的全局风险
-- 有意不引入 markdownToPlainTextForCopy：AST 纯文本会保留代码块内容文本，与朗读删除代码块的目标冲突，markdown 剥离仍由 cleanContentForWaifu 负责
-- 涉及文件：app/src/main/java/com/ai/assistance/operit/ui/features/chat/viewmodel/ChatViewModel.kt
+- 结论：主干 `TtsCleaner.cleanForSpeech` 已覆盖本项所需能力，本 PR **不改动**清理链
+- 依据：`cleanForSpeech` 先经 `extractReplyBody` 剥离 provider 协议 meta、思考链、搜索来源、tool/tool_result、status、emotion 各块，再套用用户 cleaner 规则，最后交给 `cleanContentForWaifu`。`ChatMarkupRegex.thinkTag` 带 `IGNORE_CASE` 与 `\b[^>]*`，因此 `<Think>`、`<think >` 这类大小写与属性变体同样能匹配；附件与工作区标签、`<link type="image">` 等内部媒体标签由 `buildRenderableContentForWaifu` 按"非已注册渲染 XML 整块丢弃"处理
+- 本 PR 的选择：`processSpeakRequest` 直接调用 `cleanForSpeech`，不再叠加第二套过滤器。同一内容被两套规则重复裁剪既无必要，也会让两处语义日后漂移
+- 前期草案曾计划插入复制链的 `cleanMessageContentForCopy`，那是绕过上游顺序问题的临时方案；上游 `cleanForSpeech` 从根上修正了"先删标签再判断正文"的顺序（Fix #1327），该草案随之废弃
+- 涉及文件：无（仅复核，未改动）
 
 ### 已知边界
 
-- 播放阶段（非合成阶段）的失败不再触发"朗读失败" toast，仅记日志；现状下播放阶段错误本就只记日志，无实际回退
+- **播放阶段失败的语义变化（SiliconFlow）**：改动前播放循环把 `playPreparedRequest` 的返回值（即 `playAudioFileAndAwait` 的结果，空文件或 MediaPlayer 异常时为 false）回传给 `speak()` 调用方，`ChatViewModel` 据此打 `segmentFailed`、弹"朗读失败" toast 并中断后续分段，TTS 测试页也会显示失败。改动后 `speak()` 在合成完成时即返回 true，"成功"表示**已合成并入播放队列**，不再表示**已播放**。播放阶段失败记为 `AppLogger.e` 并通过 `lastPlaybackFailure` 暴露最近一次失败原因，但不回传给 `speak()` 调用方。`StandardSoftwareSettingsModifyTools` 的 `playbackTriggered` 因此含义变为"已合成入队"。
 - 悬浮窗朗读路径存在同类的并发提交模式（每次 speak 起独立协程），其修复不在本次作用域
 

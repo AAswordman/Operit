@@ -93,6 +93,17 @@ class SiliconFlowVoiceProvider(
     // 播放状态Flow
     override val speakingStateFlow: Flow<Boolean> = _isSpeaking.asStateFlow()
 
+    /**
+     * 最近一次播放阶段失败的原因，null 表示未失败过。
+     *
+     * 为什么要单独记录：synthesize 完成即放行调用方之后，播放阶段的失败不再回传给
+     * speak()，调用方（ChatViewModel 的分段循环、TTS 测试工具）看不到本句其实没发声。
+     * 保留最近一次失败原因，排查时可以区分"合成成功"与"确实播出来了"。
+     * 只保留最近一次、不累积历史，避免长时间运行时无界增长。
+     */
+    private val _lastPlaybackFailure = MutableStateFlow<String?>(null)
+    val lastPlaybackFailure: Flow<String?> = _lastPlaybackFailure.asStateFlow()
+
     private data class SpeakRequest(
         val text: String,
         val interrupt: Boolean,
@@ -134,11 +145,17 @@ class SiliconFlowVoiceProvider(
         speakScope.launch {
             for (prepared in playbackQueue) {
                 try {
-                    // 调用方在合成完成时已拿到结果，播放阶段的失败（文件损坏等，
-                    // playAudioFileAndAwait 内部已记录日志）只影响本句发声，不再回传。
-                    playPreparedRequest(prepared)
+                    // 调用方在合成完成时已拿到结果，播放阶段的失败（文件损坏等）
+                    // 只影响本句发声，不再回传；但必须留下可查记录，
+                    // 否则"合成成功"会被误当成"已经播出来了"。
+                    if (!playPreparedRequest(prepared)) {
+                        _lastPlaybackFailure.value = "playback failed: ${prepared.audioFile.name}"
+                    } else {
+                        _lastPlaybackFailure.value = null
+                    }
                 } catch (e: Exception) {
                     AppLogger.e(TAG, "TTS播放队列处理失败", e)
+                    _lastPlaybackFailure.value = "playback threw: ${e.message ?: e.javaClass.simpleName}"
                 }
             }
         }
@@ -326,13 +343,19 @@ class SiliconFlowVoiceProvider(
         }
     }
 
-    private suspend fun playPreparedRequest(prepared: PreparedRequest) {
+    /**
+     * 播放一条已合成的音频。
+     *
+     * 返回 true 表示本条正常播完；false 表示本句没有发声（文件无效、MediaPlayer 异常等）。
+     * 因被打断而过期、主动跳过的那条返回 true：调用方没有要求发声，不算失败。
+     */
+    private suspend fun playPreparedRequest(prepared: PreparedRequest): Boolean {
         if (prepared.request.generation != stopGeneration.get()) {
             prepared.audioFile.delete()
-            return
+            return true
         }
 
-        playAudioFileAndAwait(prepared.audioFile)
+        return playAudioFileAndAwait(prepared.audioFile)
     }
 
     private fun clearPendingRequests() {
