@@ -3555,11 +3555,15 @@ open class OpenAIProvider(
                 // 评审 P1：仅当本次请求由基类注入了 usage 参数且端点以 400 拒绝时，
                 // 去掉该参数立即重试一次，不消耗 enableRetry 的重试预算。400 在响应头
                 // 阶段即失败、未发出任何内容，无需回滚；再次 400 走正常重试路径。
+                // 评审 P3：400 的原因无法在此可靠判定（可能是模型名、参数拼写、配额等其他
+                // 原因），日志按"疑似"措辞并附上异常摘要，避免排查时把任何 400 都误读成
+                // 端点拒绝 include_usage。
                 if ((e as? HttpStatusException)?.statusCode == 400 && includeUsageForRequest) {
                     includeUsageForRequest = false
                     AppLogger.w(
                         "AIService",
-                        "端点以 400 拒绝 stream_options.include_usage，去掉该参数立即重试一次（仅 OPENAI_GENERIC/OPENAI_LOCAL）"
+                        "端点返回 400，疑似拒绝 stream_options.include_usage；已去掉该参数立即重试一次" +
+                            "（仅 OPENAI_GENERIC/OPENAI_LOCAL）。原始错误：${e.message?.take(300)}"
                     )
                     continue
                 }
