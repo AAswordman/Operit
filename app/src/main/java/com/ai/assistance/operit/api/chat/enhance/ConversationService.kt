@@ -324,7 +324,7 @@ class ConversationService(
 
             // 如果内容为空，返回默认消息
             if (summaryContent.isBlank()) {
-                return "Conversation Summary: Unable to generate valid summary."
+                throw IllegalStateException(context.getString(R.string.chat_summarize_failed_no_valid_summary))
             }
 
             AppLogger.d(TAG, "总结生成使用了输入token: $inputTokens, 缓存token: $cachedInputTokens, 输出token: $outputTokens")

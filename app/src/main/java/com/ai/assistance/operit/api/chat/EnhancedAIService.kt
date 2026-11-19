@@ -16,6 +16,9 @@ import com.ai.assistance.operit.api.chat.enhance.SubtaskExecutionState
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
+import com.ai.assistance.operit.core.chat.runSteerableSampling
+import com.ai.assistance.operit.core.chat.retainBeforeUnexecutedTool
+import com.ai.assistance.operit.core.chat.TurnInputInbox
 import com.ai.assistance.operit.core.chat.hooks.PromptHookContext
 import com.ai.assistance.operit.core.chat.hooks.PromptHookRegistry
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
@@ -47,6 +50,7 @@ import com.ai.assistance.operit.util.stream.MutableSharedStream
 import com.ai.assistance.operit.util.stream.Stream
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.util.stream.TextStreamEvent
+import com.ai.assistance.operit.util.stream.TextStreamEventType
 import com.ai.assistance.operit.util.stream.collectWithRevisionRelay
 import com.ai.assistance.operit.util.stream.withEventChannel
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
@@ -331,6 +335,12 @@ class EnhancedAIService private constructor(private val context: Context) {
         fun onSubtaskCompleted(outcomeJson: String) {}
     }
 
+    data class ToolExecutionBoundarySnapshot(
+        val displayContent: String,
+        val replayCharCount: Int,
+        val revisionEventCount: Int = 0,
+    )
+
     data class SendMessageOptions(
         var message: String = "",
         var maxTokens: Int = 0,
@@ -355,6 +365,9 @@ class EnhancedAIService private constructor(private val context: Context) {
         var proxySenderName: String? = null,
         var callbacks: SendMessageCallbacks? = null,
         var onToolInvocation: (suspend (String) -> Unit)? = null,
+        var onToolExecutionBoundary: (suspend (ToolExecutionBoundarySnapshot) -> Unit)? = null,
+        var turnInputInbox: TurnInputInbox? = null,
+        var onTurnInput: (suspend (List<TurnInputInbox.Input>, ToolExecutionBoundarySnapshot) -> String)? = null,
         var notifyReplyOverride: Boolean? = null,
         var chatModelConfigIdOverride: String? = null,
         var chatModelIndexOverride: Int? = null,
@@ -441,6 +454,9 @@ class EnhancedAIService private constructor(private val context: Context) {
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         val subtaskExecution: SubtaskExecutionState? = null,
+        val onToolExecutionBoundary: (suspend (ToolExecutionBoundarySnapshot) -> Unit)? = null,
+        val turnInputInbox: TurnInputInbox? = null,
+        val onTurnInput: (suspend (List<TurnInputInbox.Input>, ToolExecutionBoundarySnapshot) -> String)? = null,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         /**
          * Characters of this execution's response already emitted to the consumer.
@@ -450,6 +466,10 @@ class EnhancedAIService private constructor(private val context: Context) {
          * must therefore add the length of everything emitted before the round started, otherwise a
          * later round's rollback would address the beginning of the whole response.
          */
+        var samplingInterrupted: Boolean = false,
+        var samplingSavepoint: String = "",
+        var samplingRawStart: Int = 0,
+        var samplingReplayMetadata: String = "",
         var emittedLength: Int = 0
     )
 
@@ -465,6 +485,7 @@ class EnhancedAIService private constructor(private val context: Context) {
     }
 
     private fun invalidateExecutionContext(context: MessageExecutionContext, reason: String) {
+        context.turnInputInbox?.seal()
         if (context.isConversationActive.compareAndSet(true, false)) {
             context.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, reason)
             AppLogger.d(TAG, "执行上下文已失效: id=${context.executionId}, reason=$reason")
@@ -511,9 +532,15 @@ class EnhancedAIService private constructor(private val context: Context) {
         snapshot.lease.close()
     }
 
-    private suspend fun startAssistantResponseRound(context: MessageExecutionContext) {
-        context.roundManager.startNewRound()
+    private suspend fun startAssistantResponseRound(
+        context: MessageExecutionContext,
+        collector: StreamCollector<String>,
+    ) {
+        val separator = context.roundManager.startNewRound()
         context.streamBuffer.clear()
+        if (separator.isNotEmpty()) {
+            collector.emit(separator)
+        }
     }
 
     // Coroutine management
@@ -1002,6 +1029,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         val eventChannel = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val wrappedStream = stream {
+            val responseCollector = this
             val execContext =
                 MessageExecutionContext(
                     executionId = nextExecutionContextId.incrementAndGet(),
@@ -1012,6 +1040,9 @@ class EnhancedAIService private constructor(private val context: Context) {
                             callbacks?.onSubtaskToolResult(recordJson)
                         }
                     },
+                    onToolExecutionBoundary = options.onToolExecutionBoundary,
+                    turnInputInbox = options.turnInputInbox,
+                    onTurnInput = options.onTurnInput,
                 )
             registerExecutionContext(execContext)
             // One execution publishes every tool round into a single response stream, while each
@@ -1179,7 +1210,18 @@ class EnhancedAIService private constructor(private val context: Context) {
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
                     val requestStartTime = messageTimingNow()
-                    val roundStartLength = execContext.emittedLength
+                var requestReportedTokens = false
+                startAssistantResponseRound(execContext, responseCollector)
+                val roundStartLength = execContext.emittedLength
+                execContext.samplingSavepoint = "sampling_${java.util.UUID.randomUUID()}"
+                execContext.samplingRawStart = execContext.emittedLength
+                execContext.samplingReplayMetadata = ""
+                execContext.eventChannel.emit(TextStreamEvent(
+                    TextStreamEventType.SAVEPOINT, execContext.samplingSavepoint, execContext.samplingRawStart,
+                ))
+                execContext.samplingInterrupted = runSteerableSampling(
+                    execContext.turnInputInbox, { execContext.samplingReplayMetadata = it },
+                ) {
                     val responseStream =
                             serviceForFunction.sendMessage(
                                     context = this@EnhancedAIService.context,
@@ -1189,6 +1231,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     stream = stream,
                                     availableTools = availableTools,
                                     onTokensUpdated = { input, cachedInput, output ->
+                                    requestReportedTokens = true
                                         currentRequestInputTokenCount = input.coerceAtLeast(0)
                                         currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                         currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
@@ -1200,7 +1243,6 @@ class EnhancedAIService private constructor(private val context: Context) {
                     var isFirstChunk = true
 
                     // 创建一个新的轮次来管理内容
-                    startAssistantResponseRound(execContext)
 
                     // 从原始stream收集内容并处理
                     var chunkCount = 0
@@ -1253,10 +1295,12 @@ class EnhancedAIService private constructor(private val context: Context) {
                     }
                     providerStreamCollectionStarted = false
 
-                    // Update accumulated token counts and persist them
-                    val inputTokens = serviceForFunction.inputTokenCount
-                    val cachedInputTokens = serviceForFunction.cachedInputTokenCount
-                    val outputTokens = serviceForFunction.outputTokenCount
+                    }
+
+                // Update accumulated token counts and persist them
+                    val inputTokens = if (requestReportedTokens) serviceForFunction.inputTokenCount else 0L
+                    val cachedInputTokens = if (requestReportedTokens) serviceForFunction.cachedInputTokenCount else 0L
+                    val outputTokens = if (requestReportedTokens) serviceForFunction.outputTokenCount else 0L
                     accumulatedInputTokenCount += inputTokens
                     accumulatedOutputTokenCount += outputTokens
                     accumulatedCachedInputTokenCount =
@@ -1272,7 +1316,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     logMessageTiming(
                         stage = "enhanced.sendMessage.streamComplete",
                         startTimeMs = requestStartTime,
-                        details = "functionType=$functionType, totalChars=$totalChars, stream=$stream"
+                        details = "functionType=$functionType, interrupted=${execContext.samplingInterrupted}, stream=$stream"
                     )
                 }
             } catch (e: CancellationException) {
@@ -1788,10 +1832,64 @@ class EnhancedAIService private constructor(private val context: Context) {
             enableGroupOrchestrationHint: Boolean = false,
             disableWarning: Boolean = false
     ) {
+        suspend fun finishTurn() {
+            // Finish and input acceptance share one lock, so input arriving at EOF either
+            // continues this turn or is rejected for the caller to keep queued.
+            if (context.turnInputInbox?.finishIfEmpty() == false) {
+                processToolResults(
+                    results = emptyList(), context = context, functionType = functionType,
+                    promptFunctionType = promptFunctionType, collector = collector,
+                    enableThinking = enableThinking, enableMemoryAutoUpdate = enableMemoryAutoUpdate,
+                    onNonFatalError = onNonFatalError, onTokenLimitExceeded = onTokenLimitExceeded,
+                    maxTokens = maxTokens, tokenUsageThreshold = tokenUsageThreshold,
+                    isSubTask = isSubTask, characterName = characterName, avatarUri = avatarUri,
+                    roleCardId = roleCardId, chatId = chatId, onToolInvocation = onToolInvocation,
+                    notifyReplyOverride = notifyReplyOverride,
+                    chatModelConfigIdOverride = chatModelConfigIdOverride,
+                    chatModelIndexOverride = chatModelIndexOverride,
+                    memorySpaceIdOverride = memorySpaceIdOverride, stream = stream,
+                    enableGroupOrchestrationHint = enableGroupOrchestrationHint,
+                    disableWarning = disableWarning, inputOnly = true,
+                )
+                return
+            }
+            finalizeAssistantResponse(
+                context = context, content = context.roundManager.getDisplayContent(),
+                enableMemoryAutoUpdate = enableMemoryAutoUpdate, onNonFatalError = onNonFatalError,
+                isSubTask = isSubTask, chatId = chatId, characterName = characterName,
+                avatarUri = avatarUri, notifyReplyOverride = notifyReplyOverride,
+                memorySpaceIdOverride = memorySpaceIdOverride,
+            )
+        }
         try {
             val startTime = messageTimingNow()
             // If conversation is no longer active, return immediately
             if (!context.isConversationActive.get()) {
+                return
+            }
+
+            if (context.samplingInterrupted) {
+                context.samplingInterrupted = false
+                val retained = com.ai.assistance.operit.services.core.finalizeInterruptedStreamingContent(
+                    retainBeforeUnexecutedTool(context.streamBuffer.toString())
+                ) + context.samplingReplayMetadata
+                // Revisions use absolute raw offsets. Never rewind emittedLength: prior provider
+                // retries may have already discarded part of this same sampling interval.
+                context.eventChannel.emit(TextStreamEvent(
+                    TextStreamEventType.ROLLBACK, context.samplingSavepoint,
+                    contentLength = context.samplingRawStart,
+                    discardedLength = context.emittedLength - context.samplingRawStart,
+                ))
+                context.streamBuffer.clear()
+                context.streamBuffer.append(retained)
+                context.roundManager.updateContent(retained)
+                collector.emit(retained)
+                if (retained.isNotBlank()) context.conversationHistory.add(
+                    PromptTurn(
+                        kind = PromptTurnKind.ASSISTANT, content = retained,
+                    )
+                )
+                finishTurn()
                 return
             }
 
@@ -1820,16 +1918,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             // We must still finalize the conversation to reset the state correctly.
             if (content.isEmpty()) {
                 AppLogger.d(TAG, "Stream content is empty. Finalizing conversation state.")
-                finalizeAssistantResponse(
-                    context = context,
-                    content = content,
-                    enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                    onNonFatalError = onNonFatalError,
-                    isSubTask = isSubTask,
-                    chatId = chatId,
-                    notifyReplyOverride = notifyReplyOverride,
-                    memorySpaceIdOverride = memorySpaceIdOverride
-                )
+                finishTurn()
                 return
             }
 
@@ -1843,18 +1932,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             if (contentWithoutThinking.isEmpty()) {
                 if (disableWarning) {
                     AppLogger.w(TAG, "检测到纯思考输出，disableWarning=true，直接结束本轮而不注入警告")
-                    finalizeAssistantResponse(
-                        context = context,
-                        content = context.roundManager.getDisplayContent(),
-                        enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                        onNonFatalError = onNonFatalError,
-                        isSubTask = isSubTask,
-                        chatId = chatId,
-                        characterName = characterName,
-                        avatarUri = avatarUri,
-                        notifyReplyOverride = notifyReplyOverride,
-                        memorySpaceIdOverride = memorySpaceIdOverride
-                    )
+                    finishTurn()
                     return
                 }
                 val pureThinkingWarning =
@@ -1864,7 +1942,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 )
                         )
                 val pureThinkingWarningDisplayContent = "\n$pureThinkingWarning"
-                context.roundManager.appendContent(pureThinkingWarningDisplayContent)
+                context.roundManager.appendChunk(pureThinkingWarningDisplayContent)
                 collector.emit(pureThinkingWarningDisplayContent)
                 try {
                     context.conversationHistory.add(
@@ -1919,6 +1997,13 @@ class EnhancedAIService private constructor(private val context: Context) {
                     collector.emit(appendedSuffix)
                 }
             } else if (finalContent != content) {
+                // The durable steering boundary and the replayed stream must see identical tool markup.
+                context.eventChannel.emit(TextStreamEvent(
+                    TextStreamEventType.ROLLBACK, context.samplingSavepoint,
+                    contentLength = context.samplingRawStart,
+                    discardedLength = context.emittedLength - context.samplingRawStart,
+                ))
+                collector.emit(finalContent)
                 context.streamBuffer.setLength(0)
                 context.streamBuffer.append(finalContent)
                 context.roundManager.updateContent(finalContent)
@@ -1961,18 +2046,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                         TAG,
                         "检测到未闭合工具调用，disableWarning=true，直接结束本轮而不注入警告。invalidated=${truncatedToolRecovery.invalidatedToolNames}"
                     )
-                    finalizeAssistantResponse(
-                        context = context,
-                        content = context.roundManager.getDisplayContent(),
-                        enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                        onNonFatalError = onNonFatalError,
-                        isSubTask = isSubTask,
-                        chatId = chatId,
-                        characterName = characterName,
-                        avatarUri = avatarUri,
-                        notifyReplyOverride = notifyReplyOverride,
-                        memorySpaceIdOverride = memorySpaceIdOverride
-                    )
+                    finishTurn()
                     return
                 }
                 val warningStatus =
@@ -2054,18 +2128,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 return
             }
 
-            finalizeAssistantResponse(
-                context = context,
-                content = context.roundManager.getDisplayContent(),
-                enableMemoryAutoUpdate = enableMemoryAutoUpdate,
-                onNonFatalError = onNonFatalError,
-                isSubTask = isSubTask,
-                chatId = chatId,
-                characterName = characterName,
-                avatarUri = avatarUri,
-                notifyReplyOverride = notifyReplyOverride,
-                memorySpaceIdOverride = memorySpaceIdOverride
-            )
+            finishTurn()
             logMessageTiming(
                 stage = "enhanced.processStreamCompletion.complete",
                 startTimeMs = startTime
@@ -2108,6 +2171,7 @@ class EnhancedAIService private constructor(private val context: Context) {
             finalText = context.streamBuffer.toString().trim(),
         )
         // Mark conversation as complete
+        context.turnInputInbox?.seal()
         context.isConversationActive.set(false)
 
         // 清除内容池
@@ -2189,6 +2253,14 @@ class EnhancedAIService private constructor(private val context: Context) {
             context.isConversationActive.set(false)
             return
         }
+        val liveAssistantContent = context.roundManager.getDisplayContent()
+        context.onToolExecutionBoundary?.invoke(
+            ToolExecutionBoundarySnapshot(
+                displayContent = liveAssistantContent,
+                replayCharCount = context.emittedLength,
+                revisionEventCount = context.eventChannel.replayCache.size,
+            )
+        )
 
         toolInvocations.forEach { invocation ->
             onToolInvocation?.invoke(invocation.tool.name)
@@ -2201,6 +2273,12 @@ class EnhancedAIService private constructor(private val context: Context) {
             }
         }
 
+        val toolOutputCountingCollector = object : StreamCollector<String> {
+            override suspend fun emit(value: String) {
+                context.roundManager.appendChunk(value)
+                collector.emit(value)
+            }
+        }
         val processTools: suspend () -> Unit = processTools@{
             val modelSnapshot = getModelExecutionSnapshot(
                 context,
@@ -2214,7 +2292,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 context = this@EnhancedAIService.context,
                 toolHandler = toolHandler,
                 packageManager = packageManager,
-                collector = collector,
+                collector = toolOutputCountingCollector,
                 toolExposureMode = ToolExposureMode.resolve(config.apiProviderType),
                 callerName = characterName,
                 callerChatId = chatId,
@@ -2321,7 +2399,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             stream: Boolean = true,
             enableGroupOrchestrationHint: Boolean = false,
             toolResultMessageOverride: String? = null,
-            disableWarning: Boolean = false
+            disableWarning: Boolean = false,
+            inputOnly: Boolean = false,
     ) {
         val startTime = messageTimingNow()
         if (context.subtaskExecution?.isStopped() == true) {
@@ -2332,7 +2411,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val toolResultMessage =
             toolResultMessageOverride ?: ConversationMarkupManager.buildToolResultMessage(results)
 
-        if (toolResultMessage.isBlank()) {
+        if (toolResultMessage.isBlank() && !inputOnly) {
             AppLogger.w(TAG, "工具结果消息为空，跳过后续AI请求")
             return
         }
@@ -2357,13 +2436,35 @@ class EnhancedAIService private constructor(private val context: Context) {
         }
 
         // Add tool result to conversation history
-        context.conversationHistory.add(
+        if (!inputOnly) context.conversationHistory.add(
             PromptTurn(
                 kind = PromptTurnKind.TOOL_RESULT,
                 content = toolResultMessage,
                 toolName = toolNames.ifBlank { null }
             )
         )
+
+        val turnInputs = context.turnInputInbox?.drain().orEmpty()
+        if (turnInputs.isNotEmpty()) {
+            // Once durable user rows are written, cancellation must not return those same
+            // messages to the queue. Complete the history handoff and acknowledgement together.
+            withContext(NonCancellable) {
+                context.onTurnInput?.invoke(
+                    turnInputs,
+                    ToolExecutionBoundarySnapshot(
+                        context.roundManager.getDisplayContent(), context.emittedLength,
+                        context.eventChannel.replayCache.size,
+                    ),
+                )
+                turnInputs.forEach { input ->
+                    val inputTurn = PromptTurn(
+                        kind = PromptTurnKind.USER, content = input.text,
+                    )
+                    context.conversationHistory.add(inputTurn)
+                }
+                context.turnInputInbox?.acknowledge()
+            }
+        }
 
         val normalizedChatHistory =
             conversationService.normalizeConversationHistoryForModel(context.conversationHistory)
@@ -2377,7 +2478,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         // 单独格式化或输出分段结果会让保存的历史与当前模型请求产生不同的工具结果。
 
         // Start new round - ensure tool execution response will be shown in a new message
-        startAssistantResponseRound(context)
+        startAssistantResponseRound(context, collector)
         // Events of this round are numbered from its own start, while the enclosing response stream
         // already contains every previous round. Translate before relaying them upward.
         val roundStartLength = context.emittedLength
@@ -2389,8 +2490,6 @@ class EnhancedAIService private constructor(private val context: Context) {
             }
         }
 
-        // Add short delay to make state change more visible
-        delay(300)
 
         // Get all model parameters from preferences (with enabled state)
         val modelSnapshot = getModelExecutionSnapshot(
@@ -2430,6 +2529,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                     SubtaskExecutionState.Reason.TOKEN_LIMIT,
                     "Subtask context token threshold reached",
                 )
+                context.turnInputInbox?.sealForSummary()
                 onTokenLimitExceeded?.invoke()
                 context.isConversationActive.set(false)
                 if (!isSubTask) {
@@ -2451,6 +2551,16 @@ class EnhancedAIService private constructor(private val context: Context) {
             try {
                 // 发送消息并获取响应流
                 val aiStartTime = messageTimingNow()
+                var requestReportedTokens = false
+                context.samplingSavepoint = "sampling_${java.util.UUID.randomUUID()}"
+                context.samplingRawStart = context.emittedLength
+                context.samplingReplayMetadata = ""
+                context.eventChannel.emit(TextStreamEvent(
+                    TextStreamEventType.SAVEPOINT, context.samplingSavepoint, context.samplingRawStart,
+                ))
+                context.samplingInterrupted = runSteerableSampling(
+                    context.turnInputInbox, { context.samplingReplayMetadata = it },
+                ) {
                 val responseStream =
                         serviceForFunction.sendMessage(
                                 context = this@EnhancedAIService.context,
@@ -2460,6 +2570,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 stream = stream,
                                 availableTools = availableTools,
                                 onTokensUpdated = { input, cachedInput, output ->
+                                    requestReportedTokens = true
                                     currentRequestInputTokenCount = input.coerceAtLeast(0)
                                     currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                     currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
@@ -2519,10 +2630,12 @@ class EnhancedAIService private constructor(private val context: Context) {
                     collector.emit(content)
                 }
 
+                }
+
                 // Update accumulated token counts and persist them
-                val inputTokens = serviceForFunction.inputTokenCount
-                val cachedInputTokens = serviceForFunction.cachedInputTokenCount
-                val outputTokens = serviceForFunction.outputTokenCount
+                val inputTokens = if (requestReportedTokens) serviceForFunction.inputTokenCount else 0L
+                val cachedInputTokens = if (requestReportedTokens) serviceForFunction.cachedInputTokenCount else 0L
+                val outputTokens = if (requestReportedTokens) serviceForFunction.outputTokenCount else 0L
                 accumulatedInputTokenCount += inputTokens
                 accumulatedOutputTokenCount += outputTokens
                 accumulatedCachedInputTokenCount =
@@ -2539,7 +2652,7 @@ class EnhancedAIService private constructor(private val context: Context) {
                 logMessageTiming(
                     stage = "enhanced.processToolResults.aiResponseComplete",
                     startTimeMs = aiStartTime,
-                    details = "toolNames=$displayToolNames, totalChars=$totalChars"
+                    details = "toolNames=$displayToolNames, interrupted=${context.samplingInterrupted}"
                 )
 
                 // 流处理完成，处理完成逻辑

@@ -8564,4 +8564,10 @@
     <string name="thinking_config_placeholder_high_zh">例如：高</string>
     <string name="thinking_config_write_path">写入路径</string>
     <string name="thinking_config_placeholder_high">例如：high</string>
+    <string name="chat_steer_turn">引导当前轮</string>
+    <string name="chat_steer_pending">等待当前轮读取</string>
+    <string name="chat_steer_unavailable">当前轮暂不接受引导，消息已保留在队列中</string>
+    <string name="chat_queue_send_deferred">当前暂时无法发送，消息已保留在队列中</string>
+    <string name="chat_queue_edit_draft_in_use">请先发送或清空当前草稿，再编辑队列消息</string>
+    <string name="chat_auto_summary_busy">本轮因上下文已满而暂停；另一个对话正在总结，请等待其结束后再次发送以继续。</string>
 </resources>

@@ -370,6 +370,11 @@ object AIMessageManager {
         groupParticipantNamesText: String? = null,
         proxySenderName: String? = null,
         onToolInvocation: (suspend (String) -> Unit)? = null,
+        onToolExecutionBoundary:
+            (suspend (EnhancedAIService.ToolExecutionBoundarySnapshot) -> Unit)? = null,
+        turnInputInbox: TurnInputInbox? = null,
+        onTurnInput:
+            (suspend (List<TurnInputInbox.Input>, EnhancedAIService.ToolExecutionBoundarySnapshot) -> String)? = null,
         notifyReplyOverride: Boolean? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
@@ -452,6 +457,7 @@ object AIMessageManager {
                 details = "chatKey=$chatKey, matched=${pluginExecution != null}"
             )
             if (pluginExecution != null) {
+                turnInputInbox?.seal()
                 activeMessageProcessingControllerByChatId[chatKey] = pluginExecution.controller
                 AppLogger.d(TAG, "消息处理插件已接管消息处理")
                 val pluginStream = pluginExecution.stream.share(
@@ -506,6 +512,9 @@ object AIMessageManager {
                     groupParticipantNamesText = groupParticipantNamesText,
                     proxySenderName = proxySenderName,
                     onToolInvocation = onToolInvocation,
+                    onToolExecutionBoundary = onToolExecutionBoundary,
+                    turnInputInbox = turnInputInbox,
+                    onTurnInput = onTurnInput,
                     notifyReplyOverride = notifyReplyOverride,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,

@@ -14,8 +14,8 @@ class ChatMessageDisplayModeTest {
         assertEquals(ChatMessageDisplayMode.HIDDEN_PLACEHOLDER, ChatMessageDisplayMode.valueOf("HIDDEN_PLACEHOLDER"))
     }
 
-    @Test fun `enum has exactly two values`() {
-        assertEquals(2, ChatMessageDisplayMode.values().size)
+    @Test fun `steered assistant segments round trip by their stored name`() {
+        assertEquals(ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE, ChatMessageDisplayMode.valueOf("ASSISTANT_INTERMEDIATE"))
     }
 
     @Test fun `valueOf is case sensitive`() {
