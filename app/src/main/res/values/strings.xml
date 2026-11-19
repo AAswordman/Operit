@@ -1180,6 +1180,18 @@
     ]]></string>
     <string name="agreement_disclaimer">人话版仅为便于理解；若与中文严谨版不一致，以中文严谨版为准。</string>
     <string name="agreement_accept">我已阅读并同意</string>
+
+    <!-- Health Connect 健康数据权限用途说明（隐私政策 / 授权理由页）。
+         Health Connect 授权界面在关闭前会校验请求方是否声明了「查看权限用途」入口，
+         缺失时 PermissionsActivity 会直接 finish()，导致点「允许」无任何效果。 -->
+    <string name="health_rationale_title">健康数据权限用途说明</string>
+    <string name="health_rationale_intro">Operit AI 通过系统 Health Connect 读取健康与健身数据，用于在本机展示步数、心率等指标，并可将其提供给您自行配置的智能体工具与自动化流程。所有读取均在设备本地完成。</string>
+    <string name="health_rationale_items_title">读取的数据类型</string>
+    <string name="health_rationale_items">步数、距离、活动消耗与总消耗热量、基础代谢率、爬楼层数与累计爬升、心率、静息心率、心率变异性、呼吸频率、血氧饱和度、睡眠、体重、身高、体脂率、去脂体重、骨量、体水分、体温、基础体温、血压、血糖、饮水量、最大摄氧量等 Health Connect 支持的健康与健身数据。仅申请您在本机实际授权的部分。</string>
+    <string name="health_rationale_storage_title">数据的存储与共享</string>
+    <string name="health_rationale_storage">Operit AI 不会将健康数据上传至自建服务器：本项目不运营云端服务，也不托管您的数据。数据仅在设备本地处理；除非您主动通过所配置的模型、自动化或第三方服务将其发出，此时数据将直接发送给相应服务商并受其服务条款约束。</string>
+    <string name="health_rationale_revoke">您可以随时在 Health Connect 的「应用权限」中撤销上述任一授权，撤销后 Operit AI 将立即无法读取对应数据。</string>
+    <string name="health_rationale_settings_hint">在 Android 14 及以上，也可前往「设置 → 安全与隐私 → 隐私 → 健康连接 → 应用权限」管理授权。</string>
     <string name="agreement_wait">请稍候... (%1$d)</string>
     <string name="market_agreement_title">插件市场使用协议与行为规范</string>
     <string name="market_agreement_subtitle">进入插件市场前，请阅读并同意本协议。市场用于分享和发现插件，我们推荐作者通过公开 GitHub 仓库直接开源。</string>
