@@ -45,6 +45,10 @@ fun BubbleStyleChatMessage(
     onRoleAvatarLongPress: ((String) -> Unit)? = null,
     onEditSummary: ((ChatMessage) -> Unit)? = null,
 ) {
+    if (message.displayMode.isCollaborationEvent) {
+        com.ai.assistance.operit.ui.features.chat.components.CollaborationMessageCard(message)
+        return
+    }
     when (message.sender) {
         "user" -> {
             BubbleUserMessageComposable(

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.SubdirectoryArrowRight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ripple
@@ -175,8 +176,11 @@ internal fun CanvasToolResultRow(
     semanticDescription: String,
     modifier: Modifier = Modifier,
     emphasizeSummary: Boolean = false,
+    showStatusIcon: Boolean = true,
     onClick: (() -> Unit)? = null,
     onCopyClick: (() -> Unit)? = null,
+    onStopClick: (() -> Unit)? = null,
+    stopDescription: String = "",
 ) {
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -190,6 +194,7 @@ internal fun CanvasToolResultRow(
             }
         )
     val copyPainter = rememberVectorPainter(Icons.Default.ContentCopy)
+    val stopPainter = rememberVectorPainter(Icons.Default.Stop)
     val summaryColor =
         if (isSuccess) {
             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
@@ -211,6 +216,7 @@ internal fun CanvasToolResultRow(
     val copyTint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
     val rowInteractionSource = remember { MutableInteractionSource() }
     val copyInteractionSource = remember { MutableInteractionSource() }
+    val stopInteractionSource = remember { MutableInteractionSource() }
     val rowModifier =
         if (onClick != null) {
             Modifier
@@ -240,9 +246,15 @@ internal fun CanvasToolResultRow(
         val endPaddingPx = with(density) { 16.dp.roundToPx() }
         val verticalPaddingPx = with(density) { 2.dp.roundToPx() }
         val arrowSizePx = with(density) { 18.dp.roundToPx().toFloat() }
-        val statusSizePx = with(density) { 14.dp.roundToPx().toFloat() }
+        val statusSizePx =
+            if (showStatusIcon) with(density) { 14.dp.roundToPx().toFloat() } else 0f
         val gapPx = with(density) { 8.dp.roundToPx().toFloat() }
-        val trailingSlotPx = if (onCopyClick != null) with(density) { 24.dp.roundToPx() } else 0
+        val trailingSlotPx =
+            if (onCopyClick != null || onStopClick != null) {
+                with(density) { 24.dp.roundToPx() }
+            } else {
+                0
+            }
         val trailingIconPx = with(density) { 14.dp.roundToPx().toFloat() }
 
         val summaryWidthPx =
@@ -287,13 +299,15 @@ internal fun CanvasToolResultRow(
                 }
 
                 val statusLeft = startPaddingPx + arrowSizePx + gapPx
-                val statusTop = contentTop + (contentHeightPx - statusSizePx) / 2f
-                translate(left = statusLeft, top = statusTop) {
-                    with(statusPainter) {
-                        draw(
-                            size = Size(statusSizePx, statusSizePx),
-                            colorFilter = ColorFilter.tint(statusTint),
-                        )
+                if (showStatusIcon) {
+                    val statusTop = contentTop + (contentHeightPx - statusSizePx) / 2f
+                    translate(left = statusLeft, top = statusTop) {
+                        with(statusPainter) {
+                            draw(
+                                size = Size(statusSizePx, statusSizePx),
+                                colorFilter = ColorFilter.tint(statusTint),
+                            )
+                        }
                     }
                 }
 
@@ -301,11 +315,13 @@ internal fun CanvasToolResultRow(
                 val textY = contentTop + (contentHeightPx - summaryLayout.size.height) / 2f
                 drawText(summaryLayout, topLeft = Offset(textX, textY))
 
-                if (onCopyClick != null) {
-                    val copyLeft = widthPx - endPaddingPx - trailingSlotPx + (trailingSlotPx - trailingIconPx) / 2f
-                    val copyTop = contentTop + (contentHeightPx - trailingIconPx) / 2f
-                    translate(left = copyLeft, top = copyTop) {
-                        with(copyPainter) {
+                if (onCopyClick != null || onStopClick != null) {
+                    val trailingLeft =
+                        widthPx - endPaddingPx - trailingSlotPx +
+                            (trailingSlotPx - trailingIconPx) / 2f
+                    val trailingTop = contentTop + (contentHeightPx - trailingIconPx) / 2f
+                    translate(left = trailingLeft, top = trailingTop) {
+                        with(if (onStopClick != null) stopPainter else copyPainter) {
                             draw(
                                 size = Size(trailingIconPx, trailingIconPx),
                                 colorFilter = ColorFilter.tint(copyTint),
@@ -315,7 +331,8 @@ internal fun CanvasToolResultRow(
                 }
             }
 
-            if (onCopyClick != null && trailingSlotPx > 0) {
+            val trailingAction = onStopClick ?: onCopyClick
+            if (trailingAction != null && trailingSlotPx > 0) {
                 Box(
                     modifier =
                         Modifier
@@ -323,15 +340,24 @@ internal fun CanvasToolResultRow(
                             .width(with(density) { trailingSlotPx.toDp() })
                             .fillMaxHeight()
                             .semantics {
-                                contentDescription = "$semanticDescription, copy"
+                                contentDescription =
+                                    if (onStopClick != null) stopDescription else "$semanticDescription, copy"
                                 role = Role.Button
                             }
-                            .indication(copyInteractionSource, ripple(bounded = false))
+                            .indication(
+                                if (onStopClick != null) stopInteractionSource else copyInteractionSource,
+                                ripple(bounded = false),
+                            )
                             .clickable(
-                                interactionSource = copyInteractionSource,
+                                interactionSource =
+                                    if (onStopClick != null) {
+                                        stopInteractionSource
+                                    } else {
+                                        copyInteractionSource
+                                    },
                                 indication = null,
                                 role = Role.Button,
-                                onClick = onCopyClick,
+                                onClick = trailingAction,
                             )
                 )
             }

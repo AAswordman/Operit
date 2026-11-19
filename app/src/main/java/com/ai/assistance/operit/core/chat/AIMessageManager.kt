@@ -138,7 +138,8 @@ object AIMessageManager {
         enableDirectVideoProcessing: Boolean = false,
         chatId: String? = null,
         roleCardId: String? = null,
-        onHookTimeout: ((String) -> Unit)? = null
+        onHookTimeout: ((String) -> Unit)? = null,
+        isSubTask: Boolean = false,
     ): String {
         val totalStartTime = messageTimingNow()
         val promptInputStartTime = messageTimingNow()
@@ -147,7 +148,8 @@ object AIMessageManager {
             input = messageText,
             chatId = chatId,
             roleCardId = roleCardId,
-            onHookTimeout = onHookTimeout
+            onHookTimeout = onHookTimeout,
+            isSubTask = isSubTask,
         )
         logMessageTiming(
             stage = "buildUserMessageContent.processUserInput",
@@ -363,18 +365,28 @@ object AIMessageManager {
         onTokenLimitExceeded: (suspend () -> Unit)? = null,
         characterName: String? = null,
         avatarUri: String? = null,
-        roleCardId: String,
+        roleCardId: String?,
         currentRoleName: String? = null,
         splitHistoryByRole: Boolean = false,
         groupOrchestrationMode: Boolean = false,
         groupParticipantNamesText: String? = null,
         proxySenderName: String? = null,
         onToolInvocation: (suspend (String) -> Unit)? = null,
+        onToolExecutionBoundary:
+            (suspend (EnhancedAIService.ToolExecutionBoundarySnapshot) -> Unit)? = null,
+        turnInputInbox: TurnInputInbox? = null,
+        onTurnInput:
+            (suspend (List<TurnInputInbox.Input>, EnhancedAIService.ToolExecutionBoundarySnapshot) -> String)? = null,
         notifyReplyOverride: Boolean? = null,
         chatModelConfigIdOverride: String? = null,
         chatModelIndexOverride: Int? = null,
         memorySpaceIdOverride: String? = null,
-        disableWarning: Boolean = false
+        toolTimingScopeId: String? = null,
+        disableWarning: Boolean = false,
+        isSubTask: Boolean = false,
+        systemPromptOverride: String? = null,
+        collaborationHistory: List<com.ai.assistance.operit.core.chat.hooks.PromptTurn> = emptyList(),
+        collaborationInput: Boolean = false,
     ): SharedStream<String> {
         val totalStartTime = messageTimingNow()
         val chatKey = chatId ?: DEFAULT_CHAT_KEY
@@ -433,25 +445,31 @@ object AIMessageManager {
             )
 
             val matchPluginStartTime = messageTimingNow()
-            val pluginExecution = MessageProcessingPluginRegistry.createExecutionIfMatched(
-                params = MessageProcessingHookParams(
-                    context = context,
-                    enhancedAIService = enhancedAiService,
-                    chatId = chatId,
-                    messageContent = messageContent,
-                    chatHistory = memoryForRequest,
-                    workspacePath = workspacePath,
-                    maxTokens = maxTokens,
-                    tokenUsageThreshold = tokenUsageThreshold,
-                    onNonFatalError = onNonFatalError
-                )
-            )
+            val pluginExecution =
+                if (isSubTask) {
+                    null
+                } else {
+                    MessageProcessingPluginRegistry.createExecutionIfMatched(
+                        params = MessageProcessingHookParams(
+                            context = context,
+                            enhancedAIService = enhancedAiService,
+                            chatId = chatId,
+                            messageContent = messageContent,
+                            chatHistory = memoryForRequest,
+                            workspacePath = workspacePath,
+                            maxTokens = maxTokens,
+                            tokenUsageThreshold = tokenUsageThreshold,
+                            onNonFatalError = onNonFatalError
+                        )
+                    )
+                }
             logMessageTiming(
                 stage = "sendMessage.matchPlugin",
                 startTimeMs = matchPluginStartTime,
                 details = "chatKey=$chatKey, matched=${pluginExecution != null}"
             )
             if (pluginExecution != null) {
+                turnInputInbox?.seal()
                 activeMessageProcessingControllerByChatId[chatKey] = pluginExecution.controller
                 AppLogger.d(TAG, "消息处理插件已接管消息处理")
                 val pluginStream = pluginExecution.stream.share(
@@ -490,7 +508,8 @@ object AIMessageManager {
                 EnhancedAIService.SendMessageOptions(
                     message = messageContent,
                     chatId = chatId,
-                    chatHistory = memoryForRequest,
+                    chatHistory = collaborationHistory + memoryForRequest,
+                    collaborationInput = collaborationInput,
                     workspacePath = workspacePath,
                     promptFunctionType = promptFunctionType,
                     enableThinking = enableThinking,
@@ -506,13 +525,22 @@ object AIMessageManager {
                     groupParticipantNamesText = groupParticipantNamesText,
                     proxySenderName = proxySenderName,
                     onToolInvocation = onToolInvocation,
+                    onToolExecutionBoundary = onToolExecutionBoundary,
+                    turnInputInbox = turnInputInbox,
+                    onTurnInput = onTurnInput,
                     notifyReplyOverride = notifyReplyOverride,
                     chatModelConfigIdOverride = chatModelConfigIdOverride,
                     chatModelIndexOverride = chatModelIndexOverride,
                     memorySpaceIdOverride = memorySpaceIdOverride,
-                    stream = enableStream,
-                    disableWarning = disableWarning
-                )
+                     toolTimingScopeId = toolTimingScopeId,
+                     stream = enableStream,
+                    disableWarning = disableWarning,
+                    isSubTask = isSubTask,
+                    customSystemPromptTemplate =
+                        if (isSubTask) systemPromptOverride else null,
+                    additionalSystemPrompt =
+                        if (isSubTask) null else systemPromptOverride,
+                 )
             ).shareRevisable(
                 scope = scope,
                 replay = Int.MAX_VALUE,
@@ -557,9 +585,15 @@ object AIMessageManager {
         memorySpaceIdOverride: String? = null,
         publishEstimate: Boolean = true
     ): Long {
+        // Compaction preserves the visible transcript. Estimate the latest request checkpoint,
+        // not the full display history or the checkpoint captured when the turn started.
+        val collaboration = com.ai.assistance.operit.core.agent.collaboration.CollaborationCoordinator
+            .getInstance(context).contextSnapshot(chatId)
         val memory =
             getMemoryFromMessages(
-                messages = chatHistory,
+                messages = collaboration?.historyCutoff?.let { cutoff ->
+                    chatHistory.filter { it.timestamp > cutoff }
+                } ?: chatHistory,
                 splitByRole = splitHistoryByRole,
                 targetRoleName = currentRoleName,
                 groupOrchestrationMode = groupOrchestrationMode
@@ -573,17 +607,19 @@ object AIMessageManager {
         val windowSize =
             enhancedAiService.estimateRequestWindowFromMemory(
                 message = messageContent,
-                chatHistory = memoryForRequest,
+                chatHistory = collaboration?.inheritedHistory.orEmpty().map { it.toPromptTurn() } + memoryForRequest,
                 chatId = chatId,
                 workspacePath = workspacePath,
                 workspaceEnv = workspaceEnv,
                 promptFunctionType = promptFunctionType,
-                roleCardId = roleCardId,
+                roleCardId = collaboration?.roleCardId ?: roleCardId,
+                customSystemPromptTemplate = collaboration?.systemPrompt,
+                isSubTask = collaboration != null,
                 enableGroupOrchestrationHint = groupOrchestrationMode,
                 groupParticipantNamesText = groupParticipantNamesText,
                 proxySenderName = proxySenderName,
-                chatModelConfigIdOverride = chatModelConfigIdOverride,
-                chatModelIndexOverride = chatModelIndexOverride,
+                chatModelConfigIdOverride = collaboration?.modelConfigId ?: chatModelConfigIdOverride,
+                chatModelIndexOverride = collaboration?.modelIndex ?: chatModelIndexOverride,
                 memorySpaceIdOverride = memorySpaceIdOverride,
                 publishEstimate = publishEstimate
             )
@@ -1362,7 +1398,7 @@ object AIMessageManager {
         val processedMessages = relevantMessages
             .filter { it.sender == "user" || it.sender == "ai" || it.sender == "summary" }
             .mapNotNull { message ->
-                when (message.sender) {
+                val turn = when (message.sender) {
                     "ai" -> processAiMessage(
                         message,
                         isRoleScopedMode,
@@ -1381,6 +1417,11 @@ object AIMessageManager {
                         )
                     else -> null
                 }
+                if (message.displayMode == com.ai.assistance.operit.data.model.ChatMessageDisplayMode.ASSISTANT_INTERMEDIATE) {
+                    turn?.copy(metadata = turn.metadata + mapOf(
+                        com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.INTERMEDIATE_METADATA to true,
+                    ))
+                } else turn
             }
         val assistantCount = processedMessages.count { it.kind == PromptTurnKind.ASSISTANT }
         val userCount = processedMessages.count { it.kind == PromptTurnKind.USER }
@@ -1444,6 +1485,16 @@ object AIMessageManager {
         groupOrchestrationMode: Boolean
     ): PromptTurn {
         val baseContent = message.content
+        if (message.displayMode.isCollaborationEvent) {
+            return PromptTurn(
+                kind = PromptTurnKind.USER, content = baseContent,
+                metadata = mapOf(
+                    com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.EVENT_METADATA to true,
+                    com.ai.assistance.operit.core.agent.collaboration.CollaborationPromptHistory.TASK_METADATA to
+                        (message.displayMode == com.ai.assistance.operit.data.model.ChatMessageDisplayMode.COLLABORATION_TASK),
+                ),
+            )
+        }
 
         // 群组编排模式 + 角色隔离模式：给用户消息添加 [From user] 前缀
         if (groupOrchestrationMode && isRoleScopedMode) {

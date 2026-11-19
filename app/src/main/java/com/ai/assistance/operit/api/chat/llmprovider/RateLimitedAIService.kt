@@ -4,6 +4,10 @@ import android.content.Context
 import com.ai.assistance.operit.core.chat.hooks.PromptTurn
 import com.ai.assistance.operit.data.model.ModelParameter
 import com.ai.assistance.operit.data.model.ToolPrompt
+import com.ai.assistance.operit.util.stream.MutableSharedStream
+import com.ai.assistance.operit.util.stream.TextStreamEvent
+import com.ai.assistance.operit.util.stream.withEventChannel
+import com.ai.assistance.operit.util.stream.collectWithRevisionRelay
 import com.ai.assistance.operit.util.stream.Stream
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
@@ -43,6 +47,7 @@ class RateLimitedAIService(
         recordTokenUsage: Boolean,
         onUsageFinalized: (suspend (attempt: Int?) -> Unit)?,
     ): Stream<String> {
+        val events = MutableSharedStream<TextStreamEvent>(replay = Int.MAX_VALUE)
         val requestEpoch = synchronized(cancellationLock) { cancellationEpoch }
         return com.ai.assistance.operit.util.stream.stream {
             val cancelled = AtomicBoolean(false)
@@ -106,7 +111,9 @@ class RateLimitedAIService(
                         throwIfCancelled()
                         onUsageFinalized?.invoke(attempt)
                     },
-                ).collect { chunk ->
+                ).collectWithRevisionRelay(
+                    eventChannel = events, roundStartLength = 0,
+                ) { chunk ->
                     throwIfCancelled()
                     emit(chunk)
                 }
@@ -117,7 +124,7 @@ class RateLimitedAIService(
                     queuedRequests.remove(cancelled)
                 }
             }
-        }
+        }.withEventChannel(events)
     }
 
     private companion object {

@@ -15,6 +15,9 @@ interface MessageDao {
     @Query("SELECT COUNT(*) FROM messages")
     suspend fun getTotalMessageCount(): Int
 
+    @Query("SELECT COUNT(*) FROM messages WHERE chatId = :chatId AND sender = 'user'")
+    suspend fun getUserMessageCount(chatId: String): Int
+
     @Query(
         "SELECT COUNT(*) FROM messages WHERE chatId = :chatId AND (:upToTimestampInclusive IS NULL OR timestamp <= :upToTimestampInclusive)"
     )

@@ -580,6 +580,17 @@ open class StandardFileSystemTools(protected val context: Context) {
                 result = StringResultData(""),
                 error = "Error performing native grep search: ${e.message}"
             )
+        } catch (e: LinkageError) {
+            // Native library loading failures are tool failures, not unrecoverable app failures.
+            // This also covers NoClassDefFoundError after a concurrent first load has failed.
+            AppLogger.e(TAG, "Native ripgrep is unavailable", e)
+            ToolProgressBus.update(toolName, 1f, "Search failed")
+            ToolResult(
+                toolName = toolName,
+                success = false,
+                result = StringResultData(""),
+                error = "Native grep is unavailable: ${e.message}"
+            )
         }
     }
 

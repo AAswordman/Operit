@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.model.ChatMessage
+import com.ai.assistance.operit.data.model.ChatKind
 import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.ui.floating.FloatContext
@@ -231,7 +232,10 @@ private fun RecentChatSelectorOverlay(
     val coroutineScope = rememberCoroutineScope()
     val ungroupedText = stringResource(R.string.ungrouped)
     val items = remember(chatHistories) {
-        chatHistories.sortedByDescending { it.updatedAt }.take(20)
+        chatHistories
+            .filterNot { it.chatKind == ChatKind.SUBAGENT.name }
+            .sortedByDescending { it.updatedAt }
+            .take(20)
     }
 
     val avatarUriMap = remember { mutableStateMapOf<String, String?>() }
@@ -832,20 +836,24 @@ private fun ChatMessagesView(
                         val displayIndex = renderIndex - messageListOffset
                         val actualIndex = messagesCount - 1 - displayIndex
 
-                        FloatingMessageItem(
-                            index = actualIndex,
-                            message = item,
-                            userMessageColor = userMessageColor,
-                            aiMessageColor = aiMessageColor,
-                            userTextColor = userTextColor,
-                            aiTextColor = aiTextColor,
-                            systemMessageColor = systemMessageColor,
-                            systemTextColor = systemTextColor,
-                            thinkingBackgroundColor = thinkingBackgroundColor,
-                            thinkingTextColor = thinkingTextColor,
-                            heightMemory = messageHeightMemory,
-                            onSelectMessageToEdit = null,
-                        )
+                        androidx.compose.runtime.CompositionLocalProvider(
+                            com.ai.assistance.operit.ui.features.chat.components.LocalTranscriptChatId provides currentChatId,
+                        ) {
+                            FloatingMessageItem(
+                                index = actualIndex,
+                                message = item,
+                                userMessageColor = userMessageColor,
+                                aiMessageColor = aiMessageColor,
+                                userTextColor = userTextColor,
+                                aiTextColor = aiTextColor,
+                                systemMessageColor = systemMessageColor,
+                                systemTextColor = systemTextColor,
+                                thinkingBackgroundColor = thinkingBackgroundColor,
+                                thinkingTextColor = thinkingTextColor,
+                                heightMemory = messageHeightMemory,
+                                onSelectMessageToEdit = null,
+                            )
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 

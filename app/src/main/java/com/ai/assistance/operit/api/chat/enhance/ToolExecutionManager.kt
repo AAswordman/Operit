@@ -1,22 +1,33 @@
 package com.ai.assistance.operit.api.chat.enhance
 
 import android.content.Context
+import android.os.SystemClock
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.core.agent.SubagentToolPolicy
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.AIToolHookDecision
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutor
+import com.ai.assistance.operit.core.tools.ToolExecutionLimits
+import com.ai.assistance.operit.core.tools.ToolExecutionTimingRepository
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
+import com.ai.assistance.operit.data.model.ToolExecutionState
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.joinAll
+
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.asContextElement
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -24,13 +35,16 @@ import kotlinx.coroutines.coroutineScope
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.ui.common.displays.MessageContentParser
+import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import com.ai.assistance.operit.util.ChatMarkupRegex
+import com.ai.assistance.operit.util.markdown.NestedMarkdownProcessor
 import com.ai.assistance.operit.util.stream.plugins.StreamXmlPlugin
 import com.ai.assistance.operit.util.stream.splitBy
 import com.ai.assistance.operit.util.stream.stream
 import com.ai.assistance.operit.util.LocaleUtils
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
@@ -45,20 +59,130 @@ object ToolExecutionManager {
     private const val PACKAGE_CALLER_NAME_PARAM = "__operit_package_caller_name"
     private const val PACKAGE_CHAT_ID_PARAM = "__operit_package_chat_id"
     private const val PACKAGE_CALLER_CARD_ID_PARAM = "__operit_package_caller_card_id"
-    private const val TOOL_SESSION_ID_PARAM = "__operit_tool_session_id"
-    private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
-
-    data class ToolRuntimeContext(
-        val callerCardId: String? = null,
-        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
-        val callerChatId: String? = null,
-        val toolSessionScopeId: String? = null,
-        val subtaskExecution: SubtaskExecutionState? = null,
-    )
-
     internal sealed class PackageContextInjection {
         data class Ready(val invocation: ToolInvocation) : PackageContextInjection()
         data class Rejected(val result: ToolResult) : PackageContextInjection()
+    }
+
+    private const val TOOL_SESSION_ID_PARAM = "__operit_tool_session_id"
+    private const val SUBAGENT_EXACT_REPEAT_REVIEW_THRESHOLD = 3
+    private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
+
+    private data class ExactToolInstruction(
+        val name: String,
+        val orderedParameters: List<Pair<String, String>>,
+    )
+
+    /**
+     * Per model turn state. Equality is deliberately exact: tool name, parameter order, names and
+     * raw values must all match. Similar or normalized instructions never share a count.
+     */
+    class SubagentToolLoopGuard {
+        private var previous: ExactToolInstruction? = null
+        private var consecutiveCount: Int = 0
+
+        private fun fingerprint(tool: AITool): ExactToolInstruction =
+            ExactToolInstruction(
+                name = tool.name,
+                orderedParameters = tool.parameters.map { it.name to it.value },
+            )
+
+        @Synchronized
+        internal fun record(tool: AITool): Int {
+            val current = fingerprint(tool)
+            if (current == previous) {
+                consecutiveCount += 1
+            } else {
+                previous = current
+                consecutiveCount = 1
+            }
+            return consecutiveCount
+        }
+
+        /**
+         * Simulates a batch without mutating turn state so calls before the first review boundary
+         * can finish before the third identical call is paused.
+         */
+        @Synchronized
+        internal fun firstReviewIndex(tools: List<AITool>, threshold: Int): Int {
+            var simulatedPrevious = previous
+            var simulatedCount = consecutiveCount
+            tools.forEachIndexed { index, tool ->
+                val current = fingerprint(tool)
+                if (current == simulatedPrevious) {
+                    simulatedCount += 1
+                } else {
+                    simulatedPrevious = current
+                    simulatedCount = 1
+                }
+                if (simulatedCount >= threshold) {
+                    return index
+                }
+            }
+            return -1
+        }
+    }
+
+    class SubagentLoopRejectedException(message: String) : IllegalStateException(message)
+
+    data class ToolRuntimeContext(
+        val toolSessionScopeId: String? = null,
+        val subtaskExecution: SubtaskExecutionState? = null,
+        val callerName: String? = null,
+        val callerCardId: String? = null,
+        val callerChatId: String? = null,
+        val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        val conversationLabel: String? = null,
+        val parentModelConfigId: String? = null,
+        val parentModelIndex: Int? = null,
+        val isSubagent: Boolean = false,
+        val isGroupOrchestration: Boolean = false,
+        val callId: String? = null,
+        val invocationIndex: Int? = null,
+    )
+
+    internal class BoundedToolResultAccumulator(
+        private val maxChars: Int = ToolExecutionLimits.MAX_SINGLE_TOOL_RESULT_MESSAGE_CHARS,
+    ) {
+        private val combinedResult = StringBuilder()
+
+        var resultCount: Int = 0
+            private set
+
+        var lastResultSuccess: Boolean? = null
+            private set
+
+        var lastResultError: String? = null
+            private set
+
+        fun add(result: ToolResult) {
+            val resultText =
+                (if (result.success) {
+                    result.result.toString()
+                } else {
+                    val detail = result.result.toString().trim()
+                    val error = "Step error: ${result.error ?: "Unknown error"}"
+                    if (detail.isEmpty()) error else "$error\n$detail"
+                }).trim()
+
+            if (resultCount > 0) {
+                appendBounded("\n")
+            }
+            appendBounded(resultText)
+            resultCount += 1
+            lastResultSuccess = result.success
+            lastResultError = result.error?.take(maxChars)
+        }
+
+        fun isEmpty(): Boolean = resultCount == 0
+
+        fun combinedResultText(): String = combinedResult.toString().trim()
+
+        private fun appendBounded(value: String) {
+            val remainingChars = maxChars - combinedResult.length
+            if (remainingChars <= 0) return
+            combinedResult.append(value, 0, minOf(value.length, remainingChars))
+        }
     }
 
     private data class ResolvedToolTarget(
@@ -75,6 +199,61 @@ object ToolExecutionManager {
     internal fun ensureOwnLine(content: String): String {
         val withLeadingBreak = if (content.startsWith("\n")) content else "\n$content"
         return if (withLeadingBreak.endsWith("\n")) withLeadingBreak else "$withLeadingBreak\n"
+    }
+
+    private fun ToolResult.withExecutionMetadata(
+        invocation: ToolInvocation,
+        state: ToolExecutionState,
+        durationMs: Long? = null,
+        isFinal: Boolean = true,
+    ): ToolResult =
+        copy(
+            callId = invocation.callId,
+            invocationIndex = invocation.invocationIndex.takeIf { it >= 0 },
+            executionDurationMs = durationMs,
+            executionState = state,
+            isFinal = isFinal,
+        )
+
+    internal fun createCancelledToolResult(
+        displayToolName: String,
+        invocation: ToolInvocation,
+        durationMs: Long,
+        partialResultText: String,
+    ): ToolResult =
+        ToolResult(
+            toolName = displayToolName,
+            success = false,
+            result = StringResultData(partialResultText),
+            error = "Tool execution cancelled.",
+        ).withExecutionMetadata(
+            invocation = invocation,
+            state = ToolExecutionState.COMPLETED,
+            durationMs = durationMs,
+        )
+
+    internal fun reserveToolInvocationIndices(
+        nextInvocationIndex: AtomicInteger,
+        invocationCount: Int,
+    ) {
+        if (invocationCount > 0) {
+            nextInvocationIndex.addAndGet(invocationCount)
+        }
+    }
+
+    internal suspend fun countDisplayedToolInvocations(content: String): Int {
+        var invocationCount = 0
+        content.stream().splitBy(NestedMarkdownProcessor.getBlockPlugins()).collect { group ->
+            val blockContent = StringBuilder()
+            group.stream.collect { chunk -> blockContent.append(chunk) }
+            val blockText = blockContent.toString()
+            if (group.tag is StreamXmlPlugin &&
+                ChatMarkupRegex.toolCallPattern.matches(blockText.trim())
+            ) {
+                invocationCount += 1
+            }
+        }
+        return invocationCount
     }
 
     private fun resolveToolTarget(tool: AITool): ResolvedToolTarget {
@@ -227,6 +406,9 @@ object ToolExecutionManager {
 
     internal fun isSubtaskDelegationTarget(tool: AITool, containerPackageName: String?): Boolean {
         val resolved = resolveSubtaskTarget(tool)
+        if (resolved.name in com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.names) {
+            return true
+        }
         val packageName = resolved.name.substringBefore(':')
         val functionName = resolved.name.substringAfter(':', "")
         return functionName == "subagent_run" &&
@@ -270,6 +452,7 @@ object ToolExecutionManager {
         state: SubtaskExecutionState,
         tool: AITool,
         displayToolName: String,
+        collectedResults: BoundedToolResultAccumulator = BoundedToolResultAccumulator(),
         source: () -> Flow<ToolResult>,
     ): ToolResult {
         var lastRawResult: ToolResult? = null
@@ -281,7 +464,9 @@ object ToolExecutionManager {
             return state.recordToolResult(tool, result, executed = true)
         }
         try {
-            val aggregated = aggregateToolResults(displayToolName, source().onEach { lastRawResult = it })
+            val aggregated = aggregateToolResults(
+                displayToolName, source().onEach { lastRawResult = it }, collectedResults,
+            )
             val raw = lastRawResult
             val evidence = if (raw == null) {
                 state.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, aggregated.error)
@@ -476,7 +661,7 @@ object ToolExecutionManager {
         val content = response
 
         val charStream = content.stream()
-        val plugins = listOf(StreamXmlPlugin())
+        val plugins = NestedMarkdownProcessor.getBlockPlugins()
 
         charStream.splitBy(plugins).collect { group ->
             val chunkContent = StringBuilder()
@@ -486,8 +671,8 @@ object ToolExecutionManager {
             if (chunkString.isEmpty()) return@collect
 
             if (group.tag is StreamXmlPlugin) {
-                ChatMarkupRegex.toolCallPattern.findAll(chunkString).forEach { toolMatch ->
-                    val toolName = toolMatch.groupValues.getOrNull(2) ?: return@forEach
+                ChatMarkupRegex.toolCallPattern.find(chunkString)?.let { toolMatch ->
+                    val toolName = toolMatch.groupValues.getOrNull(2) ?: return@let
                     val toolBody = toolMatch.groupValues.getOrNull(3).orEmpty()
 
                     val parameters = mutableListOf<ToolParameter>()
@@ -602,7 +787,8 @@ object ToolExecutionManager {
         androidContext: Context,
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
-        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        conversationLabel: String? = null,
     ): Pair<Boolean, ToolResult?> {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
@@ -627,12 +813,14 @@ object ToolExecutionManager {
         }
 
         // 检查是否强制拒绝权限（deny_tool标记）
-        val hasPromptForPermission = !invocation.rawText.contains("deny_tool")
+        val hasPromptForPermission =
+            com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.isCollaborationTool(permissionTool.name) ||
+                !invocation.rawText.contains("deny_tool")
 
         if (hasPromptForPermission) {
             // 检查权限，如果需要则弹出权限请求界面
             val toolPermissionSystem = toolHandler.getToolPermissionSystem()
-            val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool)
+            val permissionResult = toolPermissionSystem.checkToolPermission(permissionTool, conversationLabel)
 
             if (!permissionResult.isGranted) {
                 val errorMessage =
@@ -679,14 +867,39 @@ object ToolExecutionManager {
         toolHandler: AIToolHandler,
         packageManager: PackageManager,
         collector: StreamCollector<String>,
+        timingScopeId: String? = null,
         toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         callerName: String? = null,
         callerChatId: String? = null,
         callerCardId: String? = null,
         subtaskExecution: SubtaskExecutionState? = null,
+        conversationLabel: String? = null,
+        parentModelConfigId: String? = null,
+        parentModelIndex: Int? = null,
+        isSubagent: Boolean = false,
+        isGroupOrchestration: Boolean = false,
+        subagentToolLoopGuard: SubagentToolLoopGuard? = null,
     ): ToolExecutionBatch = coroutineScope {
         val orderedResults = OrderedToolResults(invocations.size) { markup ->
             collector.emit(ensureOwnLine(markup))
+        }
+        val completedIndices = ConcurrentHashMap.newKeySet<Int>()
+        val parallelJobs = mutableListOf<Deferred<Unit>>()
+        invocations.forEach { ToolExecutionTimingRepository.register(timingScopeId, it) }
+        suspend fun complete(index: Int, result: ToolResult) {
+            withContext(NonCancellable) {
+                if (completedIndices.add(index)) {
+                    val invocation = invocations[index]
+                    val finalResult = if (result.executionState == null) {
+                        result.withExecutionMetadata(invocation, ToolExecutionState.NOT_EXECUTED)
+                    } else result
+                    ToolExecutionTimingRepository.markFinished(
+                        timingScopeId, invocation, finalResult, finalResult.executionDurationMs,
+                        checkNotNull(finalResult.executionState),
+                    )
+                    orderedResults.complete(index, finalResult)
+                }
+            }
         }
         val subtaskTargets = mutableMapOf<Int, AITool>()
         suspend fun completeUnexecuted(
@@ -701,12 +914,67 @@ object ToolExecutionManager {
                 val recorded = state.recordToolResult(checkNotNull(subtaskTargets[index]), result, executed = false)
                 modelResult = withSubtaskEvidence(result, recorded.id)
             }
-            orderedResults.complete(index, modelResult)
+            complete(index, modelResult)
         }
+        try {
         // 默认工具注册现在可能在启动阶段被延后；这里确保在真正执行工具前已完成注册
         // registerDefaultTools() 是幂等且线程安全的，可安全重复调用
         withContext(Dispatchers.Default) {
             toolHandler.registerDefaultTools()
+        }
+
+        val loopApprovedInvocations =
+            java.util.IdentityHashMap<ToolInvocation, Boolean>()
+        if (isSubagent && subagentToolLoopGuard != null) {
+            val permissionSystem = toolHandler.getToolPermissionSystem()
+            for (invocation in invocations) {
+                val resolvedTool = resolveToolTarget(invocation.tool).tool
+                val consecutiveCount = subagentToolLoopGuard.record(invocation.tool)
+                if (com.ai.assistance.operit.core.agent.collaboration.CollaborationTools.isCollaborationTool(resolvedTool.name)) {
+                    // Polling the same agent is expected. Normal permission checks below still
+                    // apply explicit Ask/Deny settings to the tool actually being invoked.
+                    continue
+                }
+                if (consecutiveCount < SUBAGENT_EXACT_REPEAT_REVIEW_THRESHOLD) {
+                    continue
+                }
+                val isCliPublicTool =
+                    toolExposureMode == ToolExposureMode.CLI &&
+                        (
+                            invocation.tool.name == CliToolModeSupport.SEARCH_TOOL_NAME ||
+                                invocation.tool.name == CliToolModeSupport.PROXY_TOOL_NAME
+                            )
+                val effectivePermission =
+                    permissionSystem.getEffectivePermissionLevel(resolvedTool.name)
+                if (!isCliPublicTool && effectivePermission == PermissionLevel.FORBID) {
+                    // The normal permission path will reject this call without offering an override.
+                    continue
+                }
+                ToolExecutionTimingRepository.markWaitingAuthorization(
+                    timingScopeId,
+                    invocation,
+                )
+                val approved =
+                    permissionSystem.requestExplicitApproval(
+                        tool = resolvedTool,
+                        operationDescription =
+                            context.getString(
+                                R.string.subagent_loop_review_operation,
+                                resolveDisplayToolName(invocation.tool),
+                                consecutiveCount,
+                            ),
+                        conversationLabel = conversationLabel,
+                    )
+                if (!approved) {
+                    throw SubagentLoopRejectedException(
+                        context.getString(
+                            R.string.subagent_loop_rejected,
+                            resolveDisplayToolName(invocation.tool),
+                        )
+                    )
+                }
+                loopApprovedInvocations[invocation] = true
+            }
         }
 
         val roleCardToolAccess = if (callerCardId.isNullOrBlank()) {
@@ -723,11 +991,17 @@ object ToolExecutionManager {
         }
         val toolRuntimeContext =
             ToolRuntimeContext(
+                callerName = callerName,
                 callerCardId = callerCardId,
                 toolExposureMode = toolExposureMode,
                 callerChatId = callerChatId,
                 toolSessionScopeId = subtaskExecution?.toolSessionScopeId ?: callerChatId,
                 subtaskExecution = subtaskExecution,
+                conversationLabel = conversationLabel,
+                parentModelConfigId = parentModelConfigId,
+                parentModelIndex = parentModelIndex,
+                isSubagent = isSubagent,
+                isGroupOrchestration = isGroupOrchestration,
             )
 
         // 1. 顶层工具暴露模式拦截
@@ -773,7 +1047,21 @@ object ToolExecutionManager {
                     continue
                 }
             }
-            val deniedResult = buildToolExposureDeniedResult(context, invocation, toolExposureMode)
+            val deniedResult =
+                if (
+                    isSubagent &&
+                        SubagentToolPolicy.isForbidden(resolveDisplayToolName(invocation.tool))
+                ) {
+                    val targetToolName = resolveDisplayToolName(invocation.tool)
+                    ToolResult(
+                        toolName = targetToolName,
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Subagents cannot invoke tools that start nested AI turns.",
+                    )
+                } else {
+                    buildToolExposureDeniedResult(context, invocation, toolExposureMode)
+                }
             if (deniedResult == null) {
                 toolExposurePermittedInvocations.add(IndexedValue(index, invocation))
             } else {
@@ -818,10 +1106,30 @@ object ToolExecutionManager {
             val interceptionTool = resolveToolTarget(invocation.tool).tool
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
+                    ToolExecutionTimingRepository.markWaitingAuthorization(
+                        timingScopeId,
+                        invocation,
+                    )
                     val (hasPermission, errorResult) =
-                        checkToolPermission(context, toolHandler, invocation, toolExposureMode)
+                        if (loopApprovedInvocations.containsKey(invocation)) {
+                            toolHandler.notifyToolPermissionChecked(
+                                interceptionTool,
+                                granted = true,
+                                reason = "Approved by Subagent exact-repeat loop review",
+                            )
+                            Pair(true, null)
+                        } else {
+                            checkToolPermission(
+                                context,
+                                toolHandler,
+                                invocation,
+                                toolExposureMode,
+                                conversationLabel
+                            )
+                        }
                     if (hasPermission) {
                         permittedInvocations.add(IndexedValue(index, invocation))
+                        ToolExecutionTimingRepository.markWaitingExecution(timingScopeId, invocation)
                     } else {
                         completeUnexecuted(index, invocation, checkNotNull(errorResult), SubtaskExecutionState.Reason.PERMISSION_DENIED)
                     }
@@ -857,7 +1165,7 @@ object ToolExecutionManager {
         val parallelizableToolNames = setOf(
             "list_files", "read_file", "read_file_part", "read_file_full", "file_exists",
             "find_files", "file_info", "grep_code", "calculate", "ffmpeg_info",
-            "visit_web", "download_file"
+            "visit_web", "download_file", "task"
         )
         val (parallelInvocations, serialInvocations) = injectedInvocations.partition {
             parallelizableToolNames.contains(
@@ -867,16 +1175,18 @@ object ToolExecutionManager {
 
         // 5. 执行工具并收集聚合结果
         // 启动并行工具
-        val parallelJobs = parallelInvocations.map { (index, invocation) ->
-            async {
+        for ((index, invocation) in parallelInvocations) {
+            parallelJobs += async {
                 val result =
                     executeTool(
                         invocation = invocation,
                         toolHandler = toolHandler,
                         packageManager = packageManager,
-                        runtimeContext = toolRuntimeContext
+                        runtimeContext = toolRuntimeContext.copy(callId = invocation.callId, invocationIndex = invocation.invocationIndex.takeIf { it >= 0 }),
+                        timingScopeId = timingScopeId,
+                        onCancelledResult = { complete(index, it) },
                     )
-                orderedResults.complete(index, result)
+                complete(index, result)
             }
         }
 
@@ -887,15 +1197,94 @@ object ToolExecutionManager {
                     invocation = invocation,
                     toolHandler = toolHandler,
                     packageManager = packageManager,
-                    runtimeContext = toolRuntimeContext
+                    runtimeContext = toolRuntimeContext.copy(
+                        callId = invocation.callId,
+                        invocationIndex = invocation.invocationIndex.takeIf { it >= 0 },
+                    ),
+                    timingScopeId = timingScopeId,
+                    onCancelledResult = { complete(index, it) },
                 )
-            orderedResults.complete(index, result)
+            complete(index, result)
         }
 
         // 等待所有并行任务完成
         parallelJobs.awaitAll()
 
         return@coroutineScope orderedResults.finish()
+        } catch (cancellation: CancellationException) {
+            withContext(NonCancellable) {
+                parallelJobs.forEach { it.cancel() }
+                parallelJobs.joinAll()
+                for ((index, invocation) in invocations.withIndex()) {
+                    if (index in completedIndices) continue
+                    val result = ToolResult(
+                        toolName = resolveDisplayToolName(invocation.tool),
+                        success = false,
+                        result = StringResultData(""),
+                        error = "Tool execution cancelled before it started.",
+                    ).withExecutionMetadata(invocation, ToolExecutionState.NOT_EXECUTED)
+                    try {
+                        complete(index, result)
+                    } catch (emitError: Exception) {
+                        AppLogger.w(TAG, "Could not persist cancelled tool result: ${emitError.message}")
+                    }
+                }
+            }
+            throw cancellation
+        } catch (failure: Exception) {
+            withContext(NonCancellable) {
+                invocations.forEachIndexed { index, invocation ->
+                    val snapshot =
+                        ToolExecutionTimingRepository.get(
+                            timingScopeId,
+                            invocation.invocationIndex,
+                        )
+                    val terminalState =
+                        when (snapshot?.state) {
+                            ToolExecutionState.RUNNING -> ToolExecutionState.COMPLETED
+                            ToolExecutionState.WAITING_EXECUTION,
+                            ToolExecutionState.WAITING_AUTHORIZATION -> ToolExecutionState.NOT_EXECUTED
+                            else -> return@forEachIndexed
+                        }
+                    val durationMs =
+                        snapshot.startedAtElapsedMs?.let { startedAt ->
+                            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
+                        }
+                    val failureMessage =
+                        failure.message
+                            ?.take(ToolExecutionLimits.MAX_TEXT_RESULT_LENGTH)
+                            ?.takeIf { it.isNotBlank() }
+                            ?: failure::class.java.simpleName
+                    val failedResult =
+                        ToolResult(
+                            toolName = resolveDisplayToolName(invocation.tool),
+                            success = false,
+                            result = StringResultData(""),
+                            error = "Tool execution failed: $failureMessage",
+                        ).withExecutionMetadata(
+                            invocation = invocation,
+                            state = terminalState,
+                            durationMs = durationMs,
+                        )
+                    ToolExecutionTimingRepository.markFinished(
+                        timingScopeId,
+                        invocation,
+                        failedResult,
+                        durationMs = durationMs,
+                        state = terminalState,
+                    )
+                    try {
+                        complete(index, failedResult)
+                    } catch (emitError: Exception) {
+                        AppLogger.w(
+                            TAG,
+                            "Failed to persist failed tool result: ${emitError.message}",
+                        )
+                    }
+                }
+            }
+            throw failure
+        }
     }
 
     /**
@@ -905,7 +1294,9 @@ object ToolExecutionManager {
         invocation: ToolInvocation,
         toolHandler: AIToolHandler,
         packageManager: PackageManager,
-        runtimeContext: ToolRuntimeContext
+        runtimeContext: ToolRuntimeContext,
+        timingScopeId: String?,
+        onCancelledResult: suspend (ToolResult) -> Unit,
     ): ToolResult {
         val toolName = invocation.tool.name
         val displayToolName = resolveDisplayToolName(invocation.tool)
@@ -916,6 +1307,8 @@ object ToolExecutionManager {
         }
 
         return withContext(toolRuntimeContextThreadLocal.asContextElement(runtimeContext)) {
+            var startedAtElapsedMs: Long? = null
+            val collectedResults = BoundedToolResultAccumulator()
             try {
                 val subtask = runtimeContext.subtaskExecution
                 if (subtask != null && subtask.isStopped()) {
@@ -940,7 +1333,17 @@ object ToolExecutionManager {
                             success = false,
                             result = StringResultData(""),
                             error = errorMessage
+                        ).withExecutionMetadata(
+                            invocation = invocation,
+                            state = ToolExecutionState.NOT_EXECUTED,
                         )
+                    ToolExecutionTimingRepository.markFinished(
+                        timingScopeId,
+                        invocation,
+                        notAvailableResult,
+                        durationMs = null,
+                        state = ToolExecutionState.NOT_EXECUTED,
+                    )
                     toolHandler.notifyToolExecutionResult(invocation.tool, notAvailableResult)
                     subtask?.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, errorMessage)
                     return@withContext recordForModel(notAvailableResult, executed = false)
@@ -970,25 +1373,68 @@ object ToolExecutionManager {
                 }
 
                 toolHandler.notifyToolExecutionStarted(invocation.tool)
+                val executionStartedAtMs = SystemClock.elapsedRealtime()
+                startedAtElapsedMs = executionStartedAtMs
+                ToolExecutionTimingRepository.markRunning(
+                    timingScopeId,
+                    invocation,
+                    executionStartedAtMs,
+                )
 
-                val annotated = if (subtask == null) {
-                    aggregateToolResults(displayToolName, executeToolSafely(invocation, executor, toolHandler))
+                val aggregated = if (subtask == null) {
+                    aggregateToolResults(
+                        displayToolName,
+                        executeToolSafely(invocation, executor, toolHandler),
+                        collectedResults,
+                    )
                 } else {
-                    collectSubtaskToolResult(subtask, resolveSubtaskTarget(invocation.tool), displayToolName) {
+                    collectSubtaskToolResult(
+                        subtask, resolveSubtaskTarget(invocation.tool), displayToolName, collectedResults,
+                    ) {
                         executeToolSafely(invocation, executor, toolHandler, parametersValidated = true)
                     }
                 }
-                toolHandler.notifyToolExecutionResult(invocation.tool, annotated)
-                return@withContext annotated
-            } catch (error: Exception) {
-                val state = runtimeContext.subtaskExecution
-                if (state != null) {
-                    val cancelled = error is CancellationException
-                    state.stop(
-                        if (cancelled) SubtaskExecutionState.Reason.CANCELLED else SubtaskExecutionState.Reason.EXECUTION_ERROR,
-                        error.message,
-                    )
+                val durationMs = (SystemClock.elapsedRealtime() - executionStartedAtMs).coerceAtLeast(0L)
+                val finalResult = aggregated.withExecutionMetadata(
+                    invocation, ToolExecutionState.COMPLETED, durationMs,
+                )
+                toolHandler.notifyToolExecutionResult(invocation.tool, finalResult)
+                return@withContext finalResult
+            } catch (cancellation: CancellationException) {
+                runtimeContext.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, cancellation.message)
+                val start = startedAtElapsedMs
+                if (start != null) {
+                    val durationMs =
+                        (SystemClock.elapsedRealtime() - start).coerceAtLeast(0L)
+                    val cancelledResult =
+                        createCancelledToolResult(
+                            displayToolName = displayToolName,
+                            invocation = invocation,
+                            durationMs = durationMs,
+                            partialResultText = collectedResults.combinedResultText(),
+                        )
+                    withContext(NonCancellable) {
+                        ToolExecutionTimingRepository.markFinished(
+                            timingScopeId,
+                            invocation,
+                            cancelledResult,
+                            durationMs = durationMs,
+                            state = ToolExecutionState.COMPLETED,
+                        )
+                        try {
+                            onCancelledResult(cancelledResult)
+                        } catch (emitError: Exception) {
+                            AppLogger.w(
+                                TAG,
+                                "Failed to persist cancelled tool result: ${emitError.message}",
+                            )
+                        }
+                        toolHandler.notifyToolExecutionResult(invocation.tool, cancelledResult)
+                    }
                 }
+                throw cancellation
+            } catch (error: Exception) {
+                runtimeContext.subtaskExecution?.stop(SubtaskExecutionState.Reason.EXECUTION_ERROR, error.message)
                 throw error
             } finally {
                 toolHandler.notifyToolExecutionFinished(invocation.tool)
@@ -999,9 +1445,9 @@ object ToolExecutionManager {
     /** Keep the existing aggregation semantics, but publish this result to both history paths. */
     internal suspend fun aggregateToolResults(
         displayToolName: String,
-        source: Flow<ToolResult>
+        source: Flow<ToolResult>,
+        collectedResults: BoundedToolResultAccumulator = BoundedToolResultAccumulator(),
     ): ToolResult {
-        val collectedResults = mutableListOf<ToolResult>()
         source.collect { collectedResults.add(it) }
         if (collectedResults.isEmpty()) {
             return ToolResult(
@@ -1011,23 +1457,11 @@ object ToolExecutionManager {
                 error = "The tool execution returned no results."
             )
         }
-        val lastResult = collectedResults.last()
-        val combinedResultString = collectedResults.joinToString("\n") { res ->
-            if (res.success) {
-                res.result.toString().trim()
-            } else {
-                // Failure data may contain timeout fields or a subagent's structured final result.
-                // Keeping only the error string discards the evidence the caller needs to inspect.
-                val detail = res.result.toString().trim()
-                val error = "Step error: ${res.error ?: "Unknown error"}"
-                if (detail.isEmpty()) error else "$error\n$detail"
-            }
-        }.trim()
         return ToolResult(
             toolName = displayToolName,
-            success = lastResult.success,
-            result = StringResultData(combinedResultString),
-            error = lastResult.error
+            success = collectedResults.lastResultSuccess == true,
+            result = StringResultData(collectedResults.combinedResultText()),
+            error = collectedResults.lastResultError,
         )
     }
 

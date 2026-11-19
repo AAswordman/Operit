@@ -1,6 +1,7 @@
 package com.ai.assistance.operit.ui.common.markdown
 
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.util.ChatMarkupRegex
 import android.widget.ImageView
 import androidx.collection.LruCache
 import androidx.compose.animation.core.animateFloatAsState
@@ -248,6 +249,43 @@ interface XmlContentRenderer {
         xmlStream: Stream<String>?,
         renderInstanceKey: Any?
     )
+}
+
+data class ToolXmlRenderInstanceKey(
+    val stableKey: Any?,
+    val invocationIndex: Int,
+)
+
+private val namedToolOpening = Regex("""^<[^>]*\bname="[^"]+"[^>]*>""")
+
+private fun hasNamedToolOpening(node: MarkdownNodeStable): Boolean =
+    node.type == MarkdownProcessorType.XML_BLOCK && namedToolOpening.containsMatchIn(node.content.trimStart())
+
+internal fun toolInvocationIndexAt(
+    nodes: List<MarkdownNodeStable>,
+    nodeIndex: Int,
+): Int? {
+    val target = nodes.getOrNull(nodeIndex) ?: return null
+    if (!hasNamedToolOpening(target) ||
+        ChatMarkupRegex.normalizeToolLikeTagName(
+            ChatMarkupRegex.extractOpeningTagName(target.content)
+        ) != "tool"
+    ) {
+        return null
+    }
+
+    var invocationIndex = 0
+    for (index in 0 until nodeIndex) {
+        val node = nodes[index]
+        if (hasNamedToolOpening(node) &&
+            ChatMarkupRegex.normalizeToolLikeTagName(
+                ChatMarkupRegex.extractOpeningTagName(node.content)
+            ) == "tool"
+        ) {
+            invocationIndex++
+        }
+    }
+    return invocationIndex
 }
 
 @Composable
@@ -1007,6 +1045,7 @@ private fun AnimatedNode(
     onLinkClick: ((String) -> Unit)?,
     xmlRenderer: XmlContentRenderer,
     xmlStream: Stream<String>?,
+    xmlRenderInstanceKey: Any?,
     enableDialogs: Boolean,
     fillMaxWidth: Boolean,
     isLastNode: Boolean = false
@@ -1033,6 +1072,7 @@ private fun AnimatedNode(
             index = index,
             xmlRenderer = xmlRenderer,
             xmlStream = xmlStream,
+            xmlRenderInstanceKey = xmlRenderInstanceKey,
             enableDialogs = enableDialogs,
             fillMaxWidth = fillMaxWidth,
             isLastNode = isLastNode
@@ -1095,6 +1135,10 @@ private fun UnifiedMarkdownCanvas(
                             onLinkClick = onLinkClick,
                             xmlRenderer = xmlRenderer,
                             xmlStream = xmlStreamsByIndex[index],
+                            xmlRenderInstanceKey =
+                                toolInvocationIndexAt(nodes, index)?.let { invocationIndex ->
+                                    ToolXmlRenderInstanceKey(nodeKey, invocationIndex)
+                                } ?: nodeKey,
                             enableDialogs = enableDialogs,
                             fillMaxWidth = fillMaxWidth,
                             isLastNode = index == lastRenderableIndex,

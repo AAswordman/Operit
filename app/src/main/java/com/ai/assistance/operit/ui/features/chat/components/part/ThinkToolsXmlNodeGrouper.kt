@@ -26,7 +26,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.ui.common.markdown.MarkdownGroupedItem
 import com.ai.assistance.operit.ui.common.markdown.MarkdownNodeGrouper
+import com.ai.assistance.operit.ui.common.markdown.ToolXmlRenderInstanceKey
 import com.ai.assistance.operit.ui.common.markdown.XmlContentRenderer
+import com.ai.assistance.operit.ui.common.markdown.toolInvocationIndexAt
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
@@ -357,7 +359,14 @@ class ThinkToolsXmlNodeGrouper(
                                             modifier = Modifier.fillMaxWidth(),
                                             textColor = textColor,
                                             xmlStream = xmlStreamResolver(absoluteIndex),
-                                            renderInstanceKey = innerKey
+                                            renderInstanceKey =
+                                                toolInvocationIndexAt(nodes, absoluteIndex)
+                                                    ?.let { invocationIndex ->
+                                                        ToolXmlRenderInstanceKey(
+                                                            innerKey,
+                                                            invocationIndex,
+                                                        )
+                                                    } ?: innerKey
                                         )
                                     } else {
                                         val alreadyAppeared = appearedKeys[innerKey] == true
@@ -383,7 +392,14 @@ class ThinkToolsXmlNodeGrouper(
                                             modifier = Modifier.fillMaxWidth().graphicsLayer { this.alpha = itemAlpha },
                                             textColor = textColor,
                                             xmlStream = xmlStreamResolver(absoluteIndex),
-                                            renderInstanceKey = innerKey
+                                            renderInstanceKey =
+                                                toolInvocationIndexAt(nodes, absoluteIndex)
+                                                    ?.let { invocationIndex ->
+                                                        ToolXmlRenderInstanceKey(
+                                                            innerKey,
+                                                            invocationIndex,
+                                                        )
+                                                    } ?: innerKey
                                         )
                                     }
                                 }
