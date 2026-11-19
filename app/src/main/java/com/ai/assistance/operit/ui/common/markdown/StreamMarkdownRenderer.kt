@@ -301,14 +301,12 @@ class DefaultXmlRenderer : XmlContentRenderer {
                         fontWeight = FontWeight.Bold
                 )
 
-                Text(
-                        text = xmlContent,
-                        style =
-                                MaterialTheme.typography.bodyMedium.copy(
-                                        fontFamily = FontFamily.Monospace
-                                ),
-                        color = textColor,
-                        modifier = Modifier.padding(top = 4.dp)
+                XmlTreeRenderer(
+                        xmlContent = xmlContent,
+                        textColor = textColor,
+                        modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
                 )
             }
         }
