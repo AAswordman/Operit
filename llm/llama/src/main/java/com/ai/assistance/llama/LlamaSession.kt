@@ -27,21 +27,40 @@ class LlamaSession private constructor(
             config: Config
         ): LlamaSession? {
             if (!isAvailable()) return null
-            val ptr = LlamaNative.nativeCreateSession(
-                pathModel = pathModel,
-                nThreads = config.nThreads,
-                nCtx = config.nCtx,
-                nBatch = config.nBatch,
-                nUBatch = config.nUBatch,
-                nGpuLayers = config.nGpuLayers,
-                useMmap = config.useMmap,
-                flashAttention = config.flashAttention,
-                kvUnified = config.kvUnified,
-                offloadKqv = config.offloadKqv
-            )
-            if (ptr == 0L) return null
-            return LlamaSession(ptr)
+            // [REVIEW P3] lastError 是 companion 级状态，两个线程同时 create() 时
+            // 后进者会把先进者的错误覆盖掉。原生侧本来就用 gInferenceMutex 串行化
+            // 会话创建，这里再加一把 JVM 锁不增加成本，只保证错误不被串台。
+            synchronized(createLock) {
+                val ptr = LlamaNative.nativeCreateSession(
+                    pathModel = pathModel,
+                    nThreads = config.nThreads,
+                    nCtx = config.nCtx,
+                    nBatch = config.nBatch,
+                    nUBatch = config.nUBatch,
+                    nGpuLayers = config.nGpuLayers,
+                    useMmap = config.useMmap,
+                    flashAttention = config.flashAttention,
+                    kvUnified = config.kvUnified,
+                    offloadKqv = config.offloadKqv
+                )
+                if (ptr == 0L) {
+                    // [PATCH 0013] 把具体失败原因带出去，避免上层只能看到笼统的 null。
+                    val reason = runCatching { LlamaNative.nativeGetLastError() }.getOrDefault("")
+                    lastError = reason.ifBlank { "session creation failed" }
+                    return null
+                }
+                lastError = null
+                return LlamaSession(ptr)
+            }
         }
+
+        /** 最近一次 create() 失败的原因；成功时为 null。 */
+        @Volatile
+        var lastError: String? = null
+            private set
+
+        /** [REVIEW P3] 保护 lastError 不被并发 create() 互相覆盖。 */
+        private val createLock = Any()
     }
 
     @Volatile

@@ -172,7 +172,7 @@ data class ModelConfigData(
         val llamaUseMmap: Boolean = false, // Android上默认关闭，减少mmap导致的兼容性问题
         val llamaFlashAttention: Boolean = false, // Android上默认关闭，更接近PocketPal安全值
         val llamaKvUnified: Boolean = true, // 单并发聊天默认开启统一KV缓存
-        val llamaOffloadKqv: Boolean = false, // 仅在启用GPU层时有意义
+        val llamaOffloadKqv: Boolean = true, // [PATCH 0028 / gpu11] 日用化默认开启；仅在启用GPU层时有意义
 
         // 图片处理配置
         val enableDirectImageProcessing: Boolean = false, // 是否启用直接图片处理

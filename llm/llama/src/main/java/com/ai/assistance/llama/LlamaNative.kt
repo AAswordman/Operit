@@ -10,6 +10,13 @@ object LlamaNative {
 
     @JvmStatic external fun nativeGetUnavailableReason(): String
 
+    /**
+     * [PATCH 0013] 最近一次失败的详细原因（加载/校验阶段）。
+     * nativeCreateSession 返回 0 时调用，用于把「模型文件损坏」这类
+     * 具体原因显示到 UI，而不是笼统的"加载失败"。
+     */
+    @JvmStatic external fun nativeGetLastError(): String
+
     @JvmStatic
     external fun nativeCreateSession(
         pathModel: String,
