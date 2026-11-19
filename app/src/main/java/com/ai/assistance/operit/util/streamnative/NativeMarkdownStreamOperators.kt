@@ -87,17 +87,15 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                         activeTag = null
                     }
 
-                    suspend fun flushDelta() {
+                    suspend fun flushDelta(finish: Boolean = false) {
                         flushMutex.withLock {
                             val delta = mutex.withLock {
-                                if (deltaBuffer.isEmpty()) {
-                                    null
-                                } else {
-                                    deltaBuffer.toString().also { deltaBuffer.setLength(0) }
-                                }
-                            } ?: return
+                                deltaBuffer.toString().also { deltaBuffer.setLength(0) }
+                            }
+                            if (delta.isEmpty() && !finish) return
 
-                            val segments = session.push(delta)
+                            var segments = session.push(delta)
+                            if (finish) segments += session.finish()
                             if (segments.isEmpty()) return
 
                             data class Action(val type: MarkdownProcessorType?, val text: String?)
@@ -120,8 +118,11 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                                     if (start < 0 || end < 0 || start > end || end > fullContent.length) {
                                         continue
                                     }
-
-                                    actions.add(Action(type = type, text = fullContent.substring(start, end)))
+                                    // Seed text is already rendered. A completed tentative marker
+                                    // may include that prefix, so publish only the new suffix.
+                                    val visibleStart = maxOf(start, initialContent.length)
+                                    if (visibleStart >= end) continue
+                                    actions.add(Action(type = type, text = fullContent.substring(visibleStart, end)))
                                 }
                             }
 
@@ -191,7 +192,7 @@ private fun Stream<Char>.nativeMarkdownSplitBySession(
                                 flushDelta()
                             }
                         }
-                        flushDelta()
+                        flushDelta(finish = true)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
@@ -286,17 +287,15 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                         activeTag = null
                     }
 
-                    suspend fun flushDelta() {
+                    suspend fun flushDelta(finish: Boolean = false) {
                         flushMutex.withLock {
                             val delta = mutex.withLock {
-                                if (deltaBuffer.isEmpty()) {
-                                    null
-                                } else {
-                                    deltaBuffer.toString().also { deltaBuffer.setLength(0) }
-                                }
-                            } ?: return
+                                deltaBuffer.toString().also { deltaBuffer.setLength(0) }
+                            }
+                            if (delta.isEmpty() && !finish) return
 
-                            val segments = session.push(delta)
+                            var segments = session.push(delta)
+                            if (finish) segments += session.finish()
                             if (segments.isEmpty()) return
 
                             data class Action(val type: MarkdownProcessorType?, val text: String?)
@@ -319,8 +318,11 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                                     if (start < 0 || end < 0 || start > end || end > fullContent.length) {
                                         continue
                                     }
-
-                                    actions.add(Action(type = type, text = fullContent.substring(start, end)))
+                                    // Seed text is already rendered. A completed tentative marker
+                                    // may include that prefix, so publish only the new suffix.
+                                    val visibleStart = maxOf(start, initialContent.length)
+                                    if (visibleStart >= end) continue
+                                    actions.add(Action(type = type, text = fullContent.substring(visibleStart, end)))
                                 }
                             }
 
@@ -390,7 +392,7 @@ private fun Stream<String>.nativeMarkdownSplitBySessionString(
                                 flushDelta()
                             }
                         }
-                        flushDelta()
+                        flushDelta(finish = true)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {

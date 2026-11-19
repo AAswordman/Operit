@@ -48,11 +48,13 @@ object NativeMarkdownSplitter {
     private external fun nativeCreateInlineSession(): Long
     private external fun nativeDestroySession(handle: Long)
     private external fun nativePush(handle: Long, chunk: String): IntArray
+    private external fun nativeFinish(handle: Long): IntArray
 
     class Session internal constructor(
         private val handle: Long,
     ) {
         fun push(chunk: String): IntArray = nativePush(handle, chunk)
+        fun finish(): IntArray = nativeFinish(handle)
         fun destroy() = nativeDestroySession(handle)
     }
 
@@ -64,7 +66,8 @@ object NativeMarkdownSplitter {
 
         val session = createInlineSession()
         return try {
-            session.push(content).toInlineStableNodes(content)
+            val segments = session.push(content) + session.finish()
+            segments.toInlineStableNodes(content)
         } finally {
             session.destroy()
         }

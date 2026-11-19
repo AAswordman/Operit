@@ -55,6 +55,16 @@ Java_com_ai_assistance_operit_util_streamnative_NativeMarkdownSplitter_nativeDes
 }
 
 extern "C" JNIEXPORT jintArray JNICALL
+Java_com_ai_assistance_operit_util_streamnative_NativeMarkdownSplitter_nativeFinish(
+        JNIEnv* env,
+        jobject /*thiz*/,
+        jlong handle
+) {
+    auto* session = reinterpret_cast<streamnative::MarkdownSession*>(handle);
+    return segmentsToJIntArray(env, streamnative::markdownSessionFinish(session));
+}
+
+extern "C" JNIEXPORT jintArray JNICALL
 Java_com_ai_assistance_operit_util_streamnative_NativeMarkdownSplitter_nativePush(
         JNIEnv* env,
         jobject /*thiz*/,
