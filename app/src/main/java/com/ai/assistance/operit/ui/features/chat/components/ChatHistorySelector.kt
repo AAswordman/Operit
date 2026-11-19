@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
@@ -70,6 +71,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Switch
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatHistoryDisplayMode
+import com.ai.assistance.operit.ui.features.chat.viewmodel.AiTitleGenerationState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -429,6 +431,9 @@ fun ChatHistorySelector(
         onSelectChat: (String) -> Unit,
         onDeleteChat: (String) -> Unit,
         onUpdateChatTitle: (chatId: String, newTitle: String) -> Unit,
+        onGenerateAiTitle: (chatId: String) -> Unit,
+        onDismissAiTitleResult: (chatId: String) -> Unit,
+        aiTitleStates: Map<String, AiTitleGenerationState>,
         onUpdateChatBinding: (chatId: String, characterCardName: String?, characterGroupId: String?) -> Unit,
         onCreateGroup: (groupName: String, characterCardName: String?, characterGroupId: String?) -> Unit,
         onUpdateChatOrderAndGroup: (reorderedHistories: List<ChatHistory>, movedItem: ChatHistory, targetGroup: String?) -> Unit,
@@ -847,6 +852,13 @@ fun ChatHistorySelector(
                 chatHistories.firstOrNull { it.id == target.id } ?: target
             }
         }
+        // 只关心当前菜单目标的状态，其余会话的生成结果留在 ViewModel 里不影响这里
+        val targetChatId = resolvedTargetChat?.id
+        val aiTitleState = targetChatId?.let { aiTitleStates[it] }
+        // 菜单以任何方式收起都清掉上次的结果，避免下次长按看到过期的错误
+        DisposableEffect(targetChatId) {
+            onDispose { targetChatId?.let(onDismissAiTitleResult) }
+        }
         Dialog(onDismissRequest = { chatItemActionTarget = null }) {
             Card(
                 modifier = Modifier
@@ -924,6 +936,77 @@ fun ChatHistorySelector(
                         }
                     }
                     
+                    // AI 总结标题选项：显式触发时才会覆盖已有标题
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .clip(MaterialTheme.shapes.medium)
+                            .semantics {
+                                contentDescription = context.getString(R.string.ai_summary_title)
+                            }
+                            .clickable(enabled = aiTitleState !is AiTitleGenerationState.Running) {
+                                val targetChat = resolvedTargetChat ?: return@clickable
+                                onGenerateAiTitle(targetChat.id)
+                            },
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (aiTitleState is AiTitleGenerationState.Running) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clearAndSetSemantics {}
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = stringResource(R.string.ai_summary_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.clearAndSetSemantics {}
+                                )
+                                when (aiTitleState) {
+                                    is AiTitleGenerationState.Running -> {
+                                        Text(
+                                            text = stringResource(R.string.ai_summary_title_generating),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    is AiTitleGenerationState.Failed -> {
+                                        Text(
+                                            text = aiTitleState.message,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
+                                    null -> Unit
+                                }
+                            }
+                            if (aiTitleState is AiTitleGenerationState.Failed) {
+                                TextButton(onClick = { targetChatId?.let(onGenerateAiTitle) }) {
+                                    Text(stringResource(R.string.ai_summary_title_retry))
+                                }
+                            }
+                        }
+                    }
+
                     // 上移选项
                     Surface(
                         modifier = Modifier
@@ -1160,7 +1243,10 @@ fun ChatHistorySelector(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     TextButton(
-                        onClick = { chatItemActionTarget = null },
+                        onClick = {
+                            resolvedTargetChat?.id?.let(onDismissAiTitleResult)
+                            chatItemActionTarget = null
+                        },
                         modifier = Modifier.align(Alignment.End).padding(horizontal = 16.dp)
                     ) {
                         Text(stringResource(R.string.cancel))

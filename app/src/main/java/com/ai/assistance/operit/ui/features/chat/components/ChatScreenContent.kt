@@ -1220,6 +1220,7 @@ fun ChatHistorySelectorPanel(
                             )
     ) {
         val activeStreamingChatIds by actualViewModel.activeStreamingChatIds.collectAsState()
+        val aiTitleStates by actualViewModel.aiTitleGenerationStates.collectAsState()
         // 直接使用ChatHistorySelector
         ChatHistorySelector(
                 modifier = Modifier.fillMaxSize().padding(top = 8.dp),
@@ -1237,6 +1238,13 @@ fun ChatHistorySelectorPanel(
                 onUpdateChatTitle = { chatId, newTitle ->
                     actualViewModel.updateChatTitle(chatId, newTitle)
                 },
+                onGenerateAiTitle = { chatId ->
+                    actualViewModel.generateAiSummaryTitle(chatId)
+                },
+                onDismissAiTitleResult = { chatId ->
+                    actualViewModel.dismissAiTitleGenerationResult(chatId)
+                },
+                aiTitleStates = aiTitleStates,
                 onUpdateChatBinding = { chatId, characterCardName, characterGroupId ->
                     actualViewModel.updateChatCharacterBinding(chatId, characterCardName, characterGroupId)
                 },

@@ -392,6 +392,64 @@ class ConversationService(
         }
     }
 
+    /**
+     * Generates a title from an existing conversation transcript.
+     *
+     * This powers the explicit "AI summary title" action in the chat history menu, so failures are
+     * thrown instead of swallowed: the caller shows the reason and offers a retry.
+     */
+    suspend fun generateConversationTitleFromHistory(
+        transcript: String,
+        messageCount: Int,
+        multiServiceManager: MultiServiceManager,
+        recordTokenUsage: Boolean = true,
+    ): String {
+        val useEnglish = !LocaleUtils.usesChineseContent(context)
+        val preparedHistory =
+            listOf(
+                PromptTurn(
+                    kind = PromptTurnKind.SYSTEM,
+                    content = FunctionalPrompts.conversationTitleHistorySystemPrompt(useEnglish)
+                ),
+                PromptTurn(
+                    kind = PromptTurnKind.USER,
+                    content =
+                        FunctionalPrompts.conversationTitleHistoryUserPrompt(
+                            transcript = transcript,
+                            messageCount = messageCount,
+                            useEnglish = useEnglish
+                        )
+                )
+            )
+        val modelParameters =
+            multiServiceManager.getModelParametersForFunction(FunctionType.TITLE_GENERATION)
+        val titleService = multiServiceManager.getServiceForFunction(FunctionType.TITLE_GENERATION)
+        val contentBuilder = StringBuilder()
+        titleService.sendMessage(
+            context = context,
+            chatHistory = preparedHistory,
+            modelParameters = modelParameters,
+            stream = false,
+            enableRetry = false,
+            recordTokenUsage = recordTokenUsage,
+        ).collect { content -> contentBuilder.append(content) }
+
+        val title =
+            sanitizeConversationTitle(
+                ChatUtils.removeThinkingContent(contentBuilder.toString().trim())
+            )
+
+        val inputTokens = titleService.inputTokenCount
+        val cachedInputTokens = titleService.cachedInputTokenCount
+        val outputTokens = titleService.outputTokenCount
+        AppLogger.d(
+            TAG,
+            "历史标题生成使用了输入token: $inputTokens, 缓存token: $cachedInputTokens, 输出token: $outputTokens"
+        )
+
+        return title
+    }
+
     private fun sanitizeConversationTitle(rawTitle: String): String {
         val firstLine = rawTitle
             .lineSequence()

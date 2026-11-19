@@ -2720,6 +2720,25 @@ class EnhancedAIService private constructor(private val context: Context) {
     }
 
     /**
+     * Generates a title from an already-built conversation transcript.
+     *
+     * Unlike [generateConversationTitle], this reads the whole conversation instead of the first
+     * user message, and it propagates failures so the caller can report them and retry.
+     */
+    suspend fun generateConversationTitleFromHistory(
+        transcript: String,
+        messageCount: Int,
+        recordTokenUsage: Boolean = true,
+    ): String {
+        return conversationService.generateConversationTitleFromHistory(
+            transcript = transcript,
+            messageCount = messageCount,
+            multiServiceManager = multiServiceManager,
+            recordTokenUsage = recordTokenUsage,
+        )
+    }
+
+    /**
      * 获取指定功能类型的当前输入token计数
      * @param functionType 功能类型
      * @return 输入token计数
