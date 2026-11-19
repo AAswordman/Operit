@@ -62,6 +62,10 @@ class DisplayPreferencesManager private constructor(private val context: Context
         private val KEY_HIDE_RUNTIME_TASK_VIEW =
             booleanPreferencesKey("hide_runtime_task_view")
 
+        // 定向发送时悬浮窗跟随目标对话（默认关闭，见 FloatingDisplayChatSelector）
+        private val KEY_FLOATING_FOLLOWS_TARGETED_SEND =
+            booleanPreferencesKey("floating_follows_targeted_send")
+
         private val KEY_SCREENSHOT_FORMAT = stringPreferencesKey("screenshot_format")
         private val KEY_SCREENSHOT_QUALITY = intPreferencesKey("screenshot_quality")
         private val KEY_SCREENSHOT_SCALE_PERCENT = intPreferencesKey("screenshot_scale_percent")
@@ -169,6 +173,15 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences[KEY_HIDE_RUNTIME_TASK_VIEW] ?: false
         }
 
+    /**
+     * 定向发送（chat_with_agent 带 chatId）时，悬浮窗是否跟随目标对话显示。
+     * 默认值：false（保持文档约定：提供 chatId 时不切换 UI）
+     */
+    val floatingFollowsTargetedSend: Flow<Boolean> =
+        context.displayPreferencesDataStore.data.map { preferences ->
+            preferences[KEY_FLOATING_FOLLOWS_TARGETED_SEND] ?: false
+        }
+
     val screenshotFormat: Flow<String> =
         context.displayPreferencesDataStore.data.map { preferences ->
             preferences[KEY_SCREENSHOT_FORMAT] ?: "JPG"
@@ -220,6 +233,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
         enableBackgroundKeepAlive: Boolean? = null,
         enableExperimentalVirtualDisplay: Boolean? = null,
         hideRuntimeTaskView: Boolean? = null,
+        floatingFollowsTargetedSend: Boolean? = null,
         screenshotFormat: String? = null,
         screenshotQuality: Int? = null,
         screenshotScalePercent: Int? = null,
@@ -254,6 +268,9 @@ class DisplayPreferencesManager private constructor(private val context: Context
             }
             hideRuntimeTaskView?.let {
                 preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = it
+            }
+            floatingFollowsTargetedSend?.let {
+                preferences[KEY_FLOATING_FOLLOWS_TARGETED_SEND] = it
             }
             screenshotFormat?.let { preferences[KEY_SCREENSHOT_FORMAT] = it }
             screenshotQuality?.let { preferences[KEY_SCREENSHOT_QUALITY] = it }
@@ -326,6 +343,7 @@ class DisplayPreferencesManager private constructor(private val context: Context
             preferences[KEY_ENABLE_BACKGROUND_KEEP_ALIVE] = false
             preferences[KEY_ENABLE_EXPERIMENTAL_VIRTUAL_DISPLAY] = true
             preferences[KEY_HIDE_RUNTIME_TASK_VIEW] = false
+            preferences[KEY_FLOATING_FOLLOWS_TARGETED_SEND] = false
             preferences.remove(KEY_SCREENSHOT_FORMAT)
             preferences.remove(KEY_SCREENSHOT_QUALITY)
             preferences.remove(KEY_SCREENSHOT_SCALE_PERCENT)
