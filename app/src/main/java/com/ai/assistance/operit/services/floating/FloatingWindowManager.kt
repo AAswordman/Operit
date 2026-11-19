@@ -150,6 +150,29 @@ class FloatingWindowManager(
         private const val IME_FOCUS_DELAY_MS = 200L
         private const val IME_FOCUS_RETRY_DELAY_MS = 50L
         private const val MAX_IME_FOCUS_RETRIES = 4
+
+        /**
+         * Clamps `FloatingMode.WINDOW` coordinates so the window never slides into negative/off-screen X
+         * (where TitleBar action buttons disappear off-screen or get swallowed by Android's edge back-gesture zone)
+         * and the top TitleBar drag handle always stays reachable vertically.
+         */
+        internal fun clampWindowPosition(
+            x: Int,
+            y: Int,
+            width: Int,
+            height: Int,
+            screenWidth: Int,
+            screenHeight: Int,
+            minVisibleHeight: Int = (height * 2 / 3)
+        ): Pair<Int, Int> {
+            val maxX = (screenWidth - width).coerceAtLeast(0)
+            val effectiveVisibleHeight = minVisibleHeight.coerceIn(0, height.coerceAtLeast(0))
+            val maxY = (screenHeight - effectiveVisibleHeight).coerceAtLeast(0)
+            return Pair(
+                x.coerceIn(0, maxX),
+                y.coerceIn(0, maxY)
+            )
+        }
     }
 
     private fun resolveSoftInputModeForMode(mode: FloatingMode): Int {
@@ -543,18 +566,17 @@ class FloatingWindowManager(
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
 
-                val minVisibleWidth = (params.width * 2 / 3)
-                val safeMargin = (20 * density).toInt()
-                state.x =
-                        state.x.coerceIn(
-                                -(params.width - minVisibleWidth) + safeMargin,
-                                screenWidth - minVisibleWidth - safeMargin
+                val (clampedX, clampedY) =
+                        clampWindowPosition(
+                                x = state.x,
+                                y = state.y,
+                                width = params.width,
+                                height = params.height,
+                                screenWidth = screenWidth,
+                                screenHeight = screenHeight
                         )
-                state.y =
-                        state.y.coerceIn(
-                                safeMargin,
-                                screenHeight - (params.height / 2) - safeMargin
-                        )
+                state.x = clampedX
+                state.y = clampedY
             }
             FloatingMode.RESULT_DISPLAY -> {
                 params.width = WindowManager.LayoutParams.WRAP_CONTENT
@@ -643,12 +665,28 @@ class FloatingWindowManager(
 
     private fun updateWindowSizeInLayoutParams() {
         updateViewLayout { params ->
-            val density = context.resources.displayMetrics.density
+            val displayMetrics = context.resources.displayMetrics
+            val density = displayMetrics.density
             val scale = state.windowScale.value
             val widthDp = state.windowWidth.value
             val heightDp = state.windowHeight.value
             params.width = (widthDp.value * density * scale).toInt()
             params.height = (heightDp.value * density * scale).toInt()
+            if (state.currentMode.value == FloatingMode.WINDOW) {
+                val (clampedX, clampedY) =
+                    clampWindowPosition(
+                        x = params.x,
+                        y = params.y,
+                        width = params.width,
+                        height = params.height,
+                        screenWidth = displayMetrics.widthPixels,
+                        screenHeight = displayMetrics.heightPixels
+                    )
+                params.x = clampedX
+                params.y = clampedY
+                state.x = clampedX
+                state.y = clampedY
+            }
         }
     }
 
@@ -825,25 +863,29 @@ class FloatingWindowManager(
                     state.windowScale.value = state.lastWindowScale
 
                     // Coerce position to be within screen bounds for window mode
-                val finalX: Int
-                val finalY: Int
-                
-                if (isFromBall) {
-                    // Limit strictly within screen when expanding from ball
-                    val maxX = (screenWidth - width).coerceAtLeast(0)
-                    val maxY = (screenHeight - height).coerceAtLeast(0)
-                    finalX = tempX.coerceIn(0, maxX)
-                    finalY = tempY.coerceIn(0, maxY)
-                } else {
-                    val minVisibleWidth = (width * 2 / 3)
-                    val minVisibleHeight = (height * 2 / 3)
-                    finalX = tempX.coerceIn(
-                        -(width - minVisibleWidth),
-                        screenWidth - minVisibleWidth / 2
-                    )
-                    finalY = tempY.coerceIn(0, screenHeight - minVisibleHeight)
-                }
-                
+                val (finalX, finalY) =
+                    if (isFromBall) {
+                        // Limit strictly within screen when expanding from ball
+                        clampWindowPosition(
+                            x = tempX,
+                            y = tempY,
+                            width = width,
+                            height = height,
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight,
+                            minVisibleHeight = height
+                        )
+                    } else {
+                        clampWindowPosition(
+                            x = tempX,
+                            y = tempY,
+                            width = width,
+                            height = height,
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight
+                        )
+                    }
+
                 TargetParams(width, height, finalX, finalY, flags)
             }
             FloatingMode.FULLSCREEN, FloatingMode.SCREEN_OCR -> {
@@ -920,6 +962,7 @@ class FloatingWindowManager(
                         // Sync state with params
                         state.x = params.x
                         state.y = params.y
+                        callback.saveState()
                     }
                 }, 150) // 与 fadeOut/scaleOut 的时长匹配
                 
@@ -944,6 +987,7 @@ class FloatingWindowManager(
                         // Sync state with params
                         state.x = params.x
                         state.y = params.y
+                        callback.saveState()
                     }
                     
                     // 重置淡出状态
@@ -965,6 +1009,7 @@ class FloatingWindowManager(
                     // Sync state with params
                     state.x = params.x
                     state.y = params.y
+                    callback.saveState()
                 }
             }
             
@@ -988,6 +1033,7 @@ class FloatingWindowManager(
                 // Sync state with params
                 state.x = params.x
                 state.y = params.y
+                callback.saveState()
             }
 
             // 立即标记过渡完成
@@ -1025,14 +1071,17 @@ class FloatingWindowManager(
             } else {
                 val windowWidth = (state.windowWidth.value.value * density * scale).toInt()
                 val windowHeight = (state.windowHeight.value.value * density * scale).toInt()
-                val minVisibleWidth = (windowWidth * 2 / 3)
-                val minVisibleHeight = (windowHeight * 2 / 3)
-                params.x =
-                        params.x.coerceIn(
-                                -(windowWidth - minVisibleWidth),
-                                screenWidth - minVisibleWidth / 2
+                val (clampedX, clampedY) =
+                        clampWindowPosition(
+                                x = params.x,
+                                y = params.y,
+                                width = windowWidth,
+                                height = windowHeight,
+                                screenWidth = screenWidth,
+                                screenHeight = screenHeight
                         )
-                params.y = params.y.coerceIn(0, screenHeight - minVisibleHeight)
+                params.x = clampedX
+                params.y = clampedY
             }
             state.x = params.x
             state.y = params.y
