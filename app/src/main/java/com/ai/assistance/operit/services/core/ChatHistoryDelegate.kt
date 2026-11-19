@@ -4,10 +4,12 @@ import android.content.Context
 import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.R
 import com.ai.assistance.operit.api.chat.EnhancedAIService
+import com.ai.assistance.operit.data.model.CharacterCardWorkspaceBinding
 import com.ai.assistance.operit.data.model.ChatHistory
 import com.ai.assistance.operit.data.model.ChatMessage
 import com.ai.assistance.operit.data.model.ChatMessageLocatorPreview
 import com.ai.assistance.operit.data.model.WorkspaceRenameResult
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicBoolean
@@ -50,6 +52,7 @@ class ChatHistoryDelegate(
     private val chatHistoryManager = ChatHistoryManager.getInstance(context)
     private val characterCardManager = CharacterCardManager.getInstance(context) // 新增
     private val activePromptManager = ActivePromptManager.getInstance(context)
+    private val apiPreferences = ApiPreferences.getInstance(context)
     private val isInitialized = AtomicBoolean(false)
     private val historyUpdateMutex = Mutex()
     private val allowAddMessage = AtomicBoolean(true) // 控制是否允许添加消息，切换对话时设为false
@@ -57,9 +60,6 @@ class ChatHistoryDelegate(
     private var afterDestructiveHistoryMutation: (suspend (String) -> Unit)? = null
 
     private var pendingPersistChatOrderJob: Job? = null
-
-    // This is no longer needed here as summary logic is moved.
-    // private val apiPreferences = ApiPreferences(context)
 
     // State flows
     private val _chatHistory = MutableStateFlow<List<ChatMessage>>(emptyList())
@@ -771,6 +771,18 @@ class ChatHistoryDelegate(
         return true
     }
 
+    /**
+     * 角色卡默认工作区只在其 SAF 书签仍然存在时才生效。
+     * 书签被删除或改名后新对话保持未绑定，行为与没有配置默认工作区一致。
+     */
+    private suspend fun resolveDefaultWorkspaceBinding(
+        defaultWorkspaceName: String?
+    ): CharacterCardWorkspaceBinding? {
+        val workspaceName = defaultWorkspaceName?.takeIf { it.isNotBlank() } ?: return null
+        val bookmarkNames = apiPreferences.safBookmarksFlow.first().map { it.name }
+        return CharacterCardWorkspaceBinding.resolveRepoBookmark(workspaceName, bookmarkNames)
+    }
+
     /** 创建新的聊天 */
     fun createNewChat(
         characterCardName: String? = null,
@@ -815,13 +827,17 @@ class ChatHistoryDelegate(
             val shouldSyncCurrentChatToGlobal =
                 selectionMode == ChatSelectionMode.FOLLOW_GLOBAL && setAsCurrentChat
 
+            val defaultWorkspace = resolveDefaultWorkspaceBinding(resolvedCard?.defaultWorkspaceName)
+
             // 创建新对话，如果有当前对话则继承其分组，并绑定角色卡
             val newChat = chatHistoryManager.createNewChat(
                 group = group,
                 inheritGroupFromChatId = inheritGroupFromChatId,
                 characterCardName = effectiveCharacterCardName,
                 characterGroupId = characterGroupId,
-                setAsCurrentChat = shouldSyncCurrentChatToGlobal
+                setAsCurrentChat = shouldSyncCurrentChatToGlobal,
+                workspace = defaultWorkspace?.workspacePath,
+                workspaceEnv = defaultWorkspace?.workspaceEnv
             )
 
             // --- 新增：检查并添加开场白（群组模式跳过） ---
