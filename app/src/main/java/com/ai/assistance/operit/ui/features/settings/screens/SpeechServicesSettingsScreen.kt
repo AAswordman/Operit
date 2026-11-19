@@ -84,6 +84,7 @@ import com.ai.assistance.operit.ui.components.CustomScaffold
 import com.ai.assistance.operit.api.voice.SiliconFlowVoiceProvider
 import com.ai.assistance.operit.api.voice.MimoVoiceProvider
 import com.ai.assistance.operit.api.voice.DoubaoVoiceProvider
+import com.ai.assistance.operit.api.voice.StepTtsVoiceProvider
 import com.ai.assistance.operit.api.voice.OpenAIRealtimeVoiceProvider
 import com.ai.assistance.operit.api.voice.OpenAIVoiceProvider
 import com.ai.assistance.operit.api.voice.SimpleVoiceProvider
@@ -159,6 +160,32 @@ fun SpeechServicesSettingsScreen(
     var ttsResponsePipelineInput by remember(httpConfig) {
         mutableStateOf(HttpTtsResponsePipelineStep.encodeList(httpConfig.responsePipeline))
     }
+    // 阶跃 TTS 专属选项（保存在 httpConfig.options 中）
+    var stepResponseFormatInput by remember(httpConfig) {
+        mutableStateOf(
+            httpConfig.options[StepTtsVoiceProvider.OPTION_RESPONSE_FORMAT]?.trim()?.takeIf { it.isNotBlank() }
+                ?: StepTtsVoiceProvider.DEFAULT_RESPONSE_FORMAT
+        )
+    }
+    var stepVolumeInput by remember(httpConfig) {
+        mutableStateOf(httpConfig.options[StepTtsVoiceProvider.OPTION_VOLUME]?.trim()?.toFloatOrNull() ?: 1.0f)
+    }
+    var stepVoiceLabelInput by remember(httpConfig) {
+        mutableStateOf(httpConfig.options[StepTtsVoiceProvider.OPTION_VOICE_LABEL]?.trim().orEmpty())
+    }
+    var stepInstructionInput by remember(httpConfig) {
+        mutableStateOf(httpConfig.options[StepTtsVoiceProvider.OPTION_INSTRUCTION]?.trim().orEmpty())
+    }
+    // 阶跃专属选项当前已保存值，用于判断是否有待保存修改
+    val stepResponseFormatCurrent =
+        httpConfig.options[StepTtsVoiceProvider.OPTION_RESPONSE_FORMAT]?.trim()?.takeIf { it.isNotBlank() }
+            ?: StepTtsVoiceProvider.DEFAULT_RESPONSE_FORMAT
+    val stepVolumeCurrent =
+        httpConfig.options[StepTtsVoiceProvider.OPTION_VOLUME]?.trim()?.toFloatOrNull() ?: 1.0f
+    val stepVoiceLabelCurrent =
+        httpConfig.options[StepTtsVoiceProvider.OPTION_VOICE_LABEL]?.trim().orEmpty()
+    val stepInstructionCurrent =
+        httpConfig.options[StepTtsVoiceProvider.OPTION_INSTRUCTION]?.trim().orEmpty()
     var vitsPackagePathInput by remember(vitsConfig) { mutableStateOf(vitsConfig.packagePath) }
     var vitsSpeakerIdInput by remember(vitsConfig) { mutableStateOf(vitsConfig.speakerId) }
     var vitsOptionsInput by remember(vitsConfig) { mutableStateOf(Json.encodeToString(vitsConfig.options)) }
@@ -206,6 +233,10 @@ fun SpeechServicesSettingsScreen(
             ttsVoiceIdInput != httpConfig.voiceId ||
             ttsModelNameInput != httpConfig.modelName ||
             ttsResponsePipelineInput != HttpTtsResponsePipelineStep.encodeList(httpConfig.responsePipeline) ||
+            stepResponseFormatInput != stepResponseFormatCurrent ||
+            stepVolumeInput != stepVolumeCurrent ||
+            stepVoiceLabelInput != stepVoiceLabelCurrent ||
+            stepInstructionInput != stepInstructionCurrent ||
             vitsPackagePathInput != vitsConfig.packagePath ||
             vitsSpeakerIdInput != vitsConfig.speakerId ||
             vitsOptionsInput != Json.encodeToString(vitsConfig.options) ||
@@ -229,6 +260,10 @@ fun SpeechServicesSettingsScreen(
         ttsVoiceIdInput,
         ttsModelNameInput,
         ttsResponsePipelineInput,
+        stepResponseFormatInput,
+        stepVolumeInput,
+        stepVoiceLabelInput,
+        stepInstructionInput,
         vitsPackagePathInput,
         vitsSpeakerIdInput,
         vitsOptionsInput,
@@ -292,6 +327,22 @@ fun SpeechServicesSettingsScreen(
                 vitsConfig.options
             }
 
+        // 阶跃 TTS：把专属选项写进 options；其他服务类型保持 profile 已有 options 不变
+        // volume 用固定 Locale 格式化：默认 Locale 在小数逗号语言（es/pt/ro 等）下会产生 "1,0"，
+        // 写入 JSON 请求体后是非法数字
+        val stepOptions =
+            if (ttsServiceTypeInput == VoiceServiceFactory.VoiceServiceType.STEP_TTS) {
+                mapOf(
+                    StepTtsVoiceProvider.OPTION_RESPONSE_FORMAT to stepResponseFormatInput,
+                    StepTtsVoiceProvider.OPTION_VOLUME to
+                        "%.1f".format(java.util.Locale.US, stepVolumeInput),
+                    StepTtsVoiceProvider.OPTION_VOICE_LABEL to stepVoiceLabelInput,
+                    StepTtsVoiceProvider.OPTION_INSTRUCTION to stepInstructionInput
+                ).filterValues { it.isNotBlank() }
+            } else {
+                httpConfig.options
+            }
+
         val httpConfigData = SpeechServicesPreferences.TtsHttpConfig(
             urlTemplate = ttsUrlTemplateInput,
             apiKey = ttsApiKeyInput,
@@ -302,7 +353,8 @@ fun SpeechServicesSettingsScreen(
             localeTag = ttsLocaleTagInput,
             voiceId = ttsVoiceIdInput,
             modelName = ttsModelNameInput,
-            responsePipeline = responsePipeline
+            responsePipeline = responsePipeline,
+            options = stepOptions
         )
 
         val vitsConfigData = SpeechServicesPreferences.VitsTtsPackageConfig(
@@ -490,6 +542,7 @@ fun SpeechServicesSettingsScreen(
                                     VoiceServiceFactory.VoiceServiceType.MINIMAX_TTS -> stringResource(R.string.speech_services_tts_type_minimax)
                                     VoiceServiceFactory.VoiceServiceType.MIMO_TTS -> stringResource(R.string.speech_services_tts_type_mimo)
                                     VoiceServiceFactory.VoiceServiceType.DOUBAO_TTS -> stringResource(R.string.speech_services_tts_type_doubao)
+                                    VoiceServiceFactory.VoiceServiceType.STEP_TTS -> stringResource(R.string.speech_services_tts_type_step)
                                     VoiceServiceFactory.VoiceServiceType.OPENAI_TTS -> stringResource(R.string.speech_services_tts_type_openai)
                                     VoiceServiceFactory.VoiceServiceType.VITS_TTS -> stringResource(R.string.speech_services_tts_type_vits)
                                 },
@@ -517,6 +570,7 @@ fun SpeechServicesSettingsScreen(
                                                     VoiceServiceFactory.VoiceServiceType.MINIMAX_TTS -> stringResource(R.string.speech_services_tts_type_minimax)
                                                     VoiceServiceFactory.VoiceServiceType.MIMO_TTS -> stringResource(R.string.speech_services_tts_type_mimo)
                                                     VoiceServiceFactory.VoiceServiceType.DOUBAO_TTS -> stringResource(R.string.speech_services_tts_type_doubao)
+                                                    VoiceServiceFactory.VoiceServiceType.STEP_TTS -> stringResource(R.string.speech_services_tts_type_step)
                                                     VoiceServiceFactory.VoiceServiceType.OPENAI_TTS -> stringResource(R.string.speech_services_tts_type_openai)
                                                     VoiceServiceFactory.VoiceServiceType.VITS_TTS -> stringResource(R.string.speech_services_tts_type_vits)
                                                 },
@@ -528,6 +582,11 @@ fun SpeechServicesSettingsScreen(
                                             if (type == VoiceServiceFactory.VoiceServiceType.DOUBAO_TTS) {
                                                 ttsUrlTemplateInput = DoubaoVoiceProvider.DEFAULT_ENDPOINT_URL
                                                 ttsVoiceIdInput = DoubaoVoiceProvider.DEFAULT_VOICE_ID
+                                                ttsContentTypeInput = "application/json"
+                                            }
+                                            if (type == VoiceServiceFactory.VoiceServiceType.STEP_TTS) {
+                                                ttsUrlTemplateInput = StepTtsVoiceProvider.DEFAULT_ENDPOINT_URL
+                                                ttsVoiceIdInput = StepTtsVoiceProvider.DEFAULT_VOICE_ID
                                                 ttsContentTypeInput = "application/json"
                                             }
                                             ttsDropdownExpanded = false
@@ -1498,6 +1557,303 @@ fun SpeechServicesSettingsScreen(
                                     supportingText = {
                                         Text(
                                             text = stringResource(R.string.speech_services_doubao_voice_id_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = ttsServiceTypeInput == VoiceServiceFactory.VoiceServiceType.STEP_TTS) {
+                            Column(modifier = Modifier.padding(top = 16.dp)) {
+                                Text(
+                                    text = stringResource(R.string.speech_services_step_config),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Medium
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = ttsUrlTemplateInput,
+                                    onValueChange = { ttsUrlTemplateInput = it },
+                                    label = { Text(stringResource(R.string.speech_services_step_url)) },
+                                    placeholder = { Text(stringResource(R.string.speech_services_step_url_placeholder)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    supportingText = {
+                                        Text(
+                                            text = stringResource(R.string.speech_services_step_url_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = ttsApiKeyInput,
+                                    onValueChange = { ttsApiKeyInput = it },
+                                    label = { Text(stringResource(R.string.speech_services_step_api_key)) },
+                                    placeholder = { Text(stringResource(R.string.speech_services_step_api_key_placeholder)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 预置模型下拉
+                                var stepModelDropdownExpanded by remember { mutableStateOf(false) }
+                                val stepModels = remember { StepTtsVoiceProvider.AVAILABLE_MODELS }
+
+                                ExposedDropdownMenuBox(
+                                    expanded = stepModelDropdownExpanded,
+                                    onExpandedChange = { stepModelDropdownExpanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = ttsModelNameInput.ifBlank { StepTtsVoiceProvider.DEFAULT_MODEL_NAME },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text(stringResource(R.string.speech_services_step_model_select)) },
+                                        trailingIcon = {
+                                            Icon(Icons.Default.ArrowDropDown, stringResource(R.string.speech_services_step_model_select_icon))
+                                        },
+                                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = stepModelDropdownExpanded,
+                                        onDismissRequest = { stepModelDropdownExpanded = false }
+                                    ) {
+                                        stepModels.forEach { model ->
+                                            DropdownMenuItem(
+                                                text = { Text(model) },
+                                                onClick = {
+                                                    ttsModelNameInput = model
+                                                    stepModelDropdownExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = ttsModelNameInput,
+                                    onValueChange = { ttsModelNameInput = it },
+                                    label = { Text(stringResource(R.string.speech_services_step_model_name)) },
+                                    placeholder = { Text(stringResource(R.string.speech_services_step_model_name_placeholder)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    supportingText = {
+                                        Text(
+                                            text = stringResource(R.string.speech_services_step_model_name_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 预置音色下拉
+                                var stepVoiceDropdownExpanded by remember { mutableStateOf(false) }
+                                val stepVoices = remember { StepTtsVoiceProvider.AVAILABLE_VOICES }
+                                val selectedStepVoiceName = remember(ttsVoiceIdInput) {
+                                    stepVoices.find { it.id == ttsVoiceIdInput }?.name
+                                        ?: context.getString(R.string.speech_services_step_voice_custom)
+                                }
+
+                                ExposedDropdownMenuBox(
+                                    expanded = stepVoiceDropdownExpanded,
+                                    onExpandedChange = { stepVoiceDropdownExpanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = selectedStepVoiceName,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text(stringResource(R.string.speech_services_step_voice_select)) },
+                                        trailingIcon = {
+                                            Icon(Icons.Default.ArrowDropDown, stringResource(R.string.speech_services_step_voice_select_icon))
+                                        },
+                                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = stepVoiceDropdownExpanded,
+                                        onDismissRequest = { stepVoiceDropdownExpanded = false }
+                                    ) {
+                                        stepVoices.forEach { voice ->
+                                            DropdownMenuItem(
+                                                text = { Text("${voice.name} (${voice.id})") },
+                                                onClick = {
+                                                    ttsVoiceIdInput = voice.id
+                                                    stepVoiceDropdownExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = ttsVoiceIdInput,
+                                    onValueChange = { ttsVoiceIdInput = it },
+                                    label = { Text(stringResource(R.string.speech_services_step_voice_id)) },
+                                    placeholder = { Text(stringResource(R.string.speech_services_step_voice_id_placeholder)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    supportingText = {
+                                        Text(
+                                            text = stringResource(R.string.speech_services_step_voice_id_hint),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 音频输出格式下拉
+                                var stepFormatDropdownExpanded by remember { mutableStateOf(false) }
+                                val stepFormats = remember { StepTtsVoiceProvider.RESPONSE_FORMATS }
+
+                                ExposedDropdownMenuBox(
+                                    expanded = stepFormatDropdownExpanded,
+                                    onExpandedChange = { stepFormatDropdownExpanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = stepResponseFormatInput,
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text(stringResource(R.string.speech_services_step_response_format)) },
+                                        supportingText = {
+                                            Text(
+                                                text = stringResource(R.string.speech_services_step_response_format_hint),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            Icon(Icons.Default.ArrowDropDown, stringResource(R.string.speech_services_step_response_format_icon))
+                                        },
+                                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = stepFormatDropdownExpanded,
+                                        onDismissRequest = { stepFormatDropdownExpanded = false }
+                                    ) {
+                                        stepFormats.forEach { format ->
+                                            DropdownMenuItem(
+                                                text = { Text(format) },
+                                                onClick = {
+                                                    stepResponseFormatInput = format
+                                                    stepFormatDropdownExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 音量滑块，对应请求体 volume（0.1~2.0）
+                                Text(
+                                    text = stringResource(R.string.speech_services_step_volume_value, stepVolumeInput),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Slider(
+                                    value = stepVolumeInput,
+                                    onValueChange = { stepVolumeInput = it },
+                                    valueRange = 0.1f..2.0f,
+                                    steps = 18
+                                )
+                                Text(
+                                    text = stringResource(R.string.speech_services_step_volume_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 音色标签下拉（情绪/风格，仅 step-tts-2 / step-tts-mini 支持）
+                                var stepVoiceLabelDropdownExpanded by remember { mutableStateOf(false) }
+                                val stepVoiceLabelOptions = remember {
+                                    StepTtsVoiceProvider.EMOTION_LABELS.map { it to "emotion" } +
+                                        StepTtsVoiceProvider.STYLE_LABELS.map { it to "style" }
+                                }
+
+                                ExposedDropdownMenuBox(
+                                    expanded = stepVoiceLabelDropdownExpanded,
+                                    onExpandedChange = { stepVoiceLabelDropdownExpanded = it }
+                                ) {
+                                    OutlinedTextField(
+                                        value = stepVoiceLabelInput.ifBlank {
+                                            stringResource(R.string.speech_services_step_voice_label_none)
+                                        },
+                                        onValueChange = {},
+                                        readOnly = true,
+                                        label = { Text(stringResource(R.string.speech_services_step_voice_label)) },
+                                        supportingText = {
+                                            Text(
+                                                text = stringResource(R.string.speech_services_step_voice_label_hint),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        },
+                                        trailingIcon = {
+                                            Icon(Icons.Default.ArrowDropDown, stringResource(R.string.speech_services_step_voice_label_icon))
+                                        },
+                                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                                    )
+                                    ExposedDropdownMenu(
+                                        expanded = stepVoiceLabelDropdownExpanded,
+                                        onDismissRequest = { stepVoiceLabelDropdownExpanded = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text(stringResource(R.string.speech_services_step_voice_label_none)) },
+                                            onClick = {
+                                                stepVoiceLabelInput = ""
+                                                stepVoiceLabelDropdownExpanded = false
+                                            }
+                                        )
+                                        stepVoiceLabelOptions.forEach { (label, field) ->
+                                            DropdownMenuItem(
+                                                text = {
+                                                    Text(
+                                                        label + if (field == "emotion") {
+                                                            stringResource(R.string.speech_services_step_voice_label_emotion_suffix)
+                                                        } else {
+                                                            stringResource(R.string.speech_services_step_voice_label_style_suffix)
+                                                        }
+                                                    )
+                                                },
+                                                onClick = {
+                                                    stepVoiceLabelInput = label
+                                                    stepVoiceLabelDropdownExpanded = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // 全局自然语言指导（仅 stepaudio-2.5-tts / stepaudio-3-tts 支持）
+                                OutlinedTextField(
+                                    value = stepInstructionInput,
+                                    onValueChange = { stepInstructionInput = it },
+                                    label = { Text(stringResource(R.string.speech_services_step_instruction)) },
+                                    placeholder = { Text(stringResource(R.string.speech_services_step_instruction_placeholder)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    minLines = 2,
+                                    maxLines = 4,
+                                    supportingText = {
+                                        Text(
+                                            text = stringResource(R.string.speech_services_step_instruction_hint),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
