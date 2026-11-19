@@ -50,8 +50,30 @@ import com.ai.assistance.operit.R
 /**
  * 消息编辑器组件，用于编辑包含XML标签的消息
  */
-data class ParsedMessagePart(val type: PartType, val content: String, val tag: String? = null, val attributes: String? = null)
-enum class PartType { TEXT, XML }
+data class ParsedMessagePart(val type: PartType, val content: String, val tag: String? = null, val attributes: String? = null, val sourceTimestamp: Long? = null)
+enum class PartType { TEXT, XML, COLLABORATION }
+
+internal fun memoryEditorParts(fragments: List<MemoryEditFragment>): List<ParsedMessagePart> =
+    fragments.flatMap { fragment ->
+        if (fragment.isAssistant) {
+            parseMessageContentForEditor(fragment.body).map { it.copy(sourceTimestamp = fragment.timestamp) }
+        } else {
+            listOf(ParsedMessagePart(PartType.COLLABORATION, "", sourceTimestamp = fragment.timestamp))
+        }
+    }
+
+internal fun updatedMemoryEditorFragments(
+    originals: List<MemoryEditFragment>,
+    initialParts: List<ParsedMessagePart>,
+    parts: List<ParsedMessagePart>,
+): List<MemoryEditFragment> = originals.map { fragment ->
+    if (!fragment.isAssistant) fragment else {
+        val before = initialParts.filter { it.sourceTimestamp == fragment.timestamp }
+        val after = parts.filter { it.sourceTimestamp == fragment.timestamp }
+        // Opening and saving must preserve the original whitespace byte for byte.
+        if (before == after) fragment else fragment.copy(body = recomposeMessageFromParts(after))
+    }
+}
 
 private data class XmlTagSuggestion(
     val name: String,
@@ -115,16 +137,20 @@ fun recomposeMessageFromParts(parts: List<ParsedMessagePart>): String {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun MessageEditor(
+internal fun MessageEditor(
     editingMessageContent: MutableState<String>,
     onCancel: () -> Unit,
     onSave: () -> Unit,
     onResend: () -> Unit,
-    showResendButton: Boolean
+    showResendButton: Boolean,
+    memoryFragments: List<MemoryEditFragment>,
+    onMemoryFragmentsChange: (List<MemoryEditFragment>) -> Unit,
+    memoryAnchorTimestamp: Long? = null,
 ) {
     val context = LocalContext.current
-    val initialParts = remember(editingMessageContent.value) {
-        parseMessageContentForEditor(editingMessageContent.value)
+    val initialParts = remember {
+        if (memoryFragments.isNotEmpty()) memoryEditorParts(memoryFragments)
+        else parseMessageContentForEditor(editingMessageContent.value)
     }
     var partsState by remember { mutableStateOf(initialParts) }
     var partToEdit by remember { mutableStateOf<Pair<Int, ParsedMessagePart>?>(null) }
@@ -132,16 +158,27 @@ fun MessageEditor(
     var isRawEditMode by remember { mutableStateOf(false) }
 
     LaunchedEffect(partsState) {
-        if (!isRawEditMode) {
+        if (!isRawEditMode && memoryFragments.isEmpty()) {
             editingMessageContent.value = recomposeMessageFromParts(partsState)
         }
     }
 
     LaunchedEffect(isRawEditMode) {
-        if (!isRawEditMode) {
+        if (!isRawEditMode && memoryFragments.isEmpty()) {
             // Just switched from raw to visual editor, re-parse the content
             partsState = parseMessageContentForEditor(editingMessageContent.value)
         }
+    }
+
+    fun saveEditor() {
+        if (memoryFragments.isNotEmpty()) {
+            val updated = updatedMemoryEditorFragments(memoryFragments, initialParts, partsState)
+            onMemoryFragmentsChange(updated)
+            updated.firstOrNull { it.timestamp == memoryAnchorTimestamp }?.let {
+                editingMessageContent.value = it.body
+            }
+        }
+        onSave()
     }
 
     Dialog(
@@ -175,7 +212,26 @@ fun MessageEditor(
                     )
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { isRawEditMode = !isRawEditMode }) {
+                        TextButton(onClick = {
+                            if (memoryFragments.isNotEmpty()) {
+                                partsState = if (!isRawEditMode) {
+                                    memoryFragments.flatMap { fragment ->
+                                        if (!fragment.isAssistant) {
+                                            listOf(ParsedMessagePart(PartType.COLLABORATION, "", sourceTimestamp = fragment.timestamp))
+                                        } else {
+                                            val sourceParts = partsState.filter { it.sourceTimestamp == fragment.timestamp }
+                                            val content = if (sourceParts == initialParts.filter { it.sourceTimestamp == fragment.timestamp }) fragment.content
+                                                else recomposeMessageFromParts(sourceParts)
+                                            listOf(ParsedMessagePart(PartType.TEXT, content, sourceTimestamp = fragment.timestamp))
+                                        }
+                                    }
+                                } else partsState.flatMap { part ->
+                                    if (part.type == PartType.COLLABORATION) listOf(part)
+                                    else parseMessageContentForEditor(recomposeMessageFromParts(listOf(part))).map { it.copy(sourceTimestamp = part.sourceTimestamp) }
+                                }
+                            }
+                            isRawEditMode = !isRawEditMode
+                        }) {
                             Text(if (isRawEditMode) context.getString(R.string.visual) else context.getString(R.string.plain_text))
                         }
 
@@ -201,7 +257,7 @@ fun MessageEditor(
                         .weight(1f, fill = false)
                         .heightIn(max = 450.dp)
                 ) {
-                    if (isRawEditMode) {
+                    if (isRawEditMode && memoryFragments.isEmpty()) {
                         OutlinedTextField(
                             value = editingMessageContent.value,
                             onValueChange = { editingMessageContent.value = it },
@@ -241,8 +297,47 @@ fun MessageEditor(
                                 )
                             }
 
-                            // Message parts
+                            // Rows the reply is made of. Each one is its own message, so what is
+                            // edited here is written back to that message, not into this body.
                             partsState.forEachIndexed { index, part ->
+                              if (part.type == PartType.COLLABORATION) {
+                                val fragment = memoryFragments.first { it.timestamp == part.sourceTimestamp }
+                                key(fragment.messageIndex) {
+                                    Box(modifier = Modifier.padding(bottom = 8.dp)) {
+                                        MemoryFragmentItem(
+                                            fragment = fragment,
+                                            onBodyChange = { updatedBody ->
+                                                onMemoryFragmentsChange(
+                                                    memoryFragments.map { row ->
+                                                        if (
+                                                            row.messageIndex ==
+                                                                fragment.messageIndex
+                                                        ) {
+                                                            row.copy(body = updatedBody)
+                                                        } else {
+                                                            row
+                                                        }
+                                                    }
+                                                )
+                                            },
+                                            onDeleteToggle = {
+                                                onMemoryFragmentsChange(
+                                                    memoryFragments.map { row ->
+                                                        if (
+                                                            row.messageIndex ==
+                                                                fragment.messageIndex
+                                                        ) {
+                                                            row.copy(deleted = !row.deleted)
+                                                        } else {
+                                                            row
+                                                        }
+                                                    }
+                                                )
+                                            },
+                                        )
+                                    }
+                                }
+                              } else {
                                 when (part.type) {
                                     PartType.TEXT -> {
                                         Box(modifier = Modifier.padding(bottom = 8.dp)) {
@@ -295,7 +390,9 @@ fun MessageEditor(
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                     }
+                                    PartType.COLLABORATION -> Unit
                                 }
+                              }
                             }
 
                             // Add part buttons
@@ -307,7 +404,7 @@ fun MessageEditor(
                             ) {
                                 // Add text button
                                 OutlinedButton(
-                                    onClick = { partsState = partsState + ParsedMessagePart(PartType.TEXT, "") },
+                                    onClick = { partsState = partsState + ParsedMessagePart(PartType.TEXT, "", sourceTimestamp = memoryFragments.lastOrNull { it.isAssistant }?.timestamp) },
                                     shape = RoundedCornerShape(16.dp),
                                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
                                     colors = ButtonDefaults.outlinedButtonColors(
@@ -377,7 +474,7 @@ fun MessageEditor(
 
                     if (showResendButton) {
                         OutlinedButton(
-                            onClick = onSave,
+                            onClick = ::saveEditor,
                             shape = RoundedCornerShape(16.dp),
                             border = ButtonDefaults.outlinedButtonBorder.copy(
                                 width = 1.dp
@@ -414,7 +511,7 @@ fun MessageEditor(
                         }
                     } else {
                         Button(
-                            onClick = onSave,
+                            onClick = ::saveEditor,
                             shape = RoundedCornerShape(16.dp)
                         ) {
                             Text(
@@ -439,9 +536,9 @@ fun MessageEditor(
             },
             onSave = { updatedPart ->
                 if (partToEdit != null) {
-                    partsState = partsState.toMutableList().apply { set(partToEdit!!.first, updatedPart) }
+                    partsState = partsState.toMutableList().apply { set(partToEdit!!.first, updatedPart.copy(sourceTimestamp = partToEdit!!.second.sourceTimestamp)) }
                 } else {
-                    partsState = partsState + updatedPart
+                    partsState = partsState + updatedPart.copy(sourceTimestamp = memoryFragments.lastOrNull { it.isAssistant }?.timestamp)
                 }
                 partToEdit = null
                 showCreateTagDialog = false
@@ -554,6 +651,124 @@ private fun XmlTagItem(
                             .padding(horizontal = 12.dp, vertical = 8.dp)
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemoryFragmentItem(
+    fragment: MemoryEditFragment,
+    onBodyChange: (String) -> Unit,
+    onDeleteToggle: () -> Unit,
+) {
+    val context = LocalContext.current
+    val deleted = fragment.deleted
+    var expanded by remember { mutableStateOf(false) }
+    val rotationState by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(150, easing = FastOutSlowInEasing),
+        label = "memoryFragmentRotation",
+    )
+    val role = rememberMainAgentRole(fragment.sender)
+    val identity = remember(fragment.sender) { subagentAgentIdentity(fragment.sender) }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize()
+            .alpha(if (deleted) 0.55f else 1f),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(enabled = !deleted) { expanded = !expanded }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SubagentAgentAvatar(
+                    avatarUri = role?.avatarUri,
+                    identity = identity,
+                    boxSize = 22.dp,
+                    iconSize = 14.dp,
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = collaborationRowTitle(fragment.sender, role?.name),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = context.getString(collaborationFragmentLabelRes(fragment.kind)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (deleted) {
+                    // 删掉的片段到保存时才真的删，所以这里留着它，让用户能改主意。
+                    TextButton(onClick = onDeleteToggle) {
+                        Text(
+                            context.getString(R.string.undo),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                } else {
+                    ActionIconButton(
+                        icon = Icons.Default.Delete,
+                        contentDescription = context.getString(R.string.delete),
+                        onClick = onDeleteToggle
+                    )
+
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = context.getString(R.string.expand),
+                        modifier = Modifier
+                            .rotate(rotationState)
+                            .size(22.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // What the agent said, editable where it sits rather than behind another dialog.
+            AnimatedVisibility(
+                visible = expanded && !deleted,
+                enter = fadeIn(animationSpec = tween(150)) + expandVertically(animationSpec = tween(150)),
+                exit = fadeOut(animationSpec = tween(150)) + shrinkVertically(animationSpec = tween(150))
+            ) {
+                OutlinedTextField(
+                    value = fragment.body,
+                    onValueChange = onBodyChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .heightIn(min = 56.dp, max = 260.dp),
+                    placeholder = { Text(context.getString(R.string.input_text_content)) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f),
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha=0.3f)
+                    ),
+                    textStyle = MaterialTheme.typography.bodyMedium,
+                    maxLines = 12,
+                    minLines = 2
+                )
             }
         }
     }

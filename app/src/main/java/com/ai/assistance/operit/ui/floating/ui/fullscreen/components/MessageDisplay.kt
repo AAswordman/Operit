@@ -111,6 +111,9 @@ fun MessageDisplay(
                 items = displayMessages,
                 key = { index, message -> "${index}_${message.timestamp}" }
             ) { _, message ->
+                androidx.compose.runtime.CompositionLocalProvider(
+                    com.ai.assistance.operit.ui.features.chat.components.LocalSubagentDetailsEnabled provides false,
+                ) {
                 BubbleStyleChatMessage(
                     message = message,
                     userMessageColor = userMessageColor,
@@ -128,6 +131,7 @@ fun MessageDisplay(
                     heightMemory = messageHeightMemory,
                     enableDialogs = false
                 )
+                }
             }
         }
 

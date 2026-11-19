@@ -26,7 +26,9 @@ import com.ai.assistance.operit.R
 import com.ai.assistance.operit.data.preferences.ToolCollapseMode
 import com.ai.assistance.operit.ui.common.markdown.MarkdownGroupedItem
 import com.ai.assistance.operit.ui.common.markdown.MarkdownNodeGrouper
+import com.ai.assistance.operit.ui.common.markdown.ToolXmlRenderInstanceKey
 import com.ai.assistance.operit.ui.common.markdown.XmlContentRenderer
+import com.ai.assistance.operit.ui.common.markdown.toolInvocationIndexAt
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.markdown.MarkdownNodeStable
 import com.ai.assistance.operit.util.markdown.MarkdownProcessorType
@@ -213,6 +215,7 @@ class ThinkToolsXmlNodeGrouper(
         fillMaxWidth: Boolean,
         fontSize: TextUnit
     ) {
+        val timelineSlice = com.ai.assistance.operit.ui.common.markdown.LocalTranscriptMarkdownSlice.current
         val alpha = if (forceExpandGroups) {
             1f
         } else {
@@ -249,6 +252,17 @@ class ThinkToolsXmlNodeGrouper(
                     stringResource(R.string.thinking_tools_group_title_with_count, toolCount)
             }
 
+        if (timelineSlice != null) {
+            CanvasExpandableHeaderRow(
+                title = titleText,
+                semanticDescription = stringResource(if (timelineSlice.expanded) R.string.collapse else R.string.expand),
+                expanded = timelineSlice.expanded,
+                titleColor = textColor.copy(alpha = 0.7f),
+                modifier = modifier,
+                onClick = timelineSlice.toggle,
+            )
+            return
+        }
         val hasLiveXmlStream = slice.indices.any { idx ->
             val absoluteIndex = group.startIndex + idx
             xmlStreamResolver(absoluteIndex) != null
@@ -324,7 +338,7 @@ class ThinkToolsXmlNodeGrouper(
 
             CanvasExpandableHeaderRow(
                 title = titleText,
-                semanticDescription = if (expanded) "Collapse" else "Expand",
+                semanticDescription = stringResource(if (expanded) R.string.collapse else R.string.expand),
                 expanded = expanded,
                 titleColor = textColor.copy(alpha = 0.7f),
                 rotationDegrees = rotation,
@@ -357,7 +371,14 @@ class ThinkToolsXmlNodeGrouper(
                                             modifier = Modifier.fillMaxWidth(),
                                             textColor = textColor,
                                             xmlStream = xmlStreamResolver(absoluteIndex),
-                                            renderInstanceKey = innerKey
+                                            renderInstanceKey =
+                                                toolInvocationIndexAt(nodes, absoluteIndex)
+                                                    ?.let { invocationIndex ->
+                                                        ToolXmlRenderInstanceKey(
+                                                            innerKey,
+                                                            invocationIndex,
+                                                        )
+                                                    } ?: innerKey
                                         )
                                     } else {
                                         val alreadyAppeared = appearedKeys[innerKey] == true
@@ -383,7 +404,14 @@ class ThinkToolsXmlNodeGrouper(
                                             modifier = Modifier.fillMaxWidth().graphicsLayer { this.alpha = itemAlpha },
                                             textColor = textColor,
                                             xmlStream = xmlStreamResolver(absoluteIndex),
-                                            renderInstanceKey = innerKey
+                                            renderInstanceKey =
+                                                toolInvocationIndexAt(nodes, absoluteIndex)
+                                                    ?.let { invocationIndex ->
+                                                        ToolXmlRenderInstanceKey(
+                                                            innerKey,
+                                                            invocationIndex,
+                                                        )
+                                                    } ?: innerKey
                                         )
                                     }
                                 }

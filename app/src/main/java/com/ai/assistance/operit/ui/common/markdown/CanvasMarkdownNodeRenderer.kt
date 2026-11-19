@@ -423,6 +423,7 @@ internal fun CanvasMarkdownNodeRenderer(
     index: Int,
     xmlRenderer: XmlContentRenderer,
     xmlStream: Stream<String>? = null,
+    xmlRenderInstanceKey: Any? = nodeKey,
     enableDialogs: Boolean = true,
     fillMaxWidth: Boolean = true,
     isLastNode: Boolean = false
@@ -483,6 +484,7 @@ internal fun CanvasMarkdownNodeRenderer(
         onLinkClick = currentOnLinkClick.value,
         xmlRenderer = currentXmlRenderer.value,
         xmlStream = xmlStream,
+        xmlRenderInstanceKey = xmlRenderInstanceKey,
         index = index,
         enableDialogs = enableDialogs,
         fillMaxWidth = fillMaxWidth,
@@ -523,6 +525,7 @@ private fun renderNodeContent(
     onLinkClick: ((String) -> Unit)?,
     xmlRenderer: XmlContentRenderer,
     xmlStream: Stream<String>?,
+    xmlRenderInstanceKey: Any?,
     index: Int,
     enableDialogs: Boolean,
     fillMaxWidth: Boolean,
@@ -665,7 +668,7 @@ private fun renderNodeContent(
                 modifier = Modifier.fillMaxWidth(),
                 textColor = textColor,
                 xmlStream = xmlStream,
-                renderInstanceKey = nodeKey
+                renderInstanceKey = xmlRenderInstanceKey
             )
         }
         

@@ -37,6 +37,7 @@ class MultiServiceManager(
         private val closeAction: suspend () -> Unit,
         val service: AIService,
         val modelConfig: ModelConfigData,
+        val modelIndex: Int,
         val modelParameters: List<ModelParameter<*>>
     ) {
         private val closed = AtomicBoolean(false)
@@ -112,8 +113,15 @@ class MultiServiceManager(
         }
     }
 
-    suspend fun acquireServiceForFunction(functionType: FunctionType): ServiceLease {
+    suspend fun acquireServiceForFunction(
+        functionType: FunctionType,
+        reasoningEffort: String? = null,
+    ): ServiceLease {
         ensureInitialized()
+        if (reasoningEffort != null) {
+            val mapping = functionalConfigManager.getConfigMappingForFunction(functionType)
+            return acquireServiceForConfig(mapping.configId, mapping.modelIndex, reasoningEffort)
+        }
         val managedService =
             serviceMutex.withLock {
                 getOrCreateServiceForFunctionLocked(functionType).also { it.activeLeases += 1 }
@@ -121,11 +129,28 @@ class MultiServiceManager(
         return createLease(managedService)
     }
 
-    suspend fun acquireServiceForConfig(configId: String, modelIndex: Int): ServiceLease {
+    suspend fun acquireServiceForConfig(
+        configId: String,
+        modelIndex: Int,
+        reasoningEffort: String? = null,
+    ): ServiceLease {
         ensureInitialized()
         val managedService =
             serviceMutex.withLock {
-                getOrCreateServiceForConfigLocked(configId, modelIndex).also { it.activeLeases += 1 }
+                if (reasoningEffort == null) {
+                    getOrCreateServiceForConfigLocked(configId, modelIndex).also { it.activeLeases += 1 }
+                } else {
+                    val config = modelConfigManager.getModelConfigFlow(configId).first()
+                    val selectedIndex = getValidModelIndex(config.modelName, modelIndex)
+                    val overrideConfig =
+                        com.ai.assistance.operit.core.agent.collaboration.CollaborationModelParameters
+                            .overrideConfig(config, selectedIndex, reasoningEffort)
+                    // Keep a per-turn override separate from cached services used by other callers.
+                    ManagedService(
+                        createServiceFromConfig(overrideConfig, selectedIndex), overrideConfig,
+                        selectedIndex, activeLeases = 1, retired = true,
+                    ).also { retiredServices.add(it) }
+                }
             }
         return createLease(managedService)
     }
@@ -138,6 +163,7 @@ class MultiServiceManager(
                 closeAction = { releaseLease(managedService) },
                 service = managedService.service,
                 modelConfig = managedService.modelConfig,
+                modelIndex = managedService.modelIndex,
                 modelParameters = modelParameters
             )
         } catch (error: Throwable) {
@@ -162,7 +188,8 @@ class MultiServiceManager(
             AppLogger.d(TAG, "功能${functionType}的缓存服务配置已变更，已废弃旧实例，重建服务")
         }
 
-        val service = createServiceFromConfig(config, configMapping.modelIndex)
+        val actualModelIndex = getValidModelIndex(config.modelName, configMapping.modelIndex)
+        val service = createServiceFromConfig(config, actualModelIndex)
         val managedService = ManagedService(
             service = service,
             modelConfig = config,

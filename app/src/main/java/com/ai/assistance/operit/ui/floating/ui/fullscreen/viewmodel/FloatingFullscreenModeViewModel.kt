@@ -9,6 +9,7 @@ import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.WakeWordPreferences
 import com.ai.assistance.operit.ui.floating.FloatContext
+import com.ai.assistance.operit.ui.floating.isReadOnlyTranscript
 import com.ai.assistance.operit.ui.floating.ui.fullscreen.XmlTextProcessor
 import com.ai.assistance.operit.ui.floating.ui.pet.AvatarEmotionManager
 import com.ai.assistance.operit.ui.floating.voice.SpeechInteractionManager
@@ -91,17 +92,20 @@ class FloatingFullscreenModeViewModel(
         onSpeechResult = { text, _ -> 
             // 收到最终语音结果后直接发送，不再写入底部输入框
             val finalText = text.trim()
-            if (finalText.isNotEmpty()) {
+            if (finalText.isNotEmpty() && !isCurrentChatReadOnly()) {
+                val service = floatContext.chatService ?: return@SpeechInteractionManager
+                val target = service.captureSendTarget()
                 aiMessage = context.getString(R.string.floating_thinking)
                 coroutineScope.launch {
+                    val captured = mutableListOf<com.ai.assistance.operit.data.model.AttachmentInfo>()
                     startVoiceAvatarThinking()
                     prepareVoiceCaptureForAiTurn()
                     try {
-                        maybeAutoAttachByKeyword(finalText)
+                        maybeAutoAttachByKeyword(finalText, target.core.getAttachmentDelegate(), captured::add)
                     } catch (_: Exception) {
                     }
-                    floatContext.onSendMessage?.invoke(finalText, PromptFunctionType.VOICE)
-                    awaitAiTurnAndResumeVoiceCapture()
+                    val destination = service.sendCapturedMessage(target, finalText, PromptFunctionType.VOICE, captured)
+                    awaitAiTurnAndResumeVoiceCapture(target.copy(chatId = destination), destination != null)
                 }
             }
         },
@@ -137,6 +141,16 @@ class FloatingFullscreenModeViewModel(
         return isAiBusy() || speechManager.voiceService.isSpeaking
     }
 
+    /**
+     * A subagent chat is another agent's read-only transcript. FloatingChatService refuses such
+     * sends as well; stopping here keeps this surface from waiting for a turn that cannot start.
+     */
+    private fun isCurrentChatReadOnly(): Boolean {
+        val core = floatContext.chatService?.getChatCore() ?: return false
+        val chatId = core.currentChatId.value ?: return false
+        return core.chatHistories.value.firstOrNull { it.id == chatId }.isReadOnlyTranscript()
+    }
+
     private fun shouldInterceptCenterAvatarClick(): Boolean {
         return isVoiceCapturePausedForAi || isAiBusyOrSpeaking()
     }
@@ -151,24 +165,35 @@ class FloatingFullscreenModeViewModel(
         }
     }
 
-    private fun awaitAiTurnAndResumeVoiceCapture() {
+    private fun awaitAiTurnAndResumeVoiceCapture(
+        target: com.ai.assistance.operit.services.FloatingChatService.SendTarget? = null,
+        accepted: Boolean = true,
+    ) {
         if (!isWaveActive || !shouldResumeVoiceCaptureAfterAiTurn) return
         resumeVoiceCaptureJob?.cancel()
         resumeVoiceCaptureJob = coroutineScope.launch {
             delay(120)
-            var observedAiBusy = false
+            var observedAiBusy = !accepted
+            val startedAt = android.os.SystemClock.elapsedRealtime()
             while (isActive && isWaveActive && shouldResumeVoiceCaptureAfterAiTurn) {
+                val changedChat = target != null &&
+                    (floatContext.chatService?.getChatCore() !== target.core ||
+                        target.core.currentChatId.value != target.chatId)
+                // Switching chats must not resume the microphone over another active reply.
                 val busy = isAiBusyOrSpeaking()
                 if (busy) {
                     observedAiBusy = true
                 }
-                if (observedAiBusy && !busy) {
+                // Switching away or a rejected/very short turn must not strand voice capture.
+                if (!busy && (observedAiBusy || changedChat ||
+                        android.os.SystemClock.elapsedRealtime() - startedAt >= 3_000L)) {
                     shouldResumeVoiceCaptureAfterAiTurn = false
                     isVoiceCapturePausedForAi = false
                     // AI 这一轮结束后，总是从此刻重新开始计算空闲超时。
                     lastVoiceActivityAtMs = System.currentTimeMillis()
                     if (!speechManager.isRecording && !speechManager.isProcessingSpeech) {
-                        startVoiceCapture()
+                        // Automatic resume must never take the manual interruption path.
+                        beginListening()
                     }
                     return@launch
                 }
@@ -318,6 +343,10 @@ class FloatingFullscreenModeViewModel(
             floatContext.onCancelMessage?.invoke()
         }
         
+        beginListening()
+    }
+
+    private fun beginListening() {
         speechManager.startListening { errorMsg ->
             aiMessage = errorMsg
         }
@@ -551,6 +580,12 @@ class FloatingFullscreenModeViewModel(
     }
     
     fun sendEditedMessage() {
+        if (isCurrentChatReadOnly()) {
+            aiMessage = context.getString(R.string.floating_chat_subagent_read_only)
+            isEditMode = false
+            editableText = ""
+            return
+        }
         if (editableText.isNotBlank()) {
             startVoiceAvatarThinking()
             prepareVoiceCaptureForAiTurn()
@@ -565,7 +600,14 @@ class FloatingFullscreenModeViewModel(
     fun sendInputMessage() {
         val text = inputText.trim()
         if (text.isEmpty() && !attachScreenContent && !attachNotifications && !attachLocation && !hasOcrSelection) return
+        if (isCurrentChatReadOnly()) {
+            aiMessage = context.getString(R.string.floating_chat_subagent_read_only)
+            inputText = ""
+            return
+        }
 
+        val service = floatContext.chatService ?: return
+        val target = service.captureSendTarget()
         // 立即清理UI状态，不等待协程
         val shouldCaptureScreen = attachScreenContent
         val shouldCaptureNotifications = attachNotifications
@@ -582,37 +624,41 @@ class FloatingFullscreenModeViewModel(
         prepareVoiceCaptureForAiTurn()
 
         coroutineScope.launch {
+            val captured = mutableListOf<com.ai.assistance.operit.data.model.AttachmentInfo>()
+            val attachmentDelegate = target.core.getAttachmentDelegate()
             try {
-                maybeAutoAttachByKeyword(text)
+                maybeAutoAttachByKeyword(text, attachmentDelegate, captured::add)
             } catch (_: Exception) {
             }
             try {
-                val attachmentDelegate = floatContext.chatService?.getChatCore()?.getAttachmentDelegate()
                 if (shouldCaptureScreen) {
-                    attachmentDelegate?.captureScreenContent()
+                    attachmentDelegate.captureScreenContent(onCaptured = captured::add)
                 }
                 if (shouldCaptureNotifications) {
-                    attachmentDelegate?.captureNotifications()
+                    attachmentDelegate.captureNotifications(onCaptured = captured::add)
                 }
                 if (shouldCaptureLocation) {
-                    attachmentDelegate?.captureLocation()
+                    attachmentDelegate.captureLocation(onCaptured = captured::add)
                 }
                 // hasOcrSelection 的附件已经在 FloatingScreenOcrScreen 中添加了
             } catch (_: Exception) {
             }
 
-            floatContext.onSendMessage?.invoke(text, PromptFunctionType.VOICE)
-            awaitAiTurnAndResumeVoiceCapture()
+            val destination = service.sendCapturedMessage(target, text, PromptFunctionType.VOICE, captured)
+            awaitAiTurnAndResumeVoiceCapture(target.copy(chatId = destination), destination != null)
         }
     }
 
-    private suspend fun maybeAutoAttachByKeyword(text: String) {
+    private suspend fun maybeAutoAttachByKeyword(
+        text: String,
+        attachmentDelegate: com.ai.assistance.operit.services.core.AttachmentDelegate,
+        onCaptured: (com.ai.assistance.operit.data.model.AttachmentInfo) -> Unit,
+    ) {
         if (text.isBlank()) return
 
         val enabled = wakePrefs.voiceAutoAttachEnabledFlow.first()
         if (!enabled) return
 
-        val attachmentDelegate = floatContext.chatService?.getChatCore()?.getAttachmentDelegate() ?: return
 
         val items = wakePrefs.voiceAutoAttachItemsFlow.first()
         items
@@ -625,16 +671,16 @@ class FloatingFullscreenModeViewModel(
 
                 when (item.type) {
                     WakeWordPreferences.VoiceAutoAttachType.SCREEN_OCR -> {
-                        attachmentDelegate.captureScreenContent()
+                        attachmentDelegate.captureScreenContent(onCaptured = onCaptured)
                     }
                     WakeWordPreferences.VoiceAutoAttachType.NOTIFICATIONS -> {
-                        attachmentDelegate.captureNotifications()
+                        attachmentDelegate.captureNotifications(onCaptured = onCaptured)
                     }
                     WakeWordPreferences.VoiceAutoAttachType.LOCATION -> {
-                        attachmentDelegate.captureLocation()
+                        attachmentDelegate.captureLocation(onCaptured = onCaptured)
                     }
                     WakeWordPreferences.VoiceAutoAttachType.TIME -> {
-                        attachmentDelegate.captureCurrentTime()
+                        attachmentDelegate.captureCurrentTime(onCaptured = onCaptured)
                     }
                 }
             }
