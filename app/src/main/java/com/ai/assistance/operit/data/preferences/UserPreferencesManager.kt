@@ -11,13 +11,16 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.model.ContextSummarySettings
 import com.ai.assistance.operit.data.model.LegacyUserProfile
 import com.ai.assistance.operit.data.model.MemorySpace
 import com.ai.assistance.operit.data.model.CharacterCardMemoryProfileBindingMode
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -25,6 +28,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import com.ai.assistance.operit.data.db.ObjectBoxManager
+import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.LocaleUtils.LanguageCodes
 
 private val Context.userPreferencesDataStore: DataStore<Preferences> by
@@ -77,6 +81,14 @@ class UserPreferencesManager private constructor(private val context: Context) {
         // Memory spaces replace preference profiles while retaining their stable identifiers.
         private val ACTIVE_MEMORY_SPACE_ID = stringPreferencesKey("active_memory_space_id")
         private val MEMORY_SPACE_LIST = stringPreferencesKey("memory_space_list")
+
+        // 全局默认上下文总结配置：无角色卡或角色卡为 FOLLOW_GLOBAL 时使用
+        private val GLOBAL_CONTEXT_SUMMARY_SETTINGS =
+                stringPreferencesKey("global_context_summary_settings")
+
+        // 存量总结配置迁移完成标记：旧的总结设置挂在模型配置上，搬进全局默认后写此标记
+        private val CONTEXT_SUMMARY_MIGRATION_DONE =
+                booleanPreferencesKey("context_summary_migrated_from_model_config")
 
         // 应用语言设置
         private val APP_LANGUAGE = stringPreferencesKey("app_language")
@@ -395,6 +407,52 @@ class UserPreferencesManager private constructor(private val context: Context) {
         context.userPreferencesDataStore.data.map { preferences ->
             preferences[ACTIVE_MEMORY_SPACE_ID] ?: DEFAULT_PROFILE_ID
         }
+
+    /**
+     * 全局默认上下文总结配置。
+     *
+     * 替代原先挂在全局 CHAT 模型配置上的 summary 字段：没有角色卡或角色卡绑定模式为
+     * FOLLOW_GLOBAL 时，运行时统一解析到这份配置。缺失或损坏时回退默认值，
+     * 保证与迁移前的默认行为一致。
+     *
+     * 迁移先于任何一次读取：存量用户的自定义总结配置原本挂在模型配置上，若先让消费者读到默认值，
+     * 阈值/规则/分段在迁移完成前会短暂失效（ApiConfigDelegate 是 Eagerly 收集，尤其容易撞上）。
+     */
+    val globalContextSummaryFlow: Flow<ContextSummarySettings> =
+        flow {
+            ContextSummarySettingsMigration.ensureMigrated(context)
+            emitAll(
+                context.userPreferencesDataStore.data.map { preferences ->
+                    val raw = preferences[GLOBAL_CONTEXT_SUMMARY_SETTINGS]
+                    if (raw.isNullOrBlank()) {
+                        ContextSummarySettings()
+                    } else {
+                        runCatching {
+                            Json.decodeFromString<ContextSummarySettings>(raw)
+                        }.getOrElse {
+                            AppLogger.e("UserPreferencesManager", "解析全局上下文总结配置失败", it)
+                            ContextSummarySettings()
+                        }
+                    }
+                }
+            )
+        }
+
+    suspend fun saveGlobalContextSummary(settings: ContextSummarySettings) {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[GLOBAL_CONTEXT_SUMMARY_SETTINGS] = Json.encodeToString(settings)
+        }
+    }
+
+    /** 存量总结配置迁移是否已完成。标记在迁移完成时写入，避免重复迁移覆盖用户后来的修改。 */
+    internal suspend fun isContextSummaryMigrationDone(): Boolean =
+        context.userPreferencesDataStore.data.first()[CONTEXT_SUMMARY_MIGRATION_DONE] == true
+
+    internal suspend fun markContextSummaryMigrationDone() {
+        context.userPreferencesDataStore.edit { preferences ->
+            preferences[CONTEXT_SUMMARY_MIGRATION_DONE] = true
+        }
+    }
 
     val memorySpaceListFlow: Flow<List<String>> =
         context.userPreferencesDataStore.data.map { preferences ->

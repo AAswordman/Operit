@@ -62,10 +62,6 @@ object ModelConfigDefaults {
         const val DEFAULT_MAX_CONTEXT_LENGTH = 200.0f
         const val DEFAULT_ENABLE_MAX_CONTEXT_MODE = false
         const val DEFAULT_ENABLE_TOOL_CALL = true
-        const val DEFAULT_SUMMARY_TOKEN_THRESHOLD = 0.70f
-        const val DEFAULT_ENABLE_SUMMARY = true
-        const val DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT = true
-        const val DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD = 16
 }
 
 data class SummarySectionConfig(
@@ -142,21 +138,10 @@ data class ModelConfigData(
         // 自定义请求头JSON字符串
         val customHeaders: String = "{}",
 
-        // 上下文/总结配置
+        // 上下文配置；总结配置已迁移至角色卡或全局默认（见 ContextSummarySettings）
         val contextLength: Float = ModelConfigDefaults.DEFAULT_CONTEXT_LENGTH,
         val maxContextLength: Float = ModelConfigDefaults.DEFAULT_MAX_CONTEXT_LENGTH,
         val enableMaxContextMode: Boolean = ModelConfigDefaults.DEFAULT_ENABLE_MAX_CONTEXT_MODE,
-        val summaryTokenThreshold: Float = ModelConfigDefaults.DEFAULT_SUMMARY_TOKEN_THRESHOLD,
-        val enableSummary: Boolean = ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY,
-        val enableSummaryByMessageCount: Boolean =
-                ModelConfigDefaults.DEFAULT_ENABLE_SUMMARY_BY_MESSAGE_COUNT,
-        val summaryMessageCountThreshold: Int =
-                ModelConfigDefaults.DEFAULT_SUMMARY_MESSAGE_COUNT_THRESHOLD,
-        // 自定义总结规则
-        val summaryCustomRules: String = "",
-        val summarySectionOverrides: List<SummarySectionOverride> = emptyList(),
-        val enableSummaryDialogueReview: Boolean = true,
-        val summaryDialogueReviewTitle: String = "",
 
         // MNN特定配置
         // 注意：MNN模型路径会根据modelName自动构建，不需要单独存储

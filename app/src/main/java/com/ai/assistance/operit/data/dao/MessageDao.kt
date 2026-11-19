@@ -108,14 +108,6 @@ interface MessageDao {
     suspend fun getLatestSummaryTimestamp(chatId: String): Long?
 
     @Query(
-        "SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'summary' AND timestamp < :beforeTimestampExclusive ORDER BY timestamp DESC LIMIT 1"
-    )
-    suspend fun getLatestSummaryTimestampBefore(
-        chatId: String,
-        beforeTimestampExclusive: Long,
-    ): Long?
-
-    @Query(
         "SELECT timestamp FROM messages WHERE chatId = :chatId AND sender = 'summary' AND timestamp <= :upToTimestampInclusive ORDER BY timestamp DESC LIMIT 1"
     )
     suspend fun getLatestSummaryTimestampUpTo(

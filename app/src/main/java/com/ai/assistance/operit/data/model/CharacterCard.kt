@@ -56,6 +56,8 @@ data class CharacterCard(
     val chatModelIndex: Int = 0, // 固定绑定时使用的模型索引
     val memoryProfileBindingMode: String = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL, // 记忆配置绑定模式
     val memoryProfileId: String? = null, // 固定绑定时使用的记忆配置ID
+    val summaryBindingMode: String = CharacterCardSummaryBindingMode.FOLLOW_GLOBAL, // 上下文总结配置绑定模式
+    val summary: ContextSummarySettings = ContextSummarySettings(), // 专属上下文总结配置（CUSTOM 时生效）
     val toolAccessConfig: CharacterCardToolAccessConfig = CharacterCardToolAccessConfig(), // 角色卡自定义工具白名单
     val isDefault: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
@@ -77,6 +79,21 @@ object CharacterCardMemoryProfileBindingMode {
 
     fun normalize(mode: String?): String {
         return if (mode == FIXED_PROFILE) FIXED_PROFILE else FOLLOW_GLOBAL
+    }
+}
+
+/**
+ * 上下文总结配置绑定模式。
+ *
+ * CUSTOM 表示该角色卡持有专属总结配置；FOLLOW_GLOBAL 表示使用全局默认总结配置。
+ * 替代了原先挂在 ModelConfigData 上的 summary 字段，使总结提示词与阈值随角色卡而非模型。
+ */
+object CharacterCardSummaryBindingMode {
+    const val FOLLOW_GLOBAL = "FOLLOW_GLOBAL"
+    const val CUSTOM = "CUSTOM"
+
+    fun normalize(mode: String?): String {
+        return if (mode == CUSTOM) CUSTOM else FOLLOW_GLOBAL
     }
 }
 
@@ -136,6 +153,8 @@ data class OperitCharacterCardPayload(
     val chatModelIndex: Int = 0,
     val memoryProfileBindingMode: String = CharacterCardMemoryProfileBindingMode.FOLLOW_GLOBAL,
     val memoryProfileId: String? = null,
+    val summaryBindingMode: String = CharacterCardSummaryBindingMode.FOLLOW_GLOBAL,
+    val summary: ContextSummarySettings = ContextSummarySettings(),
     val toolAccessConfig: CharacterCardToolAccessConfig? = null
 )
 
