@@ -66,10 +66,8 @@
     <string name="floating_processing">처리 중...</string>
     <string name="floating_hold_microphone_to_speak">아래 마이크를 길게 눌러 말하세요.</string>
     <string name="floating_thinking">생각 중...</string>
-    <string name="floating_cannot_get_input_service">입력 방법 서비스를 받을 수 없습니다.</string>
     <string name="floating_close_floating_window">플로팅 창 닫기</string>
     <string name="floating_add_attachment">첨부파일 추가</string>
-    <string name="floating_cannot_get_focus">초점을 잡을 수 없습니다</string>
     <string name="floating_listening">듣고 있어요...</string>
     <string name="floating_hold_microphone">마이크 길게 누르기</string>
     <string name="floating_start_recording_failed">녹음을 시작하지 못했습니다.</string>

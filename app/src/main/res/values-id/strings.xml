@@ -188,10 +188,8 @@
     <string name="floating_processing">Memproses...</string>
     <string name="floating_hold_microphone_to_speak">Tahan mikrofon di bawah untuk mulai berbicara</string>
     <string name="floating_thinking">Sedang berpikir...</string>
-    <string name="floating_cannot_get_input_service">Tidak dapat memperoleh layanan metode input</string>
     <string name="floating_close_floating_window">Tutup jendela mengambang</string>
     <string name="floating_add_attachment">Tambahkan lampiran</string>
-    <string name="floating_cannot_get_focus">Tidak dapat memperoleh fokus</string>
     <string name="floating_listening">Sedang mendengarkan...</string>
     <string name="floating_hold_microphone">Tahan mikrofon</string>
     <string name="floating_start_recording_failed">Gagal memulai rekaman</string>

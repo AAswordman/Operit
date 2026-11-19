@@ -65,10 +65,8 @@
     <string name="floating_processing">Memproses...</string>
     <string name="floating_hold_microphone_to_speak">Tekan dan tahan mikrofon di bawah untuk mula bercakap</string>
     <string name="floating_thinking">Berfikir...</string>
-    <string name="floating_cannot_get_input_service">Tidak dapat mendapatkan perkhidmatan input</string>
     <string name="floating_close_floating_window">Tutup tetingkap terapung</string>
     <string name="floating_add_attachment">Tambah lampiran</string>
-    <string name="floating_cannot_get_focus">Tidak dapat mendapatkan fokus</string>
     <string name="floating_listening">Sedang mendengar...</string>
     <string name="floating_hold_microphone">Tekan dan tahan mikrofon</string>
     <string name="floating_start_recording_failed">Gagal memulakan rakaman</string>
