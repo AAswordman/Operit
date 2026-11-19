@@ -791,7 +791,7 @@ class MarketStatsApiService {
             }
         }
 
-    suspend fun getComments(entryId: String, page: Int = 1): Result<List<MarketV2Comment>> =
+    suspend fun getComments(entryId: String, page: Int = 1): Result<MarketV2CommentsPageResponse> =
         withContext(Dispatchers.IO) {
             runCatching {
                 requestStaticJson(
@@ -800,7 +800,7 @@ class MarketStatsApiService {
                     notFoundValue = MarketV2CommentsPageResponse(entryId = entryId, page = page)
                 ) { body ->
                     json.decodeFromString(MarketV2CommentsPageResponse.serializer(), body)
-                }.items
+                }
             }
         }
 

@@ -16,6 +16,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/** Number of pages holding [total] comments at [pageSize] comments per page. */
+internal fun commentPageCount(total: Int, pageSize: Int): Int =
+    (total + pageSize - 1) / pageSize
+
 enum class CommentPostSuccessBehavior {
     APPEND_TO_CACHE,
     RELOAD_FROM_SERVER
@@ -77,13 +81,13 @@ class MarketInteractionController(
         _entryReactions.value = emptyMap()
     }
 
-    fun loadEntryComments(entryId: String, perPage: Int = 50) {
+    fun loadEntryComments(entryId: String) {
         val id = entryId.trim()
         if (id.isBlank()) return
         scope.launch {
             try {
                 _isLoadingComments.value = _isLoadingComments.value + id
-                val result = marketApiService.getComments(id).map { comments -> comments.take(perPage) }
+                val result = loadAllCommentPages(id)
                 result.fold(
                     onSuccess = { comments ->
                         _entryComments.value = _entryComments.value.toMutableMap().also { it[id] = comments }
@@ -107,12 +111,22 @@ class MarketInteractionController(
         }
     }
 
+    // Market comments are static page files; follow total/pageSize so later pages are not dropped.
+    private suspend fun loadAllCommentPages(entryId: String): Result<List<MarketV2Comment>> {
+        val firstPage = marketApiService.getComments(entryId).getOrElse { return Result.failure(it) }
+        val comments = firstPage.items.toMutableList()
+        for (page in 2..commentPageCount(firstPage.total, firstPage.pageSize)) {
+            val response = marketApiService.getComments(entryId, page).getOrElse { return Result.failure(it) }
+            comments += response.items
+        }
+        return Result.success(comments.distinctBy { it.id })
+    }
+
     fun postEntryComment(
         entryId: String,
         body: String,
         parentId: String? = null,
-        successBehavior: CommentPostSuccessBehavior = CommentPostSuccessBehavior.APPEND_TO_CACHE,
-        perPage: Int = 50
+        successBehavior: CommentPostSuccessBehavior = CommentPostSuccessBehavior.APPEND_TO_CACHE
     ) {
         val id = entryId.trim()
         if (id.isBlank()) return
@@ -129,7 +143,7 @@ class MarketInteractionController(
                                     it[id] = existing + newComment
                                 }
                             }
-                            CommentPostSuccessBehavior.RELOAD_FROM_SERVER -> loadEntryComments(id, perPage)
+                            CommentPostSuccessBehavior.RELOAD_FROM_SERVER -> loadEntryComments(id)
                         }
                         messages.commentPostSuccess?.let { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() }
                         AppLogger.d(logTag, "Posted comment to entry $id")

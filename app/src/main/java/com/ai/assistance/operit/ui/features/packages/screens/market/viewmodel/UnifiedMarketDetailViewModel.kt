@@ -94,7 +94,7 @@ class UnifiedMarketDetailViewModel(
     }
 
     fun loadEntryComments(entryId: String) {
-        marketInteractionController.loadEntryComments(entryId, perPage = 50)
+        marketInteractionController.loadEntryComments(entryId)
     }
 
     fun postEntryComment(entryId: String, body: String, parentId: String? = null) {
@@ -110,8 +110,7 @@ class UnifiedMarketDetailViewModel(
                 entryId = entryId,
                 body = text,
                 parentId = parentId,
-                successBehavior = CommentPostSuccessBehavior.RELOAD_FROM_SERVER,
-                perPage = 50
+                successBehavior = CommentPostSuccessBehavior.RELOAD_FROM_SERVER
             )
         }
     }
