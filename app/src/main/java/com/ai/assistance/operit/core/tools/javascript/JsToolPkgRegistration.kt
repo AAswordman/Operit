@@ -363,7 +363,14 @@ internal fun buildToolPkgRegistrationBridgeScript(): String {
                     ? fn.__operit_toolpkg_export_name.trim()
                     : '';
                 if (!modulePath || !exportName) {
-                    throw new Error(label + ' function must be exported from a toolpkg module');
+                    var hookId = definition && definition.id ? String(definition.id) : '<unknown>';
+                    throw new Error(
+                        label + ' (id: ' + hookId + ') function must be exported from the toolpkg ' +
+                            'main module or a module it requires; a locally defined function cannot ' +
+                            'be resolved back to its source after registration, so the hook would ' +
+                            'never run. Export the function (e.g. `exports.onMyHook = onMyHook;`) ' +
+                            'and pass that exported reference to ' + label + '.'
+                    );
                 }
                 var fromModulePath = activeModulePath();
                 var functionName = buildGeneratedFunctionName(definition);
