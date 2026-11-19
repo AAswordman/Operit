@@ -123,6 +123,16 @@ class ApiPreferences private constructor(private val context: Context) {
         // Key for Tools Enable/Disable
         val ENABLE_TOOLS = booleanPreferencesKey("enable_tools")
 
+        // 修改意图：工具调用的大模型自动审查开关（三开关：文件工具区内/区外 + 高危工具）。
+        // 仅在工具模式为"允许"时生效与显示
+        val TOOL_REVIEW_INSIDE_WORKSPACE = booleanPreferencesKey("tool_review_inside_workspace")
+        val TOOL_REVIEW_OUTSIDE_WORKSPACE = booleanPreferencesKey("tool_review_outside_workspace")
+        val TOOL_REVIEW_HIGH_RISK_TOOLS = booleanPreferencesKey("tool_review_high_risk_tools")
+
+        // 修改意图：文件读取 AI 提炼开关（read_file/read_file_part/read_file_full 默认走功能模型提炼）。
+        // 默认开启；关闭时三工具回到原始内容返回行为
+        val FILE_DISTILL_ENABLED = booleanPreferencesKey("file_distill_enabled")
+
         // Key for per-tool prompt visibility
         val TOOL_PROMPT_VISIBILITY_JSON = stringPreferencesKey("tool_prompt_visibility_json")
 
@@ -158,6 +168,14 @@ class ApiPreferences private constructor(private val context: Context) {
 
         // Default value for Tools Enable/Disable
         const val DEFAULT_ENABLE_TOOLS = true
+
+        // 修改意图：自动审查默认关闭（三开关一致）
+        const val DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE = false
+        const val DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE = false
+        const val DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS = false
+
+        // 文件读取 AI 提炼默认开启
+        const val DEFAULT_FILE_DISTILL_ENABLED = true
 
         // Default value for Disable Stream Output (default false, meaning stream is enabled by default)
         const val DEFAULT_DISABLE_STREAM_OUTPUT = false
@@ -275,6 +293,28 @@ class ApiPreferences private constructor(private val context: Context) {
             preferences[ENABLE_TOOLS] ?: DEFAULT_ENABLE_TOOLS
         }
 
+    // 修改意图：工具调用自动审查开关（区内/区外 + 高危工具）
+    val toolReviewInsideWorkspaceFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_INSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_INSIDE_WORKSPACE
+        }
+
+    val toolReviewOutsideWorkspaceFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] ?: DEFAULT_TOOL_REVIEW_OUTSIDE_WORKSPACE
+        }
+
+    val toolReviewHighRiskToolsFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] ?: DEFAULT_TOOL_REVIEW_HIGH_RISK_TOOLS
+        }
+
+    // 修改意图：文件读取 AI 提炼开关 Flow
+    val fileDistillEnabledFlow: Flow<Boolean> =
+        context.apiDataStore.data.map { preferences ->
+            preferences[FILE_DISTILL_ENABLED] ?: DEFAULT_FILE_DISTILL_ENABLED
+        }
+
     // Flow for per-tool prompt visibility
     val toolPromptVisibilityFlow: Flow<Map<String, Boolean>> =
         context.apiDataStore.data.map { preferences ->
@@ -386,6 +426,32 @@ class ApiPreferences private constructor(private val context: Context) {
     // Save Tools Enable/Disable setting
     suspend fun saveEnableTools(isEnabled: Boolean) {
         context.apiDataStore.edit { preferences -> preferences[ENABLE_TOOLS] = isEnabled }
+    }
+
+    // 修改意图：保存工具调用自动审查开关（区内/区外 + 高危工具）
+    suspend fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_INSIDE_WORKSPACE] = isEnabled
+        }
+    }
+
+    suspend fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_OUTSIDE_WORKSPACE] = isEnabled
+        }
+    }
+
+    suspend fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[TOOL_REVIEW_HIGH_RISK_TOOLS] = isEnabled
+        }
+    }
+
+    // 修改意图：保存文件读取 AI 提炼开关
+    suspend fun saveFileDistillEnabled(isEnabled: Boolean) {
+        context.apiDataStore.edit { preferences ->
+            preferences[FILE_DISTILL_ENABLED] = isEnabled
+        }
     }
 
     // Save prompt visibility for a single tool

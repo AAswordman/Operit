@@ -51,10 +51,18 @@ class AIToolHandler private constructor(private val context: Context) {
     // Tool permission system
     private val toolPermissionSystem = ToolPermissionSystem.getInstance(context)
 
+    // 修改意图：记录最近一次 usePackage 的返回消息（含"包未启用"等真实原因）。
+    // 此前该返回值被丢弃，包禁用时模型只能看到笼统的 "Tool not found"，无法自纠
+    @Volatile
+    private var lastPackageActivationMessage: String? = null
+
     /** Get the tool permission system for UI use */
     fun getToolPermissionSystem(): ToolPermissionSystem {
         return toolPermissionSystem
     }
+
+    /** 最近一次包自动激活失败的原因（来自 PackageManager.usePackage 的返回），无则为 null */
+    fun getLastPackageActivationMessage(): String? = lastPackageActivationMessage
     
     fun unregisterTool(toolName: String) {
         availableTools.remove(toolName)
@@ -321,7 +329,9 @@ class AIToolHandler private constructor(private val context: Context) {
                     val isMcpAvailable = packageManager.getAvailableServerPackages().containsKey(packageName)
                     if (isPackageAvailable || isMcpAvailable) {
                         AppLogger.d(TAG, "Auto-activating package '$packageName' for tool $toolName")
-                        packageManager.usePackage(packageName)
+                        // 修改意图：捕获 usePackage 的返回消息（含"包未启用"真实原因），
+                        // 供工具不可用错误信息回传给模型
+                        lastPackageActivationMessage = packageManager.usePackage(packageName)
                         executor = availableTools[toolName]
                     }
                 } catch (e: Exception) {

@@ -3056,6 +3056,10 @@
     <string name="function_desc_file_binding">Process intelligent binding and mixing of file content, providing more precise code processing capabilities. Recommend using fast, inexpensive models like Gemini Flash, not recommended to use DeepSeek R1</string>
     <string name="function_desc_ui_controller">Used for automatic traversal and operation of UI interfaces. The corresponding UI controller model is only activated when the user explicitly requests to use an "agent" for control, for example by choosing dedicated models such as autoglm-phone-9b.</string>
     <string name="function_desc_grep">Used for grep_context planning and result filtering (multi-round grep_code)</string>
+    <string name="function_type_tool_review">Tool Call Review</string>
+    <string name="function_desc_tool_review">Auto-reviews file tool calls for compliance when tool mode is Allow (per-zone toggles)</string>
+    <string name="function_type_file_distill">File Read Distillation</string>
+    <string name="function_desc_file_distill">AI-distills file reads to relevant excerpts to save context; uses the main model when unconfigured</string>
     <string name="function_desc_role_response_planner">Dynamically plans speaking order and skip decisions in groups, supports multi-turn discussions</string>
 
     <!-- Functional Prompt Config Screen -->
@@ -5834,11 +5838,11 @@
     <string name="toolreg_list_character_cards_desc">List all character cards</string>
     <string name="toolreg_get_chat_messages_desc">Get chat messages: %1$s%2$s%3$s</string>
     <string name="toolreg_list_files_desc">List directory: %1$s%2$s</string>
-    <string name="toolreg_read_file_desc">Read file: %1$s%2$s</string>
+    <string name="toolreg_read_file_desc">Read file (AI-distilled to relevant lines by default, raw=true for raw content): %1$s%2$s</string>
     <string name="toolreg_read_file_part_range_lines">lines %1$s-%2$s</string>
     <string name="toolreg_read_file_part_range_from">from line %1$s</string>
-    <string name="toolreg_read_file_part_desc">Read file (%1$s): %2$s%3$s</string>
-    <string name="toolreg_read_file_full_desc">Read full file: %1$s%2$s</string>
+    <string name="toolreg_read_file_part_desc">Read file (prefer the default AI-distilled read when unsure of line numbers; raw=true for exact ranges) (%1$s): %2$s%3$s</string>
+    <string name="toolreg_read_file_full_desc">Read full file (text AI-distilled by default, raw=true for raw content): %1$s%2$s</string>
     <string name="toolreg_read_file_binary_desc">Read binary file: %1$s%2$s</string>
     <string name="toolreg_write_file_append_operation">Append to file</string>
     <string name="toolreg_write_file_overwrite_operation">Write to file</string>
@@ -8576,4 +8580,15 @@
     <string name="thinking_config_placeholder_high_zh">e.g. high</string>
     <string name="thinking_config_write_path">Write path</string>
     <string name="thinking_config_placeholder_high">e.g. high</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="tool_workspace_outside_forbidden">Tool %1$s is set to forbidden and the target path is outside the current session workspace (or the session has no workspace bound); this call is rejected.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Outside-workspace operation confirmation: the following target paths are outside the current session workspace (or the session has no workspace bound). Review the paths carefully before allowing:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 AI review flagged this call as non-compliant: %1$s\nConfirm whether to still allow the execution.</string>
+    <string name="tool_review_failed_confirmation">⚠ AI review could not complete: %1$s\nConfirm manually whether this call may run.</string>
+    <string name="agent_menu_tool_review_section">Auto-review tool calls</string>
+    <string name="agent_menu_tool_review_inside">Auto-review file tools (inside workspace)</string>
+    <string name="agent_menu_tool_review_outside">Auto-review file tools (outside workspace)</string>
+    <string name="agent_menu_tool_review_high_risk">Auto-review high-risk tools</string>
+    <string name="agent_menu_file_distill">AI distillation for file reads</string>
 </resources>

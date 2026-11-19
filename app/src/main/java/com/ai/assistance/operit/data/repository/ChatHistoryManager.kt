@@ -1646,6 +1646,22 @@ class ChatHistoryManager private constructor(private val context: Context) {
         }
     }
 
+    /**
+     * 修改意图：工具执行层的工作区防护需要按 chatId 解析会话绑定的工作区根与环境。
+     * 返回 (workspace, workspaceEnv)，未绑定或查询失败时均为 null（视为未绑定工作区）。
+     */
+    suspend fun getChatWorkspaceBinding(chatId: String): Pair<String?, String?> {
+        return kotlinx.coroutines.withContext(Dispatchers.IO) {
+            try {
+                val chat = chatDao.getChatById(chatId)
+                Pair(chat?.workspace, chat?.workspaceEnv)
+            } catch (e: Exception) {
+                AppLogger.e(TAG, "Failed to get chat workspace binding for chat $chatId", e)
+                Pair(null, null)
+            }
+        }
+    }
+
     // 直接加载聊天消息
     suspend fun loadChatMessages(chatId: String): List<ChatMessage> {
         return kotlinx.coroutines.withContext(Dispatchers.IO) {

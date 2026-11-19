@@ -2,6 +2,7 @@ package com.ai.assistance.operit.core.tools
 
 import android.content.Context
 import com.ai.assistance.operit.R
+import com.ai.assistance.operit.api.chat.enhance.FileDistillService
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
@@ -1794,7 +1795,17 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 val envInfo = formatEnvInfo(environment)
                 s(R.string.toolreg_read_file_desc, path, envInfo)
             },
-            executor = { tool -> runBlocking(Dispatchers.IO) { fileSystemTools.readFile(tool) } }
+            // 修改意图：read_file 默认走 AI 提炼（raw=true/特殊类型抽取/≤2048B/开关关/
+            // repo:·linux 环境透传原始读取），透传与失败语义见 FileDistillService
+            executor = { tool ->
+                runBlocking(Dispatchers.IO) {
+                    FileDistillService.maybeDistillRead(
+                        context,
+                        tool,
+                        FileDistillService.Variant.READ_FILE,
+                    ) { fileSystemTools.readFile(tool) }
+                }
+            }
     )
 
     // 按行号范围读取文件内容
@@ -1814,8 +1825,16 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                         }
                 s(R.string.toolreg_read_file_part_desc, rangeInfo, path, envInfo)
             },
+            // 修改意图：read_file_part 默认走 AI 扫描提炼（focus 遍寻全文自动定位，
+            // start_line/end_line 转为可选的扫描范围限定；raw=true/门禁/开关/环境透传原始读取）
             executor = { tool ->
-                runBlocking(Dispatchers.IO) { fileSystemTools.readFilePart(tool) }
+                runBlocking(Dispatchers.IO) {
+                    FileDistillService.maybeDistillRead(
+                        context,
+                        tool,
+                        FileDistillService.Variant.READ_PART,
+                    ) { fileSystemTools.readFilePart(tool) }
+                }
             }
     )
 
@@ -1828,7 +1847,17 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
                 val envInfo = formatEnvInfo(environment)
                 s(R.string.toolreg_read_file_full_desc, path, envInfo)
             },
-            executor = { tool -> runBlocking(Dispatchers.IO) { fileSystemTools.readFileFull(tool) } }
+            // 修改意图：read_file_full 纯文本默认走 AI 提炼（≤64KB 单次、更大扫描）；
+            // 特殊类型（图片/PDF/文档/音视频）抽取管线与 raw=true/门禁/开关/环境一律透传
+            executor = { tool ->
+                runBlocking(Dispatchers.IO) {
+                    FileDistillService.maybeDistillRead(
+                        context,
+                        tool,
+                        FileDistillService.Variant.READ_FULL,
+                    ) { fileSystemTools.readFileFull(tool) }
+                }
+            }
     )
 
     // 读取二进制文件内容（Base64编码）

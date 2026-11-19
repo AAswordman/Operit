@@ -13,6 +13,7 @@ import com.ai.assistance.operit.api.chat.enhance.FileBindingService
 import com.ai.assistance.operit.api.chat.enhance.MultiServiceManager
 import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.api.chat.enhance.SubtaskExecutionState
+import com.ai.assistance.operit.core.tools.HighRiskToolCatalog
 import com.ai.assistance.operit.api.chat.llmprovider.AIService
 import com.ai.assistance.operit.core.chat.logMessageTiming
 import com.ai.assistance.operit.core.chat.messageTimingNow
@@ -269,32 +270,15 @@ class EnhancedAIService private constructor(private val context: Context) {
          * 处理文件绑定操作（非实例化方式）
          * @param context 应用上下文
          * @param originalContent 原始文件内容
-         * @param aiGeneratedCode AI生成的代码（包含"//existing code"标记）
-         * @return 混合后的文件内容
+         * @param operations 结构化编辑操作列表
+         * @return FileEditApplyResult
          */
-        suspend fun applyFileBinding(
-                context: Context,
-                originalContent: String,
-                aiGeneratedCode: String,
-                onProgress: ((Float, String) -> Unit)? = null
-        ): Pair<String, String> {
-            // 获取EnhancedAIService实例
-            val instance = getInstance(context)
-
-            // 委托给FileBindingService处理
-            return instance.fileBindingService.processFileBinding(
-                    originalContent,
-                    aiGeneratedCode,
-                    onProgress
-            )
-        }
-
         suspend fun applyFileBindingOperations(
             context: Context,
             originalContent: String,
             operations: List<FileBindingService.StructuredEditOperation>,
             onProgress: ((Float, String) -> Unit)? = null
-        ): Pair<String, String> {
+        ): FileBindingService.FileEditApplyResult {
             val instance = getInstance(context)
             return instance.fileBindingService.processFileBindingOperations(
                 originalContent = originalContent,
@@ -3104,16 +3088,37 @@ class EnhancedAIService private constructor(private val context: Context) {
                 return null
             }
 
+            // 修改意图：function-calling 路径为可审查工具补挂 call_purpose 调用说明参数文档
+            // （文本提示词路径由 SystemToolPrompts.buildToolPromptCategories 注入）
+            val toolsWithCallPurpose = withCallPurposeParamDoc(hookedTools)
+
             AppLogger.d(
                 TAG,
-                "Tool Call已启用，提供 ${hookedTools.size} 个工具 (base=${selectedTools.size}, enableTools=$enableTools, visibleToolOverrides=${toolPromptVisibility.size}, roleCardCustomTools=${roleCardToolAccess.customEnabled})"
+                "Tool Call已启用，提供 ${toolsWithCallPurpose.size} 个工具 (base=${selectedTools.size}, enableTools=$enableTools, visibleToolOverrides=${toolPromptVisibility.size}, roleCardCustomTools=${roleCardToolAccess.customEnabled})"
             )
-            hookedTools
+            toolsWithCallPurpose
         } catch (e: Exception) {
             AppLogger.e(TAG, "获取工具列表失败", e)
             null
         }
     }
+
+    /** 修改意图：为可审查工具（高危工具 + 文件工具族）的 function-calling schema 补挂 call_purpose 参数 */
+    private fun withCallPurposeParamDoc(tools: List<ToolPrompt>): List<ToolPrompt> =
+        tools.map { tool ->
+            if (!HighRiskToolCatalog.isReviewableTool(tool.name)) {
+                tool
+            } else {
+                val structured = tool.parametersStructured ?: emptyList()
+                if (structured.any { it.name == HighRiskToolCatalog.CALL_PURPOSE_PARAM }) {
+                    tool
+                } else {
+                    tool.copy(
+                        parametersStructured = structured + HighRiskToolCatalog.callPurposeParamSchema()
+                    )
+                }
+            }
+        }
 
     // --- Service Lifecycle Management ---
 
@@ -3214,22 +3219,6 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         // 使用管理器来恢复屏幕常亮设置
         ActivityLifecycleManager.checkAndApplyKeepScreenOn(false)
-    }
-
-    /**
-     * 处理文件绑定操作（实例方法）
-     * @param originalContent 原始文件内容
-     * @param aiGeneratedCode AI生成的代码（包含"//existing code"标记）
-     * @return 混合后的文件内容
-     */
-    suspend fun applyFileBinding(
-            originalContent: String,
-            aiGeneratedCode: String
-    ): Pair<String, String> {
-        return fileBindingService.processFileBinding(
-                originalContent,
-                aiGeneratedCode
-        )
     }
 
     /**

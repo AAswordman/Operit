@@ -218,6 +218,20 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val thinkingOptionId: StateFlow<String> by lazy { apiConfigDelegate.thinkingOptionId }
     val enableMemoryAutoUpdate: StateFlow<Boolean> by lazy { apiConfigDelegate.enableMemoryAutoUpdate }
     val enableTools: StateFlow<Boolean> by lazy { apiConfigDelegate.enableTools }
+    // 修改意图：工具调用自动审查开关（区内/区外 + 高危工具），会话工具菜单仅在允许模式下展示
+    val toolReviewInsideWorkspace: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.toolReviewInsideWorkspace
+    }
+    val toolReviewOutsideWorkspace: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.toolReviewOutsideWorkspace
+    }
+    val toolReviewHighRiskTools: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.toolReviewHighRiskTools
+    }
+    // 修改意图：文件读取 AI 提炼开关，会话工具菜单在允许模式下展示
+    val fileDistillEnabled: StateFlow<Boolean> by lazy {
+        apiConfigDelegate.fileDistillEnabled
+    }
     val toolPromptVisibility: StateFlow<Map<String, Boolean>> by lazy { apiConfigDelegate.toolPromptVisibility }
     val disableStreamOutput: StateFlow<Boolean> by lazy { apiConfigDelegate.disableStreamOutput }
     val disableUserPreferenceDescription: StateFlow<Boolean> by lazy {
@@ -633,6 +647,24 @@ class ChatViewModel(private val context: Context) : ViewModel() {
 
     fun toggleTools() {
         apiConfigDelegate.toggleTools()
+    }
+
+    // 修改意图：设置工具调用自动审查开关（区内/区外 + 高危工具）
+    fun saveToolReviewInsideWorkspace(isEnabled: Boolean) {
+        apiConfigDelegate.saveToolReviewInsideWorkspace(isEnabled)
+    }
+
+    fun saveToolReviewOutsideWorkspace(isEnabled: Boolean) {
+        apiConfigDelegate.saveToolReviewOutsideWorkspace(isEnabled)
+    }
+
+    fun saveToolReviewHighRiskTools(isEnabled: Boolean) {
+        apiConfigDelegate.saveToolReviewHighRiskTools(isEnabled)
+    }
+
+    // 修改意图：保存文件读取 AI 提炼开关
+    fun saveFileDistillEnabled(isEnabled: Boolean) {
+        apiConfigDelegate.saveFileDistillEnabled(isEnabled)
     }
 
     fun saveToolPromptVisibility(toolName: String, isVisible: Boolean) {

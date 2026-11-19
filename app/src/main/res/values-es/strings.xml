@@ -3302,6 +3302,8 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="function_type_video_recognition">Reconocimiento de video</string>
     <string name="function_desc_translation">Proporciona funciones de traducción multilingüe, admite la conversión de idioma del contenido de texto. Se recomienda usar un modelo que admita varios idiomas.</string>
     <string name="function_desc_grep">Planificación de búsqueda y filtrado de resultados para grep_context (grep_code en múltiples rondas)</string>
+    <string name="function_type_tool_review">Revisión de llamadas de herramientas</string>
+    <string name="function_desc_tool_review">Revisa automáticamente el cumplimiento de las llamadas a herramientas de archivos cuando el modo es Permitir (interruptores por zona)</string>
 
     <string name="chat_preparing_resend">Preparando para reenviar el mensaje</string>
     <string name="chat_rolled_back_message_in_input">Reversión realizada, el contenido del mensaje se ha colocado en el campo de entrada</string>
@@ -7821,4 +7823,17 @@ Ahora puede usar el modo AutoGLM en la interfaz de conversación.</string>
     <string name="token_stats_trends">Análisis de tendencias</string>
     <string name="token_stats_settings">Configuración de estadísticas</string>
     <string name="token_stats_custom_range_confirm">Aceptar</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Destilado por IA de lecturas de archivos</string>
+    <string name="function_desc_file_distill">Al leer archivos, la IA destila el contenido relevante para ahorrar contexto; si no está configurado, usa el modelo principal</string>
+    <string name="tool_workspace_outside_forbidden">La herramienta %1$s está configurada como prohibida y la ruta de destino está fuera del espacio de trabajo de la sesión actual (o la sesión no tiene espacio de trabajo vinculado); la llamada se rechaza.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Confirmación de operación fuera del espacio de trabajo: las siguientes rutas de destino están fuera del espacio de trabajo de la sesión actual (o la sesión no tiene espacio de trabajo vinculado). Revisa las rutas con cuidado antes de permitir:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 La revisión de IA considera que esta llamada no cumple las normas: %1$s\nConfirma si aún deseas permitir la ejecución.</string>
+    <string name="tool_review_failed_confirmation">⚠ La revisión de IA no pudo completarse: %1$s\nConfirma manualmente si esta llamada puede ejecutarse.</string>
+    <string name="agent_menu_tool_review_section">Revisión automática de llamadas a herramientas</string>
+    <string name="agent_menu_tool_review_inside">Revisión automática de herramientas de archivo (dentro del espacio de trabajo)</string>
+    <string name="agent_menu_tool_review_outside">Revisión automática de herramientas de archivo (fuera del espacio de trabajo)</string>
+    <string name="agent_menu_tool_review_high_risk">Revisión automática de herramientas de alto riesgo</string>
+    <string name="agent_menu_file_distill">Destilado por IA para lecturas de archivos</string>
 </resources>

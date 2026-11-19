@@ -2957,6 +2957,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="function_desc_ui_controller">Digunakan untuk penerokaan dan pengendalian automatik antara muka UI, model pengawal UI yang sepadan hanya akan diaktifkan apabila pengguna secara eksplisit meminta penggunaan kawalan "agen", contohnya boleh memilih model khusus seperti autoglm.</string>
     <string name="function_desc_translation">Menyediakan fungsi terjemahan pelbagai bahasa, menyokong penukaran bahasa kandungan teks. Disyorkan menggunakan model yang menyokong pelbagai bahasa.</string>
     <string name="function_desc_grep">Digunakan untuk perancangan pencarian grep_context dan penapisan hasil (grep_code berbilang pusingan)</string>
+    <string name="function_type_tool_review">Semakan panggilan alat</string>
+    <string name="function_desc_tool_review">Menyemak pematuhan panggilan alat fail secara automatik apabila mod Benarkan (suis mengikut zon)</string>
     <string name="function_desc_role_response_planner">Digunakan untuk menentukan urutan bercakap dan strategi langkauan secara dinamik dalam kumpulan, menyokong perbincangan berbilang pusingan</string>
     <string name="function_desc_image_recognition">Digunakan untuk pengenalan dan analisis kandungan imej, memanggil alat read_file untuk membaca gambar dengan menyokong parameter intent untuk pemahaman mendalam. Disyorkan menggunakan model multimodal yang menyokong penglihatan.</string>
     <string name="function_desc_audio_recognition">Digunakan untuk pengenalan dan analisis kandungan audio, memanggil alat read_file untuk membaca audio dengan menggunakan parameter intent untuk pemahaman mendalam (seperti transkripsi/ringkasan/pengenalan kandungan pertuturan). Disyorkan menggunakan model yang menyokong input audio atau transkripsi berkualiti tinggi.</string>
@@ -7750,4 +7752,17 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="token_stats_trends">Analisis trend</string>
     <string name="token_stats_settings">Tetapan statistik</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Penyulingan AI bacaan fail</string>
+    <string name="function_desc_file_distill">Semasa membaca fail, AI menyuling kandungan berkaitan untuk menjimatkan konteks; jika tidak dikonfigurasi, gunakan model utama</string>
+    <string name="tool_workspace_outside_forbidden">Alat %1$s ditetapkan kepada terlarang dan laluan sasaran berada di luar ruang kerja sesi semasa (atau sesi tidak mengikat ruang kerja); panggilan ini ditolak.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Pengesahan operasi luar ruang kerja: laluan sasaran berikut berada di luar ruang kerja sesi semasa (atau sesi tidak mengikat ruang kerja). Semak laluan dengan teliti sebelum membenarkan:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 Semakan AI mendapati panggilan ini tidak patuh: %1$s\nSahkan sama ada masih dibenarkan dilaksanakan.</string>
+    <string name="tool_review_failed_confirmation">⚠ Semakan AI tidak dapat diselesaikan: %1$s\nSahkan secara manual sama ada panggilan ini dibenarkan dijalankan.</string>
+    <string name="agent_menu_tool_review_section">Semakan automatik panggilan alat</string>
+    <string name="agent_menu_tool_review_inside">Semakan automatik alat fail (dalam ruang kerja)</string>
+    <string name="agent_menu_tool_review_outside">Semakan automatik alat fail (luar ruang kerja)</string>
+    <string name="agent_menu_tool_review_high_risk">Semakan automatik alat berisiko tinggi</string>
+    <string name="agent_menu_file_distill">Penyulingan AI untuk bacaan fail</string>
 </resources>

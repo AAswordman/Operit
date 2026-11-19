@@ -144,6 +144,16 @@ class SafFileSystemTools(
         return null
     }
 
+    // 修改意图：SAF 创建文件的白名单。此前白名单外的扩展名抛出的错误不列出任何支持项，
+    // 模型无从自纠；抽成常量供错误信息直接引用
+    private val SAF_SUPPORTED_CREATE_EXTENSIONS: List<String> =
+        listOf(
+            "md", "markdown", "txt", "log", "json", "xml", "html", "htm", "css", "csv",
+            "js", "mjs", "cjs", "ts", "tsx", "kt", "kts", "java", "py", "sh", "bash",
+            "yaml", "yml", "toml", "ini", "conf", "properties", "svg", "png", "jpg",
+            "jpeg", "webp", "gif", "pdf", "zip", "gz", "apk",
+        )
+
     private fun requireSafCreateMimeType(fileName: String): String {
         val normalizedName = fileName.lowercase(Locale.ROOT)
         val extension = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
@@ -176,7 +186,13 @@ class SafFileSystemTools(
             extension == "zip" -> "application/zip"
             extension == "gz" -> "application/gzip"
             extension == "apk" -> "application/vnd.android.package-archive"
-            else -> throw IllegalArgumentException("Unsupported file extension for SAF create: $fileName")
+            else ->
+                throw IllegalArgumentException(
+                    "Unsupported file extension for SAF create: $fileName. " +
+                        "Supported extensions: ${SAF_SUPPORTED_CREATE_EXTENSIONS.joinToString(", ")}, " +
+                        "plus well-known files (README, LICENSE, .gitignore, ...). " +
+                        "For other file types, operate outside the SAF environment."
+                )
         }
     }
 
@@ -1538,6 +1554,14 @@ class SafFileSystemTools(
 
         return withContext(Dispatchers.IO) {
             try {
+                // 修改意图：与 Android/Linux 环境一致，read_file_full 整文件读取受 32MB 硬上限
+                // 约束（SAF 通过 ContentResolver 查询大小，超限拒绝并引导 read_file_part）
+                querySize(uri)?.let { sizeBytes ->
+                    if (sizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                        val sizeMb = sizeBytes / (1024.0 * 1024.0)
+                        return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Use read_file_part with start_line/end_line to read it in segments.".format(sizeMb, path))
+                    }
+                }
                 if (textOnly) {
                     val sample = readUpToBytes(uri, 512).first
                     if (!FileUtils.isTextLike(sample)) {
@@ -1548,7 +1572,7 @@ class SafFileSystemTools(
                     ?: return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "Failed to open uri: $path")
                 val bytes = input.use { it.readBytes() }
                 if (bytes.isNotEmpty() && !FileUtils.isTextLike(bytes.take(1024).toByteArray())) {
-                    return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File does not appear to be a text file. Use specialized tools for binary files.")
+                    return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File does not appear to be a text file. Use read_file_binary for binary files (returns base64).")
                 }
                 val content = bytes.toString(Charsets.UTF_8)
                 ToolResult(toolName = tool.name, success = true, result = FileContentData(path = path, content = content, size = querySize(uri) ?: bytes.size.toLong(), env = envLabel), error = "")
@@ -1571,7 +1595,8 @@ class SafFileSystemTools(
             try {
                 val (bytes, truncated) = readUpToBytes(uri, maxFileSizeBytes)
                 if (bytes.isNotEmpty() && !FileUtils.isTextLike(bytes.take(512).toByteArray())) {
-                    return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File does not appear to be a text file. Use readFileFull tool for special file types.")
+                    // 修改意图：与 Android 环境一致，报错指向真实存在的工具
+                    return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File does not appear to be a text file. Use read_file_binary for binary files (returns base64), or read_file for documents/images (auto-extracts text).")
                 }
                 val content = bytes.toString(Charsets.UTF_8)
                 var contentWithLineNumbers = addLineNumbers(content)
@@ -1660,6 +1685,13 @@ class SafFileSystemTools(
 
         return withContext(Dispatchers.IO) {
             try {
+                // 修改意图：与 Android/Linux 环境一致，read_file_binary 整文件读取受 32MB 硬上限约束
+                querySize(uri)?.let { sizeBytes ->
+                    if (sizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                        val sizeMb = sizeBytes / (1024.0 * 1024.0)
+                        return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Operate on it by path instead.".format(sizeMb, path))
+                    }
+                }
                 val input = contentResolver.openInputStream(uri)
                     ?: return@withContext ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = "Failed to open uri: $path")
                 val bytes = input.use { it.readBytes() }

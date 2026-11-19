@@ -238,8 +238,14 @@ data class FilePartContentData(
         val env: String = "android"
 ) : ToolResultData() {
     override fun toString(): String {
+        // 修改意图：readFilePart 流式化后 totalLines 可能为 -1（未读到文件尾、总数未知），
+        // 此时明确告诉模型文件还有后续内容、可从 endLine+1 继续分段读取
         val partInfo =
-                "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine of $totalLines)"
+                if (totalLines >= 0) {
+                    "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine of $totalLines)"
+                } else {
+                    "Part ${partIndex + 1} of $totalParts (Lines ${startLine + 1}-$endLine; total lines unknown - file continues, chain the next segment with start_line=${endLine + 1})"
+                }
         return "[$env] $partInfo\n\n$content"
     }
 }
@@ -469,7 +475,9 @@ data class BinaryFileContentData(
         val env: String = "android"
 ) : ToolResultData() {
     override fun toString(): String {
-        return "[$env] Binary content of $path (${size} bytes, base64 length=${contentBase64.length})"
+        // 修改意图：base64 此前只回摘要，内容永远到不了模型，read_file_binary 实际不可用；
+        // 现在把 base64 放进模型可见文本（调用方已通过预算检查确保不超单条消息上限）
+        return "[$env] Binary content of $path (${size} bytes, base64 length=${contentBase64.length}):\n$contentBase64"
     }
 }
 
@@ -548,7 +556,9 @@ data class FileOperationData(
 data class FileApplyResultData(
     val operation: FileOperationData,
     val aiDiffInstructions: String,
-    val diffContent: String? = null
+    val diffContent: String? = null,
+    /** 修改意图：各编辑操作的实际匹配位置（1-based 行号区间），成功时回传给模型核对编辑落点 */
+    val matchedRanges: List<String> = emptyList()
 ) : ToolResultData() {
     private fun buildRequestContent(): String {
         val sections = mutableListOf<String>()
@@ -572,21 +582,31 @@ data class FileApplyResultData(
             }
     }
 
+    /**
+     * 评审 P3：CDATA 段内的 `]]>` 会提前闭合段并破坏 XML 结构（含 `]]>` 的代码 diff
+     * 直接截断后续内容）。按 XML 规范把该序列拆成两段 CDATA——`]]` 变为
+     * `]]]]><![CDATA[>`——拼接后语义不变。
+     */
+    private fun escapeCdataEnd(content: String): String =
+        content.replace("]]>", "]]]]><![CDATA[>")
+
     override fun toString(): String {
         val sb = StringBuilder()
         sb.appendLine(operation.toString())
 
         // If diffContent is available, embed it in a custom XML-like tag for the renderer.
         if (diffContent != null) {
-            val encodedDiff = diffContent.replace("&", "&").replace("<", "<").replace(">", ">")
+            // 修改意图：原"转义"链是恒等替换（&→&、<→<、>→>），实际什么都没做；
+            // diff 内容进入 CDATA 段，无需按普通 XML 转义，仅需处理 `]]>` 序列
+            val encodedDiff = diffContent
             sb.append("<file-diff path=\"${operation.path}\" details=\"${operation.details}\">")
-            sb.append("<![CDATA[$encodedDiff]]>")
+            sb.append("<![CDATA[${escapeCdataEnd(encodedDiff)}]]>")
             sb.append("</file-diff>")
         }
 
         val requestContent = buildRequestContent()
         if (requestContent.isNotBlank()) {
-            sb.append("<file-request-content><![CDATA[$requestContent]]></file-request-content>")
+            sb.append("<file-request-content><![CDATA[${escapeCdataEnd(requestContent)}]]></file-request-content>")
         }
 
         if (aiDiffInstructions.isNotEmpty() && !aiDiffInstructions.startsWith("Error")) {

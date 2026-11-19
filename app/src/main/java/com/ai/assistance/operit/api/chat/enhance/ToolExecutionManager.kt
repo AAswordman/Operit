@@ -6,15 +6,21 @@ import com.ai.assistance.operit.util.AppLogger
 import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.core.tools.AIToolHandler
 import com.ai.assistance.operit.core.tools.AIToolHookDecision
+import com.ai.assistance.operit.core.tools.HighRiskToolCatalog
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolExecutor
+import com.ai.assistance.operit.core.tools.WorkspacePathChecker
+import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.data.model.ToolInvocation
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.core.tools.packTool.PackageManager
 import com.ai.assistance.operit.util.stream.StreamCollector
+import com.ai.assistance.operit.data.preferences.ApiPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import com.ai.assistance.operit.data.repository.ChatHistoryManager
+import com.ai.assistance.operit.ui.permissions.PermissionLevel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.asContextElement
@@ -48,12 +54,28 @@ object ToolExecutionManager {
     private const val TOOL_SESSION_ID_PARAM = "__operit_tool_session_id"
     private val toolRuntimeContextThreadLocal = ThreadLocal<ToolRuntimeContext?>()
 
-    data class ToolRuntimeContext(
+    // 修改意图：嵌套调用（JS 扩展包 toolCall → 内置文件工具）绕过权限弹窗链路，
+    // 由该 Hook 兜底做工作区判定；注册一次即可，ThreadLocal 判空保证主链路不受影响
+    @Volatile
+    private var workspaceHookRegistered = false
+
+    /**
+     * 修改意图：改为普通类并携带工作区绑定信息。字段说明：
+     * - chatWorkspaceRoot/chatWorkspaceEnv：会话绑定的工作区（以 ChatHistory 为准），
+     *   供嵌套调用的 AIToolHook 兜底判定使用（ThreadLocal 上下文随执行作用域传递）
+     * - approvedOutsidePaths：本轮调用中已由用户在"区外强制弹窗"确认过的路径（规范化后），
+     *   嵌套重入（扩展包 toolCall → 内置文件工具）不重复弹窗也不误拦截
+     */
+    class ToolRuntimeContext(
         val callerCardId: String? = null,
         val toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
         val callerChatId: String? = null,
         val toolSessionScopeId: String? = null,
         val subtaskExecution: SubtaskExecutionState? = null,
+        val chatWorkspaceRoot: String? = null,
+        val chatWorkspaceEnv: String? = null,
+        val approvedOutsidePaths: MutableSet<String> =
+            java.util.Collections.newSetFromMap(java.util.concurrent.ConcurrentHashMap()),
     )
 
     internal sealed class PackageContextInjection {
@@ -602,7 +624,11 @@ object ToolExecutionManager {
         androidContext: Context,
         toolHandler: AIToolHandler,
         invocation: ToolInvocation,
-        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL
+        toolExposureMode: ToolExposureMode = ToolExposureMode.FULL,
+        chatWorkspaceRoot: String? = null,
+        chatWorkspaceEnv: String? = null,
+        runtimeContext: ToolRuntimeContext? = null,
+        callerChatId: String? = null
     ): Pair<Boolean, ToolResult?> {
         val resolvedTarget = resolveToolTarget(invocation.tool)
         val permissionTool =
@@ -624,6 +650,220 @@ object ToolExecutionManager {
                 reason = "CLI public tool"
             )
             return Pair(true, null)
+        }
+
+        // 修改意图：文件工具工作区防护 + 大模型审查。判定先于 deny_tool 标记执行——
+        // 安全边界不因模型侧文本标记而绕过。扩展包文件工具（如 extended_file_tools:copy_file）
+        // 与内置文件工具同族，同样纳入防护。
+        // 行为矩阵（均为需求确认项）：
+        //   FORBID：区内走标准拒绝；区外（含未绑定工作区）直接拒绝并说明
+        //   ASK：走标准弹窗（不跑审查；审查开关仅在允许模式显示）
+        //   ALLOW + 审查开：合规 → 直接执行（区外也不弹窗）；不合规 → 弹窗展示审查意见由用户决定；
+        //                    审查失败 → 弹窗提示错误信息由用户决定
+        //   ALLOW + 审查关：区内直行；区外强制弹窗
+        if (WorkspacePathChecker.isWorkspaceProtectedTool(permissionTool.name)) {
+            val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+            val level = toolPermissionSystem.getToolPermission(permissionTool.name)
+            val zone =
+                WorkspacePathChecker.resolveZone(
+                    chatWorkspaceRoot = chatWorkspaceRoot,
+                    chatWorkspaceEnv = chatWorkspaceEnv,
+                    tool = permissionTool,
+                )
+            val extractedPaths = WorkspacePathChecker.extractPaths(permissionTool)
+
+            if (level == PermissionLevel.FORBID && zone == WorkspacePathChecker.Zone.OUTSIDE) {
+                val errorMessage =
+                    androidContext.getString(
+                        R.string.tool_workspace_outside_forbidden,
+                        resolvedTarget.displayName
+                    )
+                val errorResult =
+                    ToolResult(
+                        toolName = resolvedTarget.displayName,
+                        success = false,
+                        result = StringResultData(""),
+                        error = errorMessage
+                    )
+                toolHandler.notifyToolPermissionChecked(
+                    permissionTool,
+                    granted = false,
+                    reason = errorMessage
+                )
+                return Pair(false, errorResult)
+            }
+
+            if (level == PermissionLevel.ALLOW) {
+                val reviewEnabled =
+                    if (zone == WorkspacePathChecker.Zone.INSIDE) {
+                        ApiPreferences.getInstance(androidContext)
+                            .toolReviewInsideWorkspaceFlow.first()
+                    } else {
+                        ApiPreferences.getInstance(androidContext)
+                            .toolReviewOutsideWorkspaceFlow.first()
+                    }
+
+                if (reviewEnabled) {
+                    // 大模型合规审查
+                    ToolProgressBus.update(permissionTool.name, 0.05f, "AI reviewing tool call...")
+                    val outcome =
+                        ToolReviewService.review(
+                            androidContext,
+                            permissionTool,
+                            scopeLabel =
+                                when (zone) {
+                                    WorkspacePathChecker.Zone.INSIDE -> "inside the workspace"
+                                    WorkspacePathChecker.Zone.OUTSIDE ->
+                                        "OUTSIDE the workspace (or no workspace bound)"
+                                },
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            callerChatId = callerChatId,
+                        )
+                    when (outcome) {
+                        is ToolReviewOutcome.Compliant -> {
+                            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+                            if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
+                                // 审查通过：区外也直接放行，不弹窗（需求确认项）
+                                recordApprovedOutsidePaths(runtimeContext, extractedPaths)
+                            }
+                            return Pair(true, null)
+                        }
+                        is ToolReviewOutcome.NonCompliant -> {
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_noncompliant_confirmation,
+                                    outcome.reason
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix =
+                                    "Tool call flagged non-compliant by AI review: ${outcome.reason}.",
+                                runtimeContext = runtimeContext,
+                                extractedPaths = extractedPaths
+                            )
+                        }
+                        is ToolReviewOutcome.Failed -> {
+                            // 审查失败：弹出原询问窗口并提示审查错误信息，由用户决定
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_failed_confirmation,
+                                    outcome.message
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix = outcome.message,
+                                runtimeContext = runtimeContext,
+                                extractedPaths = extractedPaths
+                            )
+                        }
+                    }
+                } else if (zone == WorkspacePathChecker.Zone.OUTSIDE) {
+                    // 审查关闭：区外强制弹窗，原因中列出目标路径，供用户判断
+                    val confirmationReason =
+                        androidContext.getString(
+                            R.string.tool_workspace_outside_confirmation,
+                            extractedPaths.joinToString(", ")
+                        )
+                    val permissionResult =
+                        toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
+
+                    if (!permissionResult.isGranted) {
+                        val errorMessage =
+                            androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+                        val errorResult =
+                            ToolResult(
+                                toolName = resolvedTarget.displayName,
+                                success = false,
+                                result = StringResultData(""),
+                                error = errorMessage
+                            )
+                        toolHandler.notifyToolPermissionChecked(
+                            permissionTool,
+                            granted = false,
+                            reason = errorMessage
+                        )
+                        return Pair(false, errorResult)
+                    }
+
+                    recordApprovedOutsidePaths(runtimeContext, extractedPaths)
+                    toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+                    return Pair(true, null)
+                }
+                // ALLOW + 区内 + 审查关：落到标准流程（直接放行）
+            }
+            // ASK（区内外均走标准弹窗）与 FORBID（区内标准拒绝）：落到标准流程
+        } else if (HighRiskToolCatalog.isHighRiskTool(permissionTool.name)) {
+            // 修改意图：高危工具调用大模型审查（三开关之「自动审查高危工具」）。
+            // 高危工具没有工作区路径概念，不分区，由独立开关管辖；行为矩阵与文件工具审查一致：
+            //   ALLOW + 开关开：合规 → 直接执行；不合规/审查失败 → 弹窗由用户决定
+            //   ALLOW + 开关关 / ASK / FORBID：落到标准流程（工具自身权限语义不变）
+            val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+            val level = toolPermissionSystem.getToolPermission(permissionTool.name)
+            if (level == PermissionLevel.ALLOW) {
+                val reviewEnabled =
+                    ApiPreferences.getInstance(androidContext)
+                        .toolReviewHighRiskToolsFlow.first()
+                if (reviewEnabled) {
+                    ToolProgressBus.update(permissionTool.name, 0.05f, "AI reviewing tool call...")
+                    val outcome =
+                        ToolReviewService.review(
+                            androidContext,
+                            permissionTool,
+                            scopeLabel = "high-risk tool call (not workspace-scoped)",
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            callerChatId = callerChatId,
+                        )
+                    when (outcome) {
+                        is ToolReviewOutcome.Compliant -> {
+                            toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+                            return Pair(true, null)
+                        }
+                        is ToolReviewOutcome.NonCompliant -> {
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_noncompliant_confirmation,
+                                    outcome.reason
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix =
+                                    "Tool call flagged non-compliant by AI review: ${outcome.reason}.",
+                                runtimeContext = runtimeContext,
+                                extractedPaths = emptyList()
+                            )
+                        }
+                        is ToolReviewOutcome.Failed -> {
+                            val confirmationReason =
+                                androidContext.getString(
+                                    R.string.tool_review_failed_confirmation,
+                                    outcome.message
+                                )
+                            return confirmAfterReview(
+                                androidContext = androidContext,
+                                toolHandler = toolHandler,
+                                permissionTool = permissionTool,
+                                resolvedDisplayName = resolvedTarget.displayName,
+                                confirmationReason = confirmationReason,
+                                deniedErrorPrefix = outcome.message,
+                                runtimeContext = runtimeContext,
+                                extractedPaths = emptyList()
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         // 检查是否强制拒绝权限（deny_tool标记）
@@ -662,6 +902,73 @@ object ToolExecutionManager {
             reason = "Permission check bypassed by deny_tool tag."
         )
         return Pair(true, null)
+    }
+
+    /**
+     * 修改意图：执行前剥离 call_purpose（审查声明参数）。该参数仅供审查流读取，
+     * 若流入执行器，JS 包工具与代理解析（parseProxyInvocation 白名单）会因未知参数报错。
+     * rawText 保留原始 XML，聊天记录与回传模型的调用文本不受影响。
+     */
+    private fun ToolInvocation.withoutCallPurposeParam(): ToolInvocation =
+        copy(
+            tool =
+                tool.copy(
+                    parameters =
+                        tool.parameters.filterNot { it.name == HighRiskToolCatalog.CALL_PURPOSE_PARAM }
+                )
+        )
+
+    /**
+     * 修改意图：审查不合规/审查失败后的统一确认流（文件工具与高危工具审查共用）。
+     * 弹窗由用户决定：拒绝 → notify 失败并返回错误结果；放行 → 记录已确认的
+     * 区外路径（非文件工具传空列表即无副作用）并 notify 放行。
+     *
+     * @param deniedErrorPrefix 拒绝时错误信息的审查侧前缀（文件/高危分支各自组装）
+     */
+    private suspend fun confirmAfterReview(
+        androidContext: Context,
+        toolHandler: AIToolHandler,
+        permissionTool: AITool,
+        resolvedDisplayName: String,
+        confirmationReason: String,
+        deniedErrorPrefix: String,
+        runtimeContext: ToolRuntimeContext?,
+        extractedPaths: List<String>
+    ): Pair<Boolean, ToolResult?> {
+        val toolPermissionSystem = toolHandler.getToolPermissionSystem()
+        val permissionResult =
+            toolPermissionSystem.requestConfirmation(permissionTool, confirmationReason)
+        if (!permissionResult.isGranted) {
+            val errorMessage =
+                androidContext.getString(requireNotNull(permissionResult.errorMessageResId))
+            toolHandler.notifyToolPermissionChecked(permissionTool, granted = false, reason = errorMessage)
+            return Pair(
+                false,
+                ToolResult(
+                    toolName = resolvedDisplayName,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "$deniedErrorPrefix $errorMessage"
+                )
+            )
+        }
+        if (extractedPaths.isNotEmpty()) {
+            recordApprovedOutsidePaths(runtimeContext, extractedPaths)
+        }
+        toolHandler.notifyToolPermissionChecked(permissionTool, granted = true)
+        return Pair(true, null)
+    }
+
+    /** 修改意图：记录用户/AI 审查放行的区外路径（规范化后），供嵌套重入的 Hook 放行 */
+    private fun recordApprovedOutsidePaths(
+        runtimeContext: ToolRuntimeContext?,
+        paths: List<String>
+    ) {
+        runtimeContext ?: return
+        paths.forEach { path ->
+            val canonical = runCatching { java.io.File(path).canonicalPath }.getOrDefault(path)
+            runtimeContext.approvedOutsidePaths.add(canonical)
+        }
     }
 
     /**
@@ -709,6 +1016,17 @@ object ToolExecutionManager {
             toolHandler.registerDefaultTools()
         }
 
+        // 修改意图：嵌套调用的工作区兜底 Hook 幂等注册（主链路的弹窗防护在
+        // checkToolPermission 的工作区阶段，二者互不重叠）
+        if (!workspaceHookRegistered) {
+            synchronized(this) {
+                if (!workspaceHookRegistered) {
+                    toolHandler.addToolHook(WorkspaceFileToolHook())
+                    workspaceHookRegistered = true
+                }
+            }
+        }
+
         val roleCardToolAccess = if (callerCardId.isNullOrBlank()) {
             null
         } else {
@@ -721,6 +1039,17 @@ object ToolExecutionManager {
                 if (subtaskExecution != null) throw error
             }.getOrNull()
         }
+        // 修改意图：工作区防护以会话绑定（ChatHistory）为准；未绑定工作区 → root 为 null，
+        // 所有文件工具路径按区外处理（需求确认项）。绑定解析失败同样按未绑定处理
+        val chatWorkspaceBinding = callerChatId?.let { chatId ->
+            runCatching {
+                ChatHistoryManager.getInstance(context).getChatWorkspaceBinding(chatId)
+            }.onFailure { error ->
+                AppLogger.e(TAG, "工作区绑定解析失败: chatId=$callerChatId", error)
+            }.getOrNull()
+        }
+        val chatWorkspaceRoot = chatWorkspaceBinding?.first
+        val chatWorkspaceEnv = chatWorkspaceBinding?.second
         val toolRuntimeContext =
             ToolRuntimeContext(
                 callerCardId = callerCardId,
@@ -728,6 +1057,8 @@ object ToolExecutionManager {
                 callerChatId = callerChatId,
                 toolSessionScopeId = subtaskExecution?.toolSessionScopeId ?: callerChatId,
                 subtaskExecution = subtaskExecution,
+                chatWorkspaceRoot = chatWorkspaceRoot,
+                chatWorkspaceEnv = chatWorkspaceEnv
             )
 
         // 1. 顶层工具暴露模式拦截
@@ -819,9 +1150,20 @@ object ToolExecutionManager {
             when (val interception = toolHandler.checkToolInterception(interceptionTool)) {
                 AIToolHookDecision.Allow -> {
                     val (hasPermission, errorResult) =
-                        checkToolPermission(context, toolHandler, invocation, toolExposureMode)
+                        checkToolPermission(
+                            context,
+                            toolHandler,
+                            invocation,
+                            toolExposureMode,
+                            chatWorkspaceRoot = chatWorkspaceRoot,
+                            chatWorkspaceEnv = chatWorkspaceEnv,
+                            runtimeContext = toolRuntimeContext,
+                            callerChatId = callerChatId
+                        )
                     if (hasPermission) {
-                        permittedInvocations.add(IndexedValue(index, invocation))
+                        // 修改意图：call_purpose 为审查声明参数，仅供审查流读取；
+                        // 执行前从工具参数剥离，工具执行器（含 JS 包与代理解析）不应看到该参数
+                        permittedInvocations.add(IndexedValue(index, invocation.withoutCallPurposeParam()))
                     } else {
                         completeUnexecuted(index, invocation, checkNotNull(errorResult), SubtaskExecutionState.Reason.PERMISSION_DENIED)
                     }
@@ -1070,8 +1412,13 @@ object ToolExecutionManager {
                         // 包已激活但工具不存在
                         "Tool '$toolNamePart' does not exist in tool package '$packName'. Please use the 'use_package' tool and specify package name '$packName' to list all available tools in this package."
                     } else {
-                        // 包未激活
-                        "Tool package '$packName' is not activated. Auto-activation was attempted but failed, or tool '$toolNamePart' does not exist. Please use 'use_package' with package name '$packName' to check available tools."
+                        // 修改意图：包未激活时回传 usePackage 的真实原因（如"包被禁用"），
+                        // 不再笼统地报 "Auto-activation failed"
+                        val activationReason = toolHandler.getLastPackageActivationMessage()
+                        "Tool package '$packName' is not activated: " +
+                            (activationReason?.takeIf { it.isNotBlank() }
+                                ?: "auto-activation failed, or tool '$toolNamePart' does not exist") +
+                            ". Please use 'use_package' with package name '$packName' to check available tools."
                     }
                 }
             }

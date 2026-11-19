@@ -2968,6 +2968,8 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="function_desc_ui_controller">utilizat pentruUIParcurgerea și operațiunile automate ale interfeței, corespunzătoare UI Modelul de controlor este activat numai atunci când utilizatorul solicită în mod explicit utilizarea controlului de tip „agent inteligent”, de exemplu, opțional autoglm și alte modele specializate.</string>
     <string name="function_desc_translation">Oferă funcții de traducere multilingvă, permițând conversia limbii conținutului text. Se recomandă utilizarea unui model care acceptă mai multe limbi.</string>
     <string name="function_desc_grep">utilizat pentrugrep_contextPlanificarea căutării și filtrarea rezultatelor (în mai multe etape)grep_code)</string>
+    <string name="function_type_tool_review">Revizuire apeluri de instrumente</string>
+    <string name="function_desc_tool_review">Revizuiește automat conformitatea apelurilor de instrumente pentru fișiere când modul este Permitere (comutatoare pe zonă)</string>
     <string name="function_desc_role_response_planner">Se utilizează pentru a stabili în mod dinamic, în cadrul unui grup, ordinea de intervenție și strategia de omitere pentru runda curentă, fiind compatibil cu discuțiile pe mai multe runde</string>
     <string name="function_desc_image_recognition">Utilizat pentru recunoașterea și analiza conținutului imaginilor, apelareread_fileInstrumentul acceptă citirea imaginilorintentÎnțelegerea aprofundată a parametrilor. Se recomandă utilizarea unor modele multimodale care integrează informații vizuale.</string>
     <string name="function_desc_audio_recognition">Utilizat pentru recunoașterea și analiza conținutului audio, apelread_fileInstrumentul poate fi utilizat atunci când se citește un fișier audiointentÎnțelegerea aprofundată a parametrilor (de exemplu, transcrierea/Concluzii/(Recunoașterea conținutului vorbirii). Se recomandă utilizarea unui model care acceptă intrare audio sau care oferă transcriere de înaltă calitate.</string>
@@ -8348,4 +8350,17 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="token_stats_trends">Analiza tendințelor</string>
     <string name="token_stats_settings">Setări statistici</string>
     <string name="token_stats_custom_range_confirm">OK</string>
+
+    <!-- 文件工具强化（PR #1496）：审查/工作区/提炼文案 -->
+    <string name="function_type_file_distill">Distilare AI a citirii fișierelor</string>
+    <string name="function_desc_file_distill">La citirea fișierelor, AI-ul distilează conținutul relevant pentru a economisi contextul; dacă nu este configurat, se folosește modelul principal</string>
+    <string name="tool_workspace_outside_forbidden">Instrumentul %1$s este setat ca interzis, iar calea destinație este în afara spațiului de lucru al sesiunii curente (sau sesiunea nu are un spațiu de lucru legat); apelul este respins.</string>
+    <string name="tool_workspace_outside_confirmation">⚠ Confirmare operațiune în afara spațiului de lucru: următoarele căi de destinație sunt în afara spațiului de lucru al sesiunii curente (sau sesiunea nu are un spațiu de lucru legat). Verificați căile cu atenție înainte de a permite:\n%1$s</string>
+    <string name="tool_review_noncompliant_confirmation">🤖 Recenzia AI consideră acest apel non-conform: %1$s\nConfirmați dacă permiteți în continuare executarea.</string>
+    <string name="tool_review_failed_confirmation">⚠ Recenzia AI nu a putut fi finalizată: %1$s\nConfirmați manual dacă acest apel poate fi executat.</string>
+    <string name="agent_menu_tool_review_section">Recenzie automată a apelurilor de instrumente</string>
+    <string name="agent_menu_tool_review_inside">Recenzie automată a instrumentelor de fișiere (în interiorul spațiului de lucru)</string>
+    <string name="agent_menu_tool_review_outside">Recenzie automată a instrumentelor de fișiere (în afara spațiului de lucru)</string>
+    <string name="agent_menu_tool_review_high_risk">Recenzie automată a instrumentelor cu risc ridicat</string>
+    <string name="agent_menu_file_distill">Distilare AI pentru citirea fișierelor</string>
 </resources>

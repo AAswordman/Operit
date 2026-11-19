@@ -14,10 +14,12 @@ import com.ai.assistance.operit.core.tools.GrepResultData
 import com.ai.assistance.operit.core.tools.StringResultData
 import com.ai.assistance.operit.core.tools.ToolProgressBus
 import com.ai.assistance.operit.core.tools.ToolExecutionLimits
+import com.ai.assistance.operit.core.tools.WorkspacePathChecker
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.util.FileUtils
+import com.ai.assistance.operit.util.PathMapper
 import com.ai.assistance.operit.core.tools.defaultTool.PathValidator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -144,8 +146,20 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
                 )
             }
 
+            // 修改意图：与 Android 环境一致，read_file_full 整文件读取受 32MB 硬上限约束
+            val sizeBytes = fs.getFileSize(path)
+            if (sizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                val sizeMb = sizeBytes / (1024.0 * 1024.0)
+                return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Use read_file_part with start_line/end_line to read it in segments.".format(sizeMb, path)
+                )
+            }
+
             val fileExt = path.substringAfterLast('.', "").lowercase()
-            
+
             // 特殊文件类型处理（图片、PDF等）暂时不支持在Linux环境
             // 因为这些需要Android本地文件访问
             if (fileExt in listOf("doc", "docx", "pdf", "jpg", "jpeg", "png", "gif", "bmp")) {
@@ -233,6 +247,19 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
                     success = false,
                     result = StringResultData(""),
                     error = "Path is not a file: $path"
+                )
+            }
+
+            // 修改意图：与 Android 环境一致，read_file_binary 整文件读取受 32MB 硬上限约束；
+            // Linux 环境无单条消息预算校验的必要（结果经同一 aggregate 汇聚），仅防 OOM
+            val binarySizeBytes = fs.getFileSize(path)
+            if (binarySizeBytes > ToolExecutionLimits.MAX_FILE_READ_SIZE_BYTES) {
+                val sizeMb = binarySizeBytes / (1024.0 * 1024.0)
+                return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "File exceeds the 32 MB read limit (actual %.1f MB): %s. Operate on it by path instead.".format(sizeMb, path)
                 )
             }
 
@@ -651,6 +678,23 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
         val path = tool.parameters.find { it.name == "path" }?.value ?: ""
         val recursive = tool.parameters.find { it.name == "recursive" }?.value?.toBoolean() ?: false
         PathValidator.validateLinuxPath(path, tool.name)?.let { return it }
+
+        // 修改意图：与 Android 环境一致，递归删除危险根目录（proot 根文件系统的 / 等）
+        // 由硬底线拦截，防止整棵 rootfs 被清空
+        if (recursive && WorkspacePathChecker.isDangerousRecursiveDeleteTarget(path)) {
+            return ToolResult(
+                toolName = tool.name,
+                success = false,
+                result = FileOperationData(
+                    operation = "delete",
+                    env = "linux",
+                    path = path,
+                    successful = false,
+                    details = "Refused to recursively delete a protected root directory: $path"
+                ),
+                error = "Refused to recursively delete a protected root directory: $path"
+            )
+        }
 
         if (path.isBlank()) {
             return ToolResult(
@@ -1173,15 +1217,55 @@ class LinuxFileSystemTools(context: Context) : StandardFileSystemTools(context) 
             )
         }
 
-        return grepCodeWithNativeRipgrep(
-            toolName = tool.name,
-            path = path,
-            pattern = pattern,
-            filePattern = filePattern,
-            caseInsensitive = caseInsensitive,
-            contextLines = contextLines,
-            maxResults = maxResults,
-            envLabel = "linux"
+        // 修改意图：native ripgrep 运行在宿主文件系统上，直接传 linux/proot 逻辑路径
+        // （/home/... 等）会扫不到目标；先映射到宿主 rootfs 真实路径再扫描，
+        // 结果路径再反向映射回 linux 逻辑路径回传给模型。
+        // 评审 P1：映射含 containment 校验，.. 逃出 rootfs 的路径（含 /../..）返回 null，
+        // 这里必须显式拒绝，不得回落原始路径交给 ripgrep。
+        val mappedPath =
+            PathMapper.resolvePath(context, path, "linux")
+                ?: return ToolResult(
+                    toolName = tool.name,
+                    success = false,
+                    result = StringResultData(""),
+                    error = "Path escapes the linux root filesystem and was rejected: path=\"$path\". " +
+                        "Use a path inside the linux environment root."
+                )
+        val grepResult =
+            grepCodeWithNativeRipgrep(
+                toolName = tool.name,
+                path = mappedPath,
+                pattern = pattern,
+                filePattern = filePattern,
+                caseInsensitive = caseInsensitive,
+                contextLines = contextLines,
+                maxResults = maxResults,
+                envLabel = "linux"
+            )
+
+        val resultData = grepResult.result as? GrepResultData
+        if (!grepResult.success || resultData == null) {
+            return grepResult
+        }
+
+        // 评审 P3：反向映射失败说明该结果在 rootfs 之外（宿主内部真实路径），把宿主路径
+        // 回传给模型既泄露内部结构、模型也无法把它当 linux 路径复用——丢弃该条目并记日志
+        val remappedMatches =
+            resultData.matches.mapNotNull { fileMatch ->
+                val linuxFilePath = PathMapper.mapAndroidPathToLinux(context, fileMatch.filePath)
+                if (linuxFilePath != null) {
+                    fileMatch.copy(filePath = linuxFilePath)
+                } else {
+                    AppLogger.w(
+                        TAG,
+                        "grep result outside rootfs dropped: ${fileMatch.filePath}"
+                    )
+                    null
+                }
+            }
+        return grepResult.copy(
+            result =
+                resultData.copy(searchPath = path, matches = remappedMatches)
         )
     }
 

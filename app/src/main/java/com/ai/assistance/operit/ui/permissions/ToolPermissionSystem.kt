@@ -191,28 +191,46 @@ class ToolPermissionSystem private constructor(private val context: Context) {
      */
     suspend fun checkToolPermission(tool: AITool): ToolPermissionCheckResult {
         AppLogger.d(TAG, "Starting permission check: ${tool.name}")
-        
+
         val preferences = context.toolPermissionsDataStore.data.first()
         val masterSwitch = PermissionLevel.fromString(preferences[MASTER_SWITCH] ?: DEFAULT_MASTER_SWITCH)
         val key = toolPermissionKey(tool.name)
         val overrideLevel = preferences[key]?.let { PermissionLevel.fromString(it) }
-        
+
         val permissionLevel = overrideLevel ?: masterSwitch
-        
+
         return when (permissionLevel) {
             PermissionLevel.ALLOW -> ToolPermissionCheckResult.GRANTED
             PermissionLevel.ASK -> requestPermission(tool)
             PermissionLevel.FORBID -> ToolPermissionCheckResult.DENIED
         }
     }
-    
+
+    /**
+     * 修改意图：工作区防护需要"无视允许模式强制询问"的能力。与 checkToolPermission 不同，
+     * 本方法不做级别判断，直接复用 requestPermission 的悬浮窗链路弹窗确认；
+     * reason 会附加在操作描述之后展示给用户（区外路径说明、AI 审查意见等）。
+     */
+    suspend fun requestConfirmation(tool: AITool, reason: String): ToolPermissionCheckResult {
+        return requestPermission(tool, reason)
+    }
+
     /**
      * Request permission from the user to execute a tool
      */
-    private suspend fun requestPermission(tool: AITool): ToolPermissionCheckResult {
-        // Get operation description
-        val operationDescription = getOperationDescription(tool)
-        
+    private suspend fun requestPermission(
+        tool: AITool,
+        reasonSuffix: String? = null
+    ): ToolPermissionCheckResult {
+        // Get operation description；附加原因（区外提示/审查意见）一并展示
+        val operationDescription = buildString {
+            append(getOperationDescription(tool))
+            if (!reasonSuffix.isNullOrBlank()) {
+                append("\n\n")
+                append(reasonSuffix)
+            }
+        }
+
         AppLogger.d(TAG, "Requesting permission: ${tool.name}")
         
         // Clear existing request
