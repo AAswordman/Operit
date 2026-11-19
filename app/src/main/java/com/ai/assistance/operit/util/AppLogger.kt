@@ -38,6 +38,11 @@ object AppLogger {
     private const val MAX_LOG_MESSAGE_CHARS = 12_000
     private const val MAX_LOG_THROWABLE_CHARS = 24_000
 
+    // Log file rotation: the app log is capped so a long session cannot fill the disk.
+    // The current log plus MAX_LOG_FILE_BACKUPS rotated files are kept at most.
+    private const val MAX_LOG_FILE_BYTES = 8L * 1024 * 1024
+    private const val MAX_LOG_FILE_BACKUPS = 2
+
     // Simple date formatter for log lines
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
     private val startupFileDateFormat = SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US)
@@ -279,6 +284,12 @@ object AppLogger {
             }
             logFile = null
             packageLogFile = null
+            for (index in 1..MAX_LOG_FILE_BACKUPS) {
+                val backup = File("${file.path}.$index")
+                if (backup.exists()) {
+                    backup.delete()
+                }
+            }
         } catch (e: Throwable) {
             // Ignore errors during reset to avoid crashing on startup
         }
@@ -299,6 +310,7 @@ object AppLogger {
     private fun writeToFileSync(priority: Int, tag: String, msg: String, tr: Throwable?) {
         if (!enableFileLogging) return
         val file = resolveLogFile() ?: return
+        rotateLogFileIfNeeded(file)
 
         val time = dateFormat.format(Date())
         val normalizedMessage = normalizeLogMessage(msg)
@@ -343,6 +355,28 @@ object AppLogger {
             time = time,
             levelChar = levelChar
         )
+    }
+
+    /**
+     * Rotates the app log before an append that would grow it past MAX_LOG_FILE_BYTES.
+     * operit.log becomes operit.log.1, older backups shift up, and the oldest is deleted.
+     */
+    private fun rotateLogFileIfNeeded(file: File) {
+        if (file.length() < MAX_LOG_FILE_BYTES) {
+            return
+        }
+
+        val oldestBackup = File("${file.path}.$MAX_LOG_FILE_BACKUPS")
+        if (oldestBackup.exists()) {
+            oldestBackup.delete()
+        }
+        for (index in MAX_LOG_FILE_BACKUPS - 1 downTo 1) {
+            val backup = File("${file.path}.$index")
+            if (backup.exists()) {
+                backup.renameTo(File("${file.path}.${index + 1}"))
+            }
+        }
+        file.renameTo(File("${file.path}.1"))
     }
 
     private fun writeToPackageLogIfNeeded(
