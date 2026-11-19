@@ -97,9 +97,4 @@ open class ShowerSurfaceView @JvmOverloads constructor(
         }
         renderer.detach()
     }
-
-    /**
-     * Capture the current frame from the renderer.
-     */
-    suspend fun captureCurrentFramePng(): ByteArray? = renderer.captureCurrentFramePng()
 }

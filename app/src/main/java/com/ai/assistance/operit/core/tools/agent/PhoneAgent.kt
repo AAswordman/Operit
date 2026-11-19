@@ -604,15 +604,8 @@ class PhoneAgent(
         _stepCount++
         AppLogger.d("PhoneAgent", "[$agentId] _executeStep: begin, step=$_stepCount")
 
-        val screenshotLink = actionHandler.captureScreenshotForAgent()
-        val screenInfo = buildString {
-            if (screenshotLink != null) {
-                appendLine("[SCREENSHOT] Below is the latest screen image:")
-                appendLine(screenshotLink)
-            } else {
-                appendLine("No screenshot available for this step.")
-            }
-        }.trim()
+        val screenshot = actionHandler.captureScreenshotForAgent()
+        val screenInfo = buildScreenInfo(screenshot)
 
         val userMessage = if (isFirst) {
             "$userPrompt\n\n$screenInfo"
@@ -824,13 +817,14 @@ class ActionHandler(
         return ShowerUsageContext(isAdbOrHigher = permissionState.isAdbOrHigher, showerDisplayId = showerId)
     }
 
-    suspend fun captureScreenshotForAgent(): String? {
+    suspend fun captureScreenshotForAgent(): AgentScreenshot {
         val showerCtx = resolveShowerUsageContext()
         val floatingService = FloatingChatService.getInstance()
         val progressOverlay = UIAutomationProgressOverlay.getInstance(context)
 
         var screenshotLink: String? = null
         var dimensions: Pair<Int, Int>? = null
+        var diagnostic: String? = null
 
         try {
             // Keep screenshot captures clean: hide overlays first, then restore after capture.
@@ -838,15 +832,30 @@ class ActionHandler(
             progressOverlay.setOverlayVisible(false)
             delay(200)
 
-            if (showerCtx.canUseShowerForInput) {
-                val (link, dims) = captureScreenshotViaShower()
-                screenshotLink = link
-                dimensions = dims
+            val showerDisplayId = showerCtx.showerDisplayId
+            var showerFailure: String? = null
+            if (showerDisplayId != null) {
+                // The Shower display has its own size and input injection works in that display's
+                // pixels. Scaling the relative coordinates of later taps from the physical main
+                // display would aim them at the wrong place on the virtual screen.
+                ShowerController.getVideoSize(agentId)?.let { (width, height) ->
+                    if (width > 0 && height > 0) {
+                        screenWidth = width
+                        screenHeight = height
+                    }
+                }
+                val capture = captureScreenshotViaShower(showerDisplayId)
+                screenshotLink = capture.link
+                dimensions = capture.dimensions
+                showerFailure = capture.failure
             }
 
-            if (screenshotLink == null) {
-                val screenshotTool = buildScreenshotTool()
-                val (bitmap, fallbackDims) = toolImplementations.captureScreenshotBitmap(screenshotTool)
+            // A main-screen agent targets the physical display, so a MediaProjection capture is a
+            // valid second attempt there. A virtual-screen agent must never receive such an image:
+            // it shows another screen and its size would rescale the agent's tap coordinates.
+            if (screenshotLink == null && isMainScreenAgent()) {
+                val (bitmap, fallbackDims) =
+                    toolImplementations.captureScreenshotBitmap(buildScreenshotTool())
 
                 if (bitmap != null) {
                     val (compressedLink, rawDims) = saveCompressedScreenshotFromBitmap(bitmap)
@@ -854,6 +863,19 @@ class ActionHandler(
                     dimensions = fallbackDims ?: rawDims
                     bitmap.recycle()
                 }
+            }
+
+            if (screenshotLink == null && !isMainScreenAgent()) {
+                // A virtual-screen agent's content only exists on its Shower display. Returning a
+                // main-screen picture here would show the model another screen and scale its tap
+                // coordinates against that screen's size, so report the failure on the target
+                // display instead of substituting an image of a different screen.
+                diagnostic = virtualDisplayScreenshotDiagnostic(
+                    agentId = agentId,
+                    displayId = showerDisplayId,
+                    reason = showerFailure ?: "no Shower display is bound to this agent"
+                )
+                AppLogger.w("ActionHandler", "[$agentId] $diagnostic")
             }
         } finally {
             val hasShowerDisplayNow = try {
@@ -872,7 +894,7 @@ class ActionHandler(
             screenWidth = dimensions.first
             screenHeight = dimensions.second
         }
-        return screenshotLink
+        return AgentScreenshot(link = screenshotLink, diagnostic = diagnostic)
     }
 
     private fun buildScreenshotTool(): AITool {
@@ -882,33 +904,62 @@ class ActionHandler(
         )
     }
 
-    private suspend fun captureScreenshotViaShower(): Pair<String?, Pair<Int, Int>?> {
+    /**
+     * Captures the display the agent drives through the Shower server.
+     *
+     * The server mirrors the requested display into an ImageReader, so displayId=0 and a
+     * virtual display take the same path and no overlay window has to be attached on the
+     * main screen for the capture to work.
+     *
+     * Returns the image link and its size, or a null link plus the reason the display produced
+     * no frame so the step can report a capture failure on the target display.
+     */
+    private suspend fun captureScreenshotViaShower(displayId: Int): ShowerCapture {
         return try {
-            val pngBytes = if (isMainScreenAgent()) {
-                ShowerController.requestScreenshot(agentId)
-            } else {
-                VirtualDisplayOverlay.getInstance(context, agentId).captureCurrentFramePng()
-            }
+            val pngBytes = ShowerController.requestScreenshot(agentId)
             if (pngBytes == null || pngBytes.isEmpty()) {
-                AppLogger.w("ActionHandler", "[$agentId] Shower WS screenshot returned no data")
-                Pair(null, null)
+                ShowerCapture(
+                    link = null,
+                    dimensions = null,
+                    failure = "Shower returned no frame for displayId=$displayId"
+                )
             } else {
                 val bitmap = BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size)
                 if (bitmap == null) {
-                    AppLogger.e("ActionHandler", "[$agentId] Shower screenshot: failed to decode bytes")
-                    Pair(null, null)
+                    ShowerCapture(
+                        link = null,
+                        dimensions = null,
+                        failure = "captured frame for displayId=$displayId is not a decodable image"
+                    )
                 } else {
-                    val result = saveCompressedScreenshotFromBitmap(bitmap)
+                    val (link, dims) = saveCompressedScreenshotFromBitmap(bitmap)
                     bitmap.recycle()
-                    result
+                    ShowerCapture(
+                        link = link,
+                        dimensions = dims,
+                        failure = if (link == null) {
+                            "captured frame for displayId=$displayId could not be stored"
+                        } else {
+                            null
+                        }
+                    )
                 }
             }
         } catch (e: Exception) {
             if (e is CancellationException) throw e
-            AppLogger.e("ActionHandler", "[$agentId] Shower screenshot failed", e)
-            Pair(null, null)
+            ShowerCapture(
+                link = null,
+                dimensions = null,
+                failure = "Shower screenshot request failed for displayId=$displayId: ${e.message}"
+            )
         }
     }
+
+    private data class ShowerCapture(
+        val link: String?,
+        val dimensions: Pair<Int, Int>?,
+        val failure: String?
+    )
 
     private fun saveCompressedScreenshotFromBitmap(bitmap: Bitmap): Pair<String?, Pair<Int, Int>?> {
         return try {

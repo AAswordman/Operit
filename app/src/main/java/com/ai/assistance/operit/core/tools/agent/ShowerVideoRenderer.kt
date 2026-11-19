@@ -21,7 +21,4 @@ object ShowerVideoRenderer {
     fun detach() = core.detach()
 
     fun onFrame(data: ByteArray) = core.onFrame(data)
-
-    suspend fun captureCurrentFramePng(): ByteArray? =
-        core.captureCurrentFramePng()
 }

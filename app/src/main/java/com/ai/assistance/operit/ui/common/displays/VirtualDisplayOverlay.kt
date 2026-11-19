@@ -125,8 +125,6 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
     private var lifecycleOwner: ServiceLifecycleOwner? = null
     private var layoutParams: WindowManager.LayoutParams? = null
     private var displayId: Int? = null
-    @Volatile
-    private var surfaceView: ShowerSurfaceView? = null
     private var isFullscreen by mutableStateOf(false)
     private var isSnapped by mutableStateOf(false)
     private var snappedToRight by mutableStateOf(false)
@@ -252,8 +250,6 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
         }
     }
 
-    suspend fun captureCurrentFramePng(): ByteArray? = surfaceView?.captureCurrentFramePng()
-
     fun showAutomationControls(
         totalSteps: Int,
         initialStatus: String,
@@ -315,7 +311,6 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                 windowManager = null
                 displayId = null
                 currentAppPackageName = null
-                surfaceView = null
             } catch (e: Exception) {
                 AppLogger.e("VirtualDisplayOverlay", "Error hiding overlay", e)
             }
@@ -744,11 +739,9 @@ class VirtualDisplayOverlay private constructor(private val context: Context, pr
                                         view.bindController(ShowerController.getInstance(agentId))
                                     } catch (_: Exception) {
                                     }
-                                    surfaceView = view
                                 }
                             },
                             update = { view ->
-                                surfaceView = view
                                 try {
                                     view.bindController(ShowerController.getInstance(agentId))
                                 } catch (_: Exception) {
