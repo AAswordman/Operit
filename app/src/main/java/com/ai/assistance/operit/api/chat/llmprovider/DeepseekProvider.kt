@@ -603,38 +603,42 @@ class DeepseekProvider(
         return messagesArray
     }
 
-    override suspend fun onChatCompletionMessageExtras(
-        extras: JSONObject,
-        emitter: StreamEmitter
-    ) {
+    override fun chatCompletionWebSearchDisplayXml(extras: JSONObject): String? {
         if (!enableWebSearch) {
-            return
+            return null
         }
+        return buildDeepseekWebSearchDisplayXml(
+            extras.optJSONArray("server_tool_calls"),
+            extras.optJSONArray("annotations")
+        )
+    }
 
+    override fun chatCompletionWebSearchReplayMetaTag(extras: JSONObject): String? {
+        if (!enableWebSearch) {
+            return null
+        }
         val serverToolCalls = extras.optJSONArray("server_tool_calls")
-        emitDeepseekSearchDisplay(serverToolCalls, extras.optJSONArray("annotations"), emitter)
-
+        if (serverToolCalls == null || serverToolCalls.length() == 0) {
+            return null
+        }
         // server_tool_calls 须在下一轮原样回传；以隐藏 meta 标签持久化进会话历史，
         // 重建请求时由 resolveServerToolCallsForReplay 还原为 assistant 消息字段
-        if (serverToolCalls != null && serverToolCalls.length() > 0) {
-            val payloadBase64 =
-                Base64.getEncoder()
-                    .encodeToString(serverToolCalls.toString().toByteArray(Charsets.UTF_8))
-            emitter.emitMetadataTag(ChatMarkupRegex.deepseekServerToolCallsMetaTag(payloadBase64))
-        }
+        val payloadBase64 =
+            Base64.getEncoder()
+                .encodeToString(serverToolCalls.toString().toByteArray(Charsets.UTF_8))
+        return ChatMarkupRegex.deepseekServerToolCallsMetaTag(payloadBase64)
     }
 
     /**
      * 将 server_tool_calls 与 annotations 解析为与 Responses 路径同构的 <search> 展示块。
      * 官方协议：完整 server_tool_calls 与 annotations 只随最后一个 delta chunk / 非流式 message 发送一次。
      */
-    private suspend fun emitDeepseekSearchDisplay(
+    private fun buildDeepseekWebSearchDisplayXml(
         serverToolCalls: JSONArray?,
-        annotations: JSONArray?,
-        emitter: StreamEmitter
-    ) {
+        annotations: JSONArray?
+    ): String? {
         if (serverToolCalls == null && annotations == null) {
-            return
+            return null
         }
 
         val queries = linkedSetOf<String>()
@@ -711,7 +715,7 @@ class DeepseekProvider(
         }
 
         if (queries.isEmpty() && sources.isEmpty()) {
-            return
+            return null
         }
 
         val statusSet = linkedSetOf<String>()
@@ -729,21 +733,16 @@ class DeepseekProvider(
             }
         }
 
-        val displayXml =
-            buildDeepseekSearchDisplayXml(
-                actionType =
-                    if (queries.isNotEmpty()) "search" else sources.values.firstOrNull()?.type.orEmpty(),
-                queries = queries.toList(),
-                status = statusSet.joinToString(","),
-                sourcesXmlAttributes =
-                    sources.values.map { source ->
-                        buildString { appendResponsesWebSearchSourceAttributes(this, source) }
-                    }
-            )
-
-        emitter.emitTag("\n")
-        emitter.emitTag(displayXml)
-        emitter.emitTag("\n\n")
+        return buildDeepseekSearchDisplayXml(
+            actionType =
+                if (queries.isNotEmpty()) "search" else sources.values.firstOrNull()?.type.orEmpty(),
+            queries = queries.toList(),
+            status = statusSet.joinToString(","),
+            sourcesXmlAttributes =
+                sources.values.map { source ->
+                    buildString { appendResponsesWebSearchSourceAttributes(this, source) }
+                }
+        )
     }
 
     override suspend fun sendMessage(

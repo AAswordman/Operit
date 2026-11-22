@@ -2126,12 +2126,29 @@ open class OpenAIProvider(
 
     /**
      * Chat Completions 响应中供应商扩展字段（如 DeepSeek 联网搜索的 annotations / server_tool_calls）
-     * 的处理钩子。流式下这些字段只随最后一个 delta chunk 发送一次，非流式附在 message 上。
+     * 的展示钩子：返回 <search> 展示块 XML，无则返回 null；由基类负责在内容流中落位。
+     * 流式下这些字段只随最后一个 delta chunk 发送一次，非流式附在 message 上。
      */
-    protected open suspend fun onChatCompletionMessageExtras(
+    protected open fun chatCompletionWebSearchDisplayXml(extras: JSONObject): String? = null
+
+    /**
+     * 需持久化进会话历史的回传载荷 meta 标签（如 DeepSeek server_tool_calls），
+     * 由基类经 emitMetadataTag 独占一行写入内容流。
+     */
+    protected open fun chatCompletionWebSearchReplayMetaTag(extras: JSONObject): String? = null
+
+    private suspend fun emitChatCompletionWebSearchExtras(
         extras: JSONObject,
         emitter: StreamEmitter
     ) {
+        chatCompletionWebSearchDisplayXml(extras)?.let { displayXml ->
+            emitter.emitTag("\n")
+            emitter.emitTag(displayXml)
+            emitter.emitTag("\n\n")
+        }
+        chatCompletionWebSearchReplayMetaTag(extras)?.let { metaTag ->
+            emitter.emitMetadataTag(metaTag)
+        }
     }
 
     private fun chatCompletionExtrasFrom(messageOrDelta: JSONObject): JSONObject? {
@@ -3130,7 +3147,7 @@ open class OpenAIProvider(
             // 联网工具扩展字段随最后一个 delta 到达；正文输出完再展示，避免打断思考块
             chatCompletionExtrasFrom(delta)?.let { extras ->
                 closeReasoningModeIfOpen(state, emitter)
-                onChatCompletionMessageExtras(extras, emitter)
+                emitChatCompletionWebSearchExtras(extras, emitter)
             }
         }
         // 处理message格式（非流式响应）
@@ -3154,7 +3171,7 @@ open class OpenAIProvider(
 
                 chatCompletionExtrasFrom(message)?.let { extras ->
                     closeReasoningModeIfOpen(state, emitter)
-                    onChatCompletionMessageExtras(extras, emitter)
+                    emitChatCompletionWebSearchExtras(extras, emitter)
                 }
             }
         }
@@ -3494,7 +3511,7 @@ open class OpenAIProvider(
                                             }
 
                                             chatCompletionExtrasFrom(messageObj)?.let { extras ->
-                                                onChatCompletionMessageExtras(extras, emitter)
+                                                emitChatCompletionWebSearchExtras(extras, emitter)
                                             }
                                         }
                                     }
