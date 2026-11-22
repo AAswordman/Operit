@@ -1228,6 +1228,7 @@
     <string name="input_tokens">Ganhos acumulados: %1$s</string>
     <string name="output_tokens">Pagamento total: %1$s</string>
     <string name="context_window">Contexto: %1$s</string>
+    <string name="context_window_with_reported">Contexto: %1$s (último valor reportado %2$s)</string>
     <string name="auto_approve">Aprovação automática:</string>
     <string name="auto_approve_desc">Política padrão global usada para controlar chamadas de ferramentas de IA: Quando ativada, todas as chamadas de ferramentas serão executadas diretamente por padrão, sem confirmação pop-up; as regras de exceção definidas para uma única ferramenta em "Configurações - Gerenciamento de permissões de ferramentas" ainda terão prioridade. Após fechar, um pop-up de confirmação aparecerá para todas as chamadas de ferramenta por padrão.</string>
     <string name="enabled">Já ativado</string>

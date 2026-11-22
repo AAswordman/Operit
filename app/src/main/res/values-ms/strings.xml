@@ -1373,6 +1373,7 @@
 
     <string name="output_tokens">Jumlah Keluaran: %1$s</string>
     <string name="context_window">Konteks: %1$s</string>
+    <string name="context_window_with_reported">Konteks: %1$s (terakhir dilaporkan %2$s)</string>
     <string name="auto_approve">Kelulusan Automatik:</string>
     <string name="auto_approve_desc">Digunakan untuk mengawal strategi lalai global semasa panggilan alat AI: Apabila dihidupkan, semua panggilan alat akan dilaksanakan secara lalai tanpa pengesahan pop-up; peraturan pengecualian yang anda tetapkan untuk alat tunggal dalam "Tetapan - Pengurusan Kebenaran Alat" masih akan berkuat kuasa terlebih dahulu. Apabila dimatikan, pengesahan pop-up akan muncul secara lalai untuk semua panggilan alat.</string>
     <string name="enabled">Dihidupkan</string>

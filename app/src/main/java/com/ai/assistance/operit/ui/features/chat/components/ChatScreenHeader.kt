@@ -28,6 +28,7 @@ import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.model.ActivePrompt
+import com.ai.assistance.operit.data.model.ApiProviderType
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
 import com.ai.assistance.operit.ui.features.chat.viewmodel.ChatViewModel
 import com.ai.assistance.operit.ui.floating.FloatingMode
@@ -120,6 +121,8 @@ fun ChatScreenHeader(
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
     val inputTokenCount by actualViewModel.inputTokenCount.collectAsState()
     val outputTokenCount by actualViewModel.outputTokenCount.collectAsState()
+    val perRequestTokenCount by actualViewModel.perRequestTokenCount.collectAsState()
+    val apiProviderType by actualViewModel.apiProviderType.collectAsState()
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -225,8 +228,31 @@ fun ChatScreenHeader(
                                 Modifier.width(IntrinsicSize.Min)
                                         .background(MaterialTheme.colorScheme.surface)
                 ) {
+                    // 与 currentWindowSize 的可比性依赖：每跳开始时 EnhancedAIService 会清空
+                    // perRequestTokenCount，并在发送前重新 publish 估算值；两者同跳才有意义。
+                    // Gemini（GOOGLE / GEMINI_GENERIC 均走 GeminiProvider）在 call.execute()
+                    // 之前用本地缓存统计调用 onTokensUpdated，拿到的不是服务端 usage，故不显示。
+                    val isGeminiPath =
+                            apiProviderType == ApiProviderType.GOOGLE ||
+                                    apiProviderType == ApiProviderType.GEMINI_GENERIC
+                    val lastReportedInput =
+                            if (isGeminiPath) null
+                            else perRequestTokenCount?.first?.takeIf { it > 0L }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.context_window, currentWindowSize)) },
+                        text = {
+                            val label =
+                                    if (lastReportedInput != null) {
+                                        stringResource(
+                                                R.string.context_window_with_reported,
+                                                currentWindowSize,
+                                                lastReportedInput
+                                        )
+                                    } else {
+                                        stringResource(R.string.context_window, currentWindowSize)
+                                    }
+                            // 有/无上报值时文案长度不同，固定单行避免下拉项换行
+                            Text(label, maxLines = 1)
+                        },
                         onClick = {},
                         enabled = false
                     )

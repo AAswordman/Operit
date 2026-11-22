@@ -1495,6 +1495,7 @@
     <string name="input_tokens">Input: %1$s</string>
     <string name="output_tokens">Output: %1$s</string>
     <string name="context_window">Context: %1$s</string>
+    <string name="context_window_with_reported">Context: %1$s (last reported %2$s)</string>
     <string name="auto_approve">Auto-approve</string>
     <string name="auto_approve_desc">Safe tools will be executed automatically without prompting. For specific group approvals, please go to Settings - Tool Permission Management.</string>
     <string name="enabled">Enabled</string>
