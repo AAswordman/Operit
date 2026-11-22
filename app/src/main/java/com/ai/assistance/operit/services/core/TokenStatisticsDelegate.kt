@@ -33,6 +33,8 @@ class TokenStatisticsDelegate(
 
     private val _perRequestTokenCount = MutableStateFlow<Pair<Long, Long>?>(null)
     val perRequestTokenCountFlow: StateFlow<Pair<Long, Long>?> = _perRequestTokenCount.asStateFlow()
+    private val _lastServerReportedInput = MutableStateFlow<Long?>(null)
+    val lastServerReportedInputFlow: StateFlow<Long?> = _lastServerReportedInput.asStateFlow()
 
     // --- Internal State ---
     private var lastCurrentWindowSize = 0L
@@ -46,6 +48,7 @@ class TokenStatisticsDelegate(
     private val lastWindowSizeByChatKey = ConcurrentHashMap<String, Long>()
     private val perRequestTokenCountByChatKey =
         ConcurrentHashMap<String, Pair<Long, Long>?>()
+    private val lastServerReportedInputByChatKey = ConcurrentHashMap<String, Long>()
 
     @Volatile private var activeChatId: String? = null
 
@@ -59,11 +62,13 @@ class TokenStatisticsDelegate(
         val output = cumulativeOutputTokensByChatKey[key] ?: 0L
         val window = lastWindowSizeByChatKey[key] ?: 0L
         val perRequest = perRequestTokenCountByChatKey[key]
+        val reportedInput = lastServerReportedInputByChatKey[key]
 
         _cumulativeInputTokens.value = input
         _cumulativeOutputTokens.value = output
         _currentWindowSize.value = window
         _perRequestTokenCount.value = perRequest
+        _lastServerReportedInput.value = reportedInput
         lastCurrentWindowSize = window
     }
 
@@ -79,6 +84,21 @@ class TokenStatisticsDelegate(
 
         if (isActiveKey(key)) {
             _perRequestTokenCount.value = counts
+        }
+    }
+
+    private fun handleLastServerReportedInput(
+        key: String,
+        inputTokens: Long?
+    ) {
+        if (inputTokens == null) {
+            lastServerReportedInputByChatKey.remove(key)
+        } else {
+            lastServerReportedInputByChatKey[key] = inputTokens
+        }
+
+        if (isActiveKey(key)) {
+            _lastServerReportedInput.value = inputTokens
         }
     }
 
@@ -119,6 +139,14 @@ class TokenStatisticsDelegate(
                     )
                 }
             }
+            launch {
+                service.lastServerReportedInputTokensFlow.collect { reported ->
+                    handleLastServerReportedInput(
+                        key = chatKey(null),
+                        inputTokens = reported
+                    )
+                }
+            }
         }
     }
 
@@ -150,6 +178,14 @@ class TokenStatisticsDelegate(
                         )
                     }
                 }
+                launch {
+                    service.lastServerReportedInputTokensFlow.collect { reported ->
+                        handleLastServerReportedInput(
+                            key = key,
+                            inputTokens = reported
+                        )
+                    }
+                }
             }
 
         if (isActiveKey(key)) {
@@ -163,12 +199,14 @@ class TokenStatisticsDelegate(
         _cumulativeOutputTokens.value = 0L
         _currentWindowSize.value = 0L
         _perRequestTokenCount.value = null
+        _lastServerReportedInput.value = null
         lastCurrentWindowSize = 0L
 
         cumulativeInputTokensByChatKey.clear()
         cumulativeOutputTokensByChatKey.clear()
         lastWindowSizeByChatKey.clear()
         perRequestTokenCountByChatKey.clear()
+        lastServerReportedInputByChatKey.clear()
 
         // 同时重置服务中的token计数
         val services = buildSet {
