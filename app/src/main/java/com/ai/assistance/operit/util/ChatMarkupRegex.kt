@@ -7,6 +7,7 @@ object ChatMarkupRegex {
     private const val GEMINI_THOUGHT_SIGNATURE_PROVIDER = "gemini:thought_signature"
     private const val OPENAI_RESPONSES_REASONING_PROVIDER = "openai:responses_reasoning"
     private const val OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER = "openai:responses_output_item"
+    private const val DEEPSEEK_SERVER_TOOL_CALLS_PROVIDER = "deepseek:server_tool_calls"
     const val TOOL_TAG_NAME_REGEX_SOURCE =
         "tool(?:_(?!result(?:_|\\b))$TOOL_TAG_SUFFIX_REGEX_SOURCE)?"
     const val TOOL_RESULT_TAG_NAME_REGEX_SOURCE = "tool_result(?:_${TOOL_TAG_SUFFIX_REGEX_SOURCE})?"
@@ -245,6 +246,18 @@ object ChatMarkupRegex {
 
     fun openAiResponsesOutputItemMetaTag(payloadBase64: String): String {
         return """<meta provider="$OPENAI_RESPONSES_OUTPUT_ITEM_PROVIDER">$payloadBase64</meta>"""
+    }
+
+    fun deepseekServerToolCallsMetaTag(payloadBase64: String): String {
+        return """<meta provider="$DEEPSEEK_SERVER_TOOL_CALLS_PROVIDER">$payloadBase64</meta>"""
+    }
+
+    fun extractDeepseekServerToolCallsPayloads(content: String): List<String> {
+        return extractMetaPayloads(content, DEEPSEEK_SERVER_TOOL_CALLS_PROVIDER)
+    }
+
+    fun removeDeepseekServerToolCallsMeta(content: String): String {
+        return removeMetaByProvider(content, DEEPSEEK_SERVER_TOOL_CALLS_PROVIDER)
     }
 
     fun extractGeminiThoughtSignature(content: String): String? {

@@ -2124,6 +2124,26 @@ open class OpenAIProvider(
         }
     }
 
+    /**
+     * Chat Completions 响应中供应商扩展字段（如 DeepSeek 联网搜索的 annotations / server_tool_calls）
+     * 的处理钩子。流式下这些字段只随最后一个 delta chunk 发送一次，非流式附在 message 上。
+     */
+    protected open suspend fun onChatCompletionMessageExtras(
+        extras: JSONObject,
+        emitter: StreamEmitter
+    ) {
+    }
+
+    private fun chatCompletionExtrasFrom(messageOrDelta: JSONObject): JSONObject? {
+        if (!messageOrDelta.has("annotations") && !messageOrDelta.has("server_tool_calls")) {
+            return null
+        }
+        val extras = JSONObject()
+        messageOrDelta.optJSONArray("annotations")?.let { extras.put("annotations", it) }
+        messageOrDelta.optJSONArray("server_tool_calls")?.let { extras.put("server_tool_calls", it) }
+        return if (extras.length() > 0) extras else null
+    }
+
     protected open fun formatResponsesWebSearchDisplayXml(
         context: Context,
         item: JSONObject,
@@ -3106,6 +3126,12 @@ open class OpenAIProvider(
             }
             val regularContent = delta.optString("content", "")
             processContentDelta(reasoningContent, regularContent, state, emitter)
+
+            // 联网工具扩展字段随最后一个 delta 到达；正文输出完再展示，避免打断思考块
+            chatCompletionExtrasFrom(delta)?.let { extras ->
+                closeReasoningModeIfOpen(state, emitter)
+                onChatCompletionMessageExtras(extras, emitter)
+            }
         }
         // 处理message格式（非流式响应）
         else {
@@ -3124,6 +3150,11 @@ open class OpenAIProvider(
                 if (regularContent.isNotNullOrEmpty()) {
                     state.hasEmittedRegularContent = true
                     emitter.emitContent(regularContent)
+                }
+
+                chatCompletionExtrasFrom(message)?.let { extras ->
+                    closeReasoningModeIfOpen(state, emitter)
+                    onChatCompletionMessageExtras(extras, emitter)
                 }
             }
         }
@@ -3460,6 +3491,10 @@ open class OpenAIProvider(
                                             if (regularContent.isNotNullOrEmpty()) {
                                                 hasEmittedRegularContent = true
                                                 emitter.emitContent(regularContent)
+                                            }
+
+                                            chatCompletionExtrasFrom(messageObj)?.let { extras ->
+                                                onChatCompletionMessageExtras(extras, emitter)
                                             }
                                         }
                                     }

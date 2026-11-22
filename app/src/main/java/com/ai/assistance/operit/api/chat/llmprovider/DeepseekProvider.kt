@@ -34,7 +34,8 @@ class DeepseekProvider(
     supportsVideo: Boolean = false,
     enableToolCall: Boolean = false,
     thinkingConfigurations: String = "",
-    thinkingOptionId: String = ""
+    thinkingOptionId: String = "",
+    private val enableWebSearch: Boolean = false
 ) : OpenAIProvider(
         apiEndpoint = apiEndpoint,
         apiKeyProvider = apiKeyProvider,
@@ -76,7 +77,8 @@ class DeepseekProvider(
                         supportsVideo = supportsVideo,
                         enableToolCall = enableToolCall,
                         thinkingConfigurations = config.thinkingConfigurations,
-                        thinkingOptionId = config.thinkingOptionId
+                        thinkingOptionId = config.thinkingOptionId,
+                        enableWebSearch = config.enableDeepSeekWebSearch
                     )
 
                 DeepseekApiProtocol.RESPONSES ->
@@ -184,6 +186,18 @@ class DeepseekProvider(
             }
         }
 
+        // DeepSeek 服务端联网工具：声明后由服务端执行搜索与读链接，不依赖 enableToolCall；
+        // tool_choice 不能强制指定这两个工具，保持 auto 让模型自行决定
+        if (enableWebSearch) {
+            val tools =
+                jsonObject.optJSONArray("tools")
+                    ?: JSONArray().also { jsonObject.put("tools", it) }
+            tools.put(JSONObject().put("type", "deepseek_web_search"))
+            tools.put(JSONObject().put("type", "deepseek_read_url"))
+            jsonObject.put("tool_choice", "auto")
+            toolsJson = tools.toString()
+        }
+
         val providerReadyHistory = prepareHistoryForProvider(chatHistory, effectiveEnableToolCall)
         calculateAndStoreInputTokens(
             providerReadyHistory,
@@ -225,10 +239,48 @@ class DeepseekProvider(
 
         var queuedAssistantToolText: String? = null
         var queuedAssistantReasoning: String? = null
+        var queuedServerToolCalls: JSONArray? = null
         var queuedToolCalls = JSONArray()
         val queuedOpenToolCalls = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
         val openToolCalls = mutableListOf<StructuredToolCallBridge.OpenToolCall>()
         var nextToolCallOrdinal = 0
+
+        /**
+         * 解码 assistant 历史中持久化的 server_tool_calls meta 载荷，返回 (载荷, 剔除 meta 后的可见内容)。
+         * DeepSeek 要求下一轮请求把 server_tool_calls 原样回传，否则读过的网页不再进入上下文。
+         */
+        fun resolveServerToolCallsForReplay(content: String): Pair<JSONArray?, String> {
+            val payloads = ChatMarkupRegex.extractDeepseekServerToolCallsPayloads(content)
+            if (payloads.isEmpty()) {
+                return null to content
+            }
+            val merged = JSONArray()
+            payloads.forEach { payloadBase64 ->
+                runCatching {
+                    val decoded =
+                        JSONArray(
+                            String(Base64.getDecoder().decode(payloadBase64), Charsets.UTF_8)
+                        )
+                    for (i in 0 until decoded.length()) {
+                        val call = decoded.optJSONObject(i) ?: continue
+                        merged.put(call)
+                    }
+                }.onFailure { e ->
+                    AppLogger.w("DeepseekProvider", "server_tool_calls 元数据解码失败", e)
+                }
+            }
+            val serverToolCalls = if (merged.length() > 0) merged else null
+            return serverToolCalls to ChatMarkupRegex.removeDeepseekServerToolCallsMeta(content)
+        }
+
+        fun mergeQueuedServerToolCalls(serverToolCalls: JSONArray?) {
+            if (serverToolCalls == null || serverToolCalls.length() == 0) return
+            val merged = queuedServerToolCalls ?: JSONArray().also { queuedServerToolCalls = it }
+            for (i in 0 until serverToolCalls.length()) {
+                val call = serverToolCalls.optJSONObject(i) ?: continue
+                merged.put(call)
+            }
+        }
 
         fun appendQueuedAssistantToolText(text: String) {
             if (text.isBlank()) return
@@ -250,9 +302,15 @@ class DeepseekProvider(
                 }
         }
 
-        fun queueToolCalls(textContent: String, toolCalls: JSONArray, reasoningContent: String = "") {
+        fun queueToolCalls(
+            textContent: String,
+            toolCalls: JSONArray,
+            reasoningContent: String = "",
+            serverToolCalls: JSONArray? = null
+        ) {
             appendQueuedAssistantToolText(textContent)
             appendQueuedAssistantReasoning(reasoningContent)
+            mergeQueuedServerToolCalls(serverToolCalls)
             for (i in 0 until toolCalls.length()) {
                 val sourceToolCall = toolCalls.optJSONObject(i) ?: continue
                 val toolCall = JSONObject(sourceToolCall.toString())
@@ -281,12 +339,14 @@ class DeepseekProvider(
                         put("content", null)
                     }
                     put("tool_calls", queuedToolCalls)
+                    queuedServerToolCalls?.let { put("server_tool_calls", it) }
                 }
             )
 
             openToolCalls.addAll(queuedOpenToolCalls)
             queuedAssistantToolText = null
             queuedAssistantReasoning = null
+            queuedServerToolCalls = null
             queuedToolCalls = JSONArray()
             queuedOpenToolCalls.clear()
         }
@@ -345,7 +405,8 @@ class DeepseekProvider(
 
                         PromptTurnKind.ASSISTANT -> {
                             val (content, reasoningContent) = ChatUtils.extractThinkingContent(originalContent)
-                            val (textContent, parsedToolCalls) = parseXmlToolCalls(content)
+                            val (serverToolCalls, visibleContent) = resolveServerToolCallsForReplay(content)
+                            val (textContent, parsedToolCalls) = parseXmlToolCalls(visibleContent)
                             val toolCalls =
                                 if (parsedToolCalls != null) {
                                     wrapPackageToolCallsWithProxy(parsedToolCalls)
@@ -357,26 +418,28 @@ class DeepseekProvider(
                                 if (openToolCalls.isNotEmpty()) {
                                     flushOpenToolCallsAsUnmatched("assistant_tool_call_before_result")
                                 }
-                                queueToolCalls(textContent, toolCalls, reasoningContent)
+                                queueToolCalls(textContent, toolCalls, reasoningContent, serverToolCalls)
                             } else {
                                 flushOpenToolCallsAsUnmatched("assistant_boundary")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
                                         put("reasoning_content", reasoningContent)
-                                        put("content", buildContentField(context, content.ifBlank { "[Empty]" }, role = "assistant"))
+                                        put("content", buildContentField(context, visibleContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                        serverToolCalls?.let { put("server_tool_calls", it) }
                                     }
                                 )
                                 appendReadableImageMessageIfNeeded(
                                     messagesArray,
-                                    content,
+                                    visibleContent,
                                     "assistant message"
                                 )
                             }
                         }
 
                         PromptTurnKind.TOOL_CALL -> {
-                            val (textContent, parsedToolCalls) = parseXmlToolCalls(originalContent)
+                            val (serverToolCalls, visibleContent) = resolveServerToolCallsForReplay(originalContent)
+                            val (textContent, parsedToolCalls) = parseXmlToolCalls(visibleContent)
                             val toolCalls =
                                 if (parsedToolCalls != null) {
                                     wrapPackageToolCallsWithProxy(parsedToolCalls)
@@ -388,19 +451,20 @@ class DeepseekProvider(
                                 if (openToolCalls.isNotEmpty()) {
                                     flushOpenToolCallsAsUnmatched("typed_tool_call_before_result")
                                 }
-                                queueToolCalls(textContent, toolCalls)
+                                queueToolCalls(textContent, toolCalls, serverToolCalls = serverToolCalls)
                             } else {
                                 flushOpenToolCallsAsUnmatched("typed_tool_call_without_payload")
                                 messagesArray.put(
                                     JSONObject().apply {
                                         put("role", "assistant")
                                         put("reasoning_content", "")
-                                        put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                        put("content", buildContentField(context, visibleContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                        serverToolCalls?.let { put("server_tool_calls", it) }
                                     }
                                 )
                                 appendReadableImageMessageIfNeeded(
                                     messagesArray,
-                                    originalContent,
+                                    visibleContent,
                                     "assistant tool-call message"
                                 )
                             }
@@ -498,31 +562,35 @@ class DeepseekProvider(
 
                         PromptTurnKind.ASSISTANT -> {
                             val (content, reasoningContent) = ChatUtils.extractThinkingContent(originalContent)
+                            val (serverToolCalls, visibleContent) = resolveServerToolCallsForReplay(content)
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "assistant")
                                     put("reasoning_content", reasoningContent)
-                                    put("content", buildContentField(context, content.ifBlank { "[Empty]" }, role = "assistant"))
+                                    put("content", buildContentField(context, visibleContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                    serverToolCalls?.let { put("server_tool_calls", it) }
                                 }
                             )
                             appendReadableImageMessageIfNeeded(
                                 messagesArray,
-                                content,
+                                visibleContent,
                                 "assistant message"
                             )
                         }
 
                         PromptTurnKind.TOOL_CALL -> {
+                            val (serverToolCalls, visibleContent) = resolveServerToolCallsForReplay(originalContent)
                             messagesArray.put(
                                 JSONObject().apply {
                                     put("role", "assistant")
                                     put("reasoning_content", "")
-                                    put("content", buildContentField(context, originalContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                    put("content", buildContentField(context, visibleContent.ifBlank { "[Empty]" }, role = "assistant"))
+                                    serverToolCalls?.let { put("server_tool_calls", it) }
                                 }
                             )
                             appendReadableImageMessageIfNeeded(
                                 messagesArray,
-                                originalContent,
+                                visibleContent,
                                 "assistant tool-call message"
                             )
                         }
@@ -533,6 +601,149 @@ class DeepseekProvider(
 
         flushOpenToolCallsAsUnmatched("history_end")
         return messagesArray
+    }
+
+    override suspend fun onChatCompletionMessageExtras(
+        extras: JSONObject,
+        emitter: StreamEmitter
+    ) {
+        if (!enableWebSearch) {
+            return
+        }
+
+        val serverToolCalls = extras.optJSONArray("server_tool_calls")
+        emitDeepseekSearchDisplay(serverToolCalls, extras.optJSONArray("annotations"), emitter)
+
+        // server_tool_calls 须在下一轮原样回传；以隐藏 meta 标签持久化进会话历史，
+        // 重建请求时由 resolveServerToolCallsForReplay 还原为 assistant 消息字段
+        if (serverToolCalls != null && serverToolCalls.length() > 0) {
+            val payloadBase64 =
+                Base64.getEncoder()
+                    .encodeToString(serverToolCalls.toString().toByteArray(Charsets.UTF_8))
+            emitter.emitMetadataTag(ChatMarkupRegex.deepseekServerToolCallsMetaTag(payloadBase64))
+        }
+    }
+
+    /**
+     * 将 server_tool_calls 与 annotations 解析为与 Responses 路径同构的 <search> 展示块。
+     * 官方协议：完整 server_tool_calls 与 annotations 只随最后一个 delta chunk / 非流式 message 发送一次。
+     */
+    private suspend fun emitDeepseekSearchDisplay(
+        serverToolCalls: JSONArray?,
+        annotations: JSONArray?,
+        emitter: StreamEmitter
+    ) {
+        if (serverToolCalls == null && annotations == null) {
+            return
+        }
+
+        val queries = linkedSetOf<String>()
+        val sources = linkedMapOf<String, ResponsesWebSearchSource>()
+
+        if (serverToolCalls != null) {
+            for (stepIndex in 0 until serverToolCalls.length()) {
+                val calls =
+                    serverToolCalls.optJSONObject(stepIndex)?.optJSONArray("calls") ?: continue
+                for (callIndex in 0 until calls.length()) {
+                    val call = calls.optJSONObject(callIndex) ?: continue
+                    val action = call.optJSONObject("action")
+                    val actionType = action?.optString("type", "")?.trim().orEmpty()
+                    if (actionType == "search") {
+                        val actionQueries = action?.optJSONArray("queries")
+                        if (actionQueries != null) {
+                            for (queryIndex in 0 until actionQueries.length()) {
+                                val query = actionQueries.optString(queryIndex, "").trim()
+                                if (query.isNotEmpty()) {
+                                    queries.add(query)
+                                }
+                            }
+                        }
+                    }
+
+                    val callSources = call.optJSONArray("sources")
+                    if (callSources != null) {
+                        for (sourceIndex in 0 until callSources.length()) {
+                            val source = callSources.optJSONObject(sourceIndex) ?: continue
+                            val url = source.optString("url", "").trim()
+                            if (url.isEmpty() || sources.containsKey(url)) continue
+                            val metadata = linkedMapOf<String, String>()
+                            val siteName = source.optString("site_name", "").trim()
+                            if (siteName.isNotEmpty()) {
+                                metadata["site_name"] = siteName
+                            }
+                            sources[url] =
+                                ResponsesWebSearchSource(
+                                    type = source.optString("type", "").trim().ifEmpty { "url" },
+                                    title = source.optString("title", "").trim(),
+                                    url = url,
+                                    metadata = metadata
+                                )
+                        }
+                    }
+
+                    val page = call.optJSONObject("page")
+                    val pageUrl = page?.optString("url", "")?.trim().orEmpty()
+                    if (pageUrl.isNotEmpty() && !sources.containsKey(pageUrl)) {
+                        sources[pageUrl] =
+                            ResponsesWebSearchSource(
+                                type = "read_link",
+                                title = page.optString("title", "").trim(),
+                                url = pageUrl
+                            )
+                    }
+                }
+            }
+        }
+
+        if (annotations != null) {
+            for (index in 0 until annotations.length()) {
+                val annotation = annotations.optJSONObject(index) ?: continue
+                val citation = annotation.optJSONObject("url_citation") ?: annotation
+                val url = citation.optString("url", "").trim()
+                if (url.isEmpty() || sources.containsKey(url)) continue
+                sources[url] =
+                    ResponsesWebSearchSource(
+                        type = "url_citation",
+                        title = citation.optString("title", "").trim(),
+                        url = url
+                    )
+            }
+        }
+
+        if (queries.isEmpty() && sources.isEmpty()) {
+            return
+        }
+
+        val statusSet = linkedSetOf<String>()
+        if (serverToolCalls != null) {
+            for (stepIndex in 0 until serverToolCalls.length()) {
+                val calls =
+                    serverToolCalls.optJSONObject(stepIndex)?.optJSONArray("calls") ?: continue
+                for (callIndex in 0 until calls.length()) {
+                    val status =
+                        calls.optJSONObject(callIndex)?.optString("status", "")?.trim().orEmpty()
+                    if (status.isNotEmpty()) {
+                        statusSet.add(status)
+                    }
+                }
+            }
+        }
+
+        val displayXml =
+            buildDeepseekSearchDisplayXml(
+                actionType =
+                    if (queries.isNotEmpty()) "search" else sources.values.firstOrNull()?.type.orEmpty(),
+                queries = queries.toList(),
+                status = statusSet.joinToString(","),
+                sourcesXmlAttributes =
+                    sources.values.map { source ->
+                        buildString { appendResponsesWebSearchSourceAttributes(this, source) }
+                    }
+            )
+
+        emitter.emitTag("\n")
+        emitter.emitTag(displayXml)
+        emitter.emitTag("\n\n")
     }
 
     override suspend fun sendMessage(
@@ -553,6 +764,63 @@ class DeepseekProvider(
         // 直接调用父类的sendMessage实现
         return super.sendMessage(context, chatHistory, modelParameters, enableThinking, stream, availableTools, preserveThinkInHistory, onTokensUpdated, onUsageReported, onNonFatalError, enableRetry, recordTokenUsage, onUsageFinalized)
     }
+}
+
+/**
+ * DeepSeek 联网搜索展示块的统一装配；sourcesXmlAttributes 由调用方渲染
+ * （两条协议路径都经 appendResponsesWebSearchSourceAttributes 产出 type/title/url 属性串）。
+ */
+private fun buildDeepseekSearchDisplayXml(
+    actionType: String,
+    queries: List<String>,
+    status: String,
+    sourcesXmlAttributes: List<String>
+): String {
+    return buildString {
+        append("<search")
+        appendXmlAttribute("provider", "deepseek")
+        appendXmlAttribute("action", actionType)
+        appendXmlAttribute("status", status)
+        append(">")
+        queries.forEach { query ->
+            append("\n  <query>")
+            append(escapeXmlText(query))
+            append("</query>")
+        }
+        sourcesXmlAttributes.forEach { attributes ->
+            append("\n  <source")
+            append(attributes)
+            append(" />")
+        }
+        append("\n</search>")
+    }
+}
+
+private fun StringBuilder.appendXmlAttribute(name: String, value: String) {
+    if (value.isEmpty()) {
+        return
+    }
+    append(" ")
+    append(name)
+    append("=\"")
+    append(escapeXmlAttribute(value))
+    append("\"")
+}
+
+private fun escapeXmlAttribute(text: String): String {
+    return text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;")
+}
+
+private fun escapeXmlText(text: String): String {
+    return text
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
 }
 
 private enum class DeepseekApiProtocol {
@@ -1397,12 +1665,13 @@ private class DeepseekResponsesProvider(
         }
         for (index in 0 until tools.length()) {
             val tool = tools.optJSONObject(index) ?: continue
-            if (tool.optString("type") == "web_search") {
+            if (tool.optString("type") == "deepseek_web_search") {
                 requestObject.put("tool_choice", "auto")
                 return
             }
         }
-        tools.put(JSONObject().put("type", "web_search"))
+        tools.put(JSONObject().put("type", "deepseek_web_search"))
+        tools.put(JSONObject().put("type", "deepseek_read_url"))
         requestObject.put("tool_choice", "auto")
     }
 
@@ -1412,51 +1681,15 @@ private class DeepseekResponsesProvider(
         status: String,
         sources: List<ResponsesWebSearchSource>
     ): String {
-        return buildString {
-            append("<search")
-            appendXmlAttribute("provider", "deepseek")
-            appendXmlAttribute("action", actionType)
-            appendXmlAttribute("status", status)
-            append(">")
-            queries.forEach { query ->
-                append("\n  <query>")
-                append(escapeXmlText(query))
-                append("</query>")
-            }
-            sources.forEach { source ->
-                append("\n  <source")
-                appendResponsesWebSearchSourceAttributes(this, source)
-                append(" />")
-            }
-            append("\n</search>")
-        }
-    }
-
-    private fun StringBuilder.appendXmlAttribute(name: String, value: String) {
-        if (value.isEmpty()) {
-            return
-        }
-        append(" ")
-        append(name)
-        append("=\"")
-        append(escapeXmlAttribute(value))
-        append("\"")
-    }
-
-    private fun escapeXmlAttribute(text: String): String {
-        return text
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("\"", "&quot;")
-            .replace("'", "&apos;")
-    }
-
-    private fun escapeXmlText(text: String): String {
-        return text
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
+        return buildDeepseekSearchDisplayXml(
+            actionType = actionType,
+            queries = queries,
+            status = status,
+            sourcesXmlAttributes =
+                sources.map { source ->
+                    buildString { appendResponsesWebSearchSourceAttributes(this, source) }
+                }
+        )
     }
 
 }
