@@ -120,6 +120,7 @@ fun ChatScreenHeader(
     val maxWindowSizeInK by actualViewModel.maxWindowSizeInK.collectAsState()
     val inputTokenCount by actualViewModel.inputTokenCount.collectAsState()
     val outputTokenCount by actualViewModel.outputTokenCount.collectAsState()
+    val lastServerReportedInput by actualViewModel.lastServerReportedInput.collectAsState()
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
@@ -225,8 +226,26 @@ fun ChatScreenHeader(
                                 Modifier.width(IntrinsicSize.Min)
                                         .background(MaterialTheme.colorScheme.surface)
                 ) {
+                    // 两条不同的流：
+                    // - currentWindowSize：本地估算，每跳开始清空、发送前重新 publish，用于预警；
+                    // - lastServerReportedInput：只由 provider 从响应里解析出的 usage 写入
+                    //   （EnhancedAIService.onUsageReported），本地推理与流式估算都不走它。
+                    val lastReportedInput = lastServerReportedInput?.takeIf { it > 0L }
                     DropdownMenuItem(
-                        text = { Text(stringResource(R.string.context_window, currentWindowSize)) },
+                        text = {
+                            val label =
+                                    if (lastReportedInput != null) {
+                                        stringResource(
+                                                R.string.context_window_with_reported,
+                                                currentWindowSize,
+                                                lastReportedInput
+                                        )
+                                    } else {
+                                        stringResource(R.string.context_window, currentWindowSize)
+                                    }
+                            // 上报值出现后文案会变长，允许换行，避免括号部分被裁掉
+                            Text(label, maxLines = 2)
+                        },
                         onClick = {},
                         enabled = false
                     )

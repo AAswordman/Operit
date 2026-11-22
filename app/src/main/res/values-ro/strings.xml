@@ -1417,6 +1417,7 @@
     <string name="input_tokens">Total intrări: %1$s</string>
     <string name="output_tokens">Totalul ieșirilor: %1$s</string>
     <string name="context_window">Context: %1$s</string>
+    <string name="context_window_with_reported">Context: %1$s (ultimul raportat %2$s)</string>
     <string name="auto_approve">Aprobare automată:</string>
     <string name="auto_approve_desc">utilizat pentru control AI Politica globală implicită pentru apelurile către instrumente: odată activată, toate apelurile către instrumente vor fi executate automat, fără a mai apărea o fereastră de confirmare; în „Setări - Regulile de excepție configurate pentru fiecare instrument în parte în secțiunea „Gestionarea permisiunilor pentru instrumente” vor avea în continuare prioritate. După dezactivare, se va afișa în mod implicit o fereastră de confirmare pentru toate apelurile către instrumente.</string>
     <string name="enabled">Este activat</string>

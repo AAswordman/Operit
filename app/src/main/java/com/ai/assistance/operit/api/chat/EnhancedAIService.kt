@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.ai.assistance.operit.util.AppLogger
+import com.ai.assistance.operit.data.stats.ProviderUsageNormalizer
 import com.ai.assistance.operit.util.ChatMarkupRegex
 import com.ai.assistance.operit.util.ChatTrace
 import com.ai.assistance.operit.api.chat.enhance.ConversationMarkupManager
@@ -407,6 +408,13 @@ class EnhancedAIService private constructor(private val context: Context) {
     // Per-request token counts
     private val _perRequestTokenCounts = MutableStateFlow<Pair<Long, Long>?>(null)
     val perRequestTokenCounts: StateFlow<Pair<Long, Long>?> = _perRequestTokenCounts.asStateFlow()
+    // 最近一次由「服务端 usage」上报的输入 token（含缓存命中）。
+    // 只有 provider 从响应里解析出 usage 才会写这里（经 onUsageReported）；
+    // 本地推理（MNN / llama.cpp）与流式过程中的估算都走 onTokensUpdated，不经本通道，
+    // 所以本值可以直接当「上报值」显示。
+    private val _lastServerReportedInputTokens = MutableStateFlow<Long?>(null)
+    val lastServerReportedInputTokensFlow: StateFlow<Long?> =
+            _lastServerReportedInputTokens.asStateFlow()
 
     // Stable request window estimate for the next model hop.
     private val _requestWindowEstimate = MutableStateFlow<Long?>(null)
@@ -1097,6 +1105,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
                     // 清空之前的单次请求token计数
                     _perRequestTokenCounts.value = null
+                    _lastServerReportedInputTokens.value = null
                     currentRequestInputTokenCount = 0L
                     currentRequestOutputTokenCount = 0L
                     currentRequestCachedInputTokenCount = 0L
@@ -1193,6 +1202,15 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                         currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
                                         _perRequestTokenCounts.value = Pair(input, output)
+                                    },
+                                    onUsageReported = { snapshot, _ ->
+                                        val source = snapshot.source
+                                        if (source != ProviderUsageNormalizer.SOURCE_MNN &&
+                                                source != ProviderUsageNormalizer.SOURCE_LLAMA) {
+                                            snapshot.totalInputTokens?.let { reported ->
+                                                _lastServerReportedInputTokens.value = reported
+                                            }
+                                        }
                                     },
                                      onNonFatalError = onNonFatalError,
                             )
@@ -2442,6 +2460,7 @@ class EnhancedAIService private constructor(private val context: Context) {
 
         // 清空之前的单次请求token计数
         _perRequestTokenCounts.value = null
+        _lastServerReportedInputTokens.value = null
         currentRequestInputTokenCount = 0L
         currentRequestOutputTokenCount = 0L
         currentRequestCachedInputTokenCount = 0L
@@ -2464,6 +2483,15 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                     currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
                                     _perRequestTokenCounts.value = Pair(input, output)
+                                },
+                                onUsageReported = { snapshot, _ ->
+                                    val source = snapshot.source
+                                    if (source != ProviderUsageNormalizer.SOURCE_MNN &&
+                                            source != ProviderUsageNormalizer.SOURCE_LLAMA) {
+                                        snapshot.totalInputTokens?.let { reported ->
+                                            _lastServerReportedInputTokens.value = reported
+                                        }
+                                    }
                                 },
                                  onNonFatalError = onNonFatalError,
                         )

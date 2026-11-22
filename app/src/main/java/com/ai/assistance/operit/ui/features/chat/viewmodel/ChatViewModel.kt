@@ -308,6 +308,7 @@ class ChatViewModel(private val context: Context) : ViewModel() {
     val inputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeInputTokensFlow }
     val outputTokenCount: StateFlow<Long> by lazy { tokenStatsDelegate.cumulativeOutputTokensFlow }
     val perRequestTokenCount: StateFlow<Pair<Long, Long>?> by lazy { tokenStatsDelegate.perRequestTokenCountFlow }
+    val lastServerReportedInput: StateFlow<Long?> by lazy { tokenStatsDelegate.lastServerReportedInputFlow }
 
 
 
