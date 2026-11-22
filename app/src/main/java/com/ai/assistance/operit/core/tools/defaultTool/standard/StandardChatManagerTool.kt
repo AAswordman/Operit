@@ -35,6 +35,7 @@ import com.ai.assistance.operit.data.model.InputProcessingState
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.model.ToolResult
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
+import com.ai.assistance.operit.data.preferences.CharacterGroupCardManager
 import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.repository.ChatHistoryManager
 import com.ai.assistance.operit.services.ChatServiceCore
@@ -482,11 +483,26 @@ class StandardChatManagerTool(private val context: Context) {
             .mapValues { (_, cards) -> cards.first().id }
     }
 
+    private suspend fun buildGroupMemberCardIds(chats: List<ChatHistory>): Map<String, List<String>> {
+        val groupIds = chats.mapNotNull { it.characterGroupId?.takeIf { id -> id.isNotBlank() } }.toSet()
+        if (groupIds.isEmpty()) {
+            return emptyMap()
+        }
+        // Read one roster snapshot per request so chats sharing a group use the same member order.
+        return CharacterGroupCardManager.getInstance(appContext)
+            .getAllCharacterGroupCards()
+            .filter { it.id in groupIds }
+            .associate { group ->
+                group.id to group.members.map { it.characterCardId }
+            }
+    }
+
     private fun buildChatInfo(
         chat: ChatHistory,
         messageCounts: Map<String, Int>,
         currentChatId: String?,
-        characterCardIdsByName: Map<String, String>
+        characterCardIdsByName: Map<String, String>,
+        groupMemberCardIds: Map<String, List<String>>
     ): ChatListResultData.ChatInfo {
         return ChatListResultData.ChatInfo(
             id = chat.id,
@@ -501,7 +517,8 @@ class StandardChatManagerTool(private val context: Context) {
             characterCardId = chat.characterCardName
                 ?.takeIf { it.isNotBlank() }
                 ?.let { characterCardIdsByName[it] },
-            characterGroupId = chat.characterGroupId
+            characterGroupId = chat.characterGroupId,
+            memberCardIds = chat.characterGroupId?.let { groupMemberCardIds[it] }
         )
     }
 
@@ -907,7 +924,8 @@ class StandardChatManagerTool(private val context: Context) {
                 selectedChat,
                 messageCounts,
                 currentChatId,
-                buildCharacterCardIdsByName(listOf(selectedChat))
+                buildCharacterCardIdsByName(listOf(selectedChat)),
+                buildGroupMemberCardIds(listOf(selectedChat))
             )
             ToolResult(
                 toolName = tool.name,
@@ -1558,8 +1576,15 @@ class StandardChatManagerTool(private val context: Context) {
 
             val visibleChats = matched.take(limit)
             val characterCardIdsByName = buildCharacterCardIdsByName(visibleChats)
+            val groupMemberCardIds = buildGroupMemberCardIds(visibleChats)
             val chatInfoList = visibleChats.map { chat ->
-                buildChatInfo(chat, messageCounts, currentChatId, characterCardIdsByName)
+                buildChatInfo(
+                    chat,
+                    messageCounts,
+                    currentChatId,
+                    characterCardIdsByName,
+                    groupMemberCardIds
+                )
             }
 
             ToolResult(

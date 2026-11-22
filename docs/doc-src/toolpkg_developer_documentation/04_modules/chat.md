@@ -68,6 +68,10 @@ listAll(): Promise<ChatListResultData>
 
 返回的 `ChatListResultData` 还包括当前会话 ID。每个 `ChatInfo` 包含消息数、创建/更新时间、当前会话标记、输入/输出 token 计数，以及角色卡和角色组字段。
 
+群聊的 `ChatInfo.memberCardIds` 提供当前角色组的只读成员 ID 数组，按成员配置的 `orderIndex` 升序排列。`listAll()`、`listChats()` 和 `findChat()` 使用相同的成员数据。该数组反映查询时的角色组配置，不代表历史消息中的发言者名单。
+
+普通会话、角色组已删除的会话及尚未提供此字段的旧宿主不会返回 `memberCardIds`；存在但没有成员的角色组返回空数组。新增字段不改变现有工具参数和角色绑定字段，不需要迁移聊天数据。
+
 ### `findChat(params)`
 
 ```ts
