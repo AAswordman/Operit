@@ -1570,6 +1570,8 @@ export interface ChatInfo {
     characterCardId?: string | null;
     /** Bound character group ID, set only for group chats */
     characterGroupId?: string | null;
+    /** Current group member card IDs in configured order; absent when the group does not exist. */
+    memberCardIds?: string[] | null;
 }
 
 /**

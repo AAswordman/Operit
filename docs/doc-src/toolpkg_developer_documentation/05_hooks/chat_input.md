@@ -60,7 +60,7 @@ ToolPkg.registerChatInputHook({
 - `action?`：`allow`、`block`、`replace` 或 `consume`。
 - `text?`：`replace` 使用的新文本；省略时继续使用当前文本。
 - `message?`：提交被阻止/消费时供宿主展示的说明文本。
-- `clearInput?`：请求宿主在消费提交时清空输入。
+- `clearInput?`：普通输入提交被 `consume` 时，是否清空输入框文本；默认 `false`。排队消息提交忽略此字段。
 - `metadata?`：随 `ChatInputHookResult` 返回的结构化附加信息。
 
 若对象省略 `action`，但含 `text` 字段，则按 `replace` 处理；既无 action 又无 text 时视为无结果。未知 action 被忽略。
@@ -72,6 +72,16 @@ ToolPkg.registerChatInputHook({
 - `block`：立即终止提交 Hook 链并返回阻止结果；后续 Hook 不执行。
 - `consume`：立即终止提交 Hook 链并返回消费结果；后续 Hook 不执行。`clearInput` 由宿主提交调用方处理。
 - 全部 Hook 完成且没有 `block`/`consume` 时，宿主以 `allow` 返回最终累积文本。
+
+### `consume` 的宿主行为
+
+`consume` 表示插件接管本次原生聊天输入提交。除终止后续 Hook 外，宿主还会结束本次发送流程：不写入本次用户消息、不发起模型请求或群聊成员分发，也不为本次提交触发 `submitted` 通知。插件需要自行执行它要接管的操作；返回 `consume` 本身不会调用其他插件或发送消息。
+
+普通输入提交中，`clearInput: true` 会清空输入框文本并收起附件面板，但不会移除已选附件或清除回复目标。省略该字段或设置为 `false` 时保留输入框文本。`block` 保留输入，且不会处理 `clearInput`。
+
+排队消息提交时，待发送项在 Hook 执行前已从队列取出。`consume` 表示接管该项，宿主不将它放回队列；`block` 则将该项放回队列。排队提交不会依据 `clearInput` 清空当前正在编辑的草稿。
+
+这些约定适用于原生聊天界面中经过 `submit_requested` 的提交，包括排队消息发送。直接调用 `Tools.Chat.sendMessage()` 等发送接口不经过此输入 Hook。`consume` 不会取消已经运行的生成，也不会撤销插件在 Hook 中自行发送或保存的消息。
 
 ## 超时与错误
 
@@ -97,6 +107,14 @@ ToolPkg.registerChatInputHook({
         text: text.slice('/upper '.length).toUpperCase()
       };
     }
+    if (text === '/plugin-help') {
+      // 通过宿主提示显示帮助，不将命令写入聊天记录。
+      return {
+        action: 'consume',
+        clearInput: true,
+        message: '可用命令：/upper <文本>、/cancel'
+      };
+    }
     if (text === '/cancel') {
       return {
         action: 'block',
@@ -111,6 +129,7 @@ ToolPkg.registerChatInputHook({
 
 - `ToolPkgChatInputHookBridge.kt`：ToolPkg payload、顺序、预算和结果解码。
 - `ChatInputHookRegistry.kt`：通知与提交两种调度模式，以及 allow/block/replace/consume 的消费方式。
+- `AIChatScreen.kt`：普通输入与排队消息的提交处理，以及 `consume` 后结束宿主发送流程的行为。
 - `examples/types/toolpkg.d.ts`：事件和返回类型。
 
 相关页面：[ToolPkg 注册 API](../03_runtime/registry.md)、[Hook 总索引](./index.md)。

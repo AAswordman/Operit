@@ -172,9 +172,20 @@ export namespace ToolPkg {
         | "error";
 
     export interface ChatInputHookObjectResult extends JsonObject {
+        /**
+         * On submit_requested, consume takes over this native chat input submission:
+         * stops later hooks, skips host message persistence and sending (including group fan-out),
+         * and emits no submitted event for it. It does not cancel an active generation
+         * or undo messages explicitly sent by the hook.
+         */
         action?: "allow" | "block" | "replace" | "consume";
         text?: string;
         message?: string;
+        /**
+         * For consume on an ordinary input submission, clear the draft text and collapse
+         * the attachment panel; selected attachments and the reply target remain. Defaults
+         * to false. Ignored for queued submissions, which leave the current draft untouched.
+         */
         clearInput?: boolean;
         metadata?: JsonObject;
     }
