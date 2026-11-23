@@ -204,29 +204,12 @@ object ExpressionContext {
                 sqrt(variance)
             }
 
-            // 转换函数
-            name.equals("convert", ignoreCase = true) -> {
-                if (args.size < 3) throw IllegalArgumentException("convert requires 3 parameters")
-                val value = args[0]
-                val fromUnit =
-                        variables["_convert_from"] as? String
-                                ?: throw IllegalArgumentException("from_unit not provided")
-                val toUnit =
-                        variables["_convert_to"] as? String
-                                ?: throw IllegalArgumentException("to_unit not provided")
-
-                // 清除临时变量
-                variables.remove("_convert_from")
-                variables.remove("_convert_to")
-
-                convertUnit(value, fromUnit, toUnit)
-            }
             else -> throw IllegalArgumentException("Unknown function: $name")
         }
     }
 
     /** 单位转换 */
-    private fun convertUnit(value: Double, fromUnit: String, toUnit: String): Double {
+    fun convertUnit(value: Double, fromUnit: String, toUnit: String): Double {
         return when {
             // 温度转换
             fromUnit == "f" && toUnit == "c" -> (value - 32) * 5 / 9 // F to C
