@@ -276,18 +276,16 @@ class ExpressionParser(private val expression: String) {
                     }
                     nextToken() // 跳过)
 
-                    // 特殊处理 convert 函数，它需要三个参数，但第2和第3个是字符串
-                    if (identifier.equals("convert", ignoreCase = true) && args.size >= 3) {
-                        val fromUnit =
-                                (args[1] as? VariableNode)?.name ?: args[1].evaluate().toString()
-                        val toUnit =
-                                (args[2] as? VariableNode)?.name ?: args[2].evaluate().toString()
-
-                        // 将单位存储为临时变量供函数使用
-                        ExpressionContext.setVariable("_convert_from", 0.0) // 会被类型转换为字符串
-                        ExpressionContext.setVariable("_convert_to", 0.0) // 同上
-
-                        return FunctionCallNode(identifier, listOf(args[0]))
+                    // convert 的单位是字符串常量，按字面量取用；其余实参照常求值。
+                    if (identifier.equals("convert", ignoreCase = true)) {
+                        require(args.size == 3) {
+                            "convert requires 3 arguments: convert(value, fromUnit, toUnit)"
+                        }
+                        return ConversionNode(
+                                value = args[0],
+                                fromUnit = args[1].literalText(),
+                                toUnit = args[2].literalText()
+                        )
                     }
 
                     return FunctionCallNode(identifier, args)
@@ -602,6 +600,21 @@ class ExpressionParser(private val expression: String) {
 
         currentToken = expression.substring(start, position)
         currentTokenType = TokenType.OPERATOR
+    }
+
+    /**
+     * 取实参的单位字面量。
+     *
+     * `convert(100, "c", "f")` 的字符串实参在词法阶段会变成 [VariableNode]，名字保留引号；
+     * 不加引号的 `convert(100, c, f)` 也接受，因为单位只是标签，不是需要求值的标识符。
+     * 两种情况都只取字面文本，绝不对单位求值——单位不是变量。
+     */
+    private fun ExpressionNode.literalText(): String {
+        val name = (this as? VariableNode)?.name
+        if (name != null) {
+            return name.trim('\'', '"')
+        }
+        throw IllegalArgumentException("convert units must be string literals or bare names")
     }
 
     /** 查看下一个词法单元但不消费它 */

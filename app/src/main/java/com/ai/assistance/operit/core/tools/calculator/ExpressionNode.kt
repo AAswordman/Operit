@@ -71,6 +71,22 @@ data class FunctionCallNode(val name: String, val arguments: List<ExpressionNode
     }
 }
 
+/**
+ * 单位换算节点：`convert(value, fromUnit, toUnit)`。
+ *
+ * 单位是解析期确定的字符串常量，不是运行时数值，因此它们随节点保存，而不是塞进
+ * [ExpressionContext] 的全局变量表——那样一次失败调用就会把 `_convert_from` 留在
+ * 共享状态里，影响后续所有表达式的变量视图。
+ */
+data class ConversionNode(
+        val value: ExpressionNode,
+        val fromUnit: String,
+        val toUnit: String
+) : ExpressionNode {
+    override fun evaluate(): Double =
+            ExpressionContext.convertUnit(value.evaluate(), fromUnit, toUnit)
+}
+
 /** 三元运算符节点 (condition ? trueExpr : falseExpr) */
 data class TernaryOperationNode(
         val condition: ExpressionNode,
