@@ -276,6 +276,46 @@ class ChatServiceCore(
         )
     }
 
+    /**
+     * 把一条消息写入指定会话的数据库与内存显示列表。
+     *
+     * 子代理完成信封此前只走 ChatHistoryManager.addMessage 落库，
+     * 当前打开该会话时内存列表不会刷新，卡片要切换会话或重启才出现。
+     * 走 ChatHistoryDelegate.addMessageToChat 才能同时更新 _chatHistory。
+     */
+    suspend fun appendMessageToChat(chatId: String, message: ChatMessage) {
+        chatHistoryDelegate.addMessageToChat(message, chatId)
+    }
+
+    /**
+     * 唤醒指定会话：会话空闲立即发送，忙则排队到当前回合结束后发送。
+     *
+     * 子代理后台完成需要「父代理先结束回合、任务完成后再自行回复」，
+     * 而 [sendUserMessage] 在会话忙碌时会静默丢弃。该入口把被丢弃的唤醒排队，
+     * 保证完成任务一定会驱动父代理响应一次。
+     */
+    fun wakeChatAfterTurn(
+        chatId: String,
+        messageText: String,
+        turnOptions: ChatTurnOptions = ChatTurnOptions(),
+        promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        roleCardIdOverride: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        preferActiveRoleCard: Boolean = false,
+    ) {
+        messageCoordinationDelegate.wakeChatAfterTurn(
+            chatId = chatId,
+            messageText = messageText,
+            turnOptions = turnOptions,
+            promptFunctionType = promptFunctionType,
+            roleCardIdOverride = roleCardIdOverride,
+            chatModelConfigIdOverride = chatModelConfigIdOverride,
+            chatModelIndexOverride = chatModelIndexOverride,
+            preferActiveRoleCard = preferActiveRoleCard
+        )
+    }
+
     /** 取消当前消息 */
     fun cancelCurrentMessage() {
         // 先取消总结（如果正在进行）

@@ -857,12 +857,15 @@ object ToolExecutionManager {
         val parallelizableToolNames = setOf(
             "list_files", "read_file", "read_file_part", "read_file_full", "file_exists",
             "find_files", "file_info", "grep_code", "calculate", "ffmpeg_info",
-            "visit_web", "download_file"
+            "visit_web", "download_file",
+            // 子代理委派是独立会话的异步任务，天然可并行——
+            // 多路委派必须同时启动，否则会退化成串行排队。
+            "subagent:subagent_run"
         )
+        // 模型常把委派包进 package_proxy，分组必须看解析后的真实目标名，
+        // 否则代理调用一律落进串行队列。
         val (parallelInvocations, serialInvocations) = injectedInvocations.partition {
-            parallelizableToolNames.contains(
-                it.value.tool.name
-            )
+            parallelizableToolNames.contains(resolveToolTarget(it.value.tool).tool.name)
         }
 
         // 5. 执行工具并收集聚合结果

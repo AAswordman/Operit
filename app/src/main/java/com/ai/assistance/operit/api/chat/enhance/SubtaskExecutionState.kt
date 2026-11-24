@@ -8,7 +8,12 @@ import org.json.JSONObject
 
 /** One sendMessage collection owns this state; neither the budget nor evidence is shared by runs. */
 class SubtaskExecutionState(
-    val maxToolCalls: Int,
+    /**
+     * 工具调用上限。[Int.MAX_VALUE] 表示不限制。
+     * 子代理不应有工具次数配额；运行时长由用户 cancel 或自然结束控制，
+     * 这里保留参数只为兼容宿主调用形态。
+     */
+    val maxToolCalls: Int = Int.MAX_VALUE,
     private val onToolResult: (String) -> Unit = {},
 ) {
     enum class Reason(val wireValue: String) {
@@ -33,7 +38,7 @@ class SubtaskExecutionState(
     private val records = mutableListOf<JSONObject>()
 
     init {
-        require(maxToolCalls in 1..64) { "subtaskMaxToolCalls must be an integer from 1 through 64" }
+        require(maxToolCalls >= 1) { "subtaskMaxToolCalls must be positive" }
     }
 
     fun isStopped(): Boolean = synchronized(lock) { terminal != null }
@@ -45,7 +50,7 @@ class SubtaskExecutionState(
     /** Called after permission and parameter validation, immediately before a model-selected tool. */
     fun tryStartTool(): Boolean = synchronized(lock) {
         if (terminal != null) return@synchronized false
-        if (executedToolCount == maxToolCalls) {
+        if (executedToolCount >= maxToolCalls) {
             terminal = TerminalState(
                 Reason.TOOL_BUDGET_EXHAUSTED,
                 "Subtask tool budget exhausted ($maxToolCalls calls)",

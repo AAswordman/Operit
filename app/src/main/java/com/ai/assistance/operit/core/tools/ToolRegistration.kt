@@ -6,6 +6,7 @@ import com.ai.assistance.operit.api.chat.enhance.ToolExecutionManager
 import com.ai.assistance.operit.core.tools.climode.CliToolModeSupport
 import com.ai.assistance.operit.core.tools.climode.ToolExposureMode
 import com.ai.assistance.operit.core.tools.defaultTool.ToolGetter
+import com.ai.assistance.operit.core.subagent.SubagentDispatchService
 import com.ai.assistance.operit.data.model.AITool
 import com.ai.assistance.operit.data.model.ToolParameter
 import com.ai.assistance.operit.data.model.ToolResult
@@ -2741,6 +2742,29 @@ fun registerAllTools(handler: AIToolHandler, context: Context) {
             executor = { tool ->
                 val ffmpegConvertTool = ToolGetter.getFFmpegConvertToolExecutor(context)
                 ffmpegConvertTool.invoke(tool)
+            }
+    )
+
+    // 子代理委派工具。
+    // 保留名 `subagent:subagent_run` 不是自由选择——ToolExecutionManager.isSubtaskDelegationTarget
+    // 按 `*:subagent_run` + 包名 `subagent` 匹配，使子任务内的再委派在执行层被直接拒绝
+    // （DELEGATION_DENIED）。提示词声明见 SystemToolPromptsInternal 的「Subagent Tools/子代理工具」
+    // 分类；可见性与名单注入由 ConversationService 的子代理开关控制。
+    val subagentDispatch = SubagentDispatchService.getInstance(context)
+    handler.registerTool(
+            name = SubagentDispatchService.TOOL_NAME,
+            descriptionGenerator = { tool ->
+                val action = tool.parameters.find { it.name == "action" }?.value?.trim().orEmpty()
+                val title = tool.parameters.find { it.name == "tool_title" }?.value?.trim().orEmpty()
+                if (action.isNotBlank() && action != "delegate") {
+                    "Subagent action $action (job=${tool.parameters.find { it.name == "job_id" }?.value?.trim().orEmpty()})"
+                } else {
+                    "Delegate subagent task: $title"
+                }
+            },
+            executor = { tool ->
+                // wait=true 时挂起等子任务终态；cancel 经 RunningHandle.job 穿透到该等待。
+                runBlocking(Dispatchers.IO) { subagentDispatch.handleToolCall(tool) }
             }
     )
 }

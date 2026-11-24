@@ -29,6 +29,7 @@ import com.ai.assistance.operit.data.preferences.WaifuPreferences
 import com.ai.assistance.operit.data.preferences.CharacterCardManager
 import com.ai.assistance.operit.data.preferences.ActivePromptManager
 import com.ai.assistance.operit.data.preferences.CharacterCardToolAccessResolver
+import com.ai.assistance.operit.data.preferences.SubagentProfileManager
 import com.ai.assistance.operit.data.model.PromptFunctionType
 import com.ai.assistance.operit.data.preferences.MemorySpaceProfileDocumentRepository
 import com.ai.assistance.operit.data.preferences.UserPreferencesManager
@@ -76,6 +77,7 @@ class ConversationService(
     private val waifuPreferences = WaifuPreferences.getInstance(context)
     private val characterCardManager = CharacterCardManager.getInstance(context)
     private val characterCardToolAccessResolver = CharacterCardToolAccessResolver.getInstance(context)
+    private val subagentProfileManager = SubagentProfileManager.getInstance(context)
     private val activePromptManager = ActivePromptManager.getInstance(context)
     private val memorySpaceProfileDocumentRepository =
         MemorySpaceProfileDocumentRepository.getInstance(context)
@@ -566,6 +568,32 @@ class ConversationService(
                     globalToolVisibility = toolPromptVisibility
                 )
 
+                // 子代理名单注入：开关开启才暴露委派工具与名单；关闭时把工具从提示中隐藏，
+                // 让模型在每轮看到的工具面与执行层闸门保持一致。
+                // 子任务自身不再注入名单：子任务内再委派会被 DELEGATION_DENIED，
+                // 注入名单只会诱导子模型发起必然失败的委派。
+                val isSubtaskSession =
+                    finalCustomSystemPromptTemplate == SystemPromptConfig.SUBTASK_AGENT_PROMPT_TEMPLATE
+                val subagentsEnabled =
+                    !isSubtaskSession && subagentProfileManager.subagentsEnabledFlow.first()
+                val subagentRosterHint =
+                    if (subagentsEnabled) {
+                        // 名单语言与系统提示一致，复用上方已解析的 useEnglish，不重复判定。
+                        SystemPromptConfig.buildSubagentRosterHint(
+                            useEnglish = useEnglish,
+                            profiles = subagentProfileManager.profileListFlow.first()
+                        )
+                    } else {
+                        ""
+                    }
+                val effectiveToolVisibility =
+                    if (subagentsEnabled) {
+                        roleCardToolAccess.effectiveBuiltinToolVisibility
+                    } else {
+                        roleCardToolAccess.effectiveBuiltinToolVisibility +
+                            ("subagent:subagent_run" to false)
+                    }
+
                 // 获取系统提示词，现在传入workspacePath和识图配置状态
                 val systemPrompt = SystemPromptConfig.getSystemPromptWithCustomPrompts(
                     context = context,
@@ -586,7 +614,7 @@ class ConversationService(
                     chatModelHasDirectVideo = chatModelHasDirectVideo,
                     useToolCallApi = useToolCallApi,
                     toolExposureMode = toolExposureMode,
-                    toolVisibility = roleCardToolAccess.effectiveBuiltinToolVisibility,
+                    toolVisibility = effectiveToolVisibility,
                     allowedPackageNames = roleCardToolAccess.allowedPackageNames,
                     allowedSkillNames = roleCardToolAccess.allowedSkillNames,
                     allowedMcpServerNames = roleCardToolAccess.allowedMcpServerNames,
@@ -594,6 +622,7 @@ class ConversationService(
                     groupOrchestrationRoleName = activeCard?.name?.takeIf { it.isNotBlank() }
                         ?: context.getString(R.string.app_name),
                     groupParticipantNamesText = groupParticipantNamesText.orEmpty(),
+                    subagentRosterHint = subagentRosterHint,
                     hookMetadata = activePromptMetadata,
                     dispatchSystemPromptComposeHooks = dispatchSystemPromptComposeHooks,
                     dispatchToolPromptComposeHooks = dispatchToolPromptComposeHooks

@@ -3001,6 +3001,36 @@ object SystemToolPromptsInternal {
                                 )
                         )
                     )
+            ),
+            SystemToolPromptCategory(
+                categoryName = "Subagent Tools",
+                tools =
+                    listOf(
+                        ToolPrompt(
+                            name = "subagent:subagent_run",
+                            description = "Dispatch a self-contained task to a configured subagent. The subagent runs independently and reports a structured final result. Use it for background work whose intermediate tool output you do not need to see (research, batch file processing, drafting). The task brief must be complete and self-contained: goal, all needed material, expected deliverable. Do not delegate trivial actions you can do with one tool call. This is a built-in host tool: never activate a package via use_package. If your tool list does not expose it directly, forward it through package_proxy with tool_name=subagent:subagent_run and params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}. Omitting wait runs synchronously and returns the final report as the tool result; wait=false runs in the background, so you may dispatch several tasks in parallel and each result is delivered to this chat when its task finishes.",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(name = "tool_title", type = "string", description = "required, short title describing this delegation", required = true),
+                                    ToolParameterSchema(name = "action", type = "string", description = "optional, default delegate: delegate (start a new task) | status (query by job_id, or all) | cancel | steer (send a correction to a running task) | resume (restart an interrupted task)", required = false, default = "delegate"),
+                                    ToolParameterSchema(name = "task", type = "string", description = "required for delegate: complete, self-contained brief. The subagent cannot see this conversation; include everything it needs and state the expected deliverable", required = false),
+                                    ToolParameterSchema(name = "agent", type = "string", description = "optional: subagent name from the roster; omit for the general subagent", required = false),
+                                    ToolParameterSchema(name = "context", type = "string", description = "optional: extra material passed verbatim to the subagent", required = false),
+                                    ToolParameterSchema(name = "wait", type = "boolean", description = "optional, default true. true (synchronous): the tool result IS the final report. false (background): returns running + job_id immediately; you may dispatch multiple background tasks in parallel and each result is delivered to this chat separately", required = false, default = "true"),
+                                    ToolParameterSchema(name = "progress_report", type = "string", description = "optional: none | moderate (default) | frequent; controls progress granularity for background runs", required = false, default = "moderate"),
+                                    ToolParameterSchema(name = "job_id", type = "string", description = "required for status/cancel/steer/resume: id returned by a previous delegate", required = false),
+                                    ToolParameterSchema(name = "message", type = "string", description = "required for steer: correction text injected into the running subtask", required = false),
+                                    ToolParameterSchema(name = "child_session_id", type = "string", description = "required for resume: child session id of an interrupted task", required = false)
+                                ),
+                            details = """
+  - **When to delegate**: multi-step research, gathering/processing many files, drafting artifacts the user will review - anything whose intermediate tool output you do not need to see.
+  - **When NOT to delegate**: single tool call work; tasks needing the user's live interaction; tasks needing another subagent (delegation inside a subtask is denied).
+  - **The brief is one-shot**: the subagent cannot ask you questions. Write the task as a complete spec.
+  - **wait=false means end your turn**: after a background dispatch returns job_id, reply with one line and STOP. Do NOT sleep, poll, or loop on action=status - keeping the turn open blocks the automatic completion delivery, so the user sees a permanently "processing" chat. Use action=status only when the user explicitly asks for progress.
+  - Results arrive as a <subagent><final status=... reason=... evidence_path=...> envelope, delivered as a card plus a follow-up turn once the task finishes.
+"""
+                        )
+                    )
             )
         )
 
@@ -5997,6 +6027,36 @@ object SystemToolPromptsInternal {
                                         required = false
                                     )
                                 )
+                        )
+                    )
+            ),
+            SystemToolPromptCategory(
+                categoryName = "子代理工具",
+                tools =
+                    listOf(
+                        ToolPrompt(
+                            name = "subagent:subagent_run",
+                            description = "把一个自包含任务派发给已配置的子代理。子代理独立运行并回报结构化终态结果。适用于中间工具输出你不需要亲自看的工作（调研、批量文件处理、起草内容）。任务简报必须完整自包含：写清目标、所需材料与期望交付物。不要委派你自己一次工具调用就能完成的琐事。这是宿主内置工具：不要用 use_package 激活任何包。如果工具列表没有直接暴露它，通过 package_proxy 转发：tool_name=subagent:subagent_run，params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}。不指定 wait 时为同步执行，工具结果即最终报告；指定后台运行（wait=false）时立即返回 job_id，可多路并行委派多个任务，各自完成后结果分别投递回本会话。",
+                            parametersStructured =
+                                listOf(
+                                    ToolParameterSchema(name = "tool_title", type = "string", description = "必填，本次委派的简短标题", required = true),
+                                    ToolParameterSchema(name = "action", type = "string", description = "可选，默认 delegate：delegate（发起新任务）| status（按 job_id 或全部查询）| cancel | steer（向运行中任务发送纠偏）| resume（重启被中断的任务）", required = false, default = "delegate"),
+                                    ToolParameterSchema(name = "task", type = "string", description = "delegate 时必填：完整自包含的任务简报。子代理看不到本对话，必须写全所需信息与期望交付物", required = false),
+                                    ToolParameterSchema(name = "agent", type = "string", description = "可选：名单中的子代理名字；省略时由通用子代理执行", required = false),
+                                    ToolParameterSchema(name = "context", type = "string", description = "可选：原样传给子代理的补充材料", required = false),
+                                    ToolParameterSchema(name = "wait", type = "boolean", description = "可选，默认 true。true（同步）：工具结果就是最终报告。false（后台）：立即返回 running + job_id，可多路并行委派，各自完成后分别投递回本会话", required = false, default = "true"),
+                                    ToolParameterSchema(name = "progress_report", type = "string", description = "可选：none | moderate（默认）| frequent，控制后台任务的进度粒度", required = false, default = "moderate"),
+                                    ToolParameterSchema(name = "job_id", type = "string", description = "status/cancel/steer/resume 时必填：此前 delegate 返回的 id", required = false),
+                                    ToolParameterSchema(name = "message", type = "string", description = "steer 时必填：注入运行中子任务的纠偏文本", required = false),
+                                    ToolParameterSchema(name = "child_session_id", type = "string", description = "resume 时必填：被中断任务的子会话 id", required = false)
+                                ),
+                            details = """
+  - **何时委派**：多步调研、批量读写文件、起草用户会审阅的产物——任何中间工具输出你都不需要亲自看的工作。
+  - **何时不要委派**：一次工具调用就能完成的琐事；需要用户实时交互的任务；需要另一个子代理的任务（子任务内的再委派会被拒绝）。
+  - **简报是一次性的**：子代理无法向你提问。把任务写成完整规格。
+  - **wait=false 意味着结束回合**：后台委派返回 job_id 后，用一句话回复并停止。不要 sleep、不要轮询、不要循环调用 action=status——保持回合打开会阻断自动完成投递，用户会看到会话一直「处理中」。只有用户明确要求进度时才用 action=status。
+  - 结果以 <subagent><final status=... reason=... evidence_path=...> 信封形式到达，任务完成时以卡片加一轮后续消息投递回本会话。
+"""
                         )
                     )
             )

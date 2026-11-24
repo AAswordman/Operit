@@ -329,6 +329,14 @@ class EnhancedAIService private constructor(private val context: Context) {
         fun onSubtaskToolResult(recordJson: String) {}
 
         fun onSubtaskCompleted(outcomeJson: String) {}
+
+        /**
+         * 子任务逐轮用量：上下文窗口占用量、累计输入/输出 token。
+         *
+         * 只在 isSubTask 时回调，用于运行中卡片实时显示用量；
+         * 主对话的用量仍走既有 token 统计链路，不受影响。
+         */
+        fun onSubtaskUsage(contextTokens: Long, inputTokens: Long, outputTokens: Long) {}
     }
 
     data class SendMessageOptions(
@@ -362,6 +370,12 @@ class EnhancedAIService private constructor(private val context: Context) {
         var stream: Boolean = true,
         var disableWarning: Boolean = false,
         var subtaskMaxToolCalls: Int? = null,
+        /**
+         * 子任务纠偏源：每个工具轮结果之后、下一轮请求之前被拉取一次。
+         * 返回非空文本时作为一条 USER 轮注入下一轮请求（轮边界粒度），为空则不注入。
+         * 仅 isSubTask 生效；默认 null 保持既有行为。
+         */
+        var subtaskSteerProvider: (suspend () -> String?)? = null,
     )
 
     // MultiServiceManager 管理不同功能的 AIService 实例
@@ -441,6 +455,13 @@ class EnhancedAIService private constructor(private val context: Context) {
         val conversationHistory: MutableList<PromptTurn>,
         val eventChannel: MutableSharedStream<TextStreamEvent>,
         val subtaskExecution: SubtaskExecutionState? = null,
+        /**
+         * 子任务逐轮用量回调（上下文窗口占用 + 累计输入/输出 token）。
+         *
+         * 由 sendMessage 按 options.callbacks 注入，供工具轮之后的请求继续上报——那些轮次
+         * 走 processToolResults，拿不到 options 里的 callbacks。非子任务为 null。
+         */
+        val onSubtaskUsage: ((Long, Long, Long) -> Unit)? = null,
         var modelExecutionSnapshot: ModelExecutionSnapshot? = null,
         /**
          * Characters of this execution's response already emitted to the consumer.
@@ -954,7 +975,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val subtaskMaxToolCalls = options.subtaskMaxToolCalls
         if (subtaskMaxToolCalls != null) {
             require(isSubTask) { "subtaskMaxToolCalls is only supported for a subtask" }
-            require(subtaskMaxToolCalls in 1..64) { "subtaskMaxToolCalls must be from 1 through 64" }
+            require(subtaskMaxToolCalls >= 1) { "subtaskMaxToolCalls must be positive" }
         }
         val characterName = options.characterName
         val avatarUri = options.avatarUri
@@ -969,6 +990,7 @@ class EnhancedAIService private constructor(private val context: Context) {
         val memorySpaceIdOverride = options.memorySpaceIdOverride
         val stream = options.stream
         val disableWarning = options.disableWarning
+        val subtaskSteerProvider = options.subtaskSteerProvider
         val onNonFatalError: suspend (error: String) -> Unit = { error ->
             options.onNonFatalError(error)
             callbacks?.onNonFatalError(error)
@@ -1011,6 +1033,13 @@ class EnhancedAIService private constructor(private val context: Context) {
                         SubtaskExecutionState(maximum) { recordJson ->
                             callbacks?.onSubtaskToolResult(recordJson)
                         }
+                    },
+                    onSubtaskUsage = if (isSubTask && callbacks != null) {
+                        { contextTokens, input, output ->
+                            callbacks?.onSubtaskUsage(contextTokens, input, output)
+                        }
+                    } else {
+                        null
                     },
                 )
             registerExecutionContext(execContext)
@@ -1169,12 +1198,13 @@ class EnhancedAIService private constructor(private val context: Context) {
                         TAG,
                         "sendMessage requestHistory turns=${requestHistory.size} original=${ChatTrace.describe(message)} finalized=${ChatTrace.describe(finalProcessedInput)} lastUser=${ChatTrace.describe(requestHistory.lastOrNull { it.kind == PromptTurnKind.USER }?.content.orEmpty())}"
                     )
-                    estimatePreparedRequestWindow(
-                        serviceForFunction = serviceForFunction,
-                        preparedHistory = requestHistory,
-                        availableTools = availableTools,
-                        publishEstimate = true
-                    )
+                    val firstRoundContextTokens =
+                        estimatePreparedRequestWindow(
+                            serviceForFunction = serviceForFunction,
+                            preparedHistory = requestHistory,
+                            availableTools = availableTools,
+                            publishEstimate = true
+                        )
                     
                     // 使用新的Stream API
                     AppLogger.d(TAG, "sendMessage请求前准备耗时: ${tAfterGetTools - startTime}ms, 流式输出: $stream")
@@ -1193,6 +1223,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                                         currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                         currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
                                         _perRequestTokenCounts.value = Pair(input, output)
+                                        execContext.onSubtaskUsage?.invoke(
+                                            firstRoundContextTokens,
+                                            input.coerceAtLeast(0),
+                                            output.coerceAtLeast(0),
+                                        )
                                     },
                                      onNonFatalError = onNonFatalError,
                             )
@@ -1343,7 +1378,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                                 memorySpaceIdOverride,
                                 stream,
                                 enableGroupOrchestrationHint,
-                                disableWarning
+                                disableWarning,
+                                subtaskSteerProvider
                             )
                         }
                     } else if (!hadFatalError) {
@@ -1786,7 +1822,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             memorySpaceIdOverride: String? = null,
             stream: Boolean = true,
             enableGroupOrchestrationHint: Boolean = false,
-            disableWarning: Boolean = false
+            disableWarning: Boolean = false,
+            subtaskSteerProvider: (suspend () -> String?)? = null
     ) {
         try {
             val startTime = messageTimingNow()
@@ -1900,7 +1937,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         stream = stream,
                         enableGroupOrchestrationHint = enableGroupOrchestrationHint,
                         toolResultOverrideMessage = pureThinkingWarning,
-                        disableWarning = disableWarning
+                        disableWarning = disableWarning,
+                        subtaskSteerProvider = subtaskSteerProvider,
                 )
                 return
             }
@@ -2013,7 +2051,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         stream = stream,
                         enableGroupOrchestrationHint = enableGroupOrchestrationHint,
                         toolResultOverrideMessage = warningStatus,
-                        disableWarning = disableWarning
+                        disableWarning = disableWarning,
+                        subtaskSteerProvider = subtaskSteerProvider,
                 )
                 return
             }
@@ -2049,7 +2088,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                         memorySpaceIdOverride,
                         stream = stream,
                         enableGroupOrchestrationHint = enableGroupOrchestrationHint,
-                        disableWarning = disableWarning
+                        disableWarning = disableWarning,
+                        subtaskSteerProvider = subtaskSteerProvider
                 )
                 return
             }
@@ -2181,7 +2221,8 @@ class EnhancedAIService private constructor(private val context: Context) {
         stream: Boolean = true,
         enableGroupOrchestrationHint: Boolean = false,
         toolResultOverrideMessage: String? = null,
-        disableWarning: Boolean = false
+        disableWarning: Boolean = false,
+        subtaskSteerProvider: (suspend () -> String?)? = null
     ) {
         val startTime = messageTimingNow()
 
@@ -2235,7 +2276,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                     characterName, avatarUri, roleCardId, chatId, onToolInvocation, notifyReplyOverride,
                     chatModelConfigIdOverride, chatModelIndexOverride, memorySpaceIdOverride, stream, enableGroupOrchestrationHint,
                     toolResultMessageOverride = toolBatch.message,
-                    disableWarning = disableWarning
+                    disableWarning = disableWarning,
+                    subtaskSteerProvider = subtaskSteerProvider
                 )
             } else if (!toolResultOverrideMessage.isNullOrEmpty()) {
                 AppLogger.d(TAG, "0工具路由命中，使用覆盖消息继续请求AI。")
@@ -2264,7 +2306,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                     stream = stream,
                     enableGroupOrchestrationHint = enableGroupOrchestrationHint,
                     toolResultMessageOverride = toolResultOverrideMessage,
-                    disableWarning = disableWarning
+                    disableWarning = disableWarning,
+                    subtaskSteerProvider = subtaskSteerProvider
                 )
             }
 
@@ -2321,7 +2364,8 @@ class EnhancedAIService private constructor(private val context: Context) {
             stream: Boolean = true,
             enableGroupOrchestrationHint: Boolean = false,
             toolResultMessageOverride: String? = null,
-            disableWarning: Boolean = false
+            disableWarning: Boolean = false,
+            subtaskSteerProvider: (suspend () -> String?)? = null
     ) {
         val startTime = messageTimingNow()
         if (context.subtaskExecution?.isStopped() == true) {
@@ -2364,6 +2408,20 @@ class EnhancedAIService private constructor(private val context: Context) {
                 toolName = toolNames.ifBlank { null }
             )
         )
+
+        // 子任务纠偏注入：工具轮间隙拉取待送达的纠偏文本，作为 USER 轮进入下一轮请求。
+        // 拉取发生在 TOOL_RESULT 之后、normalize 之前，保证它进入请求而不只进显示流。
+        if (context.subtaskExecution != null && subtaskSteerProvider != null) {
+            val steerMessage = subtaskSteerProvider.invoke()
+            if (!steerMessage.isNullOrBlank()) {
+                context.conversationHistory.add(
+                    PromptTurn(
+                        kind = PromptTurnKind.USER,
+                        content = "[steer] $steerMessage"
+                    )
+                )
+            }
+        }
 
         val normalizedChatHistory =
             conversationService.normalizeConversationHistoryForModel(context.conversationHistory)
@@ -2464,6 +2522,11 @@ class EnhancedAIService private constructor(private val context: Context) {
                                     currentRequestOutputTokenCount = output.coerceAtLeast(0)
                                     currentRequestCachedInputTokenCount = cachedInput.coerceAtLeast(0)
                                     _perRequestTokenCounts.value = Pair(input, output)
+                                    context.onSubtaskUsage?.invoke(
+                                        currentTokens,
+                                        input.coerceAtLeast(0),
+                                        output.coerceAtLeast(0),
+                                    )
                                 },
                                  onNonFatalError = onNonFatalError,
                         )
@@ -2566,7 +2629,8 @@ class EnhancedAIService private constructor(private val context: Context) {
                     memorySpaceIdOverride,
                     stream,
                     enableGroupOrchestrationHint,
-                    disableWarning
+                    disableWarning,
+                    subtaskSteerProvider
                 )
             } catch (e: CancellationException) {
                 context.subtaskExecution?.stop(SubtaskExecutionState.Reason.CANCELLED, e.message)

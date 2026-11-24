@@ -232,6 +232,58 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
     return result
   }
 
+  /**
+   * 构建子代理名单提示（仿 buildGroupOrchestrationHint 的组合期追加模式）。
+   *
+   * 名字+简介是每请求固定成本（上限 10 × (40+200)），模型靠它选人；
+   * 委派时用 [com.ai.assistance.operit.data.model.SubagentRoster.resolve] 解析，
+   * 未命中会收到 unknown_agent 错误并列出有效名。名单每轮由调用方重建，
+   * 关闭子代理或名单为空时调用方传空串、不注入。
+   */
+  fun buildSubagentRosterHint(
+      useEnglish: Boolean,
+      profiles: List<com.ai.assistance.operit.data.model.SubagentProfile>
+  ): String {
+    if (profiles.isEmpty()) return ""
+    val lines = profiles.joinToString("\n") { profile ->
+      val modelLabel = when (
+          com.ai.assistance.operit.data.model.SubagentProfile.ModelBindingMode
+              .normalize(profile.modelBindingMode)
+      ) {
+        com.ai.assistance.operit.data.model.SubagentProfile.ModelBindingMode.FOLLOW_SESSION ->
+          if (useEnglish) "model: follow session" else "模型:跟随会话"
+        com.ai.assistance.operit.data.model.SubagentProfile.ModelBindingMode.FIXED_CONFIG ->
+          if (useEnglish) "model: fixed config" else "模型:固定配置"
+        else -> ""
+      }
+      "- ${profile.name} — ${profile.description.ifBlank {
+        if (useEnglish) "no description" else "无简介"
+      }} (${modelLabel})"
+    }
+    val usage = if (useEnglish) {
+      """
+      Call contract:
+      - This is a built-in host tool; never call `use_package` for it.
+      - If your tool list does not expose `subagent:subagent_run`, forward it through `package_proxy`: tool_name=`subagent:subagent_run`, params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}.
+      - `tool_title` is required. `action` defaults to `delegate`; `task` is required for delegate.
+      - `wait` defaults to true (synchronous: the tool result is the final report). Set `wait=false` for background; each finished task is delivered to this chat separately.
+      """.trimIndent()
+    } else {
+      """
+      调用约定：
+      - 这是宿主内置工具，不要用 `use_package` 激活任何包。
+      - 如果工具列表没有直接暴露 `subagent:subagent_run`，通过 `package_proxy` 转发：tool_name=`subagent:subagent_run`，params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}。
+      - `tool_title` 必填；`action` 默认 delegate；delegate 时 `task` 必填。
+      - `wait` 默认 true（同步：工具结果即最终报告）；后台执行传 `wait=false`，每个任务完成后分别投递回本会话。
+      """.trimIndent()
+    }
+    return if (useEnglish) {
+      "\n\nSubagent roster (dispatch via `subagent:subagent_run`; omit `agent` to use the general subagent):\n$lines\n\n$usage"
+    } else {
+      "\n\n子代理名单（通过 `subagent:subagent_run` 委派；省略 agent 参数时由通用子代理执行）：\n$lines\n\n$usage"
+    }
+  }
+
   private fun buildGroupOrchestrationHint(
       useEnglish: Boolean,
       roleName: String,
@@ -596,6 +648,7 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
           enableGroupOrchestrationHint: Boolean = false,
           groupOrchestrationRoleName: String = "",
           groupParticipantNamesText: String = "",
+          subagentRosterHint: String = "",
           hookMetadata: Map<String, Any?> = emptyMap(),
           dispatchSystemPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchSystemPromptComposeHooks,
           dispatchToolPromptComposeHooks: (PromptHookContext) -> PromptHookContext = PromptHookRegistry::dispatchToolPromptComposeHooks
@@ -668,6 +721,10 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
           roleName = safeRoleName,
           participantNamesText = groupParticipantNamesText
       )
+    }
+    // 子代理名单：由调用方按开关状态决定是否传入；空串表示关闭或名单为空，不注入。
+    if (subagentRosterHint.isNotEmpty()) {
+      composedPrompt += subagentRosterHint
     }
 
     val composeContext =
