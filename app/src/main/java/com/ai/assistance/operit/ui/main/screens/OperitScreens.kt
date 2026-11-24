@@ -62,6 +62,8 @@ import com.ai.assistance.operit.ui.features.settings.screens.ModelPromptsSetting
 import com.ai.assistance.operit.ui.features.settings.screens.TagMarketScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.SpeechServicesSettingsScreen
+import com.ai.assistance.operit.ui.features.settings.screens.SubagentConfigScreen
+import com.ai.assistance.operit.ui.features.settings.screens.SubagentProfileEditorScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ThemeSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.ToolPermissionSettingsScreen
 import com.ai.assistance.operit.ui.features.settings.screens.MnnModelDownloadScreen
@@ -618,7 +620,8 @@ sealed class Screen(
                     navigateToTokenUsageStatistics = { navigateTo(TokenUsageStatistics) },
                     navigateToPerformanceMonitor = { navigateTo(PerformanceMonitor) },
                     navigateToContextSummarySettings = { navigateTo(ContextSummarySettings) },
-                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) }
+                    navigateToLayoutAdjustmentSettings = { navigateTo(LayoutAdjustmentSettings) },
+                    navigateToSubagentConfig = { navigateTo(SubagentConfig) }
             )
         }
     }
@@ -1154,6 +1157,46 @@ sealed class Screen(
                 onGestureConsumed: (Boolean) -> Unit
         ) {
             PerformanceMonitorScreen()
+        }
+    }
+
+    // 子代理配置页与编辑器页。编辑器带 profileId 参数（草稿用
+    // SubagentProfile.DRAFT_ID），由 ScreenRouteRegistry 反射构造，路由可直达。
+    data object SubagentConfig :
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_subagent_config) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            SubagentConfigScreen(
+                    onBackPressed = onGoBack,
+                    onNavigateToEditor = { profileId -> navigateTo(SubagentEditor(profileId)) }
+            )
+        }
+    }
+
+    data class SubagentEditor(val profileId: String) :
+            Screen(navItem = NavItem.Settings, titleRes = R.string.screen_title_subagent_editor) {
+        @Composable
+        override fun Content(
+                navController: NavController,
+                navigateTo: ScreenNavigationHandler,
+                onGoBack: () -> Unit,
+                hasBackgroundImage: Boolean,
+                onLoading: (Boolean) -> Unit,
+                onError: (String) -> Unit,
+                onGestureConsumed: (Boolean) -> Unit
+        ) {
+            SubagentProfileEditorScreen(
+                    profileId = profileId,
+                    onBackPressed = onGoBack
+            )
         }
     }
 
