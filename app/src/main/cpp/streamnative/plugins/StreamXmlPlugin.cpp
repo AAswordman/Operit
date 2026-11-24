@@ -36,7 +36,9 @@ bool StreamXmlPlugin::isAsciiLetter(char16_t c) {
 }
 
 bool StreamXmlPlugin::isTagNameContinuationChar(char16_t c) {
-    return isAsciiLetter(c) || (c >= u'0' && c <= u'9') || c == u'_';
+    // ':' supports the reserved `package:function` tool tag form (e.g. subagent:subagent_run).
+    // First char must still be a letter (enforced in WAIT_FIRST_LETTER), so `:<abc>` never starts.
+    return isAsciiLetter(c) || (c >= u'0' && c <= u'9') || c == u'_' || c == u':';
 }
 
 bool StreamXmlPlugin::isPunctuationTrigger(char16_t c) {

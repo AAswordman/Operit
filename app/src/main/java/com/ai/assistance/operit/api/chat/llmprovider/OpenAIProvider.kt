@@ -1501,12 +1501,24 @@ open class OpenAIProvider(
         val parser: MutableMap<Int, StreamingJsonXmlConverter> = mutableMapOf(),
         val closed: MutableMap<Int, Boolean> = mutableMapOf(),
         val fedLength: MutableMap<Int, Int> = mutableMapOf(),
-        val tagNames: MutableMap<Int, String> = mutableMapOf()
+        val tagNames: MutableMap<Int, String> = mutableMapOf(),
+        /**
+         * 每个 tool_call index 的完整 XML 缓冲。
+         *
+         * OpenAI Chat Completions 的并行 tool_calls 会交错下发不同 index 的
+         * arguments 增量。过去在 index 切换时立即关闭上一个工具，导致它的参数被写到
+         * `</tool_xxx>` 之后：聊天界面出现裸露的 `<param>` 文本，package_proxy 则收到
+         * 0 个或残缺的 tool_name。现在按 index 缓冲，流结束时按 index 顺序一次性输出
+         * 完整、扁平的 `<tool_xxx>` 块。否则多路并行必然复现乱码与参数校验失败。
+         */
+        val xmlBuffers: MutableMap<Int, StringBuilder> = mutableMapOf()
     ) {
         fun getParser(index: Int) = parser.getOrPut(index) { StreamingJsonXmlConverter() }
 
         fun getTagName(index: Int) =
             tagNames.getOrPut(index) { ChatMarkupRegex.generateRandomToolTagName() }
+
+        fun getXmlBuffer(index: Int) = xmlBuffers.getOrPut(index) { StringBuilder() }
 
         fun clear() {
             emitted.clear()
@@ -1515,6 +1527,7 @@ open class OpenAIProvider(
             closed.clear()
             fedLength.clear()
             tagNames.clear()
+            xmlBuffers.clear()
         }
     }
 
@@ -1615,18 +1628,6 @@ open class OpenAIProvider(
                 )
             )
             return true
-        }
-
-        /**
-         * 处理 StreamingJsonXmlConverter 事件，转换为 XML 输出
-         */
-        suspend fun handleJsonEvents(events: List<StreamingJsonXmlConverter.Event>) {
-            for (event in events) {
-                when (event) {
-                    is StreamingJsonXmlConverter.Event.Tag -> emitTag(event.text)
-                    is StreamingJsonXmlConverter.Event.Content -> emitContent(event.text)
-                }
-            }
         }
     }
 
@@ -1896,7 +1897,6 @@ open class OpenAIProvider(
         var streamCompletionConfirmed: Boolean = false,
         val accumulatedToolCalls: MutableMap<Int, JSONObject> = mutableMapOf(),
         val toolCallState: ToolCallState = ToolCallState(),
-        var lastProcessedToolIndex: Int? = null,
         val imageBuffers: MutableMap<Int, ImageBufferState> = mutableMapOf(),
         val emittedResponsesReasoningTextKeys: MutableSet<String> = mutableSetOf(),
         val responsesWebSearchItems: MutableMap<Int, JSONObject> = linkedMapOf(),
@@ -1906,21 +1906,6 @@ open class OpenAIProvider(
         val responsesMessageItems: MutableMap<Int, JSONObject> = linkedMapOf(),
         val responsesLiveEmittedOutputIndexes: MutableSet<Int> = mutableSetOf()
     )
-
-    /**
-     * 处理工具切换：关闭前一个工具
-     */
-    private suspend fun handleToolSwitch(
-        prevIndex: Int,
-        state: StreamingState,
-        emitter: StreamEmitter
-    ) {
-        if (state.toolCallState.closed[prevIndex] != true && 
-            state.toolCallState.nameEmitted[prevIndex] == true) {
-            closeToolCallIfOpen(prevIndex, state, emitter)
-            AppLogger.d("AIService", "检测到工具切换，关闭前一个工具 index=$prevIndex")
-        }
-    }
 
     /**
      * 处理单个工具调用的增量数据
@@ -1952,17 +1937,15 @@ open class OpenAIProvider(
         val name = deltaFunction.optString("name", "")
         if (name.isNotEmpty()) {
             accFunction.put("name", name)
-            // 流式输出开始标签
+            // 开始标签只写入该 index 的缓冲区，不直接发给 UI。
+            // 并行 tool_calls 的 index 切换不代表前一个工具已结束，直接发标签会导致
+            // 后续参数落到 </tool> 之外（聊天乱码、package_proxy 缺 tool_name）。
             if (state.toolCallState.nameEmitted[index] != true) {
                 val toolTagName = state.toolCallState.getTagName(index)
-                val toolStartTag = if (state.toolCallState.emitted[index] != true) {
+                if (state.toolCallState.emitted[index] != true) {
                     state.toolCallState.emitted[index] = true
-                    "\n<$toolTagName name=\"$name\">"
-                } else {
-                    ""
-                }
-                if (toolStartTag.isNotEmpty()) {
-                    emitter.emitTag(toolStartTag)
+                    state.toolCallState.getXmlBuffer(index)
+                        .append("\n<$toolTagName name=\"$name\">")
                 }
                 state.toolCallState.nameEmitted[index] = true
 
@@ -2020,9 +2003,26 @@ open class OpenAIProvider(
 
         val deltaToFeed = canonicalArgs.substring(safeFedLength)
         val events = state.toolCallState.getParser(index).feed(deltaToFeed)
-        emitter.handleJsonEvents(events)
+        appendToolEventsToBuffer(events, state.toolCallState.getXmlBuffer(index))
         state.toolCallState.fedLength[index] = canonicalArgs.length
         return deltaToFeed.length
+    }
+
+    /**
+     * 把 StreamingJsonXmlConverter 的事件追加到单个工具调用的缓冲区。
+     * 工具 XML 不能在解析过程中直接写给 UI，否则并行 index 交错时会形成
+     * 「先闭合、后补参数」的非法结构；缓冲区由 closeAllOpenToolCalls 统一落盘。
+     */
+    private fun appendToolEventsToBuffer(
+        events: List<StreamingJsonXmlConverter.Event>,
+        buffer: StringBuilder
+    ) {
+        for (event in events) {
+            when (event) {
+                is StreamingJsonXmlConverter.Event.Tag -> buffer.append(event.text)
+                is StreamingJsonXmlConverter.Event.Content -> buffer.append(event.text)
+            }
+        }
     }
 
     private fun getAccumulatedToolArguments(state: StreamingState, index: Int): String {
@@ -2052,13 +2052,9 @@ open class OpenAIProvider(
             val index = deltaCall.optInt("index", -1)
             if (index < 0) continue
 
-            // 检测工具切换
-            if (state.lastProcessedToolIndex != null && state.lastProcessedToolIndex != index) {
-                handleToolSwitch(state.lastProcessedToolIndex!!, state, emitter)
-            }
-            state.lastProcessedToolIndex = index
-
-            // Chat Completions 的 tool_calls.arguments 为增量片段。
+            // 并行 tool_calls 的 arguments 增量可以按任意 index 交错到达，
+            // index 切换不代表前一个工具的参数已经结束。这里只累积到各自的缓冲区，
+            // 统一在 finish_reason/[DONE] 时由 closeAllOpenToolCalls 按 index 输出。
             processToolCallChunk(index, deltaCall, state, emitter)
         }
     }
@@ -2080,7 +2076,7 @@ open class OpenAIProvider(
 
         val parser = state.toolCallState.getParser(index)
         val events = parser.flush()
-        emitter.handleJsonEvents(events)
+        appendToolEventsToBuffer(events, state.toolCallState.getXmlBuffer(index))
 
         if (parser.hasUnfinishedParam()) {
             val parsedAsJson = runCatching { JSONObject(accumulatedArgsBeforeFlush) }.isSuccess
@@ -2089,8 +2085,9 @@ open class OpenAIProvider(
                     "AIService",
                     "Tool 参数解析器状态未闭合，但累计 arguments 已是合法 JSON，强制补全标签收尾，index=$index"
                 )
-                emitter.emitTag("</param>")
-                emitter.emitTag("\n</$toolTagName>")
+                val buffer = state.toolCallState.getXmlBuffer(index)
+                buffer.append("</param>")
+                buffer.append("\n</$toolTagName>")
                 state.toolCallState.closed[index] = true
                 return
             }
@@ -2102,7 +2099,7 @@ open class OpenAIProvider(
             return
         }
 
-        emitter.emitTag("\n</$toolTagName>")
+        state.toolCallState.getXmlBuffer(index).append("\n</$toolTagName>")
         state.toolCallState.closed[index] = true
     }
 
@@ -2112,15 +2109,30 @@ open class OpenAIProvider(
         }
     }
 
+    /**
+     * 流结束时把所有工具缓冲区按 index 顺序落盘为扁平 XML。
+     *
+     * 并行 tool_calls 的参数可能交错到达，只有流结束才能确定每个工具的参数完整。
+     * 这里统一补 `</tool>` 后一次性输出，保证每个 `<tool_xxx>` 都是独立、闭合的块；
+     * 否则聊天界面会把跨块的 `<param>` 当普通文本渲染，执行层也会把 package_proxy
+     * 解析成缺少 tool_name 的非法调用。
+     */
     private suspend fun closeAllOpenToolCalls(
         state: StreamingState,
         emitter: StreamEmitter
     ) {
-        if (!hasOpenToolCalls(state)) return
+        val indices = state.toolCallState.xmlBuffers.keys.sorted()
+        if (indices.isEmpty()) return
 
-        val sortedIndices = state.accumulatedToolCalls.keys.sorted()
-        for (index in sortedIndices) {
+        for (index in indices) {
             closeToolCallIfOpen(index, state, emitter)
+            val buffer = state.toolCallState.xmlBuffers[index] ?: continue
+            if (buffer.isNotEmpty()) {
+                val block = buffer.toString()
+                emitter.emitTag(block)
+                tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(block))
+                buffer.setLength(0)
+            }
         }
     }
 
@@ -2784,7 +2796,6 @@ open class OpenAIProvider(
                 // 对于 output_item 事件，仅更新工具元信息（name/id）。
                 // 参数统一由 response.function_call_arguments.delta 通道累积，避免快照+增量混拼导致 JSON 破坏。
                 processToolCallChunk(outputIndex, deltaCall, state, emitter)
-                state.lastProcessedToolIndex = outputIndex
                 // 某些供应商会先发送 output_item.done，随后才发送 function_call_arguments.delta。
                 // 因此不在 output_item.done 阶段关闭工具调用，改由
                 // response.function_call_arguments.done / response.completed 统一收口。
@@ -2816,7 +2827,6 @@ open class OpenAIProvider(
                 }
 
                 processToolCallChunk(outputIndex, deltaCall, state, emitter)
-                state.lastProcessedToolIndex = outputIndex
             }
 
             "response.function_call_arguments.done" -> {
@@ -2824,7 +2834,6 @@ open class OpenAIProvider(
                 val outputIndex = jsonResponse.optInt("output_index", -1)
                 if (outputIndex >= 0) {
                     closeToolCallIfOpen(outputIndex, state, emitter)
-                    state.lastProcessedToolIndex = outputIndex
                 }
             }
 
@@ -2899,7 +2908,6 @@ open class OpenAIProvider(
 
             // 清空累积器
             state.accumulatedToolCalls.clear()
-            state.lastProcessedToolIndex = null
         }
     }
 
