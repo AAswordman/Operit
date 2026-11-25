@@ -10,8 +10,8 @@ OpenAIProvider 的 Chat Completions 解析只读取 `delta`/`message` 中的 `co
 
 ## 新实现
 
-- OpenAIProvider 新增 `onChatCompletionMessageExtras(extras, emitter)` 钩子，在 delta 与 message 分支检测到 `annotations`/`server_tool_calls` 时调用，调用前关闭可能开启的思考块。
-- DeepseekProvider 实现钩子：从 `server_tool_calls` 的 calls 中收集 queries（action.queries）、sources（sources 数组与 page）与状态；`annotations` 的 url_citation 作为补充来源按 url 去重；输出 `<search provider="deepseek" action="..." status="...">` 块。
+- OpenAIProvider 新增两个 open 钩子，由基类在 delta 与非流式 message 两条分支调用：`chatCompletionWebSearchDisplayXml(extras)` 返回 `<search>` 展示块，`chatCompletionWebSearchReplayMetaTag(extras)` 返回需持久化回传的隐藏 meta 标签。钩子只在扩展字段实际非空时触发（空数组不触发，避免提前关闭思考块）。
+- DeepseekProvider 实现两个钩子：从 `server_tool_calls` 的 calls 中收集 queries（action.queries）、sources（sources 数组与 page）与状态；`annotations` 的 url_citation 作为补充来源按 url 去重；输出 `<search provider="deepseek" action="..." status="...">` 块，并把 `server_tool_calls` 以 Base64 存入 `deepseek:server_tool_calls` meta 供下一轮回传。action 取动作名（有查询为 `search`，纯来源为 `read`），不取来源的引用类型。
 - 两个 Provider 共用的 XML 转义辅助提升为 DeepseekProvider.kt 文件内顶层私有函数，消除 DeepseekResponsesProvider 内的重复实现。
 
 [DONE]

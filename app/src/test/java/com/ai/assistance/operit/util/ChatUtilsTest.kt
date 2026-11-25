@@ -49,6 +49,30 @@ class ChatUtilsTest {
         assertEquals("answer", ChatUtils.stripOpenAiResponsesProtocolMarkup(content))
     }
 
+    /**
+     * 评审 P1 回归：Chat Completions 路径写入的 deepseek:server_tool_calls meta 只在
+     * Chat Completions 重建历史时被还原。端点切到 Responses 后若不剥，整段 Base64
+     * 会作为 assistant 可见内容发给服务端。
+     */
+    @Test fun removeDeepseekServerToolCallsMeta_stripsPayloadOnly() {
+        val content =
+            "<meta provider=\"deepseek:server_tool_calls\">W3siY2FsbHMiOltdfV0=</meta>" +
+                "答案在这里"
+
+        assertEquals("答案在这里", ChatMarkupRegex.removeDeepseekServerToolCallsMeta(content))
+    }
+
+    @Test fun removeDeepseekServerToolCallsMeta_keepsOtherMeta() {
+        val content =
+            "<meta provider=\"openai:responses_output_item\">keep</meta>" +
+                "<meta provider=\"deepseek:server_tool_calls\">drop</meta>"
+
+        val stripped = ChatMarkupRegex.removeDeepseekServerToolCallsMeta(content)
+
+        assertEquals(true, stripped.contains("openai:responses_output_item"))
+        assertEquals(false, stripped.contains("deepseek:server_tool_calls"))
+    }
+
     @Test fun removeThinkingContent_removesThinkBlock() {
         assertEquals("answer", ChatUtils.removeThinkingContent("<think>draft</think>answer"))
     }

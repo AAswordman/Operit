@@ -734,8 +734,11 @@ class DeepseekProvider(
         }
 
         return buildDeepseekSearchDisplayXml(
-            actionType =
-                if (queries.isNotEmpty()) "search" else sources.values.firstOrNull()?.type.orEmpty(),
+            // 评审 P3：没有查询、只有来源时不能拿「来源的类型」（url_citation / read_link）
+            // 当动作名——那是引用种类，与 Responses 路径传入的 web_search / open_page
+            // 动作语义不是一个维度。这里统一为动作名：有查询即 search，
+            // 纯来源（读到过网页但没有查询）即 read。
+            actionType = if (queries.isNotEmpty()) "search" else "read",
             queries = queries.toList(),
             status = statusSet.joinToString(","),
             sourcesXmlAttributes =
@@ -1299,13 +1302,25 @@ object DeepseekResponsesPayloadAdapter {
         }
     }
 
+    /**
+     * Responses 端点重建历史时的可见文本清洗。
+     *
+     * 除了剥 OpenAI 的两个 meta 与 `<search>` 展示块，还必须剥掉本 PR 在 Chat Completions
+     * 路径写入的 `deepseek:server_tool_calls` meta。该 meta 只在
+     * `buildMessagesWithReasoning`（Chat Completions 重建历史）里被还原成 assistant 字段；
+     * 同一会话内把端点切到 Responses 后，这里若不剥，一整段 Base64 会作为 assistant
+     * 可见内容原样发给服务端，污染上下文并白烧 token。Responses 路径不需要该字段——
+     * 它有自己的 output_item 回传机制。
+     */
     private fun sanitizeResponsesMessageText(
         content: String,
         removeThinkingContent: Boolean
     ): String {
         val visibleContent =
             if (removeThinkingContent) ChatUtils.removeThinkingContent(content) else content
-        return ChatUtils.stripOpenAiResponsesProtocolMarkup(visibleContent)
+        return ChatUtils.stripOpenAiResponsesProtocolMarkup(
+            ChatMarkupRegex.removeDeepseekServerToolCallsMeta(visibleContent)
+        )
     }
 
     private fun extractToolOutputContent(content: Any?): Any {

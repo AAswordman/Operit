@@ -506,7 +506,7 @@ object ScrapedModelPricingRowsCollect {
         // deepseek-chat / deepseek-reasoner 已退役，移除。官方仅公布 USD 定价，取高峰值。
         """
         DEEPSEEK|deepseek-flash|TOKEN|0.3|1.2|0.006|USD
-        DEEPSEEK|deepseek-v4-pro|TOKEN|0.66|1.98|0.044|USD
+        DEEPSEEK|deepseek-v4-pro|TOKEN|1.32|3.96|0.044|USD
         DEEPSEEK|deepseek-v4-flash|TOKEN|0.3|1.2|0.006|USD
         """.trimIndent(),
         """

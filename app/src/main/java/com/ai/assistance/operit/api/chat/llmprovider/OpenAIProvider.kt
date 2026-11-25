@@ -2151,13 +2151,22 @@ open class OpenAIProvider(
         }
     }
 
+    /**
+     * 提取 Chat Completions 的联网扩展字段；无实际内容时返回 null。
+     *
+     * 评审 P2：不能「key 存在即返回」。服务端可能在任何 chunk 携带空数组
+     * （`annotations: []` / `server_tool_calls: []`），调用方拿到非 null 就会先关闭
+     * 正在进行的思考块，而随后到达的 `reasoning_content` 会重新开一个 `<think>`，
+     * 一次思考被拆成两段。这里只保留长度 > 0 的数组。
+     */
     private fun chatCompletionExtrasFrom(messageOrDelta: JSONObject): JSONObject? {
-        if (!messageOrDelta.has("annotations") && !messageOrDelta.has("server_tool_calls")) {
-            return null
-        }
         val extras = JSONObject()
-        messageOrDelta.optJSONArray("annotations")?.let { extras.put("annotations", it) }
-        messageOrDelta.optJSONArray("server_tool_calls")?.let { extras.put("server_tool_calls", it) }
+        messageOrDelta.optJSONArray("annotations")
+            ?.takeIf { it.length() > 0 }
+            ?.let { extras.put("annotations", it) }
+        messageOrDelta.optJSONArray("server_tool_calls")
+            ?.takeIf { it.length() > 0 }
+            ?.let { extras.put("server_tool_calls", it) }
         return if (extras.length() > 0) extras else null
     }
 
