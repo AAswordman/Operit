@@ -2319,7 +2319,14 @@ data class SpeechTtsHttpConfigResultItem(
     val localeTag: String,
     val voiceId: String,
     val modelName: String,
-    val responsePipeline: List<HttpTtsResponsePipelineStep>
+    val responsePipeline: List<HttpTtsResponsePipelineStep>,
+    /**
+     * 预置 TTS 的专属选项（如阶跃的 response_format / volume / voice_label / instruction）。
+     *
+     * 缺这一项时用工具查询语音配置看不到它们——用户改了 response_format 再读配置，
+     * 结果里没有这项，会误以为没生效。更新链路按 `copy()` 合并，本身不受影响。
+     */
+    val options: Map<String, String> = emptyMap()
 )
 
 /** 语音服务 TTS VITS/Piper 包配置条目 */

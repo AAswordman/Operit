@@ -35,6 +35,14 @@ class StepTtsVoiceProvider(
         const val OPTION_VOICE_LABEL = "voice_label"
         const val OPTION_INSTRUCTION = "instruction"
 
+        /**
+         * 请求体模板里承载 voice_label 值的占位符名。
+         *
+         * 与 [OPTION_VOICE_LABEL] 区分：前者是配置项 key，后者是模板变量名。
+         * 用占位符而不是直接拼字符串，才能让 HttpVoiceProvider 统一做 JSON 转义。
+         */
+        const val OPTION_VOICE_LABEL_VALUE = "voice_label_value"
+
         val AVAILABLE_MODELS = listOf(
             "step-tts-mini",
             "step-tts-2",
@@ -42,7 +50,15 @@ class StepTtsVoiceProvider(
             "stepaudio-3-tts"
         )
 
-        val RESPONSE_FORMATS = listOf("mp3", "wav", "flac", "opus", "pcm")
+        /**
+         * 可选响应格式。刻意不含 `pcm`。
+         *
+         * 播放链路把响应字节原样写进 `tts_*.bin` 再交给 `MediaPlayer.setDataSource(fd)`，
+         * MediaPlayer 靠内容嗅探识别封装格式。裸 PCM 没有容器头（也没有采样率/位深信息），
+         * `prepare()` 必然失败——让用户选一个播放不出来的格式没有意义。
+         * 若将来要支持 PCM，需要在播放层先封装成 WAV（加 RIFF 头），而不是放行这个选项。
+         */
+        val RESPONSE_FORMATS = listOf("mp3", "wav", "flac", "opus")
 
         /** 官方情绪标签，写入请求体 voice_label.emotion */
         val EMOTION_LABELS =
@@ -177,6 +193,14 @@ class StepTtsVoiceProvider(
                 ?.let { mapOf(OPTION_INSTRUCTION to it) }
                 ?: emptyMap()
 
+        // voice_label 同理：它是来自设置界面的标签文本，直接拼进请求体模板会绕过
+        // HttpVoiceProvider 的 JSON 转义（目前标签是固定下拉所以没出事，但 options
+        // 也可能被其它途径写入）。走 {voice_label_value} 占位符复用同一套转义。
+        val voiceLabelParams =
+            option(OPTION_VOICE_LABEL).takeIf { it.isNotBlank() }
+                ?.let { mapOf(OPTION_VOICE_LABEL_VALUE to it) }
+                ?: emptyMap()
+
         return delegate.speak(
             text = text,
             interrupt = interrupt,
@@ -192,7 +216,8 @@ class StepTtsVoiceProvider(
                         OPTION_VOLUME to
                             option(OPTION_VOLUME).ifBlank { DEFAULT_VOLUME }
                     ) +
-                    instructionParams
+                    instructionParams +
+                    voiceLabelParams
         )
     }
 
@@ -249,7 +274,9 @@ class StepTtsVoiceProvider(
                 add("\"speed\": {rate}")
                 add("\"volume\": {volume}")
                 if (voiceLabel.isNotBlank()) {
-                    add("\"voice_label\": {\"${voiceLabelField(voiceLabel)}\": \"$voiceLabel\"}")
+                    // 值走 {voice_label_value} 占位符，由 HttpVoiceProvider 做 JSON 转义；
+                    // 字段名（emotion / style）是从固定枚举映射出来的，无特殊字符。
+                    add("\"voice_label\": {\"${voiceLabelField(voiceLabel)}\": \"{voice_label_value}\"}")
                 }
                 if (instruction.isNotBlank()) {
                     add("\"instruction\": \"{instruction}\"")
