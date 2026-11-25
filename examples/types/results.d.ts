@@ -1313,6 +1313,8 @@ export interface SpeechTtsHttpConfigResultItem {
         path: string;
         headers: Record<string, string>;
     }>;
+    /** 预置 TTS 的专属选项（如阶跃的 response_format / volume / voice_label / instruction）。 */
+    options: Record<string, string>;
 }
 
 export interface SpeechSttHttpConfigResultItem {

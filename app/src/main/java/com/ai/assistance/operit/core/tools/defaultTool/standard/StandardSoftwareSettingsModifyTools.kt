@@ -468,7 +468,10 @@ class StandardSoftwareSettingsModifyTools(private val context: Context) {
                                 localeTag = ttsHttpConfig.localeTag,
                                 voiceId = ttsHttpConfig.voiceId,
                                 modelName = ttsHttpConfig.modelName,
-                                responsePipeline = ttsHttpConfig.responsePipeline
+                                responsePipeline = ttsHttpConfig.responsePipeline,
+                                // 预置 TTS 的专属选项（如阶跃的 response_format/volume）：
+                                // 不回填时工具查询看不到这些已经生效的配置。
+                                options = ttsHttpConfig.options
                             ),
                         ttsVitsPackageConfig =
                             SpeechTtsVitsPackageConfigResultItem(

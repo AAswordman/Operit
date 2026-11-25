@@ -43,7 +43,8 @@ class SpeechServicesPreferences(private val context: Context) {
         val localeTag: String = "", // 通用 TTS 语言标签，如 zh-CN、en-US
         val voiceId: String = "", // 特定于TTS提供商的音色ID
         val modelName: String = "", // TTS模型名称（用于SiliconFlow等）
-        val responsePipeline: List<HttpTtsResponsePipelineStep> = emptyList()
+        val responsePipeline: List<HttpTtsResponsePipelineStep> = emptyList(),
+        val options: Map<String, String> = emptyMap() // 预置 TTS 的专属可选参数（如阶跃的 response_format/volume/voice_label/instruction）
     )
 
     @Serializable
