@@ -70,6 +70,9 @@ class MessageCoordinationDelegate(
 ) {
     companion object {
         private const val TAG = "MessageCoordinationDelegate"
+
+        /** 唤醒的最长等待窗口；超时后仍会派发，不丢弃。 */
+        private const val WAKEUP_MAX_WAIT_MS = 30 * 60 * 1000L
     }
 
     // 总结状态（使用 summarizeHistory 时）
@@ -117,6 +120,21 @@ class MessageCoordinationDelegate(
 
     private val pendingAutoContinuationByChatId =
         ConcurrentHashMap<String, PendingAutoContinuationRequest>()
+
+    /**
+     * 等待回合结束再派发的唤醒请求（子代理后台完成场景）。
+     *
+     * 与 [PendingAutoContinuationRequest] 并列但语义独立：后者是自动续聊，
+     * 前者是「任务已完成、请父代理响应」。两者共用同一会话时靠各自的 map 隔离，
+     * 不会互相取消。
+     */
+    private data class PendingWakeupRequest(
+        val chatId: String,
+        val turnOptions: ChatTurnOptions,
+        var waitJob: Job? = null
+    )
+
+    private val pendingWakeupByChatId = ConcurrentHashMap<String, PendingWakeupRequest>()
 
     init {
         ensureNonFatalErrorCollectorStarted()
@@ -385,6 +403,99 @@ class MessageCoordinationDelegate(
                 turnOptions = turnOptions
             )
         }
+    }
+
+    /**
+     * 唤醒指定会话：空闲立即派发，忙则排队到当前回合结束。
+     *
+     * [sendUserMessage] 在 `isLoading=true` 时会静默丢弃（见其日志分支），
+     * 父代理还在输出时子代理完成 → 唤醒丢失 → 表现为「任务做完了，会话没反应」。
+     * 该入口把丢弃的唤醒排队，保证完成通知一定驱动一次响应。
+     *
+     * 同一会话重复唤醒只保留最后一次，避免 8 路并行完成时重复播报。
+     * 不做「立即尝试一次、失败再排队」的兜底：先判空闲再决定，路径唯一。
+     */
+    fun wakeChatAfterTurn(
+        chatId: String,
+        messageText: String,
+        turnOptions: ChatTurnOptions,
+        promptFunctionType: PromptFunctionType = PromptFunctionType.CHAT,
+        roleCardIdOverride: String? = null,
+        chatModelConfigIdOverride: String? = null,
+        chatModelIndexOverride: Int? = null,
+        preferActiveRoleCard: Boolean = false,
+    ) {
+        // 已存在排队唤醒时先取消旧任务，用最新的通知文本重建。
+        pendingWakeupByChatId.remove(chatId)?.waitJob?.cancel()
+
+        fun dispatch() {
+            sendUserMessage(
+                promptFunctionType = promptFunctionType,
+                roleCardIdOverride = roleCardIdOverride,
+                preferActiveRoleCard = preferActiveRoleCard,
+                chatIdOverride = chatId,
+                messageTextOverride = messageText,
+                chatModelConfigIdOverride = chatModelConfigIdOverride,
+                chatModelIndexOverride = chatModelIndexOverride,
+                turnOptions = turnOptions
+            )
+        }
+
+        if (!messageProcessingDelegate.isChatLoading(chatId)) {
+            AppLogger.d(TAG, "唤醒会话：当前空闲，立即发送 chatId=$chatId")
+            dispatch()
+            return
+        }
+
+        val request = PendingWakeupRequest(chatId = chatId, turnOptions = turnOptions)
+        pendingWakeupByChatId[chatId] = request
+        request.waitJob =
+            coroutineScope.launch {
+                try {
+                    // 不用「先判 isLoading 再读 turnCompleteCounter」的循环——两步之间回合
+                    // 若已结束，会读到递增后的计数并白等一整个超时窗口。
+                    // 直接等会话离开 activeStreamingChatIds（该集合正是各会话 isLoading
+                    // 的派生值），既无时序竞态，也没有放弃阈值：长回合会一直等下去，
+                    // 用户取消会让会话离开该集合而自然退出。
+                    //
+                    // 超时只用来周期性复查，不作为放弃依据：sendUserMessage 在会话仍
+                    // loading 时会静默丢弃（MessageProcessingDelegate 的日志分支），
+                    // 超时后照旧派发等于把唤醒丢掉——而这正是本函数要解决的问题。
+                    // 因此超时后继续等待，直到会话真正空闲。
+                    while (true) {
+                        val idle = withTimeoutOrNull(WAKEUP_MAX_WAIT_MS) {
+                            messageProcessingDelegate.activeStreamingChatIds.first { chatIds ->
+                                chatId !in chatIds
+                            }
+                            true
+                        } ?: false
+                        if (idle) break
+                        if (pendingWakeupByChatId[chatId] !== request) {
+                            AppLogger.d(TAG, "唤醒已被更新的请求取代，跳过: chatId=$chatId")
+                            return@launch
+                        }
+                        AppLogger.w(
+                            TAG,
+                            "等待会话空闲已超过 ${WAKEUP_MAX_WAIT_MS}ms，继续等待（不丢弃唤醒）: chatId=$chatId"
+                        )
+                    }
+                    if (pendingWakeupByChatId[chatId] !== request) {
+                        AppLogger.d(TAG, "唤醒已被更新的请求取代，跳过: chatId=$chatId")
+                        return@launch
+                    }
+                    pendingWakeupByChatId.remove(chatId)
+                    AppLogger.d(TAG, "回合已结束，派发挂起的唤醒: chatId=$chatId")
+                    dispatch()
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    AppLogger.e(TAG, "派发挂起唤醒失败: chatId=$chatId", e)
+                    if (pendingWakeupByChatId[chatId] === request) {
+                        pendingWakeupByChatId.remove(chatId)
+                    }
+                }
+            }
+        AppLogger.d(TAG, "会话忙，唤醒已排队等待当前回合结束: chatId=$chatId")
     }
 
     suspend fun regenerateSingleAiMessage(index: Int) {

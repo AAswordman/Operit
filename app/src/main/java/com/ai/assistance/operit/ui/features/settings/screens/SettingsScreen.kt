@@ -55,7 +55,8 @@ fun SettingsScreen(
         navigateToTokenUsageStatistics: () -> Unit,
         navigateToPerformanceMonitor: () -> Unit,
         navigateToContextSummarySettings: () -> Unit,
-        navigateToLayoutAdjustmentSettings: () -> Unit
+        navigateToLayoutAdjustmentSettings: () -> Unit,
+        navigateToSubagentConfig: () -> Unit
 ) {
         val context = LocalContext.current
         val githubAuth = remember { GitHubAuthPreferences.getInstance(context) }
@@ -199,6 +200,21 @@ fun SettingsScreen(
                                 onClick = navigateToSpeechServicesSettings
                         )
                         
+                }
+
+                // ======= 子代理 =======
+                // 与 AI模型配置 平级的独立组，入口语义是「配置体系」而不是单个开关。
+                SettingsSection(
+                        title = stringResource(id = R.string.settings_section_subagent),
+                        icon = Icons.Default.Group,
+                        containerColor = cardContainerColor
+                ) {
+                        CompactSettingsItem(
+                                title = stringResource(id = R.string.settings_subagent),
+                                subtitle = stringResource(id = R.string.settings_subagent_subtitle),
+                                icon = Icons.Default.ManageAccounts,
+                                onClick = navigateToSubagentConfig
+                        )
                 }
 
                 // ======= 提示词配置 =======

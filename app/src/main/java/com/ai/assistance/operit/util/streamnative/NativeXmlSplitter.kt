@@ -25,7 +25,11 @@ object NativeXmlSplitter {
 
             val chunk = content.substring(start, end)
             if (type == 1) {
-                val tagNameMatch = Regex("<([A-Za-z][A-Za-z0-9_]*)[\\s>]").find(chunk)
+                // 子代理工具名采用 `subagent:subagent_run` 的保留形式（包:函数），
+                // 标签名必须允许冒号，否则该标签在历史解析里会退化成 unknown/text。
+                // 与 C 层 StreamXmlPlugin.isTagNameContinuationChar、Kotlin 流式
+                // StreamXmlPlugin 的标签名延续字符保持同一口径。
+                val tagNameMatch = Regex("<([A-Za-z][A-Za-z0-9_:]*)[\\s>]").find(chunk)
                 val tagName = tagNameMatch?.groupValues?.getOrNull(1) ?: "unknown"
                 results.add(listOf(tagName, chunk))
             } else {

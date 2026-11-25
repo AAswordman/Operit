@@ -70,7 +70,7 @@ class CustomXmlRenderer(
 ) : XmlContentRenderer {
     // 定义渲染器能够处理的内置标签集合
     private val builtInTags =
-            setOf("think", "thinking", "search", "tool", "status", "tool_result", "html", "mood", "font", "details", "detail", "meta")
+            setOf("think", "thinking", "search", "tool", "status", "tool_result", "subagent", "html", "mood", "font", "details", "detail", "meta")
 
     private data class ToolRequestRenderState(
         val rawToolName: String,
@@ -114,6 +114,20 @@ class CustomXmlRenderer(
         renderInstanceKey: Any?
     ) {
         val trimmedContent = xmlContent.trim()
+
+        // 并行委派时模型常把多个 <tool> 标签连续输出（甚至只闭合最后一个），
+        // XML 分块会把它们当成一个超长块——渲染成原始参数文本（界面乱码）。
+        // 这里按 tool 开标签边界拆分，逐块渲染，保证每个委派独立成卡片。
+        val splitToolBlocks = splitConcatenatedToolBlocks(trimmedContent)
+        if (splitToolBlocks.size > 1) {
+            Column(modifier = modifier) {
+                splitToolBlocks.forEach { block ->
+                    RenderXmlContent(block, Modifier.fillMaxWidth(), textColor, null, renderInstanceKey)
+                }
+            }
+            return
+        }
+
         val tagName = extractTagName(trimmedContent)
 
         if (shouldHideHiddenMeta(trimmedContent, tagName)) {
@@ -124,6 +138,7 @@ class CustomXmlRenderer(
         val accessibilityDesc = when (tagName) {
             "tool" -> stringResource(R.string.tool_call_block)
             "tool_result" -> stringResource(R.string.tool_result_block)
+            "subagent" -> stringResource(R.string.subagent_run_card_title)
             "think", "thinking" -> stringResource(R.string.thinking_process_block)
             "search" -> stringResource(R.string.search_content_block)
             "status" -> stringResource(R.string.status_info_block)
@@ -214,6 +229,13 @@ class CustomXmlRenderer(
             "search" -> renderSearchContent(trimmedContent, Modifier, textColor)
             "tool" -> renderToolRequest(trimmedContent, Modifier, textColor, xmlStream)
             "tool_result" -> renderToolResult(trimmedContent, Modifier, textColor)
+            // 子代理信封渲染为任务卡片，点击查看执行详情。
+            "subagent" -> RenderSubagentRun(
+                content = trimmedContent,
+                modifier = Modifier,
+                textColor = textColor,
+                enableDialogs = enableDialogs
+            )
             "status" -> renderStatus(trimmedContent, Modifier, textColor)
             "html" -> renderHtmlContent(trimmedContent, Modifier, textColor)
             "mood" -> renderMoodTag(trimmedContent, Modifier, textColor)
@@ -230,6 +252,83 @@ class CustomXmlRenderer(
 
     private fun extractRawTagName(content: String): String? {
         return ChatMarkupRegex.extractOpeningTagName(content)
+    }
+
+    /**
+     * 把一个 XML 块内连续的多个 `<tool ...>` 开标签拆成独立块。
+     * 只处理 tool 标签（子代理/工具调用场景），其他标签原样返回单元素。
+     */
+    private fun splitConcatenatedToolBlocks(content: String): List<String> {
+        // 只按「工具调用块」切分：<tool_xxx> 是模型生成的调用，<tool_result> 是宿主
+        // 回填的结果块，必须排除——否则结果块会被当成新块起点，内容被拆散。
+        val starts = Regex("<tool(?!_result\\b)[A-Za-z0-9_]*\\b", RegexOption.IGNORE_CASE)
+            .findAll(content)
+            .map { it.range.first }
+            .toList()
+        if (starts.size <= 1) return listOf(content)
+
+        val blocks = mutableListOf<String>()
+        // 第一个 tool 之前的文本（如有）保留为普通块
+        if (starts.first() > 0) {
+            val prefix = content.substring(0, starts.first()).trim()
+            if (prefix.isNotEmpty()) blocks.add(prefix)
+        }
+        starts.forEachIndexed { index, start ->
+            val end = if (index + 1 < starts.size) starts[index + 1] else content.length
+            val block = content.substring(start, end).trim()
+            if (block.isNotEmpty()) blocks.add(block)
+        }
+        return blocks
+    }
+
+    /**
+     * 子代理委派的识别参数：(tool_title, agent, task)。
+     * 直接调用取 param 节点；package_proxy/proxy 取内层 tool_name 与 params JSON。
+     * 返回 null 表示这不是子代理委派。
+     *
+     * task 一并取出是为了让运行卡片能精确匹配到本次任务：并行委派常常共用同一个
+     * tool_title，只按标题匹配会让多张卡片显示同一个任务。
+     */
+    private data class SubagentDelegateParams(
+        val toolTitle: String?,
+        val agentName: String?,
+        val task: String?,
+    )
+
+    private fun resolveSubagentDelegateParams(
+        content: String,
+        rawToolName: String,
+    ): SubagentDelegateParams? {
+        fun paramOf(name: String): String? =
+            Regex("name=\"" + name + "\"\\s*>([^<]*)</param>")
+                .find(content)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }
+
+        if (rawToolName == "subagent:subagent_run") {
+            return SubagentDelegateParams(
+                toolTitle = paramOf("tool_title"),
+                agentName = paramOf("agent"),
+                task = paramOf("task"),
+            )
+        }
+        if (rawToolName != "package_proxy" && rawToolName != "proxy") return null
+
+        val targetName = paramOf("tool_name") ?: return null
+        if (targetName != "subagent:subagent_run") return null
+
+        val paramsRaw = paramOf("params")
+            ?: return SubagentDelegateParams(toolTitle = null, agentName = null, task = null)
+        val decoded = paramsRaw
+            .replace("&quot;", "\"")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+        val json = runCatching { org.json.JSONObject(decoded) }.getOrNull()
+            ?: return SubagentDelegateParams(toolTitle = null, agentName = null, task = null)
+        return SubagentDelegateParams(
+            toolTitle = json.optString("tool_title").takeIf { it.isNotBlank() },
+            agentName = json.optString("agent").takeIf { it.isNotBlank() },
+            task = json.optString("task").takeIf { it.isNotBlank() },
+        )
     }
 
     private fun shouldHideHiddenMeta(content: String, tagName: String?): Boolean {
@@ -1092,6 +1191,23 @@ class CustomXmlRenderer(
                 )
             }
 
+        // 阻塞委派期间工具行只有请求没有结果，等结束才有输出。
+        // 命中子代理委派工具时改为实时运行卡片（订阅任务流，显示状态/进度/当前工具）。
+        // 模型常把委派包进 package_proxy：解析内层 tool_name 与 params(JSON) 才能拿到
+        // tool_title/agent，否则多路并行时每张卡片都匹配不到自己的任务。
+        val subagentParams = resolveSubagentDelegateParams(content, renderState.rawToolName)
+        if (subagentParams != null) {
+            SubagentRunLiveCard(
+                toolTitle = subagentParams.toolTitle,
+                agentName = subagentParams.agentName,
+                taskText = subagentParams.task,
+                modifier = modifier,
+                textColor = textColor,
+                enableDialogs = enableDialogs
+            )
+            return
+        }
+
         // 特殊处理文件编辑类工具
         if (renderState.displayToolName == "apply_file" ||
             renderState.displayToolName == "create_file" ||
@@ -1231,6 +1347,18 @@ class CustomXmlRenderer(
     @Composable
     private fun renderToolResult(content: String, modifier: Modifier, _textColor: Color) {
         val clipboardManager = LocalClipboardManager.current
+
+        // 子代理信封常出现在 tool_result 内层（同步委派的最终报告）。
+        // 按纯文本渲染会露出原始 XML 且不显示任务卡片，这里优先识别信封并走卡片渲染。
+        if (content.contains("<subagent>", ignoreCase = true)) {
+            RenderSubagentRun(
+                content = content,
+                modifier = modifier,
+                textColor = _textColor,
+                enableDialogs = enableDialogs
+            )
+            return
+        }
 
         val renderState =
             run {

@@ -44,8 +44,10 @@ class StreamXmlPlugin(private val includeTagsInOutput: Boolean = true) : StreamP
                                             it in 'A'..'Z' || it in 'a'..'z'
                                         }
                                         greedyStar {
+                                            // 标签名允许冒号，支持 `package:function` 保留形式
+                                            // 的工具标签（如 subagent:subagent_run），与 C 层实现同口径。
                                             predicate("xmlTagNameContinuation") {
-                                                (it in 'A'..'Z') || (it in 'a'..'z') || (it in '0'..'9') || it == '_'
+                                                (it in 'A'..'Z') || (it in 'a'..'z') || (it in '0'..'9') || it == '_' || it == ':'
                                             }
                                         }
                                     }

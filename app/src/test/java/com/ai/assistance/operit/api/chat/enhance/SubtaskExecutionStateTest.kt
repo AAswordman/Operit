@@ -21,15 +21,19 @@ import org.junit.Test
 
 class SubtaskExecutionStateTest {
     @Test
-    fun `subtask policy rejects budgets outside the supported range`() {
-        for (maximum in listOf(0, -1, 65, 999_999)) {
+    fun `subtask policy rejects non-positive budgets`() {
+        for (maximum in listOf(0, -1)) {
             try {
                 SubtaskExecutionState(maximum)
-                org.junit.Assert.fail("unsupported budget must be rejected")
+                org.junit.Assert.fail("non-positive budget must be rejected")
             } catch (expected: IllegalArgumentException) {
-                assertTrue(expected.message.orEmpty().contains("1 through 64"))
+                assertTrue(expected.message.orEmpty().contains("must be positive"))
             }
         }
+        // 无配额语义：子代理传 Int.MAX_VALUE，不设工具次数上限。
+        val unbounded = SubtaskExecutionState(Int.MAX_VALUE)
+        assertTrue(unbounded.tryStartTool())
+        assertFalse(unbounded.isStopped())
     }
 
     @Test
