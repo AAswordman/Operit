@@ -734,9 +734,9 @@ class DeepseekProvider(
         }
 
         return buildDeepseekSearchDisplayXml(
-            // 评审 P3：没有查询、只有来源时不能拿「来源的类型」（url_citation / read_link）
-            // 当动作名——那是引用种类，与 Responses 路径传入的 web_search / open_page
-            // 动作语义不是一个维度。这里统一为动作名：有查询即 search，
+            // 评审 P3：没有查询、只有来源时，不能拿来源的引用类型（url_citation / read_link）
+            // 当动作名——那是引用种类，与 Responses 路径的 web_search / open_page 动作
+            // 语义不在一个维度。这里统一为动作名：有查询即 search，
             // 纯来源（读到过网页但没有查询）即 read。
             actionType = if (queries.isNotEmpty()) "search" else "read",
             queries = queries.toList(),
