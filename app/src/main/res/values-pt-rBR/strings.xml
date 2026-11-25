@@ -6979,8 +6979,8 @@ Agora é possível usar o modo AutoGLM na interface de diálogo.</string>
     <string name="speech_services_step_model_select">Selecionar modelo predefinido</string>
     <string name="speech_services_step_model_select_icon">Selecionar modelo</string>
     <string name="speech_services_step_model_name">model</string>
-    <string name="speech_services_step_model_name_placeholder">ex.: step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">Se em branco, usa step-tts-mini; voice_label é compatível apenas com step-tts-2 / step-tts-mini, e instruction apenas com a série stepaudio; o endpoint do Step Plan só é compatível com stepaudio-2.5-tts.</string>
+    <string name="speech_services_step_model_name_placeholder">ex.: stepaudio-2.5-tts</string>
+    <string name="speech_services_step_model_name_hint">Se em branco, usa stepaudio-2.5-tts; voice_label é compatível apenas com step-tts-2 / step-tts-mini, e instruction apenas com a série stepaudio; o endpoint do Step Plan só é compatível com stepaudio-2.5-tts.</string>
     <string name="speech_services_step_voice_select">Selecionar voz predefinida</string>
     <string name="speech_services_step_voice_select_icon">Selecionar voz</string>
     <string name="speech_services_step_voice_custom">Voz personalizada</string>

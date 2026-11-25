@@ -2862,8 +2862,8 @@
     <string name="speech_services_step_model_select">Select preset model</string>
     <string name="speech_services_step_model_select_icon">Select model</string>
     <string name="speech_services_step_model_name">model</string>
-    <string name="speech_services_step_model_name_placeholder">e.g. step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">Defaults to step-tts-mini when empty; voice_label is only supported by step-tts-2 / step-tts-mini, instruction only by the stepaudio series; the Step Plan endpoint only supports stepaudio-2.5-tts.</string>
+    <string name="speech_services_step_model_name_placeholder">e.g. stepaudio-2.5-tts</string>
+    <string name="speech_services_step_model_name_hint">Defaults to stepaudio-2.5-tts when empty; voice_label is only supported by step-tts-2 / step-tts-mini, instruction only by the stepaudio series; the Step Plan endpoint only supports stepaudio-2.5-tts.</string>
     <string name="speech_services_step_voice_select">Select preset voice</string>
     <string name="speech_services_step_voice_select_icon">Select voice</string>
     <string name="speech_services_step_voice_custom">Custom voice</string>

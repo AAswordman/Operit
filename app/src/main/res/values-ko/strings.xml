@@ -2469,7 +2469,7 @@
     <string name="speech_services_step_model_select_icon">모델 선택</string>
     <string name="speech_services_step_model_name">model</string>
     <string name="speech_services_step_model_name_placeholder">예: step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">비워 두면 step-tts-mini를 사용합니다. voice_label은 step-tts-2 / step-tts-mini만, instruction은 stepaudio 계열만 지원하며, Step Plan 엔드포인트는 stepaudio-2.5-tts만 지원합니다.</string>
+    <string name="speech_services_step_model_name_hint">비워 두면 stepaudio-2.5-tts를 사용합니다. voice_label은 step-tts-2 / step-tts-mini만, instruction은 stepaudio 계열만 지원하며, Step Plan 엔드포인트는 stepaudio-2.5-tts만 지원합니다.</string>
     <string name="speech_services_step_voice_select">프리셋 음성 선택</string>
     <string name="speech_services_step_voice_select_icon">음성 선택</string>
     <string name="speech_services_step_voice_custom">사용자 지정 음성</string>

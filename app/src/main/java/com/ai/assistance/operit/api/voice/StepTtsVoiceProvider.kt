@@ -25,7 +25,16 @@ class StepTtsVoiceProvider(
 
     companion object {
         const val DEFAULT_ENDPOINT_URL = "https://api.stepfun.com/v1/audio/speech"
-        const val DEFAULT_MODEL_NAME = "step-tts-mini"
+
+        /**
+         * 默认模型。
+         *
+         * 取 `stepaudio-2.5-tts` 而不是文档里更便宜的 `step-tts-mini`：后者是否仍被当前接口
+         * 接受无法离线确认（需要有效 API key 打真实请求），而 2.5-tts 是实测可用且官方文档
+         * 在列的那个。默认值必须一次就能用——选一个可能已下线的模型，用户首次使用即失败。
+         * 想压成本可以在设置里手动改成旧模型。
+         */
+        const val DEFAULT_MODEL_NAME = "stepaudio-2.5-tts"
         const val DEFAULT_VOICE_ID = "jingdiannvsheng"
         const val DEFAULT_RESPONSE_FORMAT = "mp3"
         const val DEFAULT_VOLUME = "1"

@@ -7139,8 +7139,8 @@ Kini anda boleh menggunakan mod AutoGLM di antara muka perbualan.</string>
     <string name="speech_services_step_model_select">Pilih model pratetap</string>
     <string name="speech_services_step_model_select_icon">Pilih model</string>
     <string name="speech_services_step_model_name">model</string>
-    <string name="speech_services_step_model_name_placeholder">cth: step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">Jika kosong, lalai step-tts-mini; voice_label hanya disokong oleh step-tts-2 / step-tts-mini, instruction hanya oleh siri stepaudio; titik akhir Step Plan hanya menyokong stepaudio-2.5-tts.</string>
+    <string name="speech_services_step_model_name_placeholder">cth: stepaudio-2.5-tts</string>
+    <string name="speech_services_step_model_name_hint">Jika kosong, lalai stepaudio-2.5-tts; voice_label hanya disokong oleh step-tts-2 / step-tts-mini, instruction hanya oleh siri stepaudio; titik akhir Step Plan hanya menyokong stepaudio-2.5-tts.</string>
     <string name="speech_services_step_voice_select">Pilih suara pratetap</string>
     <string name="speech_services_step_voice_select_icon">Pilih suara</string>
     <string name="speech_services_step_voice_custom">Suara tersuai</string>

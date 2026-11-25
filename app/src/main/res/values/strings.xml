@@ -2932,8 +2932,8 @@
     <string name="speech_services_step_model_select">选择预置模型</string>
     <string name="speech_services_step_model_select_icon">选择模型</string>
     <string name="speech_services_step_model_name">model</string>
-    <string name="speech_services_step_model_name_placeholder">例如：step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">留空时默认使用 step-tts-mini；voice_label 仅 step-tts-2 / step-tts-mini 支持，instruction 仅 stepaudio 系列支持；Step Plan 端点仅支持 stepaudio-2.5-tts。</string>
+    <string name="speech_services_step_model_name_placeholder">例如：stepaudio-2.5-tts</string>
+    <string name="speech_services_step_model_name_hint">留空时默认使用 stepaudio-2.5-tts；voice_label 仅 step-tts-2 / step-tts-mini 支持，instruction 仅 stepaudio 系列支持；Step Plan 端点仅支持 stepaudio-2.5-tts。</string>
     <string name="speech_services_step_voice_select">选择预置音色</string>
     <string name="speech_services_step_voice_select_icon">选择音色</string>
     <string name="speech_services_step_voice_custom">自定义音色</string>

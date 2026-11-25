@@ -2759,7 +2759,7 @@ Acum poate fi utilizat în interfața de dialog AutoGLM A devenit un model.</str
     <string name="speech_services_step_model_select_icon">Selectați modelul</string>
     <string name="speech_services_step_model_name">model</string>
     <string name="speech_services_step_model_name_placeholder">de ex.: step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">Dacă este gol, se folosește step-tts-mini; voice_label este acceptat doar de step-tts-2 / step-tts-mini, iar instruction doar de seria stepaudio; endpointul Step Plan acceptă doar stepaudio-2.5-tts.</string>
+    <string name="speech_services_step_model_name_hint">Dacă este gol, se folosește stepaudio-2.5-tts; voice_label este acceptat doar de step-tts-2 / step-tts-mini, iar instruction doar de seria stepaudio; endpointul Step Plan acceptă doar stepaudio-2.5-tts.</string>
     <string name="speech_services_step_voice_select">Selectați vocea prestabilită</string>
     <string name="speech_services_step_voice_select_icon">Selectați vocea</string>
     <string name="speech_services_step_voice_custom">Voce personalizată</string>

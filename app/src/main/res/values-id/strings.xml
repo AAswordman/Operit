@@ -7143,7 +7143,7 @@ Sekarang Anda dapat menggunakan mode AutoGLM di antarmuka percakapan.</string>
     <string name="speech_services_step_model_select_icon">Pilih model</string>
     <string name="speech_services_step_model_name">model</string>
     <string name="speech_services_step_model_name_placeholder">misalnya: step-tts-mini</string>
-    <string name="speech_services_step_model_name_hint">Jika kosong, default step-tts-mini; voice_label hanya didukung step-tts-2 / step-tts-mini, instruction hanya oleh seri stepaudio; endpoint Step Plan hanya mendukung stepaudio-2.5-tts.</string>
+    <string name="speech_services_step_model_name_hint">Jika kosong, default stepaudio-2.5-tts; voice_label hanya didukung step-tts-2 / step-tts-mini, instruction hanya oleh seri stepaudio; endpoint Step Plan hanya mendukung stepaudio-2.5-tts.</string>
     <string name="speech_services_step_voice_select">Pilih suara preset</string>
     <string name="speech_services_step_voice_select_icon">Pilih suara</string>
     <string name="speech_services_step_voice_custom">Suara kustom</string>
