@@ -218,7 +218,7 @@ class SubagentDispatchService private constructor(private val context: Context) 
             // 让模型下一轮自纠，而不是让用户看到一个不符合语义的同步调用。
             val allowedParams = setOf(
                 "tool_title", "action", "task", "agent", "context", "wait",
-                "progress_report", "job_id", "message", "child_session_id", "call_purpose",
+                "progress_report", "job_id", "message", "call_purpose",
             )
             val unknownParams = tool.parameters.map { it.name }.filter { it !in allowedParams }
             if (unknownParams.isNotEmpty()) {
@@ -233,18 +233,21 @@ class SubagentDispatchService private constructor(private val context: Context) 
             val action = param("action") ?: "delegate"
             val result = when (action) {
                 "delegate" -> {
-                    // 新一轮委派意味着父代理重新开始工作，清空上一次的轮询计数。
-                    idleStatusPollsByChatId.clear()
-                    lastStatusFingerprintByChatId.clear()
+                    val parentChatId = ChatHistoryManager.getInstance(context).currentChatIdFlow.first()
+                    // 新一轮委派意味着本会话父代理重新开始工作，只清本会话的轮询计数。
+                    // 清全部会话的 map 会连带抹掉其它会话的防轮询进度，让那边的
+                    // status 空转重新获得配额。
+                    if (parentChatId != null) {
+                        idleStatusPollsByChatId.remove(parentChatId)
+                        lastStatusFingerprintByChatId.remove(parentChatId)
+                    }
                     delegate(
-                        parentChatId = ChatHistoryManager.getInstance(context).currentChatIdFlow.first(),
+                        parentChatId = parentChatId,
                         toolTitle = param("tool_title"),
                         task = param("task"),
                         agentName = param("agent"),
                         contextText = param("context"),
-                        // 工具语义为「不指定 wait 即同步执行，等待自然返回」；
-                        // 显式传 wait=false 才进入后台多路并行模式。
-                        wait = param("wait")?.lowercase()?.toBooleanStrictOrNull() ?: true,
+                        wait = parseWait(param("wait")),
                         progressReport = param("progress_report"),
                     )
                 }
@@ -270,6 +273,20 @@ class SubagentDispatchService private constructor(private val context: Context) 
 
     private fun failed(tool: AITool, message: String): ToolResult =
         ToolResult(toolName = tool.name, success = false, result = StringResultData(""), error = message)
+
+    /**
+     * 解析 `wait` 参数。
+     *
+     * 语义是「不传即同步执行，显式后台才异步」，所以缺省为 true。但模型经常写
+     * `0`/`no`/`off` 这类等价写法，直接 `toBooleanStrictOrNull() ?: true` 会把它们
+     * 静默当成同步，用户看到的是「说了后台却卡住」。这里按常见写法归一，
+     * 无法识别的值才回落缺省语义。
+     */
+    private fun parseWait(raw: String?): Boolean {
+        val text = raw?.trim()?.lowercase() ?: return true
+        if (text.isEmpty()) return true
+        return text !in setOf("false", "0", "no", "off", "n")
+    }
 
     // ============ delegate ============
 
@@ -380,10 +397,10 @@ class SubagentDispatchService private constructor(private val context: Context) 
             val outcome = cancelledOutcome()
             // 阻塞委派可能正 await 同一 deferred；不 complete 会永久挂起。
             handle.deferred.complete(outcome)
-            registry.finish(job.jobId, AgentJobRegistry.Status.CANCELLED, outcome.summary, null)
             if (notifyParent && job.parentChatId != null) {
                 deliverToParent(job.jobId, outcome)
             }
+            finishAndDrain(job.jobId, AgentJobRegistry.Status.CANCELLED, outcome.summary, null)
             return
         }
         // 执行协程以 handle.job 为父，cancel 动作才能穿透到挂起的 deferred.await()。
@@ -395,10 +412,10 @@ class SubagentDispatchService private constructor(private val context: Context) 
                 // 取消时 runSubtask 不会走成功分支，必须在这里完成 deferred，
                 // 否则 wait=true 的委派会永远停在 await，工具调用无法返回。
                 handle.deferred.complete(cancelled)
-                registry.finish(job.jobId, AgentJobRegistry.Status.CANCELLED, cancelled.summary, null)
                 if (notifyParent && job.parentChatId != null) {
                     deliverToParent(job.jobId, cancelled)
                 }
+                finishAndDrain(job.jobId, AgentJobRegistry.Status.CANCELLED, cancelled.summary, null)
                 throw error
             } catch (error: Exception) {
                 AppLogger.e(TAG, "子任务执行体异常 job=${job.jobId}", error)
@@ -414,7 +431,7 @@ class SubagentDispatchService private constructor(private val context: Context) 
                 )
                 // 同上：异常路径也必须唤醒阻塞委派，避免工具调用永久等待。
                 handle.deferred.complete(outcome)
-                registry.finish(job.jobId, AgentJobRegistry.Status.FAILED, outcome.summary, null)
+                finishAndDrain(job.jobId, AgentJobRegistry.Status.FAILED, outcome.summary, null)
                 outcome
             }
 
@@ -424,16 +441,32 @@ class SubagentDispatchService private constructor(private val context: Context) 
             }
 
             // 槽位释放后按 FIFO 启动排队任务。
-            // 排队任务的 notifyParentOnFinish 在 register 时已确定（阻塞委派=false，
-            // 后台=true）。统一传 true 会让排队的阻塞委派在工具结果之外再投递一次。
-            registry.finish(job.jobId, statusFor(outcome), outcome.summary, outcome.evidencePath)
-                .forEach { queuedJob ->
-                    launchRun(queuedJob, notifyParent = queuedJob.notifyParentOnFinish)
-                }
+            finishAndDrain(job.jobId, statusFor(outcome), outcome.summary, outcome.evidencePath)
         }
     }
 
-    /** 取消/异常收尾的统一结果，保证阻塞委派能拿到一个明确终态。 */
+    /**
+     * 结束任务并启动因此获得槽位的排队任务。
+     *
+     * 所有终态路径（正常完成、取消竞态、协程取消、执行异常）都必须走这里。
+     * [AgentJobRegistry.finish] 会把出队任务标记为 RUNNING 并占住槽位，若调用方
+     * 丢弃它的返回值，那个任务没有任何执行体在跑：`wait=true` 的委派永久停在
+     * `await()`，`wait=false` 的任务永远显示 RUNNING，且槽位不释放会让同配置后续
+     * 委派全部排队。把「结束 + 消费队列」收敛到一处，避免某条异常分支又漏掉。
+     */
+    private fun finishAndDrain(
+        jobId: String,
+        status: AgentJobRegistry.Status,
+        summary: String?,
+        outcomePath: String?,
+    ) {
+        registry.finish(jobId, status, summary, outcomePath).forEach { queued ->
+            // 排队任务的 notifyParentOnFinish 在 register 时已确定（阻塞委派=false，
+            // 后台=true）。统一传 true 会让排队的阻塞委派在工具结果之外再投递一次。
+            launchRun(queued, notifyParent = queued.notifyParentOnFinish)
+        }
+    }
+
     /** 取消/异常收尾的统一结果，保证阻塞委派能拿到一个明确终态。 */
     private fun cancelledOutcome(): SubagentOutcome =
         SubagentOutcome(
@@ -1016,10 +1049,15 @@ class SubagentDispatchService private constructor(private val context: Context) 
             profileName = job.profileName,
             toolTitle = job.toolTitle,
             snapshot = job.snapshot,
+            notifyParentOnFinish = job.notifyParentOnFinish,
             // 重放必须沿用原任务的模型绑定，否则并发分道与模型口径都会漂移到
             // 当前档案/会话状态，和原任务不再是同一件事。
             modelConfigId = job.modelConfigId,
             modelIndex = job.modelIndex,
+            // 模型名与上下文上限同样沿袭：否则 resume 后的详情卡片会从
+            // 「配置名 · 模型名 + 上下文进度」退化成空白，与实际执行不一致。
+            modelLabel = job.modelLabel,
+            contextLimitTokens = job.contextLimitTokens,
         )
         // 并发满时 resume 也允许——入队等待，由槽位释放自动启动。
         if (hasSlot) {

@@ -259,7 +259,9 @@ class CustomXmlRenderer(
      * 只处理 tool 标签（子代理/工具调用场景），其他标签原样返回单元素。
      */
     private fun splitConcatenatedToolBlocks(content: String): List<String> {
-        val starts = Regex("<tool[A-Za-z0-9_]*\\b", RegexOption.IGNORE_CASE)
+        // 只按「工具调用块」切分：<tool_xxx> 是模型生成的调用，<tool_result> 是宿主
+        // 回填的结果块，必须排除——否则结果块会被当成新块起点，内容被拆散。
+        val starts = Regex("<tool(?!_result\\b)[A-Za-z0-9_]*\\b", RegexOption.IGNORE_CASE)
             .findAll(content)
             .map { it.range.first }
             .toList()
@@ -280,34 +282,52 @@ class CustomXmlRenderer(
     }
 
     /**
-     * 解析子代理委派调用的 (tool_title, agent)。
+     * 子代理委派的识别参数：(tool_title, agent, task)。
      * 直接调用取 param 节点；package_proxy/proxy 取内层 tool_name 与 params JSON。
      * 返回 null 表示这不是子代理委派。
+     *
+     * task 一并取出是为了让运行卡片能精确匹配到本次任务：并行委派常常共用同一个
+     * tool_title，只按标题匹配会让多张卡片显示同一个任务。
      */
-    private fun resolveSubagentDelegateParams(content: String, rawToolName: String): Pair<String?, String?>? {
+    private data class SubagentDelegateParams(
+        val toolTitle: String?,
+        val agentName: String?,
+        val task: String?,
+    )
+
+    private fun resolveSubagentDelegateParams(
+        content: String,
+        rawToolName: String,
+    ): SubagentDelegateParams? {
         fun paramOf(name: String): String? =
             Regex("name=\"" + name + "\"\\s*>([^<]*)</param>")
                 .find(content)?.groupValues?.get(1)?.trim()?.takeIf { it.isNotBlank() }
 
         if (rawToolName == "subagent:subagent_run") {
-            return Pair(paramOf("tool_title"), paramOf("agent"))
+            return SubagentDelegateParams(
+                toolTitle = paramOf("tool_title"),
+                agentName = paramOf("agent"),
+                task = paramOf("task"),
+            )
         }
         if (rawToolName != "package_proxy" && rawToolName != "proxy") return null
 
         val targetName = paramOf("tool_name") ?: return null
         if (targetName != "subagent:subagent_run") return null
 
-        val paramsRaw = paramOf("params") ?: return Pair(null, null)
+        val paramsRaw = paramOf("params")
+            ?: return SubagentDelegateParams(toolTitle = null, agentName = null, task = null)
         val decoded = paramsRaw
             .replace("&quot;", "\"")
             .replace("&amp;", "&")
             .replace("&lt;", "<")
             .replace("&gt;", ">")
         val json = runCatching { org.json.JSONObject(decoded) }.getOrNull()
-            ?: return Pair(null, null)
-        return Pair(
-            json.optString("tool_title").takeIf { it.isNotBlank() },
-            json.optString("agent").takeIf { it.isNotBlank() },
+            ?: return SubagentDelegateParams(toolTitle = null, agentName = null, task = null)
+        return SubagentDelegateParams(
+            toolTitle = json.optString("tool_title").takeIf { it.isNotBlank() },
+            agentName = json.optString("agent").takeIf { it.isNotBlank() },
+            task = json.optString("task").takeIf { it.isNotBlank() },
         )
     }
 
@@ -1178,8 +1198,9 @@ class CustomXmlRenderer(
         val subagentParams = resolveSubagentDelegateParams(content, renderState.rawToolName)
         if (subagentParams != null) {
             SubagentRunLiveCard(
-                toolTitle = subagentParams.first,
-                agentName = subagentParams.second,
+                toolTitle = subagentParams.toolTitle,
+                agentName = subagentParams.agentName,
+                taskText = subagentParams.task,
                 modifier = modifier,
                 textColor = textColor,
                 enableDialogs = enableDialogs

@@ -38,7 +38,7 @@ handler.registerTool(
 
 ### 提示词分类
 
-`SystemToolPromptsInternal` 中英各加一个分类：`Subagent Tools` / `子代理工具`。参数 schema 覆盖 `tool_title`/`action`/`task`/`agent`/`context`/`wait`/`progress_report`/`job_id`/`message`/`child_session_id`。
+`SystemToolPromptsInternal` 中英各加一个分类：`Subagent Tools` / `子代理工具`。参数 schema 覆盖 `tool_title`/`action`/`task`/`agent`/`context`/`wait`/`progress_report`/`job_id`/`message`。
 
 `details` 必须写明：`wait=false` 后要结束回合、不要 sleep/轮询、只有用户明确要进度时才用 `status`。
 

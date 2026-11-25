@@ -251,11 +251,16 @@ fun RenderSubagentRun(
  *
  * 工具请求行在子任务结束前只有请求没有结果；无匹配任务时直接不渲染，
  * 由后续的 tool_result 卡片承接结果，避免留下「执行中 已执行 0/0」的空壳。
+ *
+ * 匹配口径：只靠 tool_title 不够——两路并行委派用同一个标题时，两张卡片会显示
+ * 同一个任务。这里追加档案名与任务正文做联合匹配；任务正文是 delegate 的必填
+ * 参数，实际并行的两路几乎不可能完全一致。
  */
 @Composable
 fun SubagentRunLiveCard(
     toolTitle: String?,
     agentName: String?,
+    taskText: String?,
     modifier: Modifier = Modifier,
     textColor: Color,
     enableDialogs: Boolean
@@ -264,17 +269,31 @@ fun SubagentRunLiveCard(
     val service = remember { SubagentDispatchService.getInstance(context) }
     val jobs by service.jobsFlow.collectAsState()
 
-    // 匹配本次委派：标题非空时必须精确匹配——多路并行时回退到「最近任务」
-    // 会让每张卡片显示同一个任务的信息。
-    // 仅当调用方拿不到标题（直接调用未传 tool_title）时才退到最近创建的未结束任务。
-    val job = remember(jobs, toolTitle) {
+    // 匹配本次委派。多路并行时任何「回退到最近任务」都会让每张卡片显示同一个
+    // 任务，因此必须全部条件命中：
+    //   tool_title 必填，精确匹配；
+    //   agent 在模型显式指定时比对档案名快照；
+    //   task 正文由函数调用参数带入，两路并行委派的任务描述极少完全相同。
+    // 三者都不足以区分时（调用方拿不到参数）才退到最近创建的未结束任务。
+    val job = remember(jobs, toolTitle, agentName, taskText) {
         val active = jobs.filter {
             it.status == AgentJobRegistry.Status.RUNNING || it.status == AgentJobRegistry.Status.QUEUED
         }
         if (toolTitle.isNullOrBlank()) {
             active.lastOrNull()
         } else {
-            active.firstOrNull { it.toolTitle == toolTitle }
+            val sameTitle = active.filter { it.toolTitle == toolTitle }
+            val sameAgent = if (agentName.isNullOrBlank()) {
+                sameTitle
+            } else {
+                sameTitle.filter { it.profileName == agentName }
+            }
+            if (taskText.isNullOrBlank()) {
+                sameAgent.firstOrNull()
+            } else {
+                sameAgent.firstOrNull { it.snapshot.task == taskText }
+                    ?: sameAgent.firstOrNull()
+            }
         }
     }
 

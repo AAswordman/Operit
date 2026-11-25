@@ -10,8 +10,11 @@ import org.json.JSONObject
 class SubtaskExecutionState(
     /**
      * 工具调用上限。[Int.MAX_VALUE] 表示不限制。
-     * 子代理不应有工具次数配额；运行时长由用户 cancel 或自然结束控制，
-     * 这里保留参数只为兼容宿主调用形态。
+     *
+     * 曾有过 `1..64` 的硬上限，作为「子任务不会无限跑」的宿主侧安全网。放宽为
+     * `>= 1` 后该安全网对所有调用方都失效：额度现在完全由调用方自担，传多少就是多少。
+     * 子代理传 [Int.MAX_VALUE]（无配额语义，运行时长由用户 cancel 或自然结束控制）；
+     * 其它调用方若需要防跑飞，应自行传入合适上限。
      */
     val maxToolCalls: Int = Int.MAX_VALUE,
     private val onToolResult: (String) -> Unit = {},

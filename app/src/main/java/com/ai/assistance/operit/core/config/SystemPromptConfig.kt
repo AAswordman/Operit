@@ -264,7 +264,7 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
       """
       Call contract:
       - This is a built-in host tool; never call `use_package` for it.
-      - If your tool list does not expose `subagent:subagent_run`, forward it through `package_proxy`: tool_name=`subagent:subagent_run`, params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}.
+      - If your tool list does not expose `subagent:subagent_run`, forward it through `package_proxy`: tool_name=`subagent:subagent_run`, params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?}.
       - `tool_title` is required. `action` defaults to `delegate`; `task` is required for delegate.
       - `wait` defaults to true (synchronous: the tool result is the final report). Set `wait=false` for background; each finished task is delivered to this chat separately.
       """.trimIndent()
@@ -272,7 +272,7 @@ AVAILABLE_TOOLS_SECTION""".trimIndent()
       """
       调用约定：
       - 这是宿主内置工具，不要用 `use_package` 激活任何包。
-      - 如果工具列表没有直接暴露 `subagent:subagent_run`，通过 `package_proxy` 转发：tool_name=`subagent:subagent_run`，params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?, child_session_id?}。
+      - 如果工具列表没有直接暴露 `subagent:subagent_run`，通过 `package_proxy` 转发：tool_name=`subagent:subagent_run`，params={tool_title, action, task, agent?, context?, wait?, progress_report?, job_id?, message?}。
       - `tool_title` 必填；`action` 默认 delegate；delegate 时 `task` 必填。
       - `wait` 默认 true（同步：工具结果即最终报告）；后台执行传 `wait=false`，每个任务完成后分别投递回本会话。
       """.trimIndent()

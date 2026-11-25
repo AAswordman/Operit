@@ -133,6 +133,15 @@ class AgentJobRegistry {
         /** 把配置值归一为实际并行上限：0 或负数按 [DEFAULT_CONCURRENT] 处理。 */
         fun normalizeConcurrency(configured: Int): Int =
             if (configured <= 0) DEFAULT_CONCURRENT else configured
+
+        /**
+         * 实时时间线保留的工具记录条数上限。
+         *
+         * 时间线只是「运行中详情」的展示数据，`executedToolCalls` 才是真实计数；
+         * 长任务动辄数百次工具调用，无界追加会让每次 publish 都是 O(n) 复制、
+         * 累计 O(n²)。超出后丢弃最旧的记录，完整账本以证据归档为准。
+         */
+        const val MAX_TOOL_RECORDS = 200
     }
 
     /**
@@ -277,14 +286,21 @@ class AgentJobRegistry {
     /**
      * 记录一次工具结果：追加时间线、更新计数与最近工具。
      * 运行中详情需要逐条工具记录（不只是计数），数据来自宿主账本回调。
+     * 时间线按 [MAX_TOOL_RECORDS] 封顶，只保留最近若干条；[executedToolCalls]
+     * 仍是真实总数，完整账本见证据归档。
      */
     fun recordToolResult(jobId: String, record: ToolRecord) = synchronized(lock) {
         val job = jobs[jobId] ?: return@synchronized
+        val timeline = if (job.toolRecords.size < MAX_TOOL_RECORDS) {
+            job.toolRecords + record
+        } else {
+            job.toolRecords.subList(job.toolRecords.size - MAX_TOOL_RECORDS + 1, job.toolRecords.size) + record
+        }
         jobs[jobId] = job.copy(
             lastToolName = record.toolName,
             lastActivityAt = record.at,
             executedToolCalls = job.executedToolCalls + 1,
-            toolRecords = job.toolRecords + record,
+            toolRecords = timeline,
         )
         publish()
     }

@@ -226,6 +226,84 @@ class AgentJobRegistryTest {
     }
 
     @Test
+    fun `finish returns every drained job so the caller can start it`() {
+        val registry = AgentJobRegistry()
+        registry.setConcurrencyLimit("cfg", 2)
+
+        val (a, _) = register(registry, "a", "cfg")
+        val (b, _) = register(registry, "b", "cfg")
+        val (c, _) = register(registry, "c", "cfg")
+        val (d, _) = register(registry, "d", "cfg")
+
+        // 上限 2：a、b 在跑，c、d 排队。结束 a 后只应放出 c；
+        // 结束 b 后放出 d。若调用方丢弃 finish 的返回值，被放出的任务
+        // 会停在 RUNNING 且永久占用槽位——这是评审 P1 的根因。
+        val first = registry.finish(a.jobId, AgentJobRegistry.Status.CANCELLED, null, null)
+        assertEquals(listOf(c.jobId), first.map { it.jobId })
+        assertEquals(AgentJobRegistry.Status.RUNNING, registry.get(c.jobId)?.status)
+
+        // 被放出的任务确实「被期待启动」：isRunning 为真，且句柄仍在，
+        // 调用方一旦丢弃它就会留下一个永不 complete 的 deferred。
+        assertTrue(registry.isRunning(c.jobId))
+        assertNotNull(registry.findHandle(c.jobId))
+        assertFalse(registry.findHandle(c.jobId)!!.deferred.isCompleted)
+
+        val second = registry.finish(b.jobId, AgentJobRegistry.Status.FAILED, null, null)
+        assertEquals(listOf(d.jobId), second.map { it.jobId })
+    }
+
+    @Test
+    fun `a drained job keeps its own notifyParentOnFinish`() {
+        val registry = AgentJobRegistry()
+        registry.setConcurrencyLimit("cfg", 1)
+
+        register(registry, "running", "cfg")
+        val (queuedBlocking, _) = register(
+            registry, "queued-sync", "cfg", notifyParentOnFinish = false,
+        )
+
+        val started = registry.finish(
+            registry.all().first { it.status == AgentJobRegistry.Status.RUNNING }.jobId,
+            AgentJobRegistry.Status.DONE,
+            null,
+            null,
+        )
+
+        // 出队报告必须带着各自的值，调用方据此决定是否投递。
+        assertEquals(listOf(queuedBlocking.jobId), started.map { it.jobId })
+        assertFalse(started.single().notifyParentOnFinish)
+    }
+
+    @Test
+    fun `tool record timeline is bounded while the counter stays exact`() {
+        val registry = AgentJobRegistry()
+        val (job, _) = register(registry, "long run", "cfg")
+
+        val total = AgentJobRegistry.MAX_TOOL_RECORDS + 25
+        repeat(total) { i ->
+            registry.recordToolResult(
+                job.jobId,
+                AgentJobRegistry.ToolRecord(
+                    id = "rec-$i",
+                    toolName = "tool_$i",
+                    success = true,
+                    executed = true,
+                    resultTruncated = false,
+                    error = null,
+                    at = i.toLong(),
+                ),
+            )
+        }
+
+        val updated = registry.get(job.jobId)!!
+        // 真实计数不受封顶影响。
+        assertEquals(total, updated.executedToolCalls)
+        // 时间线只保留最近 N 条，避免长任务的 O(n²) 复制。
+        assertEquals(AgentJobRegistry.MAX_TOOL_RECORDS, updated.toolRecords.size)
+        assertEquals("rec-${total - 1}", updated.toolRecords.last().id)
+    }
+
+    @Test
     fun `completable deferred import is used`() {
         // 明确断言我们用的是 kotlinx 的 CompletableDeferred，避免后续误替换为其他实现。
         val deferred = CompletableDeferred<String>()

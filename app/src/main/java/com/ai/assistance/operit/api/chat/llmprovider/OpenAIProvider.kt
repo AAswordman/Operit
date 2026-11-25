@@ -2126,14 +2126,87 @@ open class OpenAIProvider(
 
         for (index in indices) {
             closeToolCallIfOpen(index, state, emitter)
-            val buffer = state.toolCallState.xmlBuffers[index] ?: continue
-            if (buffer.isNotEmpty()) {
-                val block = buffer.toString()
-                emitter.emitTag(block)
-                tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(block))
-                buffer.setLength(0)
-            }
+            emitBufferedToolBlock(index, state, emitter)
         }
+    }
+
+    /**
+     * 异常/取消收尾：只落盘参数已完整的工具块。
+     *
+     * 与 [closeAllOpenToolCalls] 的区别是不再补 `</param></tool_xxx>`：中断时参数多半只到一半，
+     * 补齐会产出一个「看起来合法、实际被截断」的调用，执行层会拿残缺参数真的去执行。
+     * 完整块（解析器无未完成参数）照常落盘；其余记日志说明丢弃，避免静默消失。
+     */
+    private suspend fun flushCompleteToolBuffersOnAbort(
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val indices = state.toolCallState.xmlBuffers.keys.sorted()
+        for (index in indices) {
+            val parser = state.toolCallState.getParser(index)
+            if (parser.hasUnfinishedParam()) {
+                val dropped = state.toolCallState.xmlBuffers[index]?.length ?: 0
+                AppLogger.w(
+                    "AIService",
+                    "流中断时丢弃未完成的工具调用：index=$index buffered=$dropped，参数未收全不执行"
+                )
+                state.toolCallState.xmlBuffers[index]?.setLength(0)
+                continue
+            }
+            closeToolCallIfOpen(index, state, emitter)
+            emitBufferedToolBlock(index, state, emitter)
+        }
+    }
+
+    /** 把某个 index 已收齐的缓冲块整体发射出去（幂等：发完即清空）。 */
+    private suspend fun emitBufferedToolBlock(
+        index: Int,
+        state: StreamingState,
+        emitter: StreamEmitter
+    ) {
+        val buffer = state.toolCallState.xmlBuffers[index] ?: return
+        if (buffer.isEmpty()) return
+        val block = buffer.toString()
+        emitter.emitTag(block)
+        tokenCacheManager.addOutputTokens(ChatUtils.estimateTokenCount(block))
+        buffer.setLength(0)
+    }
+
+    /**
+     * Chat Completions 响应中供应商扩展字段（如 DeepSeek 联网搜索的 annotations / server_tool_calls）
+     * 的展示钩子：返回 <search> 展示块 XML，无则返回 null；由基类负责在内容流中落位。
+     * 流式下这些字段只随最后一个 delta chunk 发送一次，非流式附在 message 上。
+     */
+    protected open fun chatCompletionWebSearchDisplayXml(extras: JSONObject): String? = null
+
+    /**
+     * 需持久化进会话历史的回传载荷 meta 标签（如 DeepSeek server_tool_calls），
+     * 由基类经 emitMetadataTag 独占一行写入内容流。
+     */
+    protected open fun chatCompletionWebSearchReplayMetaTag(extras: JSONObject): String? = null
+
+    private suspend fun emitChatCompletionWebSearchExtras(
+        extras: JSONObject,
+        emitter: StreamEmitter
+    ) {
+        chatCompletionWebSearchDisplayXml(extras)?.let { displayXml ->
+            emitter.emitTag("\n")
+            emitter.emitTag(displayXml)
+            emitter.emitTag("\n\n")
+        }
+        chatCompletionWebSearchReplayMetaTag(extras)?.let { metaTag ->
+            emitter.emitMetadataTag(metaTag)
+        }
+    }
+
+    private fun chatCompletionExtrasFrom(messageOrDelta: JSONObject): JSONObject? {
+        if (!messageOrDelta.has("annotations") && !messageOrDelta.has("server_tool_calls")) {
+            return null
+        }
+        val extras = JSONObject()
+        messageOrDelta.optJSONArray("annotations")?.let { extras.put("annotations", it) }
+        messageOrDelta.optJSONArray("server_tool_calls")?.let { extras.put("server_tool_calls", it) }
+        return if (extras.length() > 0) extras else null
     }
 
     protected open fun formatResponsesWebSearchDisplayXml(
@@ -3234,6 +3307,11 @@ open class OpenAIProvider(
             }
         } finally {
             runCatching { flushImageBuffers(state, emitter) }
+            // 评审 P2：并行 tool_calls 改为流结束才落盘后，异常/取消路径也必须收尾缓冲。
+            // 正常收尾（[DONE] / finish_reason / response.completed）已经落过盘，此时缓冲区为空；
+            // 网络中断时参数可能只到一半，因此只落「参数已完整」的块，
+            // 半截的既不发（会让执行层拿到截断参数）也不静默吞掉——记一条日志说明丢弃。
+            runCatching { flushCompleteToolBuffersOnAbort(state, emitter) }
             // 确保 reader 被关闭
             try {
                 reader.close()

@@ -457,11 +457,28 @@ class MessageCoordinationDelegate(
                     // 直接等会话离开 activeStreamingChatIds（该集合正是各会话 isLoading
                     // 的派生值），既无时序竞态，也没有放弃阈值：长回合会一直等下去，
                     // 用户取消会让会话离开该集合而自然退出。
-                    withTimeoutOrNull(WAKEUP_MAX_WAIT_MS) {
-                        messageProcessingDelegate.activeStreamingChatIds.first { chatIds ->
-                            chatId !in chatIds
+                    //
+                    // 超时只用来周期性复查，不作为放弃依据：sendUserMessage 在会话仍
+                    // loading 时会静默丢弃（MessageProcessingDelegate 的日志分支），
+                    // 超时后照旧派发等于把唤醒丢掉——而这正是本函数要解决的问题。
+                    // 因此超时后继续等待，直到会话真正空闲。
+                    while (true) {
+                        val idle = withTimeoutOrNull(WAKEUP_MAX_WAIT_MS) {
+                            messageProcessingDelegate.activeStreamingChatIds.first { chatIds ->
+                                chatId !in chatIds
+                            }
+                            true
+                        } ?: false
+                        if (idle) break
+                        if (pendingWakeupByChatId[chatId] !== request) {
+                            AppLogger.d(TAG, "唤醒已被更新的请求取代，跳过: chatId=$chatId")
+                            return@launch
                         }
-                    } ?: AppLogger.w(TAG, "等待会话空闲超时，仍将继续派发唤醒: chatId=$chatId")
+                        AppLogger.w(
+                            TAG,
+                            "等待会话空闲已超过 ${WAKEUP_MAX_WAIT_MS}ms，继续等待（不丢弃唤醒）: chatId=$chatId"
+                        )
+                    }
                     if (pendingWakeupByChatId[chatId] !== request) {
                         AppLogger.d(TAG, "唤醒已被更新的请求取代，跳过: chatId=$chatId")
                         return@launch
