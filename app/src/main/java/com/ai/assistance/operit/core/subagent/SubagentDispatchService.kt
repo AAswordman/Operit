@@ -277,15 +277,24 @@ class SubagentDispatchService private constructor(private val context: Context) 
     /**
      * 解析 `wait` 参数。
      *
-     * 语义是「不传即同步执行，显式后台才异步」，所以缺省为 true。但模型经常写
+     * 语义是「不传即同步执行，显式后台才异步」，所以缺省为 true。模型常写
      * `0`/`no`/`off` 这类等价写法，直接 `toBooleanStrictOrNull() ?: true` 会把它们
-     * 静默当成同步，用户看到的是「说了后台却卡住」。这里按常见写法归一，
-     * 无法识别的值才回落缺省语义。
+     * 静默当成同步，用户看到的是「说了后台却卡住」。
+     *
+     * 只接受明确列出的真假写法；其它值直接报错而不是回落缺省——把 `"maybe"` 静默
+     * 当成同步执行，正是本参数最初要修的那类问题，不能再用一次默认值掩盖过去。
      */
     private fun parseWait(raw: String?): Boolean {
-        val text = raw?.trim()?.lowercase() ?: return true
-        if (text.isEmpty()) return true
-        return text !in setOf("false", "0", "no", "off", "n")
+        val text = raw?.trim()?.lowercase()
+        if (text.isNullOrEmpty()) return true
+        return when (text) {
+            "true", "1", "yes", "on", "y" -> true
+            "false", "0", "no", "off", "n" -> false
+            else -> throw IllegalArgumentException(
+                "wait must be a boolean (true/false); got '$raw'. " +
+                    "Omit wait for synchronous execution, or pass wait=false for background.",
+            )
+        }
     }
 
     // ============ delegate ============
