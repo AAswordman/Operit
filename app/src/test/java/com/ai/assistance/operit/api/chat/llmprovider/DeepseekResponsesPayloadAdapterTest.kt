@@ -175,6 +175,58 @@ class DeepseekResponsesPayloadAdapterTest {
         assertEquals(true, serialized.contains("答案在这里。"))
     }
 
+    /**
+     * 闭环回归：用真实的 server_tool_calls 载荷走一遍「写入 meta → 读回」，
+     * 证明剥离修复没有顺手破坏 Chat Completions 侧的回传能力。
+     *
+     * 单测只能覆盖到这一层；真实请求（能否 200、`<search>` 是否渲染）
+     * 需要可用的 DeepSeek 联网搜索额度，本地无法完成。
+     */
+    @Test
+    fun `chat completions meta round trip still decodes server tool calls`() {
+        val serverToolCalls =
+            JSONArray().put(
+                JSONObject()
+                    .put("role", "assistant")
+                    .put(
+                        "calls",
+                        JSONArray().put(
+                            JSONObject()
+                                .put("kind", "search")
+                                .put(
+                                    "action",
+                                    JSONObject()
+                                        .put("type", "search")
+                                        .put("queries", JSONArray().put("Kotlin 协程"))
+                                )
+                        )
+                    )
+            )
+        // 与 DeepseekProvider.chatCompletionWebSearchReplayMetaTag 相同的编码方式
+        val base64 =
+            java.util.Base64.getEncoder()
+                .encodeToString(serverToolCalls.toString().toByteArray(Charsets.UTF_8))
+        val content = "答案在这里。${ChatMarkupRegex.deepseekServerToolCallsMetaTag(base64)}"
+
+        // 1) Chat Completions 重建历史时能取回载荷
+        val payloads = ChatMarkupRegex.extractDeepseekServerToolCallsPayloads(content)
+        assertEquals(1, payloads.size)
+        val decoded = JSONArray(String(java.util.Base64.getDecoder().decode(payloads.single()), Charsets.UTF_8))
+        assertEquals(
+            "Kotlin 协程",
+            decoded.getJSONObject(0).getJSONArray("calls").getJSONObject(0)
+                .getJSONObject("action").getJSONArray("queries").getString(0)
+        )
+
+        // 2) Responses 转换链路把同一段内容剥干净，只留可见正文
+        val input = DeepseekResponsesPayloadAdapter.toResponsesRequest(
+            plainAssistantRequest(content)
+        ).getJSONArray("input").toString()
+        assertEquals(false, input.contains(base64))
+        assertEquals(false, input.contains("deepseek:server_tool_calls"))
+        assertEquals(true, input.contains("答案在这里。"))
+    }
+
     private fun plainAssistantRequest(assistantContent: String): JSONObject = JSONObject().apply {
         put(
             "messages",
