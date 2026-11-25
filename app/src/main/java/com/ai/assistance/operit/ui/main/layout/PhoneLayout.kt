@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -141,7 +142,11 @@ fun PhoneLayout(
         // 侧边栏相关拖拽状态
         var currentDrag by remember { mutableStateOf(0f) }
         var verticalDrag by remember { mutableStateOf(0f) }
-        val dragThreshold = 40f
+        // 阈值改用 dp：40f 是原始像素，高密度屏上比一个汉字还窄，轻微横划就会误触
+        val dragThreshold = with(LocalDensity.current) { 64.dp.toPx() }
+        // 只有从屏幕左边缘起手的手势才允许打开抽屉；48dp 覆盖全面屏返回手势区之外
+        val edgeOpenWidth = with(LocalDensity.current) { 48.dp.toPx() }
+        var dragStartedFromEdge by remember { mutableStateOf(false) }
 
         val drawerAppearance = rememberNavigationDrawerAppearance()
         val drawerShape =
@@ -159,6 +164,7 @@ fun PhoneLayout(
                         currentDrag += delta
 
                         if (!isDrawerOpen &&
+                                        dragStartedFromEdge &&
                                         currentDrag > dragThreshold &&
                                         Math.abs(currentDrag) > Math.abs(verticalDrag)
                         ) {
@@ -186,9 +192,11 @@ fun PhoneLayout(
                                 .draggable(
                                         state = draggableState,
                                         orientation = Orientation.Horizontal,
-                                        onDragStarted = {
+                                        onDragStarted = { startOffset ->
                                                 currentDrag = 0f
                                                 verticalDrag = 0f
+                                                dragStartedFromEdge =
+                                                        startOffset.x <= edgeOpenWidth
                                         },
                                         onDragStopped = {
                                                 currentDrag = 0f
