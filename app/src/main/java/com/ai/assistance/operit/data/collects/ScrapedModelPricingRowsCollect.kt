@@ -501,12 +501,13 @@ object ScrapedModelPricingRowsCollect {
         ALIYUN|wan2.6-i2v|COUNT|0|0|0|CNY
         ALIYUN|z-image-turbo|COUNT|0|0|0.1|CNY
         """.trimIndent(),
-        // Synced with DeepSeek official pricing on 2026-05-07.
+        // Synced with DeepSeek official pricing on 2026-11-22.
+        // deepseek-flash 由 DeepSeek-V4.1-Flash-1017 服务；deepseek-v4-flash 为仍可路由的旧名，按 Flash 价格计费。
+        // deepseek-chat / deepseek-reasoner 已退役，移除。官方仅公布 USD 定价，取高峰值。
         """
-        DEEPSEEK|deepseek-chat|TOKEN|1|2|0.02|CNY
-        DEEPSEEK|deepseek-reasoner|TOKEN|1|2|0.02|CNY
-        DEEPSEEK|deepseek-v4-flash|TOKEN|1|2|0.02|CNY
-        DEEPSEEK|deepseek-v4-pro|TOKEN|3|6|0.025|CNY
+        DEEPSEEK|deepseek-flash|TOKEN|0.3|1.2|0.006|USD
+        DEEPSEEK|deepseek-v4-pro|TOKEN|1.32|3.96|0.044|USD
+        DEEPSEEK|deepseek-v4-flash|TOKEN|0.3|1.2|0.006|USD
         """.trimIndent(),
         """
         DOUBAO|doubao-seed-1-6-250615|TOKEN|1.2|12|0|CNY
