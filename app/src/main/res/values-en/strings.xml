@@ -1579,6 +1579,7 @@
     <string name="data_recovery_configuration_directory_unreadable">The configuration directory cannot be read; source files were not modified</string>
     <string name="data_recovery_configuration_file_invalid_path">The configuration file path is invalid; the source file was not modified</string>
     <string name="data_recovery_configuration_file_corrupt">The configuration file cannot be read and can be reset after preserving the source</string>
+    <string name="data_recovery_configuration_file_domain_issue">Unexpected content in configuration file: %1$s; it can be repaired after preserving the original</string>
     <string name="data_recovery_configuration_file_check_failed">The configuration file check failed; the source file was not modified</string>
     <string name="data_recovery_configuration_files_ok">Checked %1$d configuration files; all are readable</string>
     <string name="data_recovery_configuration_no_supported_repair">The configuration report has no repair operation that can be executed safely</string>
@@ -5576,6 +5577,8 @@
     <string name="backup_format_html_desc">Web format, suitable for viewing in browsers</string>
     <string name="backup_format_txt">Plain Text</string>
     <string name="backup_format_txt_desc">Simple text format, easy to share</string>
+    <string name="backup_format_csv">CSV</string>
+    <string name="backup_format_csv_desc">Tabular format, suitable for data cleaning and migration</string>
     
     <!-- Import Format Selection -->
     <string name="backup_select_import_format">Select Import Format</string>
@@ -7375,6 +7378,9 @@
 
     <!-- ToolPermissionSystem -->
     <string name="tool_permission_operation">%1$s Operation</string>
+    <string name="tool_permission_execution_denied">Tool execution permission was denied.</string>
+    <string name="tool_permission_overlay_required_for_confirmation">Overlay permission is required to confirm tool execution.</string>
+    <string name="tool_permission_confirmation_timeout">Tool execution confirmation timed out.</string>
 
     <!-- MessageImageGenerator -->
     <string name="message_image_capture_failed">Image capture failed: %1$s</string>
@@ -8502,6 +8508,8 @@
     <string name="codex_usage_unavailable">Usage is temporarily unavailable</string>
     <string name="codex_reset_after_days">Resets in %1$d days</string>
     <string name="codex_reset_after_clock">Resets in %1$02d:%2$02d</string>
+    <!-- Annual report: accessibility description for the drawer entry badge -->
+    <string name="annual_report_entry_description">Open the %1$d annual report</string>
     <string name="conversation_media_file_link">&lt;link type=&quot;file&quot; id=&quot;%1$s&quot; filename=&quot;%2$s&quot;&gt;PDF&lt;/link&gt;</string>
 
     <string name="package_market_origin_title">External Package Source Notice</string>
