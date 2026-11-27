@@ -78,11 +78,10 @@ class InputController {
                 manager = cachedIm;
                 injectToTargetMethod = toTarget;
                 resolvedPath = "InputManagerGlobal.injectInputEventToTarget";
-            } catch (Exception ignored) {
-                // 回退到路径 2
+            } catch (Exception e) {
+                // 记录失败原因（含堆栈）后再回退路径 2，便于新系统 API 再次变动时排查
+                Main.logToFile("InputManagerGlobal path unavailable, falling back to legacy InputManager", e);
             }
-        } else {
-            resolvedPath = null;
         }
 
         if (injectToTargetMethod == null) {
