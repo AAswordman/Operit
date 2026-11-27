@@ -1,5 +1,6 @@
 package com.ai.assistance.shower;
 
+import android.os.Build;
 import android.os.SystemClock;
 import android.view.InputDevice;
 import android.view.InputEvent;
@@ -7,6 +8,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.util.Log;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Random;
 
@@ -40,32 +42,78 @@ class InputController {
     private final Object inputManager;
     private final Method injectInputEventMethod;
     private final Method setDisplayIdMethod;
+    private final Method injectInputEventToTargetMethod;
     private int displayId;
     private boolean touchActive;
     private long touchDownTime;
 
     InputController() {
-        try {
-            Class<?> clazz = Class.forName("android.hardware.input.InputManager");
-            Method getInstance = clazz.getDeclaredMethod("getInstance");
-            getInstance.setAccessible(true);
-            inputManager = getInstance.invoke(null);
+        // Android 16 (API 36) 移除了 InputManager.getInstance()，改用 InputManagerGlobal
+        // + IInputManager.injectInputEventToTarget(event, mode, displayId)。
+        // Android 17 (API 37) 同样没有回补旧 API，因此新版系统必须走新路径。
+        Object manager = null;
+        Method injectMethod = null;
+        Method injectToTargetMethod = null;
+        String resolvedPath = null;
 
-            injectInputEventMethod = clazz.getDeclaredMethod("injectInputEvent", InputEvent.class, int.class);
-            injectInputEventMethod.setAccessible(true);
-
-            Method m;
+        if (Build.VERSION.SDK_INT >= 36) {
+            // 路径 1：InputManagerGlobal.getInstance() -> mIm(缓存) -> IInputManager.injectInputEventToTarget
             try {
-                m = InputEvent.class.getMethod("setDisplayId", int.class);
-            } catch (NoSuchMethodException e) {
-                m = null;
+                Class<?> globalClass = Class.forName("android.hardware.input.InputManagerGlobal");
+                Method getInstance = globalClass.getDeclaredMethod("getInstance");
+                getInstance.setAccessible(true);
+                Object global = getInstance.invoke(null);
+
+                Field mImField = globalClass.getDeclaredField("mIm");
+                mImField.setAccessible(true);
+                Object cachedIm = mImField.get(global);
+                if (cachedIm == null) {
+                    throw new IllegalStateException("InputManagerGlobal.mIm is null");
+                }
+
+                Method toTarget = cachedIm.getClass().getDeclaredMethod(
+                        "injectInputEventToTarget", InputEvent.class, int.class, int.class);
+                toTarget.setAccessible(true);
+
+                manager = cachedIm;
+                injectToTargetMethod = toTarget;
+                resolvedPath = "InputManagerGlobal.injectInputEventToTarget";
+            } catch (Exception e) {
+                // 记录失败原因（含堆栈）后再回退路径 2，便于新系统 API 再次变动时排查
+                Main.logToFile("InputManagerGlobal path unavailable, falling back to legacy InputManager", e);
             }
-            setDisplayIdMethod = m;
-            displayId = 0;
-            Main.logToFile("InputController initialized, setDisplayIdMethod=" + (setDisplayIdMethod != null), null);
-        } catch (Exception e) {
-            throw new RuntimeException("Init InputController failed", e);
         }
+
+        if (injectToTargetMethod == null) {
+            // 路径 2（旧系统默认路径 / 新系统兜底）：InputManager.getInstance().injectInputEvent
+            try {
+                Class<?> clazz = Class.forName("android.hardware.input.InputManager");
+                Method getInstance = clazz.getDeclaredMethod("getInstance");
+                getInstance.setAccessible(true);
+                manager = getInstance.invoke(null);
+                injectMethod = clazz.getDeclaredMethod("injectInputEvent", InputEvent.class, int.class);
+                injectMethod.setAccessible(true);
+                resolvedPath = "InputManager.injectInputEvent";
+            } catch (Exception e) {
+                throw new RuntimeException("Init InputController failed", e);
+            }
+        }
+
+        inputManager = manager;
+        injectInputEventMethod = injectMethod;
+        injectInputEventToTargetMethod = injectToTargetMethod;
+
+        Method m;
+        try {
+            m = InputEvent.class.getMethod("setDisplayId", int.class);
+        } catch (NoSuchMethodException e) {
+            m = null;
+        }
+        setDisplayIdMethod = m;
+        displayId = 0;
+        Main.logToFile("InputController initialized, setDisplayIdMethod=" + (setDisplayIdMethod != null)
+                + ", path=" + resolvedPath
+                + ", sdk=" + Build.VERSION.SDK_INT, null);
     }
 
     void setDisplayId(int displayId) {
@@ -130,7 +178,13 @@ class InputController {
 
             boolean ok;
             try {
-                ok = (Boolean) injectInputEventMethod.invoke(inputManager, event, 0);
+                if (injectInputEventToTargetMethod != null) {
+                    // 新路径自带目标 displayId，无需依赖 InputEvent.setDisplayId
+                    ok = (Boolean) injectInputEventToTargetMethod.invoke(
+                            inputManager, event, 0, currentDisplayId);
+                } else {
+                    ok = (Boolean) injectInputEventMethod.invoke(inputManager, event, 0);
+                }
             } catch (java.lang.reflect.InvocationTargetException e) {
                 Throwable cause = e.getCause();
                 if (cause instanceof SecurityException) {
